@@ -1,0 +1,21 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# Dataset cache produced by sklbench
+data_cache/
+
+# Temporary benchmark output files (not persisted)
+result_*.json
+report_*.xlsx
