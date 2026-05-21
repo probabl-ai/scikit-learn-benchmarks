@@ -1,0 +1,112 @@
+{
+    "PARAMETERS_SETS": {
+        "common": {
+            "algorithm": {
+                "library": ["sklearn", "sklearnex"],
+                "device": "cpu",
+                "sklearn_context": { "assume_finite": true }
+            },
+            "bench": { "n_runs": 10, "time_limit": 120 }
+        },
+        "classification data small": {
+            "data": {
+                "source": "make_classification",
+                "generation_kwargs": {
+                    "n_classes": 2,
+                    "n_samples": 10000,
+                    "n_features": 20,
+                    "n_informative": 10,
+                    "random_state": 42
+                },
+                "split_kwargs": { "test_size": 0.2, "random_state": 42 }
+            }
+        },
+        "classification data large": {
+            "data": {
+                "source": "make_classification",
+                "generation_kwargs": {
+                    "n_classes": 2,
+                    "n_samples": 100000,
+                    "n_features": 20,
+                    "n_informative": 10,
+                    "random_state": 42
+                },
+                "split_kwargs": { "test_size": 0.2, "random_state": 42 }
+            }
+        },
+        "regression data small": {
+            "data": {
+                "source": "make_regression",
+                "generation_kwargs": {
+                    "n_samples": 10000,
+                    "n_features": 20,
+                    "n_informative": 10,
+                    "noise": 0.1,
+                    "random_state": 42
+                },
+                "split_kwargs": { "test_size": 0.2, "random_state": 42 }
+            }
+        },
+        "regression data large": {
+            "data": {
+                "source": "make_regression",
+                "generation_kwargs": {
+                    "n_samples": 100000,
+                    "n_features": 20,
+                    "n_informative": 10,
+                    "noise": 0.1,
+                    "random_state": 42
+                },
+                "split_kwargs": { "test_size": 0.2, "random_state": 42 }
+            }
+        },
+        "random forest": {
+            "algorithm": {
+                "estimator": "RandomForestClassifier",
+                "estimator_params": {
+                    "n_estimators": 100,
+                    "max_depth": 10,
+                    "random_state": 42
+                }
+            }
+        },
+        "logistic regression": {
+            "algorithm": {
+                "estimator": "LogisticRegression",
+                "estimator_params": {
+                    "max_iter": 1000,
+                    "random_state": 42
+                }
+            }
+        },
+        "ridge regression": {
+            "algorithm": {
+                "estimator": "Ridge",
+                "estimator_params": {
+                    "alpha": 1.0
+                },
+                "estimator_methods": { "inference": "predict" }
+            }
+        }
+    },
+    "TEMPLATES": {
+        "random_forest_small": {
+            "SETS": ["common", "classification data small", "random forest"]
+        },
+        "random_forest_large": {
+            "SETS": ["common", "classification data large", "random forest"]
+        },
+        "logistic_regression_small": {
+            "SETS": ["common", "classification data small", "logistic regression"]
+        },
+        "logistic_regression_large": {
+            "SETS": ["common", "classification data large", "logistic regression"]
+        },
+        "ridge_regression_small": {
+            "SETS": ["common", "regression data small", "ridge regression"]
+        },
+        "ridge_regression_large": {
+            "SETS": ["common", "regression data large", "ridge regression"]
+        }
+    }
+}

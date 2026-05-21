@@ -1,0 +1,63 @@
+name: Benchmarks
+
+on:
+  schedule:
+    # Run every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  push:
+    branches:
+      - main
+    paths:
+      - "configs/**"
+      - "envs/**"
+      - ".github/workflows/benchmarks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-benchmarks:
+    name: Run benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r envs/requirements.txt
+
+      - name: Run benchmarks
+        run: |
+          python -m sklbench \
+            --config configs/benchmarks.json \
+            --result-file results/result.json
+
+      - name: Generate visualisation plots
+        run: |
+          python visualisation/generate_plots.py \
+            --result-files results/result.json \
+            --output-dir plots
+
+      - name: Upload result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            results/result.json
+            plots/
+
+      - name: Commit results and plots to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results/result.json plots/
+          git diff --cached --quiet || git commit -m "chore: update benchmark results [skip ci]"
+          git push
