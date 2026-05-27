@@ -1,0 +1,76 @@
+{
+    "PARAMETERS_SETS": {
+        "trees": {
+            "algorithm": {
+                "estimator_params": {
+                    "random_state": 42,
+                    "n_estimators": 16,
+                    "max_features": 0.5,
+                    "max_depth": 4,
+                    "n_jobs": 1
+                },
+                "estimator_methods": { "inference": "predict" }
+            },
+            "data": {
+                "generation_kwargs": {
+                    "n_informative": "[SPECIAL_VALUE]0.5",
+                    "n_samples": 100,
+                    "n_features": 10
+                },
+                "split_kwargs": { "test_size": 0.2 }
+            }
+        },
+        "trees+": [
+            {
+                "algorithm": {
+                    "estimator": ["RandomForestClassifier", "ExtraTreesClassifier"]
+                },
+                "data": {
+                    "source": "make_classification",
+                    "generation_kwargs": {
+                        "n_classes": 2
+                    }
+                }
+            },
+            {
+                "algorithm": {
+                    "estimator": ["RandomForestRegressor", "ExtraTreesRegressor"]
+                },
+                "data": {"source": "make_regression"}
+            }
+        ],
+        "linear": {
+            "algorithm": {
+                "estimator_methods": { "inference": "predict" }
+            },
+            "data": {
+                "generation_kwargs": {
+                    "n_informative": "[SPECIAL_VALUE]0.5"
+                },
+                "generation_kwargs+": [
+                    {"n_samples": 1000, "n_features": 20}
+                ],
+                "split_kwargs": { "test_size": 0.2 }
+            }
+        },
+        "linear+": [
+            {
+                "algorithm": {
+                    "estimator": ["Ridge", "LinearRegression"]
+                },
+                "data": {"source": "make_regression"}
+            },
+            {
+                "algorithm": {
+                    "estimator": ["LogisticRegression"]
+                },
+                "data": {
+                    "source": "make_classification",
+                    "generation_kwargs": {
+                        "n_classes": 2
+                    }
+                }
+            }
+        ]
+    }
+}

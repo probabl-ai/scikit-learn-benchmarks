@@ -1,0 +1,27 @@
+{
+    "PARAMETERS_SETS": {
+        "estimator parameters": {
+            "algorithm": {
+                "estimator": "RandomForestRegressor",
+                "estimator_params": {
+                    "n_estimators": 12,
+                    "n_jobs": 4,
+                    "max_depth": [3, 4, 5]
+                }
+            }
+        },
+        "regression data": {
+            "data": [
+                { "source": "fetch_openml", "id": 1430 }
+            ]
+        }
+    },
+    "TEMPLATES": {
+        "linear regression": {
+            "SETS": ["estimator parameters", "regression data"],
+            "algorithm": {
+                "library": ["sklearn"]
+            }
+        }
+    }
+}

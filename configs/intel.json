@@ -1,0 +1,40 @@
+{
+    "INCLUDE": ["models_test.json"],
+    "PARAMETERS_SETS": {
+
+    },
+    "TEMPLATES": {
+        "trees": {
+            "SETS": ["trees"],
+            "algorithm": [
+                {
+                    "library": "sklearn"
+                },
+                {
+                    "library": "sklearnex",
+                    "device": ["cpu", "gpu"],
+                    "sklearnex_context": {
+                        "allow_fallback_to_host": false,
+                        "allow_sklearn_after_onedal": false
+                    }
+                }
+            ]
+        },
+        "linear": {
+            "SETS": ["linear"],
+            "algorithm": [
+                {
+                    "library": "sklearn"
+                },
+                {
+                    "library": "sklearnex",
+                    "device": ["cpu", "gpu"],
+                    "sklearnex_context": {
+                        "allow_fallback_to_host": false,
+                        "allow_sklearn_after_onedal": false
+                    }
+                }
+            ]
+        }
+    }
+}
