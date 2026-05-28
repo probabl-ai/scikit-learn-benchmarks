@@ -16,8 +16,7 @@
             },
             "data": {
                 "generation_kwargs": {
-                    "n_informative": "[SPECIAL_VALUE]0.5",
-                    "noise": 0.1
+                    "n_informative": "[SPECIAL_VALUE]0.5"
                 },
                 "generation_kwargs+": [
                     {"n_samples": 10000, "n_features": 20},
@@ -28,12 +27,18 @@
         },
         "trees long+": [
             {
-                "estimator": ["RandomForestClassifier", "ExtraTreesClassifier"],
+                "algorithm": {
+                    "estimator": ["RandomForestClassifier", "ExtraTreesClassifier"]
+                },
                 "data": {"source": "make_classification"}
             },
             {
-                "estimator": ["RandomForestRegressor", "ExtraTreesRegressor"],
-                "data": {"source": "make_regression"}
+                "algorithm": {
+                    "estimator": ["RandomForestRegressor", "ExtraTreesRegressor"]
+                },
+                "data": {
+                    "source": "make_regression"
+                }
             }
         ]
     }
