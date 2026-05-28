@@ -29,6 +29,9 @@ scikit-learn = "*"
 scikit-learn-intelex = "*"
 setuptools = "<82"
 
+[feature.intel.activation.env]
+SCIPY_ARRAY_API = "1"
+
 [feature.intel.pypi-dependencies]
 dpnp = "*"
 triton-xpu = { version = "==3.7.1", index = "https://download.pytorch.org/whl/xpu" }

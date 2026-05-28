@@ -1,7 +1,32 @@
 {
     "INCLUDE": ["models_test.json"],
     "PARAMETERS_SETS": {
-
+        "sklearn array-api gpu backends": [
+            {
+                "algorithm": {
+                    "library": "sklearn",
+                    "device": "xpu",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    }
+                },
+                "data": {
+                    "format": "torch"
+                }
+            },
+            {
+                "algorithm": {
+                    "library": "sklearn",
+                    "device": "gpu",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    }
+                },
+                "data": {
+                    "format": "dpnp"
+                }
+            }
+        ]
     },
     "TEMPLATES": {
         "trees": {
@@ -35,6 +60,9 @@
                     }
                 }
             ]
+        },
+        "linear array-api": {
+            "SETS": ["linear", "sklearn array-api gpu backends"]
         }
     }
 }
