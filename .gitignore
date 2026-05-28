@@ -1,5 +1,8 @@
+.vscode
+
 sklbench
 scikit-learn_bench/
+
 # Python bytecode
 __pycache__/
 *.py[cod]
