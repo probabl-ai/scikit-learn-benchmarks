@@ -1,0 +1,11 @@
+{
+    "INCLUDE": ["models_test.json", "implem.json"],
+    "TEMPLATES": {
+        "trees": {
+            "SETS": ["trees", "sklearnex[cpu,gpu]"]
+        },
+        "linear": {
+            "SETS": ["linear", "sklearnex[cpu,gpu]"]
+        }
+    }
+}

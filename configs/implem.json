@@ -1,0 +1,62 @@
+{
+    "PARAMETERS_SETS": {
+        "sklearn": {
+            "algorithm": {
+                "library": "sklearn"
+            }
+        },
+        "sklearnex[cpu,gpu]": {
+            "algorithm": [
+                {
+                    "library": "sklearnex",
+                    "device": ["cpu", "gpu"],
+                    "sklearnex_context": {
+                        "allow_fallback_to_host": false,
+                        "allow_sklearn_after_onedal": false
+                    }
+                }
+            ]
+        },
+        "sklearn + sklearnex[cpu,gpu]": {
+            "algorithm": [
+                {
+                    "library": "sklearn"
+                },
+                {
+                    "library": "sklearnex",
+                    "device": ["cpu", "gpu"],
+                    "sklearnex_context": {
+                        "allow_fallback_to_host": false,
+                        "allow_sklearn_after_onedal": false
+                    }
+                }
+            ]
+        },
+        "sklearn[torch-xpu,dpnp-gpu]": [
+            {
+                "algorithm": {
+                    "library": "sklearn",
+                    "device": "xpu",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    }
+                },
+                "data": {
+                    "format": "torch"
+                }
+            },
+            {
+                "algorithm": {
+                    "library": "sklearn",
+                    "device": "gpu",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    }
+                },
+                "data": {
+                    "format": "dpnp"
+                }
+            }
+        ]
+    }
+}

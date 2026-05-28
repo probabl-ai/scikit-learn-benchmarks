@@ -1,0 +1,8 @@
+{
+    "INCLUDE": ["models_test.json", "implem.json"],
+    "TEMPLATES": {
+        "linear": {
+            "SETS": ["linear array-API", "sklearn[torch-xpu,dpnp-gpu]"]
+        }
+    }
+}
