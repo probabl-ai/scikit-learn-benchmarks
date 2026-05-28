@@ -1,6 +1,9 @@
 {
     "PARAMETERS_SETS": {
         "trees": {
+            "bench": {
+                "n_runs": 1
+            },
             "algorithm": {
                 "estimator_params": {
                     "random_state": 42,
@@ -40,6 +43,9 @@
             }
         ],
         "linear": {
+            "bench": {
+                "n_runs": 1
+            },
             "algorithm": {
                 "estimator_methods": { "inference": "predict" }
             },
