@@ -113,8 +113,8 @@ def expand_parameter_set(
     for template in templates:
         cases.extend(expand_template(template, [{}], []))
 
-    cases = remove_duplicated_bench_cases(cases)
     cases = [assign_case_special_values_on_generation(case) for case in cases]
+    cases = remove_duplicated_bench_cases(cases)
 
     filter_cases = _expand_filters(filters or [])
     if filter_cases:
@@ -131,11 +131,11 @@ def _expand_filters(raw_filters: list[str]) -> list[dict[str, Any]]:
     filter_template = assign_template_special_values(filter_template)
     expand_ranges_in_template(filter_template)
     filter_cases = expand_template(filter_template, [{}], [])
-    filter_cases = remove_duplicated_bench_cases(filter_cases)
-    return [
+    filter_cases = [
         assign_case_special_values_on_generation(filter_case)
         for filter_case in filter_cases
     ]
+    return remove_duplicated_bench_cases(filter_cases)
 
 
 def _parse_args() -> argparse.Namespace:

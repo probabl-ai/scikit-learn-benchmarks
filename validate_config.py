@@ -69,8 +69,8 @@ def _expand_templates(
     for template in templates:
         cases.extend(expand_template(template, [{}], []))
 
-    cases = remove_duplicated_bench_cases(cases)
     cases = [assign_case_special_values_on_generation(case) for case in cases]
+    cases = remove_duplicated_bench_cases(cases)
 
     filter_cases = _expand_filters(filters or [])
     if filter_cases:
