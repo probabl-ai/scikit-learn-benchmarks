@@ -13,7 +13,3 @@ __pycache__/
 
 # Dataset cache produced by sklbench
 data_cache/
-
-# Temporary benchmark output files (not persisted)
-result*.json
-report*.xlsx
