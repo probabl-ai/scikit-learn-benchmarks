@@ -1,11 +1,15 @@
 {
     "PARAMETERS_SETS": {
-        "trees fast": {
+        "trees": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 10
+            },
             "algorithm": {
                 "estimator_params": {
                     "random_state": 42,
                     "n_estimators": 64,
-                    "max_features": 0.5
+                    "max_features": 0.3
                 },
                 "estimator_params+": [
                     {},
@@ -15,16 +19,10 @@
                 "estimator_methods": { "inference": "predict" }
             },
             "data": {
-                "generation_kwargs": {
-                    "n_informative": "[SPECIAL_VALUE]0.5"
-                },
-                "generation_kwargs+": [
-                    {"n_samples": 1000, "n_features": 20}
-                ],
                 "split_kwargs": { "test_size": 0.2 }
             }
         },
-        "trees fast+": [
+        "trees+": [
             {
                 "algorithm": {
                     "estimator": ["RandomForestClassifier", "ExtraTreesClassifier"]
@@ -32,33 +30,53 @@
                 "data": {
                     "source": "make_classification",
                     "generation_kwargs": {
-                        "n_classes": 2
-                    }
+                        "n_informative": "[SPECIAL_VALUE]0.5",
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "generation_kwargs+": [
+                        {"n_samples": 100000, "n_features": 1, "n_clusters_per_class": 1},
+                        {"n_samples": 10000, "n_features": 20},
+                        {"n_samples": 1000, "n_features": 500}
+                    ]
                 }
             },
             {
                 "algorithm": {
                     "estimator": ["RandomForestRegressor", "ExtraTreesRegressor"]
                 },
-                "data": {"source": "make_regression"}
+                "data": {
+                    "source": "make_regression",
+                    "generation_kwargs": {
+                        "n_informative": "[SPECIAL_VALUE]0.5"
+                    },
+                    "generation_kwargs+": [
+                        {"n_samples": 100000, "n_features": 1},
+                        {"n_samples": 10000, "n_features": 20},
+                        {"n_samples": 1000, "n_features": 500}
+                    ]
+                }
             }
         ],
-        "linear fast": {
+        "linear": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 10
+            },
             "algorithm": {
                 "estimator_methods": { "inference": "predict" }
             },
             "data": {
-                "generation_kwargs": {
-                    "n_informative": "[SPECIAL_VALUE]0.5",
-                    "noise": 0.1
-                },
-                "generation_kwargs+": [
-                    {"n_samples": 100000, "n_features": 20}
+                "generation_kwargs": [
+                    {"n_samples": 10000000, "n_features": 2, "n_informative": 2},
+                    {"n_samples": 1000000, "n_features": 20, "n_informative": 5},
+                    {"n_samples": 100000, "n_features": 200, "n_informative": 40},
+                    {"n_samples": 10000, "n_features": 2000, "n_informative": 100}
                 ],
                 "split_kwargs": { "test_size": 0.2 }
             }
         },
-        "linear fast+": [
+        "linear+": [
             {
                 "algorithm": {
                     "estimator": ["Ridge", "LinearRegression"]
@@ -72,7 +90,55 @@
                 "data": {
                     "source": "make_classification",
                     "generation_kwargs": {
-                        "n_classes": 2
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    }
+                }
+            }
+        ],
+        "linear array-API": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 10
+            },
+            "algorithm": {
+                "estimator_methods": { "inference": "predict" }
+            },
+            "data": {
+                "generation_kwargs": [
+                    {"n_samples": 10000000, "n_features": 2, "n_informative": 2},
+                    {"n_samples": 1000000, "n_features": 20, "n_informative": 5},
+                    {"n_samples": 100000, "n_features": 200, "n_informative": 40},
+                    {"n_samples": 10000, "n_features": 2000, "n_informative": 100}
+                ],
+                "split_kwargs": { "test_size": 0.2 }
+            }
+        },
+        "linear array-API+": [
+            {
+                "algorithm": {
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    }
+                },
+                "data": {"source": "make_regression"}
+            },
+            {
+                "algorithm": [
+                    {"estimator": "LogisticRegression"},
+                    {
+                        "estimator": "RidgeClassifier",
+                        "estimator_params": {
+                            "solver": "svd"
+                        }
+                    }
+                ],
+                "data": {
+                    "source": "make_classification",
+                    "generation_kwargs": {
+                        "n_classes": 2,
+                        "n_redundant": 0
                     }
                 }
             }

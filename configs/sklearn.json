@@ -1,11 +1,14 @@
 {
-    "INCLUDE": ["models_test.json", "implem.json"],
+    "INCLUDE": ["models_fast.json", "implem.json"],
     "TEMPLATES": {
         "trees": {
             "SETS": ["trees", "sklearn"]
         },
         "linear": {
             "SETS": ["linear", "sklearn"]
+        },
+        "linear array-API": {
+            "SETS": ["linear array-API", "sklearn"]
         }
     }
 }

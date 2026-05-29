@@ -44,7 +44,7 @@
         ],
         "linear": {
             "bench": {
-                "n_runs": 1
+                "n_runs": 3
             },
             "algorithm": {
                 "estimator_methods": { "inference": "predict" }
@@ -80,7 +80,7 @@
         ],
         "linear array-API": {
             "bench": {
-                "n_runs": 1
+                "n_runs": 3
             },
             "algorithm": {
                 "estimator_methods": { "inference": "predict" }

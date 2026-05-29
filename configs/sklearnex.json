@@ -6,6 +6,9 @@
         },
         "linear": {
             "SETS": ["linear", "sklearnex[cpu,gpu]"]
+        },
+        "linear array-API": {
+            "SETS": ["linear array-API", "sklearnex[cpu,gpu]"]
         }
     }
 }
