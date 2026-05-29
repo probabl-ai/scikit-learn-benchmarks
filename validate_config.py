@@ -511,6 +511,7 @@ def _parse_args() -> argparse.Namespace:
         help="CLI-style filters applied after expansion and before validation.",
     )
     parser.add_argument(
+        "-m",
         "--materialize-synthetic-data",
         action="store_true",
         help=(
