@@ -19,12 +19,11 @@ py-cpuinfo = "*"
 
 [pypi-dependencies]
 openml = ">=0.15.1"
+dpctl = "*"
+nvidia-ml-py = "*"
 
 [feature.sklearn.dependencies]
 scikit-learn = "*"
-
-[feature.sklearn.pypi-dependencies]
-dpctl = "*"
 
 [feature.intel.dependencies]
 scikit-learn = "*"
@@ -32,7 +31,23 @@ setuptools = "<82"
 
 [feature.intel.pypi-dependencies]
 scikit-learn-intelex-gpu = "*"
-dpctl = "*"
+
+[feature.nvidia]
+channels = ["rapidsai", "conda-forge", "nvidia"]
+
+[feature.nvidia.system-requirements]
+cuda = "12.9"
+
+[feature.nvidia.dependencies]
+cuda-version = "12.9.*"
+cupy = "*"
+
+[feature.nvidia.pypi-dependencies]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
+scikit-learn = { version = ">1.8", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
+[feature.nvidia.activation.env]
+SCIPY_ARRAY_API = "1"
 
 [feature.nightly.pypi-dependencies]
 scikit-learn = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -66,3 +81,4 @@ sklearn = ["sklearn"]
 nightly = ["nightly"]
 sklearn-src = ["sklearn-src"]
 intel = ["intel"]
+nvidia = ["nvidia"]
