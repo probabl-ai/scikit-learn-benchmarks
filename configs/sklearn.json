@@ -1,5 +1,5 @@
 {
-    "INCLUDE": ["models_fast.json", "implem.json"],
+    "INCLUDE": ["models_[SKBENCH_MODELS_TEMPLATE=test].json", "implem.json"],
     "TEMPLATES": {
         "trees": {
             "SETS": ["trees", "sklearn"]
