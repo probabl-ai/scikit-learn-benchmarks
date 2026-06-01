@@ -24,3 +24,8 @@ TODO:
 - better naming for files => some parts should be human-readable
 - configure a test CI
 - once first real benchmarks are running, configure a CI
+- is hard interrupt handled?
+- display:
+    - per solver
+    - click a point to see details?
+    - ignore some params (e.g. max_bins)
