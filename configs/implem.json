@@ -57,6 +57,32 @@
                     "format": "dpnp"
                 }
             }
+        ],
+        "sklearn[torch-cuda,cupy-cuda]": [
+            {
+                "algorithm": {
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    }
+                },
+                "data": {
+                    "format": "torch"
+                }
+            },
+            {
+                "algorithm": {
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    }
+                },
+                "data": {
+                    "format": "cupy"
+                }
+            }
         ]
     }
 }
