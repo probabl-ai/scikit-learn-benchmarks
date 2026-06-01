@@ -19,6 +19,7 @@ from sklbench.utils.config import (
     merge_dicts,
     parse_cli_parameters,
     remove_duplicated_bench_cases,
+    resolve_include_config_path,
 )
 from sklbench.utils.special_params import (
     assign_case_special_values_on_generation,
@@ -32,6 +33,7 @@ def _load_config(config_path: Path) -> dict[str, Any]:
 
     include_content: dict[str, Any] = {}
     for include_config in config_content.get("INCLUDE", []):
+        include_config = resolve_include_config_path(include_config)
         include_path = config_path.parent / include_config
         if os.path.isfile(include_path):
             with include_path.open("r", encoding="utf-8") as include_file:
