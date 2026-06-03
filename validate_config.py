@@ -173,15 +173,25 @@ def _validate_data(
 
     if isinstance(source, str) and source.startswith("make_"):
         from sklearn import datasets as sklearn_datasets
+        from sklbench.datasets.synthetic import (
+            make_trees_classification_data,
+            make_trees_regression_data,
+        )
 
         generation_kwargs = get_bench_case_value(case, "data:generation_kwargs", {})
         if not isinstance(generation_kwargs, dict):
             _add_error(findings, scope, "data:generation_kwargs must be a dict")
             return data_hash
 
-        generator = getattr(sklearn_datasets, source, None)
+        custom_generators = {
+            "make_trees_classification_data": make_trees_classification_data,
+            "make_trees_regression_data": make_trees_regression_data,
+        }
+        generator = custom_generators.get(
+            source, getattr(sklearn_datasets, source, None)
+        )
         if generator is None:
-            _add_error(findings, scope, f"unknown sklearn.datasets generator '{source}'")
+            _add_error(findings, scope, f"unknown synthetic data generator '{source}'")
             return data_hash
 
         try:
@@ -190,7 +200,7 @@ def _validate_data(
             _add_error(
                 findings,
                 scope,
-                f"invalid generation kwargs for sklearn.datasets.{source}: {exc}",
+                f"invalid generation kwargs for {source}: {exc}",
             )
             return data_hash
 
@@ -201,7 +211,7 @@ def _validate_data(
                 _add_error(
                     findings,
                     scope,
-                    f"sklearn.datasets.{source} failed with configured kwargs: {exc}",
+                    f"{source} failed with configured kwargs: {exc}",
                 )
         return data_hash
 
@@ -515,7 +525,7 @@ def _parse_args() -> argparse.Namespace:
         "--materialize-synthetic-data",
         action="store_true",
         help=(
-            "Call sklearn.datasets.make_* generators with configured kwargs. "
+            "Call synthetic data generators with configured kwargs. "
             "This catches value errors but can allocate large arrays."
         ),
     )

@@ -29,7 +29,7 @@
                     "estimator": ["RandomForestClassifier", "ExtraTreesClassifier"]
                 },
                 "data": {
-                    "source": "make_classification",
+                    "source": "make_trees_classification_data",
                     "generation_kwargs": {
                         "n_informative": "[SPECIAL_VALUE]0.5",
                         "n_classes": 2,
@@ -48,7 +48,7 @@
                     "estimator": ["RandomForestRegressor", "ExtraTreesRegressor"]
                 },
                 "data": {
-                    "source": "make_regression",
+                    "source": "make_trees_regression_data",
                     "generation_kwargs": {
                         "n_informative": "[SPECIAL_VALUE]0.5",
                         "noise": 0.1
