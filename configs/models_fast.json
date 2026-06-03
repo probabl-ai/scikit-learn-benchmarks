@@ -85,7 +85,10 @@
             },
             {
                 "algorithm": {
-                    "estimator": ["LogisticRegression"]
+                    "estimator": "LogisticRegression",
+                    "estimator_params": {
+                        "solver": ["lbfgs", "newton-cg"]
+                    }
                 },
                 "data": {
                     "source": "make_classification",
