@@ -36,9 +36,10 @@
                         "n_redundant": 0
                     },
                     "generation_kwargs+": [
-                        {"n_samples": 100000, "n_features": 1, "n_clusters_per_class": 1},
-                        {"n_samples": 10000, "n_features": 20},
-                        {"n_samples": 1000, "n_features": 500}
+                        {"n_samples": 100000, "n_features": 1, "n_clusters_per_class": 1,
+                         "columns": ["continuous", "long-tail"]},
+                        {"n_samples": 10000, "n_features": 20, "columns": "mix"},
+                        {"n_samples": 1000, "n_features": 500, "columns": ["mix", "binary"]}
                     ]
                 }
             },
@@ -53,9 +54,9 @@
                         "noise": 0.1
                     },
                     "generation_kwargs+": [
-                        {"n_samples": 100000, "n_features": 1},
-                        {"n_samples": 10000, "n_features": 20},
-                        {"n_samples": 1000, "n_features": 500}
+                        {"n_samples": 100000, "n_features": 1, "columns": ["continuous", "long-tail"]},
+                        {"n_samples": 10000, "n_features": 20, "columns": "mix"},
+                        {"n_samples": 1000, "n_features": 500, "columns": ["mix", "binary"]}
                     ]
                 }
             }

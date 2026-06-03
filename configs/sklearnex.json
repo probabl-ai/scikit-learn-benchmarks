@@ -2,7 +2,7 @@
     "INCLUDE": ["models_[SKBENCH_MODELS_TEMPLATE=test].json", "implem.json"],
     "TEMPLATES": {
         "trees": {
-            "SETS": ["trees", "sklearnex[cpu,gpu]"],
+            "SETS": ["trees", "sklearnex[cpu]"],
             "algorithm": {
                 "estimator_params": [
                     {},
