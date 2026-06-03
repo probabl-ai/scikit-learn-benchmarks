@@ -1,0 +1,1981 @@
+{
+    "bench_cases": [
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000000,
+                        "n_features": 2,
+                        "n_informative": 2
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 4000000,
+                        "features": 2,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 1000000,
+                        "features": 2,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        243.6458979999543,
+                        10.958634000019174,
+                        10.468487000025561,
+                        10.665835999986939,
+                        10.44198699997878
+                    ],
+                    "RMSE": 1.4863536224004842e-05,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.40313700003480335,
+                        0.3156369999715025,
+                        0.28420799998229995,
+                        0.29830700003685706,
+                        0.28666800000110015
+                    ],
+                    "RMSE": 1.4835395543932824e-05,
+                    "R2": 1.0
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 500000,
+                        "n_features": 20,
+                        "n_informative": 5
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 400000,
+                        "features": 20,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 100000,
+                        "features": 20,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        234.02081899996574,
+                        10.681740999984868,
+                        10.125304999974105,
+                        10.059305000027052,
+                        10.117274999970505
+                    ],
+                    "RMSE": 0.00021171903755265174,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.4240480000134994,
+                        0.3159380000283818,
+                        0.29017800000019633,
+                        0.2996580000171889,
+                        0.2829480000059448
+                    ],
+                    "RMSE": 0.00021109675610933218,
+                    "R2": 1.0
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 50000,
+                        "n_features": 200,
+                        "n_informative": 40
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 40000,
+                        "features": 200,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 10000,
+                        "features": 200,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        248.7104080000222,
+                        17.402931999981774,
+                        16.800994999982777,
+                        16.793634999999085,
+                        16.850404000024355
+                    ],
+                    "RMSE": 0.008453906210904728,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.38418799999817566,
+                        0.3062279999994644,
+                        0.3148989999885998,
+                        0.28490800002600736,
+                        0.28458899998895504
+                    ],
+                    "RMSE": 0.008411062756868589,
+                    "R2": 1.0
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000,
+                        "n_features": 2000,
+                        "n_informative": 100
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 4000,
+                        "features": 2000,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 1000,
+                        "features": 2000,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        771.5670899999623,
+                        547.7767440000321,
+                        555.0208619999921,
+                        552.806286999953,
+                        554.827825000018
+                    ],
+                    "RMSE": 0.19056856031217928,
+                    "R2": 0.9999998807907104
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.49007900003061877,
+                        0.3178390000471154,
+                        0.2890990000423699,
+                        0.30526900002314505,
+                        0.29461899998750596
+                    ],
+                    "RMSE": 0.4007093696010968,
+                    "R2": 0.999999463558197
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000000,
+                        "n_features": 2,
+                        "n_informative": 2
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 4000000,
+                        "features": 2,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 1000000,
+                        "features": 2,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        159.5824690000427,
+                        12.701732000039101,
+                        12.63346099995033,
+                        12.624242000015329,
+                        12.543901000015012
+                    ],
+                    "RMSE": 1.2175031801899006e-05,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.7169779999571801,
+                        0.34701999999242616,
+                        0.3180090000114433,
+                        0.3287389999968582,
+                        0.3095399999892834
+                    ],
+                    "RMSE": 1.2168142840605649e-05,
+                    "R2": 1.0
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 500000,
+                        "n_features": 20,
+                        "n_informative": 5
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 400000,
+                        "features": 20,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 100000,
+                        "features": 20,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        153.1916810000098,
+                        12.231191000012132,
+                        12.135153999963677,
+                        12.079823000021861,
+                        12.004154000010203
+                    ],
+                    "RMSE": 0.00022588401256653557,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.6770100000039747,
+                        0.3686900000161586,
+                        0.3220890000079635,
+                        0.3092600000513812,
+                        0.30315999998720145
+                    ],
+                    "RMSE": 0.00022518137822339282,
+                    "R2": 1.0
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 50000,
+                        "n_features": 200,
+                        "n_informative": 40
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 40000,
+                        "features": 200,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 10000,
+                        "features": 200,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        205.39808399996673,
+                        23.127520000002733,
+                        23.003309999978683,
+                        23.437979999982872,
+                        23.23185999995303
+                    ],
+                    "RMSE": 0.00881794647082342,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.7153489999609519,
+                        0.3389000000311171,
+                        0.30858000002353947,
+                        0.3198489999931553,
+                        0.3033099999925071
+                    ],
+                    "RMSE": 0.008773246830392087,
+                    "R2": 1.0
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "Ridge",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "regression"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000,
+                        "n_features": 2000,
+                        "n_informative": 100
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_regression",
+                    "order": "C",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 4000,
+                        "features": 2000,
+                        "batch_size": null
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "C",
+                        "dtype": "float32",
+                        "samples": 1000,
+                        "features": 2000,
+                        "batch_size": null
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        579.1057969999542,
+                        434.54558700000234,
+                        434.55072899996594,
+                        434.2686679999588,
+                        434.39537599999767
+                    ],
+                    "RMSE": 0.19920859591468026,
+                    "R2": 0.9999998807907104
+                },
+                "predict": {
+                    "time[ms]": [
+                        0.8360499999753301,
+                        0.3821600000151193,
+                        0.3221719999828565,
+                        0.3077800000141906,
+                        0.3285789999836197
+                    ],
+                    "RMSE": 0.4066557874976676,
+                    "R2": 0.999999463558197
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000000,
+                        "n_features": 2,
+                        "n_informative": 2,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        288.10146699998995,
+                        38.37849400002824,
+                        36.05580999999347,
+                        36.90093199998046,
+                        36.38177999999925
+                    ],
+                    "accuracy": 0.9138,
+                    "balanced accuracy": 0.9137997538671954,
+                    "ROC AUC": 0.9648411432657522,
+                    "logloss": 0.23417286574840546
+                },
+                "predict": {
+                    "time[ms]": [
+                        21.887590999995155,
+                        0.7285709999678147,
+                        0.7140899999740213,
+                        0.647211000000425,
+                        0.6172710000100778
+                    ],
+                    "accuracy": 0.913559,
+                    "balanced accuracy": 0.9135596291718273,
+                    "ROC AUC": 0.9647052597121847,
+                    "logloss": 0.234522745013237
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000000,
+                        "n_features": 2,
+                        "n_informative": 2,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        413.0459680000058,
+                        99.16862100004664,
+                        94.71108899998626,
+                        80.15045799999143,
+                        80.24369999998271
+                    ],
+                    "accuracy": 0.91116425,
+                    "balanced accuracy": 0.9111664846359159
+                },
+                "predict": {
+                    "time[ms]": [
+                        17.49339799999916,
+                        0.7831519999967895,
+                        0.6206219999853602,
+                        0.6386520000205564,
+                        0.6396210000048086
+                    ],
+                    "accuracy": 0.910752,
+                    "balanced accuracy": 0.9107454211720192
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 500000,
+                        "n_features": 20,
+                        "n_informative": 5,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 400000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 100000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        256.1266299999829,
+                        11.77191499999708,
+                        11.608963000014683,
+                        11.413411999967593,
+                        11.745793999978105
+                    ],
+                    "accuracy": 0.842805,
+                    "balanced accuracy": 0.8428057638283463,
+                    "ROC AUC": 0.9105386012332622,
+                    "logloss": 0.3825925290584564
+                },
+                "predict": {
+                    "time[ms]": [
+                        25.6193870000061,
+                        0.8869330000038644,
+                        0.7836830000087502,
+                        0.7835530000193103,
+                        0.773482999989028
+                    ],
+                    "accuracy": 0.83928,
+                    "balanced accuracy": 0.8392745791860321,
+                    "ROC AUC": 0.9090163654701288,
+                    "logloss": 0.3853702247142792
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 500000,
+                        "n_features": 20,
+                        "n_informative": 5,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 400000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 100000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        339.5103089999907,
+                        23.176364999983434,
+                        17.253767999989122,
+                        15.975241999967693,
+                        15.981232000001455
+                    ],
+                    "accuracy": 0.8415225,
+                    "balanced accuracy": 0.8415236776301371
+                },
+                "predict": {
+                    "time[ms]": [
+                        16.642695000030017,
+                        0.9172240000339116,
+                        0.6303630000275007,
+                        0.6339020000041273,
+                        0.640052999983709
+                    ],
+                    "accuracy": 0.83904,
+                    "balanced accuracy": 0.8390325852824749
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 50000,
+                        "n_features": 200,
+                        "n_informative": 40,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 40000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 10000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        276.2012890000278,
+                        22.05839499998774,
+                        21.63451299998087,
+                        28.765620999990915,
+                        21.593842000015684
+                    ],
+                    "accuracy": 0.8236,
+                    "balanced accuracy": 0.8235916474477966,
+                    "ROC AUC": 0.904005808786305,
+                    "logloss": 0.39265352487564087
+                },
+                "predict": {
+                    "time[ms]": [
+                        26.805649999971592,
+                        0.8995349999736391,
+                        0.7869140000025254,
+                        0.7857639999997446,
+                        0.7692140000017389
+                    ],
+                    "accuracy": 0.8195,
+                    "balanced accuracy": 0.8195678673356465,
+                    "ROC AUC": 0.9001476474338173,
+                    "logloss": 0.40067821741104126
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 50000,
+                        "n_features": 200,
+                        "n_informative": 40,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 40000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 10000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        346.9961989999888,
+                        22.038446999999906,
+                        20.661238000002413,
+                        20.72785899997598,
+                        20.556107999993856
+                    ],
+                    "accuracy": 0.82355,
+                    "balanced accuracy": 0.823533022081388
+                },
+                "predict": {
+                    "time[ms]": [
+                        28.966647000004286,
+                        0.9597650000046087,
+                        0.6305829999746493,
+                        0.6327439999722628,
+                        0.6356939999818678
+                    ],
+                    "accuracy": 0.8199,
+                    "balanced accuracy": 0.8199995807675347
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000,
+                        "n_features": 2000,
+                        "n_informative": 100,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        363.81562499997244,
+                        101.21556999996528,
+                        100.26438400001325,
+                        99.89465299997846,
+                        100.10526299998901
+                    ],
+                    "accuracy": 1.0,
+                    "balanced accuracy": 1.0,
+                    "ROC AUC": 1.0,
+                    "logloss": 0.007616975344717503
+                },
+                "predict": {
+                    "time[ms]": [
+                        25.300084999969386,
+                        0.8983170000078644,
+                        0.7685340000307406,
+                        0.7875549999880604,
+                        0.7930149999992864
+                    ],
+                    "accuracy": 0.718,
+                    "balanced accuracy": 0.7177037334403853,
+                    "ROC AUC": 0.7858450421517462,
+                    "logloss": 2.3945746421813965
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000,
+                        "n_features": 2000,
+                        "n_informative": 100,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "torch",
+                    "training": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "torch",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        890.9686540000052,
+                        553.2961250000312,
+                        556.9267579999746,
+                        555.2435800000239,
+                        555.3659089999883
+                    ],
+                    "accuracy": 0.942,
+                    "balanced accuracy": 0.9418116208734058
+                },
+                "predict": {
+                    "time[ms]": [
+                        26.536289999967266,
+                        0.9445270000014716,
+                        0.6663650000291454,
+                        0.6230150000305912,
+                        0.7154749999926935
+                    ],
+                    "accuracy": 0.676,
+                    "balanced accuracy": 0.676515455640305
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000000,
+                        "n_features": 2,
+                        "n_informative": 2,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        288.52111199995534,
+                        38.81233300000986,
+                        38.09507099998655,
+                        37.971631999994315,
+                        38.11212400000841
+                    ],
+                    "accuracy": 0.9138,
+                    "balanced accuracy": 0.9137997538671954,
+                    "ROC AUC": 0.9648411432473772,
+                    "logloss": 0.23417286574840546
+                },
+                "predict": {
+                    "time[ms]": [
+                        2.0179960000064057,
+                        0.8507369999506409,
+                        0.8005349999962164,
+                        0.7648459999813895,
+                        0.789086999986921
+                    ],
+                    "accuracy": 0.913559,
+                    "balanced accuracy": 0.9135596291718273,
+                    "ROC AUC": 0.9647052597161849,
+                    "logloss": 0.234522745013237
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000000,
+                        "n_features": 2,
+                        "n_informative": 2,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000000,
+                        "features": 2,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        4597.731396000028,
+                        62.87040799998067,
+                        61.51156599997876,
+                        64.92301600002293,
+                        61.50596599997016
+                    ],
+                    "accuracy": 0.91116425,
+                    "balanced accuracy": 0.9111664846359159
+                },
+                "predict": {
+                    "time[ms]": [
+                        2.5905930000362787,
+                        0.7322870000052717,
+                        0.6669960000067476,
+                        0.6541650000144728,
+                        0.646855000013602
+                    ],
+                    "accuracy": 0.910752,
+                    "balanced accuracy": 0.9107454211720192
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 500000,
+                        "n_features": 20,
+                        "n_informative": 5,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 400000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 100000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        168.27167600001758,
+                        14.631447999988723,
+                        13.936650999994527,
+                        13.998520999962238,
+                        13.9853410000228
+                    ],
+                    "accuracy": 0.842805,
+                    "balanced accuracy": 0.8428057638283463,
+                    "ROC AUC": 0.9105386012082622,
+                    "logloss": 0.3825925290584564
+                },
+                "predict": {
+                    "time[ms]": [
+                        2.0260590000020784,
+                        0.842197999986638,
+                        0.7731459999718027,
+                        0.7765089999907104,
+                        0.7796869999765477
+                    ],
+                    "accuracy": 0.83928,
+                    "balanced accuracy": 0.8392745791860321,
+                    "ROC AUC": 0.9090163662701298,
+                    "logloss": 0.3853702247142792
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 500000,
+                        "n_features": 20,
+                        "n_informative": 5,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 400000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 100000,
+                        "features": 20,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        257.290533999992,
+                        28.21029200003977,
+                        21.66863000002195,
+                        21.948092999991786,
+                        22.727130000021134
+                    ],
+                    "accuracy": 0.8415225,
+                    "balanced accuracy": 0.8415236776301371
+                },
+                "predict": {
+                    "time[ms]": [
+                        1.4213840000252276,
+                        0.6998769999881915,
+                        0.681915999962257,
+                        0.631766999958927,
+                        0.6477059999951962
+                    ],
+                    "accuracy": 0.83904,
+                    "balanced accuracy": 0.8390325852824749
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 50000,
+                        "n_features": 200,
+                        "n_informative": 40,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 40000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 10000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        174.88794800004825,
+                        26.796754000031342,
+                        26.418481999996857,
+                        26.453713000023527,
+                        26.4165910000429
+                    ],
+                    "accuracy": 0.8236,
+                    "balanced accuracy": 0.8235916474477966,
+                    "ROC AUC": 0.9040057987862424,
+                    "logloss": 0.39265352487564087
+                },
+                "predict": {
+                    "time[ms]": [
+                        2.0135290000098394,
+                        0.8254279999846403,
+                        0.7918260000110422,
+                        0.7713990000297599,
+                        0.7481769999913013
+                    ],
+                    "accuracy": 0.8195,
+                    "balanced accuracy": 0.8195678673356465,
+                    "ROC AUC": 0.9001475874291706,
+                    "logloss": 0.40067821741104126
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 50000,
+                        "n_features": 200,
+                        "n_informative": 40,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 40000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 10000,
+                        "features": 200,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        280.7405000000358,
+                        32.988443000022016,
+                        31.532558000037625,
+                        31.538967000017237,
+                        31.57769899996765
+                    ],
+                    "accuracy": 0.82355,
+                    "balanced accuracy": 0.823533022081388
+                },
+                "predict": {
+                    "time[ms]": [
+                        1.4048249999518703,
+                        0.8651579999536807,
+                        0.6632569999851512,
+                        0.6623270000432058,
+                        0.6423259999905895
+                    ],
+                    "accuracy": 0.8199,
+                    "balanced accuracy": 0.8199995807675347
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "LogisticRegression",
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000,
+                        "n_features": 2000,
+                        "n_informative": 100,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        266.7300890000206,
+                        140.42421299996022,
+                        120.9800749999772,
+                        122.14295600000469,
+                        121.05868499997996
+                    ],
+                    "accuracy": 1.0,
+                    "balanced accuracy": 1.0,
+                    "ROC AUC": 1.0,
+                    "logloss": 0.007615209091454744
+                },
+                "predict": {
+                    "time[ms]": [
+                        1.9492289999902823,
+                        0.830998000026284,
+                        0.771647999954439,
+                        0.7767479999643001,
+                        0.7898370000134491
+                    ],
+                    "accuracy": 0.718,
+                    "balanced accuracy": 0.7177037334403853,
+                    "ROC AUC": 0.7861722199919712,
+                    "logloss": 2.395153284072876
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/root/scikit-learn-benchmarks/.pixi/envs/sk-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        },
+        {
+            "case": {
+                "bench": {
+                    "n_runs": 5,
+                    "time_limit": 10
+                },
+                "algorithm": {
+                    "estimator_methods": {
+                        "inference": "predict"
+                    },
+                    "estimator": "RidgeClassifier",
+                    "estimator_params": {
+                        "solver": "svd"
+                    },
+                    "library": "sklearn",
+                    "device": "cuda",
+                    "sklearn_context": {
+                        "array_api_dispatch": true
+                    },
+                    "task": "classification"
+                },
+                "data": {
+                    "generation_kwargs": {
+                        "n_samples": 5000,
+                        "n_features": 2000,
+                        "n_informative": 100,
+                        "n_classes": 2,
+                        "n_redundant": 0
+                    },
+                    "split_kwargs": {
+                        "test_size": 0.2
+                    },
+                    "source": "make_classification",
+                    "format": "cupy",
+                    "training": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 4000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    },
+                    "inference": {
+                        "format": "cupy",
+                        "order": "F",
+                        "dtype": "float32",
+                        "samples": 1000,
+                        "features": 2000,
+                        "batch_size": null,
+                        "n_classes": 2
+                    }
+                }
+            },
+            "results": {
+                "fit": {
+                    "time[ms]": [
+                        662.4979059999987,
+                        409.6142119999513,
+                        414.2213739999647,
+                        414.3148320000023,
+                        413.90654799999993
+                    ],
+                    "accuracy": 0.942,
+                    "balanced accuracy": 0.9418116208734058
+                },
+                "predict": {
+                    "time[ms]": [
+                        1.5494670000180122,
+                        0.6955979999929696,
+                        0.6820079999556583,
+                        0.6532259999971757,
+                        0.6465459999844825
+                    ],
+                    "accuracy": 0.676,
+                    "balanced accuracy": 0.676515455640305
+                }
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_cases": []
+}
