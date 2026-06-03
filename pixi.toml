@@ -64,8 +64,17 @@ scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific
 [feature.sk-intel.activation.env]
 SCIPY_ARRAY_API = "1"
 
+[feature.sklearn-cpu.pypi-dependencies]
+array-api-compat = "*"
+torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
+[feature.sklearn-cpu.activation.env]
+SCIPY_ARRAY_API = "1"
+
 [environments]
 sklearn = ["sklearn"]
+sklearn-cpu = ["sklearn-cpu"]
 sk-intel = ["sk-intel"]
 sk-nvidia = ["sk-nvidia"]
 intel = ["intel"]
