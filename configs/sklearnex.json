@@ -4,9 +4,10 @@
         "trees": {
             "SETS": ["trees", "sklearnex[cpu,gpu]"],
             "algorithm": {
-                "estimator_params": {
-                    "max_bins": [256, 100000000]
-                }
+                "estimator_params": [
+                    {},
+                    {"max_bins": "[SPECIAL_VALUE]n_samples"}
+                ]
             }
         },
         "linear": {

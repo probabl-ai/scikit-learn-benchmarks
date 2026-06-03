@@ -39,7 +39,12 @@
                 "algorithm": {
                     "estimator": ["RandomForestRegressor", "ExtraTreesRegressor"]
                 },
-                "data": {"source": "make_regression"}
+                "data": {
+                    "source": "make_regression",
+                    "generation_kwargs": {
+                        "noise": 0.1
+                    }
+                }
             }
         ],
         "linear": {
@@ -64,7 +69,10 @@
                 "algorithm": {
                     "estimator": ["Ridge", "LinearRegression"]
                 },
-                "data": {"source": "make_regression"}
+                "data": {
+                    "source": "make_regression",
+                    "order": "C"
+                }
             },
             {
                 "algorithm": {
@@ -77,7 +85,8 @@
                     "source": "make_classification",
                     "generation_kwargs": {
                         "n_classes": 2
-                    }
+                    },
+                    "order": "C"
                 }
             }
         ],
@@ -106,7 +115,10 @@
                         "solver": "svd"
                     }
                 },
-                "data": {"source": "make_regression"}
+                "data": {
+                    "source": "make_regression",
+                    "order": "C"
+                }
             },
             {
                 "algorithm": [

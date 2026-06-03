@@ -57,6 +57,18 @@
                 }
             }
         ],
+        "sklearn[torch-cpu]": {
+            "algorithm": {
+                "library": "sklearn",
+                "device": "cpu",
+                "sklearn_context": {
+                    "array_api_dispatch": true
+                }
+            },
+            "data": {
+                "format": "torch"
+            }
+        },
         "sklearn[torch-cuda,cupy-cuda]": [
             {
                 "algorithm": {
