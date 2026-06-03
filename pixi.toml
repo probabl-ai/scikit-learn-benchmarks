@@ -16,6 +16,7 @@ tqdm = "*"
 psutil = "*"
 requests = "*"
 py-cpuinfo = "*"
+matplotlib = "*"
 
 [pypi-dependencies]
 openml = ">=0.15.1"
