@@ -30,7 +30,12 @@ scikit-learn = "*"
 setuptools = "<82"
 
 [feature.intel.pypi-dependencies]
+array-api-compat = "*"
+dpnp = "*"
 scikit-learn-intelex-gpu = "*"
+
+[feature.intel.activation.env]
+SCIPY_ARRAY_API = "1"
 
 [feature.nvidia]
 channels = ["rapidsai", "conda-forge", "nvidia"]

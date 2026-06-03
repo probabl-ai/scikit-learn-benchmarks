@@ -5,33 +5,32 @@
                 "library": "sklearn"
             }
         },
-        "sklearnex[cpu,gpu]": {
-            "algorithm": [
-                {
+        "sklearnex[cpu,gpu]": [
+            {
+                "algorithm": {
                     "library": "sklearnex",
-                    "device": ["cpu", "gpu"],
+                    "device": "cpu",
                     "sklearnex_context": {
                         "allow_fallback_to_host": false,
                         "allow_sklearn_after_onedal": false
                     }
                 }
-            ]
-        },
-        "sklearn + sklearnex[cpu,gpu]": {
-            "algorithm": [
-                {
-                    "library": "sklearn"
+            },
+            {
+                "algorithm": {
+                    "library": "sklearnex",
+                    "device": "gpu",
+                    "sklearnex_context": {
+                        "array_api_dispatch": true,
+                        "allow_fallback_to_host": false,
+                        "allow_sklearn_after_onedal": false
+                    }
                 },
-                {
-                    "library": "sklearnex",
-                    "device": ["cpu", "gpu"],
-                    "sklearnex_context": {
-                        "allow_fallback_to_host": false,
-                        "allow_sklearn_after_onedal": false
-                    }
+                "data": {
+                    "format": "dpnp"
                 }
-            ]
-        },
+            }
+        ],
         "sklearn[torch-xpu,dpnp-gpu]": [
             {
                 "algorithm": {
