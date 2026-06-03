@@ -10,3 +10,6 @@ __pycache__/
 
 # Dataset cache produced by sklbench
 data_cache/
+
+# Tests results:
+results/*/*-test*.json
