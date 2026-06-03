@@ -23,7 +23,7 @@ dpctl = "*"
 nvidia-ml-py = "*"
 
 [feature.sklearn.dependencies]
-scikit-learn = "*"
+scikit-learn = "1.9.*"
 
 [feature.intel.dependencies]
 scikit-learn = "*"
@@ -37,53 +37,34 @@ scikit-learn-intelex-gpu = "*"
 [feature.intel.activation.env]
 SCIPY_ARRAY_API = "1"
 
-[feature.nvidia]
-channels = ["rapidsai", "conda-forge", "nvidia"]
+[feature.sk-nvidia]
+channels = ["conda-forge", "nvidia"]
 
-[feature.nvidia.system-requirements]
+[feature.sk-nvidia.system-requirements]
 cuda = "12.9"
 
-[feature.nvidia.dependencies]
+[feature.sk-nvidia.dependencies]
 cuda-version = "12.9.*"
 cupy = "*"
 
-[feature.nvidia.pypi-dependencies]
+[feature.sk-nvidia.pypi-dependencies]
 torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
-scikit-learn = { version = ">1.8", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
-[feature.nvidia.activation.env]
+[feature.sk-nvidia.activation.env]
 SCIPY_ARRAY_API = "1"
 
-[feature.nightly.pypi-dependencies]
-scikit-learn = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+[feature.sk-intel.pypi-dependencies]
 dpnp = "*"
 triton-xpu = { version = "==3.7.1", index = "https://download.pytorch.org/whl/xpu" }
 torch = { version = ">=2.12.0", index = "https://download.pytorch.org/whl/xpu" }
+scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
-[feature.nightly.activation.env]
+[feature.sk-intel.activation.env]
 SCIPY_ARRAY_API = "1"
-
-[feature.sklearn-src.dependencies]
-pip = "*"
-setuptools = "<82"
-wheel = "*"
-ninja = "*"
-pytest = ">=7.1.2"
-pytest-cov = ">=2.9.0"
-numpy = ">=2"
-scipy = ">=1.10.0"
-cython = ">=3.1.2"
-meson-python = ">=0.17.1"
-joblib = ">=1.3.0"
-threadpoolctl = ">=3.2.0"
-narwhals = ">=2.0.1"
-
-[feature.sklearn-src.tasks]
-install-sklearn-src = "cd ../scikit-learn && pip install --editable . --verbose --no-build-isolation --config-settings editable-verbose=true"
 
 [environments]
 sklearn = ["sklearn"]
-nightly = ["nightly"]
-sklearn-src = ["sklearn-src"]
+sk-intel = ["sk-intel"]
+sk-nvidia = ["sk-nvidia"]
 intel = ["intel"]
-nvidia = ["nvidia"]
