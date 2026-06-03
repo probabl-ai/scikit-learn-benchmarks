@@ -9,7 +9,8 @@
                 "estimator_params": {
                     "random_state": 42,
                     "n_estimators": 64,
-                    "max_features": 0.3
+                    "max_features": 0.3,
+                    "n_jobs": "[SPECIAL_VALUE]physical_cpus"
                 },
                 "estimator_params+": [
                     {},
@@ -48,7 +49,8 @@
                 "data": {
                     "source": "make_regression",
                     "generation_kwargs": {
-                        "n_informative": "[SPECIAL_VALUE]0.5"
+                        "n_informative": "[SPECIAL_VALUE]0.5",
+                        "noise": 0.1
                     },
                     "generation_kwargs+": [
                         {"n_samples": 100000, "n_features": 1},
