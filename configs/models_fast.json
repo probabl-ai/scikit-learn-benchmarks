@@ -83,7 +83,10 @@
                 "algorithm": {
                     "estimator": ["Ridge", "LinearRegression"]
                 },
-                "data": {"source": "make_regression"}
+                "data": {
+                    "source": "make_regression",
+                    "order": "C"
+                }
             },
             {
                 "algorithm": {
@@ -97,7 +100,8 @@
                     "generation_kwargs": {
                         "n_classes": 2,
                         "n_redundant": 0
-                    }
+                    },
+                    "order": "C"
                 }
             }
         ],
@@ -127,7 +131,10 @@
                         "solver": "svd"
                     }
                 },
-                "data": {"source": "make_regression"}
+                "data": {
+                    "source": "make_regression",
+                    "order": "C"
+                }
             },
             {
                 "algorithm": [
