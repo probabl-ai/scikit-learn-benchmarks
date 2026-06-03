@@ -139,6 +139,58 @@
                     }
                 }
             }
+        ],
+        "clustering": {
+            "bench": {
+                "n_runs": 3
+            },
+            "algorithm": {
+                "estimator_methods": { "inference": "predict" }
+            }
+        },
+        "clustering+": [
+            {
+                "algorithm": {
+                    "estimator": "KMeans",
+                    "estimator_params": {
+                        "n_clusters": "[SPECIAL_VALUE]auto",
+                        "n_init": 1,
+                        "max_iter": 30,
+                        "tol": 0.001,
+                        "random_state": 42
+                    }
+                },
+                "data": {
+                    "source": "make_blobs",
+                    "generation_kwargs": {
+                        "centers": 5,
+                        "cluster_std": 1.0,
+                        "n_samples": 2000,
+                        "n_features": 20
+                    },
+                    "split_kwargs": { "ignore": true }
+                }
+            },
+            {
+                "algorithm": {
+                    "estimator": "DBSCAN",
+                    "estimator_params": {
+                        "eps": "[SPECIAL_VALUE]distances_quantile:0.01",
+                        "min_samples": 5,
+                        "metric": "euclidean"
+                    }
+                },
+                "data": {
+                    "source": "make_blobs",
+                    "generation_kwargs": {
+                        "centers": 5,
+                        "cluster_std": 2.0,
+                        "n_samples": 1000,
+                        "n_features": 20
+                    },
+                    "split_kwargs": { "ignore": true }
+                }
+            }
         ]
     }
 }

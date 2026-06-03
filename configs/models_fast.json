@@ -155,6 +155,100 @@
                     }
                 }
             }
+        ],
+        "clustering": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 10
+            },
+            "algorithm": {
+                "estimator_methods": { "inference": "predict" }
+            }
+        },
+        "clustering+": [
+            {
+                "algorithm": {
+                    "estimator": "KMeans",
+                    "estimator_params": {
+                        "n_clusters": 20,
+                        "n_init": 1,
+                        "max_iter": 30,
+                        "tol": 0.001,
+                        "random_state": 42
+                    }
+                },
+                "data": {
+                    "source": "make_blobs",
+                    "generation_kwargs": {
+                        "centers": 20,
+                        "cluster_std": 0.5,
+                        "n_samples": 500000,
+                        "n_features": 3
+                    },
+                    "split_kwargs": { "ignore": true }
+                }
+            },
+            {
+                "algorithm": {
+                    "estimator": "KMeans",
+                    "estimator_params": {
+                        "n_clusters": 10,
+                        "n_init": 1,
+                        "max_iter": 30,
+                        "tol": 0.001,
+                        "random_state": 42
+                    }
+                },
+                "data": {
+                    "dataset": "mnist",
+                    "split_kwargs": { "train_size": 50000, "test_size": null },
+                    "preprocessing_kwargs": { "normalize": "minmax" }
+                }
+            },
+            {
+                "algorithm": {
+                    "estimator": "KMeans",
+                    "estimator_params": {
+                        "n_clusters": 100,
+                        "n_init": 1,
+                        "max_iter": 30,
+                        "tol": 0.001,
+                        "random_state": 42
+                    }
+                },
+                "data": {
+                    "dataset": "mnist",
+                    "split_kwargs": { "train_size": 10000, "test_size": 10000 },
+                    "preprocessing_kwargs": { "normalize": "minmax" }
+                }
+            },
+            {
+                "algorithm": {
+                    "estimator": "DBSCAN",
+                    "estimator_params": {
+                        "eps": "[SPECIAL_VALUE]distances_quantile:0.01",
+                        "min_samples": 5,
+                        "metric": "euclidean"
+                    }
+                },
+                "data": [
+                    {
+                        "source": "make_blobs",
+                        "generation_kwargs": {
+                            "centers": 20,
+                            "cluster_std": 0.5,
+                            "n_samples": 50000,
+                            "n_features": 3
+                        },
+                        "split_kwargs": { "ignore": true }
+                    },
+                    {
+                        "dataset": "mnist",
+                        "split_kwargs": { "train_size": 3000, "test_size": null },
+                        "preprocessing_kwargs": { "normalize": "minmax" }
+                    }
+                ]
+            }
         ]
     }
 }

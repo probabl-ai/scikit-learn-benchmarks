@@ -9,6 +9,9 @@
         },
         "linear array-API": {
             "SETS": ["linear array-API", "sklearn"]
+        },
+        "clustering": {
+            "SETS": ["clustering", "sklearn"]
         }
     }
 }
