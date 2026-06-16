@@ -17,6 +17,7 @@ psutil = "*"
 requests = "*"
 py-cpuinfo = "*"
 matplotlib = "*"
+scikit-learn = "1.9.*"
 
 [pypi-dependencies]
 openml = ">=0.15.1"
@@ -38,43 +39,43 @@ scikit-learn-intelex-gpu = "*"
 [feature.intel.activation.env]
 SCIPY_ARRAY_API = "1"
 
-[feature.sk-nvidia]
+[feature.skl-nvidia]
 channels = ["conda-forge", "nvidia"]
 
-[feature.sk-nvidia.system-requirements]
+[feature.skl-nvidia.system-requirements]
 cuda = "12.9"
 
-[feature.sk-nvidia.dependencies]
+[feature.skl-nvidia.dependencies]
 cuda-version = "12.9.*"
 cupy = "*"
 
-[feature.sk-nvidia.pypi-dependencies]
+[feature.skl-nvidia.pypi-dependencies]
 torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
-scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
-[feature.sk-nvidia.activation.env]
+[feature.skl-nvidia.activation.env]
 SCIPY_ARRAY_API = "1"
 
-[feature.sk-intel.pypi-dependencies]
+[feature.skl-intel.dependencies]
+setuptools = "<82"
+
+[feature.skl-intel.pypi-dependencies]
 dpnp = "*"
 triton-xpu = { version = "==3.7.1", index = "https://download.pytorch.org/whl/xpu" }
 torch = { version = ">=2.12.0", index = "https://download.pytorch.org/whl/xpu" }
-scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
-[feature.sk-intel.activation.env]
+[feature.skl-intel.activation.env]
 SCIPY_ARRAY_API = "1"
 
-[feature.sklearn-cpu.pypi-dependencies]
+[feature.skl-cpu.pypi-dependencies]
 array-api-compat = "*"
 torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
-scikit-learn = { version = ">1.9", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
-[feature.sklearn-cpu.activation.env]
+[feature.skl-cpu.activation.env]
 SCIPY_ARRAY_API = "1"
 
 [environments]
 sklearn = ["sklearn"]
-sklearn-cpu = ["sklearn-cpu"]
-sk-intel = ["sk-intel"]
-sk-nvidia = ["sk-nvidia"]
+skl-cpu = ["skl-cpu"]
+skl-intel = ["skl-intel"]
+skl-nvidia = ["skl-nvidia"]
 intel = ["intel"]
