@@ -285,14 +285,14 @@ def _validate_function_kwargs(
 def _validate_algorithm(
     case: dict[str, Any], scope: str, findings: list[Finding]
 ) -> None:
-    allowed_top_level_keys = {"bench", "algorithm", "data"}
+    allowed_top_level_keys = {"bench", "algorithm", "data", "implementation"}
     unknown_top_level_keys = sorted(set(case) - allowed_top_level_keys)
     if unknown_top_level_keys:
         _add_error(
             findings,
             scope,
             f"unknown top-level keys: {', '.join(unknown_top_level_keys)}; "
-            "expected only bench, algorithm, and data",
+            "expected only bench, algorithm, data, and implementation",
         )
 
     algorithm = get_bench_case_value(case, "algorithm")
@@ -300,12 +300,12 @@ def _validate_algorithm(
         _add_error(findings, scope, "missing required top-level 'algorithm' section")
         return
 
-    library = get_bench_case_value(case, "algorithm:library")
+    library = get_bench_case_value(case, "implementation:library")
     estimator = get_bench_case_value(case, "algorithm:estimator")
     function = get_bench_case_value(case, "algorithm:function")
 
     if library is None:
-        _add_error(findings, scope, "algorithm:library is required")
+        _add_error(findings, scope, "implementation:library is required")
     if estimator is None and function is None:
         _add_error(
             findings,
