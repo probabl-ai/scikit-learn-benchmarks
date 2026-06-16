@@ -17,7 +17,6 @@ psutil = "*"
 requests = "*"
 py-cpuinfo = "*"
 matplotlib = "*"
-scikit-learn = "1.9.*"
 
 [pypi-dependencies]
 openml = ">=0.15.1"
@@ -28,7 +27,7 @@ nvidia-ml-py = "*"
 scikit-learn = "1.9.*"
 
 [feature.intel.dependencies]
-scikit-learn = "*"
+scikit-learn = "1.8.*"
 setuptools = "<82"
 
 [feature.intel.pypi-dependencies]
@@ -73,9 +72,15 @@ torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 [feature.skl-cpu.activation.env]
 SCIPY_ARRAY_API = "1"
 
+[feature.reporting.dependencies]
+scikit-learn = "1.9.*"
+jupyter = "*"
+matplotlib = "*"
+
 [environments]
 sklearn = ["sklearn"]
-skl-cpu = ["skl-cpu"]
-skl-intel = ["skl-intel"]
-skl-nvidia = ["skl-nvidia"]
+skl-cpu = ["sklearn", "skl-cpu"]
+skl-intel = ["sklearn", "skl-intel"]
+skl-nvidia = ["sklearn", "skl-nvidia"]
 intel = ["intel"]
+reporting = ["reporting"]
