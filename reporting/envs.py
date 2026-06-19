@@ -60,6 +60,7 @@ def _threadpool_summary(env: dict) -> list[str]:
         summary.append(label)
     return summary
 
+
 def summarize_software_env(env: dict, implementation: dict):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:

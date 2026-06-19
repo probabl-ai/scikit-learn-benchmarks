@@ -211,10 +211,7 @@ class Match:
     matched_result: Result
     warnings: list[MatchWarning]
 
-    @property
-    def metrics_match(self) -> bool:
-        # TODO: we should actually store both fit & predict metrics in a Result
-        # and compare both here
+    def _comparable_metrics(self) -> tuple[dict, dict]:
         base_metrics = self.base_result.metrics
         matched_metrics = self.matched_result.metrics
 
@@ -225,19 +222,31 @@ class Match:
             base_metrics.pop("RMSE")
             matched_metrics = {**matched_metrics}
             matched_metrics.pop("RMSE", None)
+        return base_metrics, matched_metrics
+
+    @property
+    def metrics_differences(self) -> list[str]:
+        # TODO: we should actually store both fit & predict metrics in a Result
+        # and compare both here
+        base_metrics, matched_metrics = self._comparable_metrics()
 
         if set(base_metrics) != set(matched_metrics):
-            raise ValueError()
+            raise ValueError("Sets of metrics differ")
 
         # maybe improve? e.g. for ROC AUC or R2,
         # 0.991 vs 0.999 is quite different I'd say, but we consider
         # them the same
-
+        differences = []
         for k, v in base_metrics.items():
             if abs(v - matched_metrics[k]) > 0.01:
-                return False
-        
-        return True
+                differences.append(
+                    f"{k}: base={v:.3g}, target={matched_metrics[k]:.3g}"
+                )
+        return differences
+
+    @property
+    def metrics_match(self) -> bool:
+        return not self.metrics_differences
 
     @property
     def speedup(self) -> float:

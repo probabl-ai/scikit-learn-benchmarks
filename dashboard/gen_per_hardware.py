@@ -10,7 +10,7 @@ from reporting.matching import (
     find_matches, date_range, Match, MatchWarning, Result
 )
 
-from reporting.configs import read_env, summarize_software_env, summarize_hardware_env
+from reporting.envs import read_env, summarize_software_env, summarize_hardware_env
 from reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,

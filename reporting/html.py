@@ -256,12 +256,10 @@ def _hover_text(match: Match) -> str:
         f"target median: {median(result.times):.3g} ms",
         f"speed-up: {match.speedup:.3g}x",
     ]
-    try:
-        metrics_match = match.metrics_match
-    except ValueError:
-        metrics_match = False
-    if not metrics_match:
+    metric_differences = match.metrics_differences
+    if metric_differences:
         lines.append("<b>metrics differ</b>")
+        lines.extend(escape(difference) for difference in metric_differences)
     if warning_lines:
         lines.extend(escape(line) for line in warning_lines)
     estimator_params = "<br>".join(
@@ -288,34 +286,15 @@ def _variant_offsets(variants: list[str]) -> dict[str, float]:
 
 
 def _metrics_match(match: Match) -> bool:
-    try:
-        return match.metrics_match
-    except ValueError:
-        return False
+    return match.metrics_match
 
 
-def _point_has_max_bins(match: Match) -> bool:
-    estimator_params = match.matched_result.case.get("algorithm", {}).get(
-        "estimator_params", {}
-    )
-    return isinstance(estimator_params, dict) and "max_bins" in estimator_params
-
-
-def _mixed_max_bins_columns(matches: list[Match]) -> set[tuple[str, str]]:
-    column_has_max_bins = {}
-    for match in matches:
-        estimator = match.matched_result.case.get("algorithm", {}).get(
-            "estimator", "unknown"
-        )
-        variant = match.matched_result.implementation.short_name
-        column_has_max_bins.setdefault((estimator, variant), set()).add(
-            _point_has_max_bins(match)
-        )
-    return {
-        key
-        for key, has_max_bins_values in column_has_max_bins.items()
-        if has_max_bins_values == {False, True}
-    }
+def _marker_symbol(match: Match) -> str:
+    if not _metrics_match(match):
+        return "diamond-open"
+    if match.warnings:
+        return "square"
+    return "circle"
 
 
 def plotly_colored_tabs(elements: list[str]):
@@ -405,7 +384,6 @@ def speedup_plot_html(matches: list[Match]):
     grouped: dict[str, list[Match]] = {}
     for match in matches:
         grouped.setdefault(match.matched_result.implementation.short_name, []).append(match)
-    mixed_max_bins_columns = _mixed_max_bins_columns(matches)
 
     traces = []
     for variant, variant_matches in sorted(grouped.items()):
@@ -417,21 +395,7 @@ def speedup_plot_html(matches: list[Match]):
         )
         marker_symbols = []
         for match in variant_matches:
-            estimator = match.matched_result.case.get("algorithm", {}).get(
-                "estimator", "unknown"
-            )
-            max_bins_is_comparison_axis = (
-                estimator,
-                match.matched_result.implementation.short_name,
-            ) in mixed_max_bins_columns
-            metrics_match = _metrics_match(match)
-            marker_symbols.append(
-                "x"
-                if _point_has_max_bins(match) and max_bins_is_comparison_axis
-                else "diamond-open"
-                if not metrics_match
-                else "circle"
-            )
+            marker_symbols.append(_marker_symbol(match))
         traces.append(
             {
                 "type": "scatter",
