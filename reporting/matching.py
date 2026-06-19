@@ -132,6 +132,14 @@ def _software_name(root: Path, software_hash: str, software_dir: str) -> str:
     return software_dir
 
 
+def _split_metrics_attributes(metrics: dict) -> tuple[dict, dict]:
+    metrics = dict(metrics)
+    attributes = {}
+    if "iterations" in metrics:
+        attributes["iterations"] = metrics.pop("iterations")
+    return metrics, attributes
+
+
 def read_all_results(path=None) -> list[Result]:
     """
     path defaults to ./results/
@@ -164,6 +172,9 @@ def read_all_results(path=None) -> list[Result]:
             for method, times in bench_case.get("time[ms]", {}).items():
                 if not isinstance(times, list) or len(times) == 0:
                     continue
+                metrics, attributes = _split_metrics_attributes(
+                    bench_case.get("metrics", {}).get(method, {})
+                )
                 results.append(
                     Result(
                         hardware=hardware,
@@ -173,9 +184,10 @@ def read_all_results(path=None) -> list[Result]:
                         method=method,
                         timestamp_recorded=timestamp,
                         case=case,
-                        metrics=bench_case.get("metrics", {}).get(method, {}),
+                        metrics=metrics,
                         times=[float(time) for time in times],
                         data_desc=bench_case.get("data_desc", {}).get(method, {}),
+                        attributes=attributes,
                     )
                 )
 
@@ -255,6 +267,26 @@ def append_max_bins_warning(sklearn_res: Result, sklearnex_res: Result, warnings
         )
     if n_samples is not None and max_bins < n_samples:
         warnings.append(MAX_BINS_WARNING)
+
+
+def append_iterations_warning(base_res: Result, candidate: Result, warnings: list):
+    base_iterations = base_res.attributes.get("iterations")
+    candidate_iterations = candidate.attributes.get("iterations")
+    if base_iterations == candidate_iterations:
+        return
+    if base_iterations is None and candidate_iterations is None:
+        return
+
+    warnings.append(
+        MatchWarning(
+            icon="🔁",
+            message=(
+                "Different iteration counts: "
+                f"{base_res.implementation.short_name}={base_iterations}, "
+                f"{candidate.implementation.short_name}={candidate_iterations}"
+            ),
+        )
+    )
 
 
 def find_matches(

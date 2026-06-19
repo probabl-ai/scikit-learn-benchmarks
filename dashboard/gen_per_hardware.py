@@ -6,8 +6,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from reporting.utils import partition_iterable, groupby
 
 from reporting.matching import (
-    append_max_bins_warning, read_all_results, find_matches, date_range,
-    Match, MatchWarning, Result
+    append_iterations_warning, append_max_bins_warning, read_all_results,
+    find_matches, date_range, Match, MatchWarning, Result
 )
 
 from reporting.configs import read_env, summarize_software_env, summarize_hardware_env
@@ -43,10 +43,10 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
 
     if candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
+    append_iterations_warning(base_res, candidate, warnings)
 
     # TODO? warning for attributes:
     # - tree structure
-    # - solver/n_iter
 
     return (
         base_res.minimal_match_key == candidate.minimal_match_key,

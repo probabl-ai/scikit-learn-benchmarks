@@ -437,6 +437,7 @@ def speedup_plot_html(matches: list[Match]):
                 "type": "scatter",
                 "mode": "markers",
                 "name": variant,
+                "showlegend": True,
                 "x": [
                     estimator_positions[
                         match.matched_result.case.get("algorithm", {}).get(
@@ -488,6 +489,7 @@ def speedup_plot_html(matches: list[Match]):
             }
         ],
         "margin": {"l": 70, "r": 20, "t": 20, "b": 110},
+        "showlegend": True,
         "legend": {"orientation": "h"},
     }
     return f"""<div id="{chart_id}" class="chart"></div>
