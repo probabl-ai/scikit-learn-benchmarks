@@ -1,4 +1,9 @@
-from reporting.utils import partition_iterable, stable_json, groupby
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from reporting.utils import partition_iterable, groupby
 
 from reporting.matching import (
     append_max_bins_warning, read_all_results, find_matches, date_range,
@@ -34,8 +39,6 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
     assert base_res.implementation.short_name == BASE_IMPLEMENTATION
     assert candidate.implementation.short_name != BASE_IMPLEMENTATION
 
-    case = base_res.case
-    candidate_case = candidate.case
     warnings = []
 
     if candidate.is_sklearnex_tree:
@@ -46,7 +49,7 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
     # - solver/n_iter
 
     return (
-        stable_json(case) == stable_json(candidate_case),
+        base_res.minimal_match_key == candidate.minimal_match_key,
         warnings
     )
 
@@ -69,7 +72,7 @@ if __name__ == "__main__":
 
     plots = []
     for (category, method), group_base_results in grouped_results.items():
-        matches = find_matches(base_results, other_results, result_matches)
+        matches = find_matches(group_base_results, other_results, result_matches)
         # create a JS snippet for plotly:
         plots.append({
             "category": category,
@@ -97,10 +100,12 @@ if __name__ == "__main__":
         DATE_RANGE_TEMPLATE.render(date_range(results)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(hardware_env)),
         plotly_colored_tabs([
-            SOFTWARE_TEMPLATE.render(sw)
-            for sw in softwares
+            SOFTWARE_TEMPLATE.render(name=name, summary=summary)
+            for name, summary in softwares
         ]),
         assemble_plots_in_grid(plots, rows="category", columns="method")
     ])
 
-    # TODO: save html in dashboard/per_hardware.html
+    output = Path("dashboard/per_hardware.html")
+    output.write_text(html)
+    print(f"Dashboard written to {output}")
