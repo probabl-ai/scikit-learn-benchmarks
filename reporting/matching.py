@@ -11,6 +11,10 @@ from .utils import stable_json, without_keys
 
 RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
 
+HARDWARE_NAMES = {
+    "500639": "small-laptop",
+}
+
 
 @dataclass
 class Implementation:
@@ -103,33 +107,8 @@ def _parse_result_timestamp(path: Path) -> datetime:
     if not match:
         raise ValueError(f"Result filename '{path}' does not end with _<datetime>.json")
     timestamp = match.group(1)
-    date_format = "%Y%m%dT%H%M%S%fZ" if len(timestamp) == 22 else "%Y%m%dT%H%M%SZ"
+    date_format = "%Y%m%dT%H%M%S%fZ" if len(timestamp) > 16 else "%Y%m%dT%H%M%SZ"
     return datetime.strptime(timestamp, date_format).replace(tzinfo=timezone.utc)
-
-
-def _read_hardware_names(root: Path) -> dict[str, str]:
-    path = root / "hardware-names.json"
-    if not path.is_file():
-        return {}
-    with open(path, "r") as f:
-        return json.load(f)
-
-
-def _hardware_name_from_path(path: Path, hardware_hash: str, names: dict[str, str]) -> str:
-    if hardware_hash in names:
-        return names[hardware_hash]
-    hardware_dir = path.parent.parent.name
-    suffix = f"-{hardware_hash}"
-    if hardware_dir.endswith(suffix):
-        return hardware_dir[: -len(suffix)]
-    return hardware_dir
-
-
-def _software_name(root: Path, software_hash: str, software_dir: str) -> str:
-    for path in (root / "results" / "software-envs").glob(f"*-{software_hash}.json"):
-        with open(path, "r") as f:
-            return json.load(f).get("pixi_environment_name", software_dir)
-    return software_dir
 
 
 def _split_metrics_attributes(metrics: dict) -> tuple[dict, dict]:
@@ -140,6 +119,10 @@ def _split_metrics_attributes(metrics: dict) -> tuple[dict, dict]:
     return metrics, attributes
 
 
+def _hardware_name(hardware_hash: str) -> str:
+    return HARDWARE_NAMES.get(hardware_hash, hardware_hash)
+
+
 def read_all_results(path=None) -> list[Result]:
     """
     path defaults to ./results/
@@ -147,14 +130,10 @@ def read_all_results(path=None) -> list[Result]:
     Read all available results and de-duplicates redundant results, i.e.
     results with the same `full_match_key` (keep the latest)
     """
-    root = Path.cwd()
-    results_root = Path(path) if path is not None else root / "results"
-    hardware_names = _read_hardware_names(root)
+    results_root = Path(path) if path is not None else Path("results")
     results: list[Result] = []
 
-    for result_path in sorted(results_root.rglob("*.json")):
-        if {"hardware-envs", "software-envs", "envs"} & set(result_path.parts):
-            continue
+    for result_path in sorted(results_root.glob("*.json")):
         if not RESULT_FILE_RE.match(result_path.name):
             continue
 
@@ -164,8 +143,6 @@ def read_all_results(path=None) -> list[Result]:
         hardware_hash = result_file["hardware_hash"]
         software_hash = result_file["software_hash"]
         timestamp = _parse_result_timestamp(result_path)
-        hardware = _hardware_name_from_path(result_path, hardware_hash, hardware_names)
-        software = _software_name(root, software_hash, result_path.parent.name)
 
         for bench_case in result_file.get("bench_cases", []):
             case = without_keys(bench_case.get("case", {}), excluded_names={"bench"})
@@ -177,9 +154,9 @@ def read_all_results(path=None) -> list[Result]:
                 )
                 results.append(
                     Result(
-                        hardware=hardware,
+                        hardware=_hardware_name(hardware_hash),
                         hardware_hash=hardware_hash,
-                        software=software,
+                        software=software_hash,
                         software_hash=software_hash,
                         method=method,
                         timestamp_recorded=timestamp,

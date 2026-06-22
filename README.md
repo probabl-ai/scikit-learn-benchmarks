@@ -40,8 +40,9 @@ For Intel and array API benchmark work, use the `intel` pixi environment:
 pixi run -e intel ./test.sh
 ```
 
-Generated benchmark results and captured hardware/software environments are
-written under `results/`.
+Generated benchmark results are written as flat `results/<timestamp>.json` files.
+Captured hardware/software environments are stored under `results/hardware-envs/`
+and `results/software-envs/` using hash-only filenames.
 
 ## Status
 

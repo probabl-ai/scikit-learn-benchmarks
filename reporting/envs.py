@@ -5,26 +5,12 @@ from pathlib import Path
 from .matching import Implementation
 
 
-HARDWARE_NAMES = {
-    "0611c8": "small-laptop"
-}
-
-
 def read_env(kind: str, hash: str):
     assert kind in ['software', 'hardware']
-    root = Path("results") / f"{kind}-envs"
-    if not root.is_dir():
-        raise FileNotFoundError(f"Missing environment directory: {root}")
-
-    candidates = []
-    for path in root.glob("*.json"):
-        if path.stem == hash or path.stem.endswith(f"-{hash}"):
-            candidates.append(path)
-    if len(candidates) != 1:
-        raise FileNotFoundError(
-            f"Expected one {kind} environment for hash '{hash}', found {len(candidates)}"
-        )
-    with open(candidates[0], "r") as f:
+    path = Path("results") / f"{kind}-envs" / f"{hash}.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"Expected {kind} environment file: {path}")
+    with open(path, "r") as f:
         return json.load(f)
 
 
