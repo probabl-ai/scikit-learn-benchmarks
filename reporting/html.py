@@ -276,6 +276,16 @@ def _warning_annotation_lines(matches: list[Match]) -> list[str]:
         for warning in warnings
     ]
 
+def custom_format(t):
+    if t < 10:
+        return f"{t:.2g}ms"
+    elif t < 1000:
+        return f"{round(t)}ms"
+    elif t < 10_000:
+        return f"{t/1000:.2g}s"
+    else:
+        return f"{round(t/1000)}s"
+
 
 def _hover_text(match: Match) -> str:
     result = match.matched_result
@@ -284,11 +294,8 @@ def _hover_text(match: Match) -> str:
     data = result.case.get("data", {})
     warning_lines = [_warning_tooltip_line(warning) for warning in match.warnings]
     lines = [
-        f"<b>{escape(algorithm.get('estimator', 'unknown'))}</b>",
-        f"target: {escape(result.implementation.short_name)}",
-        f"base median: {median(base.times):.3g} ms",
-        f"target median: {median(result.times):.3g} ms",
-        f"speed-up: {match.speedup:.3g}x",
+        f"<b>speed-up: {match.speedup:.2g}x</b> "
+        f"({custom_format(median(base.times))} vs {custom_format(median(result.times))})",
     ]
     metric_differences = match.metrics_differences
     if metric_differences:
@@ -329,6 +336,13 @@ def _marker_symbol(match: Match) -> str:
     if match.warnings:
         return "square"
     return "circle"
+
+
+def _trace_sort_key(match: Match) -> tuple[bool, str]:
+    estimator = match.matched_result.case.get("algorithm", {}).get(
+        "estimator", "unknown"
+    )
+    return (_marker_symbol(match) != "circle", estimator)
 
 
 def render_software_tabs(elements: list[str]):
@@ -418,9 +432,7 @@ def speedup_plot_html(matches: list[Match]):
     for variant, variant_matches in sorted(grouped.items()):
         variant_matches = sorted(
             variant_matches,
-            key=lambda match: match.matched_result.case.get("algorithm", {}).get(
-                "estimator", "unknown"
-            ),
+            key=_trace_sort_key,
         )
         marker_symbols = []
         for match in variant_matches:
