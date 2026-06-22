@@ -42,7 +42,9 @@ pixi run -e intel ./test.sh
 
 Generated benchmark results are written as flat `results/<timestamp>.json` files.
 Captured hardware/software environments are stored under `results/hardware-envs/`
-and `results/software-envs/` using hash-only filenames.
+and `results/software-envs/` using hash-only filenames. JSON files under
+`results/` are tracked with Git LFS; run `git lfs install` before adding or
+checking out benchmark results.
 
 ## Status
 
