@@ -203,6 +203,7 @@ def read_all_results(path=None) -> list[Result]:
 class MatchWarning:
     icon: str
     message: str
+    short_message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -258,6 +259,7 @@ class Match:
 
 MAX_BINS_WARNING = MatchWarning(
     icon="🧺",
+    short_message="histogram-based splits",
     message="Scikit-learn intelex uses binning & histogram-based splits while scikit-learn doesn't",
 )
 
@@ -289,11 +291,8 @@ def append_iterations_warning(base_res: Result, candidate: Result, warnings: lis
     warnings.append(
         MatchWarning(
             icon="🔁",
-            message=(
-                "Different iteration counts: "
-                f"{base_res.implementation.short_name}={base_iterations}, "
-                f"{candidate.implementation.short_name}={candidate_iterations}"
-            ),
+            short_message=f"({base_iterations} vs {candidate_iterations})",
+            message="Number of iteration differs: this might mean algorithms are different.",
         )
     )
 

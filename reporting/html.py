@@ -254,12 +254,35 @@ def _hover_lines(value, prefix=""):
     return [f"{prefix}{_hover_value(value)}"]
 
 
+def _warning_tooltip_line(warning) -> str:
+    message = warning.short_message or ""
+    if not message:
+        return warning.icon
+    return f"{warning.icon} {message}"
+
+
+def _warning_annotation_lines(matches: list[Match]) -> list[str]:
+    warnings = []
+    seen = set()
+    for match in matches:
+        for warning in match.warnings:
+            key = (warning.icon, warning.message)
+            if key in seen:
+                continue
+            seen.add(key)
+            warnings.append(warning)
+    return [
+        f"{escape(warning.icon)}: {escape(warning.message)}"
+        for warning in warnings
+    ]
+
+
 def _hover_text(match: Match) -> str:
     result = match.matched_result
     base = match.base_result
     algorithm = result.case.get("algorithm", {})
     data = result.case.get("data", {})
-    warning_lines = [f"{warning.icon} {warning.message}" for warning in match.warnings]
+    warning_lines = [_warning_tooltip_line(warning) for warning in match.warnings]
     lines = [
         f"<b>{escape(algorithm.get('estimator', 'unknown'))}</b>",
         f"target: {escape(result.implementation.short_name)}",
@@ -431,6 +454,25 @@ def speedup_plot_html(matches: list[Match]):
     min_tick = math.floor(min(min(values), 0))
     max_tick = math.ceil(max(max(values), 0))
     tick_values = list(range(min_tick, max_tick + 1))
+    warning_annotation_lines = _warning_annotation_lines(matches)
+    annotations = []
+    bottom_margin = 110
+    if warning_annotation_lines:
+        annotations.append(
+            {
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0,
+                "y": -0.28,
+                "xanchor": "left",
+                "yanchor": "top",
+                "align": "left",
+                "showarrow": False,
+                "text": "<br>".join(warning_annotation_lines),
+                "font": {"size": 12, "color": "#5f6368"},
+            }
+        )
+        bottom_margin += 18 * len(warning_annotation_lines)
     layout = {
         "xaxis": {
             "tickmode": "array",
@@ -456,7 +498,8 @@ def speedup_plot_html(matches: list[Match]):
                 "line": {"color": "#666", "width": 1, "dash": "dash"},
             }
         ],
-        "margin": {"l": 70, "r": 20, "t": 20, "b": 110},
+        "annotations": annotations,
+        "margin": {"l": 70, "r": 20, "t": 20, "b": bottom_margin},
         "showlegend": True,
         "legend": {"orientation": "h"},
     }
