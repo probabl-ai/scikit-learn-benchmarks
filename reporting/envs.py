@@ -2,6 +2,8 @@
 import json
 from pathlib import Path
 
+from .matching import Implementation
+
 
 HARDWARE_NAMES = {
     "0611c8": "small-laptop"
@@ -26,15 +28,6 @@ def read_env(kind: str, hash: str):
         return json.load(f)
 
 
-def _as_implementation_dict(implementation) -> dict:
-    if isinstance(implementation, dict):
-        return implementation
-    return {
-        "library": implementation.library,
-        "device": implementation.device,
-        "data_library": implementation.data_library,
-    }
-
 DEFAULT_SOURCE = {
     "conda": "https://conda.anaconda.org/conda-forge",
     "pip": "https://pypi.org/simple"
@@ -49,11 +42,18 @@ def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
         if package is None:
             continue
 
-        versions.append({
+        kind = package.get("kind")
+        summary = {
             "name": name,
             "version": package.get("version", "?"),
-            "kind": package.get("kind"),
-        })
+            "kind": kind,
+        }
+
+        default_source = DEFAULT_SOURCE.get(kind)
+        if default_source and default_source != package.get("source"):
+            summary["source"] = package.get("source")
+
+        versions.append(summary)
 
     return versions
 
@@ -73,7 +73,7 @@ def _threadpool_summary(env: dict) -> list[str]:
     return summary
 
 
-def summarize_software_env(env: dict, implementation: dict):
+def summarize_software_env(env: dict, implementation: Implementation):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
     # include:
@@ -81,11 +81,9 @@ def summarize_software_env(env: dict, implementation: dict):
     # - implementation["library"] version, and versions of important dependencies
     # - versions of array library
     # - if relevant: summary of BLAS/threading infos
-    implementation = _as_implementation_dict(implementation)
-    library = implementation.get("library")
-    data_library = implementation.get("data_library")
+    library = implementation.library
+    data_library = implementation.data_library
     package_names = [
-        "python",
         "scikit-learn",
         "scikit_learn_intelex",
         "scikit_learn_intelex_gpu",
@@ -93,7 +91,6 @@ def summarize_software_env(env: dict, implementation: dict):
         "numpy",
         "scipy",
         "pandas",
-        "array_api_compat",
         "dpnp",
         "torch",
         "cupy",
@@ -105,13 +102,9 @@ def summarize_software_env(env: dict, implementation: dict):
 
     python_version, = _package_versions(env, ["python"])
 
-    device = implementation.get("device") or "default"
     out = {
-        "implementation": implementation,
+        "name": implementation.short_name,
         "python_version": python_version["version"],
-        "implementation_label": (
-            library if device == "default" else f"{library} on {device}"
-        ),
         "packages": _package_versions(env, package_names),
     }
     if library == "sklearn" and not data_library:

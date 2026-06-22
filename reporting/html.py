@@ -101,12 +101,11 @@ BASE_TEMPLATE = Template("""<!doctype html>
       gap: 12px 28px;
       align-items: start;
     }
-    .package-columns {
-      display: flex;
-      gap: 30px;
-      align-items: flex-start;
-    }
     .package-list {
+      columns: 2;
+      column-gap: 40px;
+      width: max-content;
+      max-width: 100%;
       margin: 0;
       padding-left: 18px;
     }
@@ -114,8 +113,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
       .software-details {
         grid-template-columns: 1fr;
       }
-      .package-columns {
-        flex-wrap: wrap;
+      .package-list {
+        width: auto;
       }
     }
     .plot-grid {
@@ -191,25 +190,21 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
 SOFTWARE_TEMPLATE = Template("""<section class="software-details">
   <div>
     <h3>{{ name }}</h3>
-    <p> Python {{ summary.python_version }}</p>
+    <p> Python {{ python_version }}</p>
   </div>
   <div>
     <h3>Packages</h3>
-    <div class="package-columns">
-    {% for column in summary.packages|slice(2) %}
-      <ul class="package-list">
-      {% for package in column %}
-        <li><code>{{ package.name }}</code> {{ package.version }}</li>
-      {% endfor %}
-      </ul>
+    <ul class="package-list">
+    {% for package in packages %}
+      <li><code>{{ package.name }}</code> {{ package.version }}</li>
     {% endfor %}
-    </div>
+    </ul>
   </div>
   <div>
-    {% if summary.threadpools %}
+    {% if threadpools %}
     <h3>Threadpools</h3>
     <ul class="compact">
-    {% for threadpool in summary.threadpools %}
+    {% for threadpool in threadpools %}
       <li>{{ threadpool }}</li>
     {% endfor %}
     </ul>

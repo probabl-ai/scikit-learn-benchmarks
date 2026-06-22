@@ -84,24 +84,20 @@ if __name__ == "__main__":
     hardware_env = read_env("hardware", hardware_hash)
 
     base_sw_env = read_env("software", base_results[0].software_hash)
-    base_implem = base_results[0].case['implementation']
+    base_implem = base_results[0].implementation
 
-    softwares = [
-        (BASE_IMPLEMENTATION, summarize_software_env(base_sw_env, base_implem))
-    ]
+    softwares = [summarize_software_env(base_sw_env, base_implem)]
     for implem_name, implem_results in groupby(other_results, lambda res: res.implementation.short_name).items():
         res = implem_results[0]
         env = read_env("software", res.software_hash)
-        softwares.append(
-            (implem_name, summarize_software_env(env, res.implementation))
-        )
+        softwares.append(summarize_software_env(env, res.implementation))
 
     html = BASE_TEMPLATE.render(rows=[
         DATE_RANGE_TEMPLATE.render(date_range(results)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(hardware_env)),
         plotly_colored_tabs([
-            SOFTWARE_TEMPLATE.render(name=name, summary=summary)
-            for name, summary in softwares
+            SOFTWARE_TEMPLATE.render(**summary)
+            for summary in softwares
         ]),
         assemble_plots_in_grid(plots, rows="category", columns="method")
     ])
