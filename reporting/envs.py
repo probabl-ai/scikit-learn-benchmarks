@@ -35,14 +35,26 @@ def _as_implementation_dict(implementation) -> dict:
         "data_library": implementation.data_library,
     }
 
+DEFAULT_SOURCE = {
+    "conda": "https://conda.anaconda.org/conda-forge",
+    "pip": "https://pypi.org/simple"
+}
+
 
 def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
     packages = env.get("pixi_packages", {})
     versions = []
     for name in names:
         package = packages.get(name)
-        if package is not None:
-            versions.append({"name": name, "version": package.get("version", "?")})
+        if package is None:
+            continue
+
+        versions.append({
+            "name": name,
+            "version": package.get("version", "?"),
+            "kind": package.get("kind"),
+        })
+
     return versions
 
 
@@ -91,32 +103,42 @@ def summarize_software_env(env: dict, implementation: dict):
     if data_library and data_library not in package_names:
         package_names.append(data_library)
 
+    python_version, = _package_versions(env, ["python"])
+
     device = implementation.get("device") or "default"
-    return {
-        "environment": env.get("pixi_environment_name", "?"),
+    out = {
         "implementation": implementation,
+        "python_version": python_version["version"],
         "implementation_label": (
             library if device == "default" else f"{library} on {device}"
         ),
         "packages": _package_versions(env, package_names),
-        "threadpools": _threadpool_summary(env),
     }
+    if library == "sklearn" and not data_library:
+        out["threadpools"] = _threadpool_summary(env)
+    return out
+
 
 def summarize_hardware_env(env: dict):
     # same for hardware, but independant of implem
     cpu = env.get("CPU", {})
     gpus = env.get("GPU(s)", {})
+
+    drivers = {k.split(":")[0] for k in gpus}
+
+    if drivers == {"level_zero", "opencl"}:
+        gpus = {k: v for k, v in gpus.items() if k.startswith("level_zero")}
+
     return {
         "cpu_name": cpu.get("name", "?"),
         "architecture": cpu.get("architecture", "?"),
         "logical_cpus": cpu.get("logical_cpus", "?"),
+        "physical_cores": cpu.get("physical_cores", "?"),
         "ram_gb": env.get("RAM size[GB]", "?"),
         "gpus": [
             {
                 "id": device_id,
                 "name": gpu.get("name", "?"),
-                "vendor": gpu.get("vendor", "?"),
-                "driver": gpu.get("driver version", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
             }
             for device_id, gpu in gpus.items()

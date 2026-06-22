@@ -97,13 +97,26 @@ BASE_TEMPLATE = Template("""<!doctype html>
     }
     .software-details {
       display: grid;
-      grid-template-columns: minmax(180px, 260px) 1fr;
-      gap: 12px;
+      grid-template-columns: max-content max-content max-content;
+      gap: 12px 28px;
+      align-items: start;
+    }
+    .package-columns {
+      display: flex;
+      gap: 30px;
+      align-items: flex-start;
     }
     .package-list {
-      columns: 2;
       margin: 0;
       padding-left: 18px;
+    }
+    @media (max-width: 900px) {
+      .software-details {
+        grid-template-columns: 1fr;
+      }
+      .package-columns {
+        flex-wrap: wrap;
+      }
     }
     .plot-grid {
       display: grid;
@@ -148,9 +161,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
 BASE_TEMPLATE.globals["plotly_cdn"] = PLOTLY_CDN
 
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">
-  <h2>Benchmark Window</h2>
-  <p><strong>{{ label }}</strong></p>
-  <p class="muted">{{ count }} result records{% if start and end %}, from {{ start }} to {{ end }}{% endif %}</p>
+  <h2>{{ label }}</h2>
 </section>""")
 
 HARDWARE_TEMPLATE = Template("""<section class="panel">
@@ -167,7 +178,7 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
       {% if gpus %}
       <ul class="compact">
       {% for gpu in gpus %}
-        <li>{{ gpu.name }} <span class="muted">({{ gpu.vendor }}, {{ gpu.memory_gb }} GB, driver {{ gpu.driver }})</span></li>
+        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB)</span></li>
       {% endfor %}
       </ul>
       {% else %}
@@ -180,16 +191,21 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
 SOFTWARE_TEMPLATE = Template("""<section class="software-details">
   <div>
     <h3>{{ name }}</h3>
-    <p>{{ summary.implementation_label }}</p>
-    <p class="muted">pixi environment: <code>{{ summary.environment }}</code></p>
+    <p> Python {{ summary.python_version }}</p>
   </div>
   <div>
     <h3>Packages</h3>
-    <ul class="package-list">
-    {% for package in summary.packages %}
-      <li><code>{{ package.name }}</code> {{ package.version }}</li>
+    <div class="package-columns">
+    {% for column in summary.packages|slice(2) %}
+      <ul class="package-list">
+      {% for package in column %}
+        <li><code>{{ package.name }}</code> {{ package.version }}</li>
+      {% endfor %}
+      </ul>
     {% endfor %}
-    </ul>
+    </div>
+  </div>
+  <div>
     {% if summary.threadpools %}
     <h3>Threadpools</h3>
     <ul class="compact">

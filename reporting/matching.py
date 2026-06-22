@@ -334,16 +334,11 @@ def find_matches(
 
 def date_range(results: list[Result]) -> dict:
     if not results:
-        return {"start": None, "end": None, "count": 0, "label": "No results"}
+        return {"label": "No results"}
     start = min(result.timestamp_recorded for result in results)
     end = max(result.timestamp_recorded for result in results)
     if start.date() == end.date():
-        label = start.strftime("%Y-%m-%d")
+        date_range = start.strftime("%Y-%m-%d")
     else:
-        label = f"{start:%Y-%m-%d} to {end:%Y-%m-%d}"
-    return {
-        "start": start.isoformat(),
-        "end": end.isoformat(),
-        "count": len(results),
-        "label": label,
-    }
+        date_range = f"{start:%Y-%m-%d} to {end:%Y-%m-%d}"
+    return {"label": f"{len(results)} benchamrk records from {date_range}"}
