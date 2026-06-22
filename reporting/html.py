@@ -188,7 +188,7 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
 </section>""")
 
 SOFTWARE_TEMPLATE = Template("""<section class="software-details">
-  <div>
+  <div style="min-width: 150px">
     <h3>{{ name }}</h3>
     <p> Python {{ python_version }}</p>
   </div>
@@ -308,7 +308,7 @@ def _marker_symbol(match: Match) -> str:
     return "circle"
 
 
-def plotly_colored_tabs(elements: list[str]):
+def render_software_tabs(elements: list[str]):
     if not elements:
         return ""
     tabs_id = f"tabs-{next(_chart_ids)}"
@@ -340,16 +340,15 @@ def plotly_colored_tabs(elements: list[str]):
 </section>"""
 
 
-def assemble_plots_in_grid(plots: list[dict], *, x=None, y=None, rows=None, columns=None):
-    row_key = rows or y
-    column_key = columns or x
-    if row_key is None or column_key is None:
-        raise TypeError("assemble_plots_in_grid requires rows/columns or x/y")
+def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
+    row_key = rows if isinstance(rows, str) else list(rows)[0]
+    column_key = columns if isinstance(columns, str) else list(columns)[0]
+
     if not plots:
         return '<section class="empty">No matching benchmark results.</section>'
 
-    row_values = sorted({plot[row_key] for plot in plots})
-    column_values = sorted({plot[column_key] for plot in plots})
+    row_values = sorted({plot[row_key] for plot in plots}) if isinstance(rows, str) else rows[row_key]
+    column_values = sorted({plot[column_key] for plot in plots}) if isinstance(columns, str) else columns[column_key]
     by_position = {
         (plot[row_key], plot[column_key]): plot
         for plot in plots
@@ -388,10 +387,6 @@ def speedup_plot_html(matches: list[Match]):
     }
     variants = sorted({match.matched_result.implementation.short_name for match in matches})
     offsets = _variant_offsets(variants)
-    palette = ["#1f77b4", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf", "#8c564b"]
-    variant_colors = {
-        variant: palette[index % len(palette)] for index, variant in enumerate(variants)
-    }
     grouped: dict[str, list[Match]] = {}
     for match in matches:
         grouped.setdefault(match.matched_result.implementation.short_name, []).append(match)
@@ -428,7 +423,6 @@ def speedup_plot_html(matches: list[Match]):
                 "marker": {
                     "size": 10,
                     "symbol": marker_symbols,
-                    "color": variant_colors[variant],
                 },
             }
         )
@@ -439,7 +433,6 @@ def speedup_plot_html(matches: list[Match]):
     tick_values = list(range(min_tick, max_tick + 1))
     layout = {
         "xaxis": {
-            "title": "Estimator",
             "tickmode": "array",
             "tickvals": list(range(len(estimators))),
             "ticktext": estimators,

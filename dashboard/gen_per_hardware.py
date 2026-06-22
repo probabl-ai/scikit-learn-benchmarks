@@ -16,7 +16,7 @@ from reporting.html import (
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
     SOFTWARE_TEMPLATE,
-    speedup_plot_html, plotly_colored_tabs, assemble_plots_in_grid
+    speedup_plot_html, render_software_tabs, assemble_plots_in_grid
 )
 
 
@@ -95,11 +95,15 @@ if __name__ == "__main__":
     html = BASE_TEMPLATE.render(rows=[
         DATE_RANGE_TEMPLATE.render(date_range(results)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(hardware_env)),
-        plotly_colored_tabs([
+        render_software_tabs([
             SOFTWARE_TEMPLATE.render(**summary)
             for summary in softwares
         ]),
-        assemble_plots_in_grid(plots, rows="category", columns="method")
+        assemble_plots_in_grid(
+            plots,
+            rows={"category": ["linear", "tree-based", "clustering"]},
+            columns={"method": ["fit", "predict"]}
+        )
     ])
 
     output = Path("dashboard/per_hardware.html")
