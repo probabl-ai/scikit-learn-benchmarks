@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preview expanded sklbench cases for one PARAMETERS_SETS entry."""
+"""Preview expanded sklbench cases for one PARAMETERS_SETS or TEMPLATES entry."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from sklbench.utils.config import (
     remove_duplicated_bench_cases,
     resolve_include_config_path,
 )
+from sklbench.utils.common import flatten_list
 from sklbench.utils.special_params import (
     assign_case_special_values_on_generation,
     assign_template_special_values,
@@ -93,6 +94,35 @@ def _parameter_set_templates(
     return templates
 
 
+def _template_templates(
+    config_content: dict[str, Any], template_name: str
+) -> list[dict[str, Any]]:
+    templates_config = config_content.get("TEMPLATES", {})
+    if template_name not in templates_config:
+        available_templates = ", ".join(sorted(templates_config))
+        raise KeyError(
+            f"Unknown template '{template_name}'. "
+            f"Available templates: {available_templates}"
+        )
+
+    template_content = deepcopy(templates_config[template_name])
+    expand_variant_keys(template_content)
+    templates = [{}]
+    for param_set_name in template_content.pop("SETS", []):
+        param_set_templates = _parameter_set_templates(config_content, param_set_name)
+        templates = flatten_list(
+            [
+                [
+                    merge_dicts(template, param_set_template)
+                    for param_set_template in param_set_templates
+                ]
+                for template in templates
+            ]
+        )
+
+    return [merge_dicts(template, template_content) for template in templates]
+
+
 def expand_parameter_set(
     config_path: Path,
     parameter_set_name: str,
@@ -101,7 +131,10 @@ def expand_parameter_set(
 ) -> list[dict[str, Any]]:
     """Expand one PARAMETERS_SETS entry using sklbench generation semantics."""
     config_content = _load_config(config_path)
-    templates = _parameter_set_templates(config_content, parameter_set_name)
+    if parameter_set_name in config_content.get("TEMPLATES", {}):
+        templates = _template_templates(config_content, parameter_set_name)
+    else:
+        templates = _parameter_set_templates(config_content, parameter_set_name)
 
     global_parameters = parse_cli_parameters(parameters or [])
     if global_parameters:
@@ -143,8 +176,8 @@ def _expand_filters(raw_filters: list[str]) -> list[dict[str, Any]]:
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Expand one PARAMETERS_SETS entry from a sklbench JSON config "
-            "without running benchmarks."
+            "Expand one PARAMETERS_SETS or TEMPLATES entry from a sklbench JSON "
+            "config without running benchmarks."
         )
     )
     parser.add_argument("config", type=Path, help="Path to a sklbench JSON config.")
@@ -152,8 +185,8 @@ def _parse_args() -> argparse.Namespace:
         "parameter_set",
         nargs="?",
         help=(
-            "Name of the PARAMETERS_SETS entry to expand. If omitted with "
-            "--list-sets, only available set names are printed."
+            "Name of the PARAMETERS_SETS or TEMPLATES entry to expand. If omitted "
+            "with --list-sets, only available set names are printed."
         ),
     )
     parser.add_argument(
@@ -164,7 +197,7 @@ def _parse_args() -> argparse.Namespace:
         nargs="+",
         help=(
             "CLI-style parameters to merge on top of the selected set, e.g. "
-            "'algorithm:library=sklearn data:dtype=float32'."
+            "'implementation:library=sklearn data:dtype=float32'."
         ),
     )
     parser.add_argument(
@@ -215,9 +248,13 @@ def main() -> int:
         config_content = _load_config(args.config)
 
         if args.list_sets:
-            for parameter_set_name in sorted(config_content["PARAMETERS_SETS"]):
-                if parameter_set_name.endswith("+"):
-                    continue
+            names = [
+                name
+                for name in config_content["PARAMETERS_SETS"]
+                if not name.endswith("+")
+            ]
+            names.extend(config_content.get("TEMPLATES", {}))
+            for parameter_set_name in sorted(set(names)):
                 print(parameter_set_name)
             return 0
 

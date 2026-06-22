@@ -2,6 +2,8 @@
 
 - Use the `intel` pixi environment for Intel and array API benchmark work:
   `pixi run -e intel ...`.
+- Use the `reporting` pixi environment for dashboard and reporting work:
+  `pixi run -e reporting ...`.
 - `sklbench` is a symlink to the nested `scikit-learn_bench/sklbench`
   checkout. Changes under `sklbench/` belong to that nested repository.
 - Do not spend time preserving or normalizing LF vs CRLF line endings in this

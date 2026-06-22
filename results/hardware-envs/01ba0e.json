@@ -1,0 +1,24 @@
+{
+    "CPU": {
+        "architecture": "X86_64",
+        "logical_cpus": 8,
+        "name": "AMD EPYC 7413 24-Core Processor",
+        "flags": "3dnowprefetch abm adx aes apic arat arch_capabilities avx avx2 bmi1 bmi2 clflush clflushopt clwb clzero cmov cmp_legacy cpuid cr8_legacy cx16 cx8 de erms extd_apicid f16c fma fpu fsgsbase fsrm fxsr fxsr_opt ht hypervisor ibpb ibrs invpcid lahf_lm lbrv lm mca mce misalignsse mmx mmxext movbe msr mtrr nopl npt nrip_save nx ospke osvw osxsave overflow_recov pae pat pausefilter pcid pclmulqdq pdpe1gb perfctr_core pfthreshold pge pku pni popcnt pse pse36 rdpid rdrand rdrnd rdseed rdtscp rep_good sep sha sha_ni smap smep ssbd sse sse2 sse4_1 sse4_2 sse4a ssse3 stibp succor svm syscall tsc tsc_adjust tsc_deadline_timer tsc_known_freq tsc_scale tscdeadline umip v_vmsave_vmload vaes vgif vmcb_clean vme vmmcall vpclmulqdq wbnoinvd x2apic xgetbv1 xsave xsavec xsaveerptr xsaveopt xsaves",
+        "physical_cores": 8
+    },
+    "GPU(s)": {
+        "cuda:0": {
+            "name": "NVIDIA L4",
+            "vendor": "NVIDIA Corporation",
+            "type": "gpu",
+            "driver version": "580.126.20",
+            "cuda driver version": "13.0",
+            "index": 0,
+            "memory size[GB]": 22,
+            "uuid": "GPU-74fe9b5a-c90e-62ed-f9f6-a8ad01eee6f9",
+            "pci bus id": "00000000:01:00.0",
+            "cuda compute capability": "8.9"
+        }
+    },
+    "RAM size[GB]": 47
+}
