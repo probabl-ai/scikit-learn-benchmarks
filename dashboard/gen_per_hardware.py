@@ -19,7 +19,8 @@ from reporting.html import (
     assemble_plots_in_grid,
     speedup_plot_html,
     render_software_tabs,
-    render_hardware_tabs
+    render_hardware_tabs,
+    variant_color_map,
 )
 
 
@@ -76,6 +77,9 @@ def render_hardware_page(results: list[Result], hardware_name: str) -> str:
     if not base_results:
         return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
 
+    variant_colors = variant_color_map(
+        sorted({res.implementation.short_name for res in other_results})
+    )
     grouped_results = groupby(base_results, lambda res: (res.category, res.method))
 
     plots = []
@@ -85,7 +89,7 @@ def render_hardware_page(results: list[Result], hardware_name: str) -> str:
         plots.append({
             "category": category,
             "method": method,
-            "plot": speedup_plot_html(matches)
+            "plot": speedup_plot_html(matches, variant_colors=variant_colors)
         })
 
     hardware_hash, = hardwares_set
@@ -106,7 +110,7 @@ def render_hardware_page(results: list[Result], hardware_name: str) -> str:
         render_software_tabs([
             SOFTWARE_TEMPLATE.render(**summary)
             for summary in softwares
-        ]),
+        ], variant_colors=variant_colors),
         assemble_plots_in_grid(
             plots,
             rows={"category": ["linear", "tree-based", "clustering"]},

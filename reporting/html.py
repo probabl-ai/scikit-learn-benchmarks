@@ -10,6 +10,18 @@ from jinja2 import Template
 from .matching import Match
 
 PLOTLY_CDN = "https://cdn.plot.ly/plotly-2.35.2.min.js"
+PLOTLY_DEFAULT_COLORS = [
+    "#636EFA",
+    "#EF553B",
+    "#00CC96",
+    "#AB63FA",
+    "#FFA15A",
+    "#19D3F3",
+    "#FF6692",
+    "#B6E880",
+    "#FF97FF",
+    "#FECB52",
+]
 
 BASE_TEMPLATE = Template("""<!doctype html>
 <html lang="en">
@@ -169,7 +181,7 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
     <div>
       <h3>CPU</h3>
       <p>{{ cpu_name }}</p>
-      <p class="muted">{{ architecture }}, {{ logical_cpus }} logical CPUs</p>
+      <p class="muted">{{ architecture }}, {{ physical_cores }} physical cores, {{ logical_cpus }} logical CPUs</p>
       <p class="muted">{{ ram_gb }} GB RAM</p>
     </div>
     <div>
@@ -326,6 +338,13 @@ def _variant_offsets(variants: list[str]) -> dict[str, float]:
     return {variant: (index - center) * step for index, variant in enumerate(variants)}
 
 
+def variant_color_map(variants: list[str]) -> dict[str, str]:
+    return {
+        variant: PLOTLY_DEFAULT_COLORS[index % len(PLOTLY_DEFAULT_COLORS)]
+        for index, variant in enumerate(variants)
+    }
+
+
 def _metrics_match(match: Match) -> bool:
     return match.metrics_match
 
@@ -345,9 +364,29 @@ def _trace_sort_key(match: Match) -> tuple[bool, str]:
     return (_marker_symbol(match) != "circle", estimator)
 
 
-def render_software_tabs(elements: list[str]):
+def _trace_variant(match: Match) -> str:
+    return match.matched_result.implementation.short_name
+
+
+def _x_variant(match: Match) -> str:
+    variant = match.matched_result.implementation.short_name
+    if match.matched_result.category != "tree-based":
+        return variant
+
+    estimator_params = match.matched_result.case.get("algorithm", {}).get(
+        "estimator_params", {}
+    )
+    max_bins_label = "max_bins" if "max_bins" in estimator_params else "no max_bins"
+    return f"{variant} / {max_bins_label}"
+
+
+def render_software_tabs(
+    elements: list[str], *, variant_colors: dict[str, str] | None = None
+):
     if not elements:
         return ""
+    if variant_colors is None:
+        variant_colors = {}
     tabs_id = f"tabs-{next(_chart_ids)}"
     buttons = []
     panels = []
@@ -356,9 +395,13 @@ def render_software_tabs(elements: list[str]):
         match = re.search(r"<h3>(.*?)</h3>", element)
         label = match.group(1) if match else f"Environment {index + 1}"
         marker = f"tab-{tabs_id}-{index}"
+        style = ""
+        color = variant_colors.get(label)
+        if color is not None:
+            style = f' style="background: {color}1F;"'
         buttons.append(
             f'<button class="tab-button{active}" type="button" '
-            f'data-tab-target="{marker}">{escape(label)}</button>'
+            f'data-tab-target="{marker}"{style}>{escape(label)}</button>'
         )
         panels.append(f'<div id="{marker}" class="tab-panel{active}">{element}</div>')
     return f"""<section class="tabs" id="{tabs_id}">
@@ -439,11 +482,15 @@ def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
     return f'<section class="plot-grid" style="{style}">{"".join(cells)}</section>'
 
 
-def speedup_plot_html(matches: list[Match]):
+def speedup_plot_html(matches: list[Match], *, variant_colors: dict[str, str] | None = None):
     if not matches:
         return '<div class="empty">No matches for this group.</div>'
 
     chart_id = f"chart-{next(_chart_ids)}"
+    if variant_colors is None:
+        variant_colors = variant_color_map(
+            sorted({_trace_variant(match) for match in matches})
+        )
     estimators = sorted(
         {
             match.matched_result.case.get("algorithm", {}).get("estimator", "unknown")
@@ -453,11 +500,11 @@ def speedup_plot_html(matches: list[Match]):
     estimator_positions = {
         estimator: index for index, estimator in enumerate(estimators)
     }
-    variants = sorted({match.matched_result.implementation.short_name for match in matches})
-    offsets = _variant_offsets(variants)
+    x_variants = sorted({_x_variant(match) for match in matches})
+    offsets = _variant_offsets(x_variants)
     grouped: dict[str, list[Match]] = {}
     for match in matches:
-        grouped.setdefault(match.matched_result.implementation.short_name, []).append(match)
+        grouped.setdefault(_trace_variant(match), []).append(match)
 
     traces = []
     for variant, variant_matches in sorted(grouped.items()):
@@ -468,6 +515,13 @@ def speedup_plot_html(matches: list[Match]):
         marker_symbols = []
         for match in variant_matches:
             marker_symbols.append(_marker_symbol(match))
+        marker = {
+            "size": 10,
+            "symbol": marker_symbols,
+        }
+        color = variant_colors.get(variant)
+        if color is not None:
+            marker["color"] = color
         traces.append(
             {
                 "type": "scatter",
@@ -480,16 +534,13 @@ def speedup_plot_html(matches: list[Match]):
                             "estimator", "unknown"
                         )
                     ]
-                    + offsets[variant]
+                    + offsets[_x_variant(match)]
                     for match in variant_matches
                 ],
                 "y": [math.log2(match.speedup) for match in variant_matches],
                 "text": [_hover_text(match) for match in variant_matches],
                 "hovertemplate": "%{text}<extra></extra>",
-                "marker": {
-                    "size": 10,
-                    "symbol": marker_symbols,
-                },
+                "marker": marker,
             }
         )
 
