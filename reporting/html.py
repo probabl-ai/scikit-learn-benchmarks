@@ -203,12 +203,15 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
   <div style="min-width: 150px">
     <h3>{{ name }}</h3>
     <p> Python {{ python_version }}</p>
+    {% if array_api_docs_url %}
+    <p><a href="{{ array_api_docs_url }}">Array API support</a></p>
+    {% endif %}
   </div>
   <div>
     <h3>Packages</h3>
     <ul class="package-list">
     {% for package in packages %}
-      <li><code>{{ package.name }}</code> {{ package.version }}</li>
+      <li><code>{{ package.name }}</code> {{ package.version }} <span class="muted">({{ package.kind }})</span></li>
     {% endfor %}
     </ul>
   </div>

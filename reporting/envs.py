@@ -16,7 +16,7 @@ def read_env(kind: str, hash: str):
 
 DEFAULT_SOURCE = {
     "conda": "https://conda.anaconda.org/conda-forge",
-    "pip": "https://pypi.org/simple"
+    "pypi": "https://pypi.org/simple",
 }
 
 
@@ -32,7 +32,7 @@ def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
         summary = {
             "name": name,
             "version": package.get("version", "?"),
-            "kind": kind,
+            "kind": "pip" if kind == "pypi" else kind,
         }
 
         default_source = DEFAULT_SOURCE.get(kind)
@@ -59,6 +59,27 @@ def _threadpool_summary(env: dict) -> list[str]:
     return summary
 
 
+def _implementation_package_names(implementation: Implementation) -> list[str]:
+    library = implementation.library
+    data_library = implementation.data_library
+
+    if library == "sklearn" and data_library:
+        package_names = ["scikit-learn", data_library]
+        return package_names
+
+    if library == "sklearn":
+        return ["scikit-learn", "numpy", "scipy", "pandas"]
+
+    if library == "sklearnex":
+        package_names = ["scikit-learn", "scikit_learn_intelex"]
+        if implementation.device == "gpu":
+            package_names += ["scikit_learn_intelex_gpu", "dpnp"]
+        package_names.append("daal")
+        return package_names
+
+    return [name for name in [library, data_library] if name]
+
+
 def summarize_software_env(env: dict, implementation: Implementation):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
@@ -67,24 +88,7 @@ def summarize_software_env(env: dict, implementation: Implementation):
     # - implementation["library"] version, and versions of important dependencies
     # - versions of array library
     # - if relevant: summary of BLAS/threading infos
-    library = implementation.library
-    data_library = implementation.data_library
-    package_names = [
-        "scikit-learn",
-        "scikit_learn_intelex",
-        "scikit_learn_intelex_gpu",
-        "daal",
-        "numpy",
-        "scipy",
-        "pandas",
-        "dpnp",
-        "torch",
-        "cupy",
-    ]
-    if library and library not in package_names:
-        package_names.insert(1, library)
-    if data_library and data_library not in package_names:
-        package_names.append(data_library)
+    package_names = _implementation_package_names(implementation)
 
     python_version, = _package_versions(env, ["python"])
 
@@ -93,7 +97,9 @@ def summarize_software_env(env: dict, implementation: Implementation):
         "python_version": python_version["version"],
         "packages": _package_versions(env, package_names),
     }
-    if library == "sklearn" and not data_library:
+    if implementation.library == "sklearn" and implementation.data_library:
+        out["array_api_docs_url"] = "https://scikit-learn.org/stable/modules/array_api.html"
+    if implementation.library == "sklearn" and not implementation.data_library:
         out["threadpools"] = _threadpool_summary(env)
     return out
 

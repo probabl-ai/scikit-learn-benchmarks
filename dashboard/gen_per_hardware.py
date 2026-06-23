@@ -24,11 +24,11 @@ from reporting.html import (
 )
 
 
-HARDWARE_NAMES = [
-    "AMD 48 cores",
-    "AMD + Nvidia L4 GPU",
-    "Intel laptop",
-]
+HARDWARE_NAMES = {
+    "0f5327": "AMD 48 cores",
+    "01ba0e": "AMD + Nvidia L4 GPU",
+    "268063": "Intel laptop",
+}
 BASE_IMPLEMENTATION = "sklearn"
 
 
@@ -62,13 +62,13 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
     )
 
 
-def render_hardware_page(results: list[Result], hardware_name: str) -> str:
-    results = [res for res in results if res.hardware == hardware_name]
+def render_hardware_page(results: list[Result], hardware_hash: str) -> str:
+    results = [res for res in results if res.hardware_hash == hardware_hash]
     if not results:
         return '<section class="empty">No benchmark results for this hardware.</section>'
     hardwares_set = {res.hardware_hash for res in results}
     if len(hardwares_set) > 1:
-        raise ValueError(f"Results are dirty: several hardwares share the name {hardware_name!r}")
+        raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
 
     base_results, other_results = partition_iterable(
         results,
@@ -123,8 +123,8 @@ def render_hardware_page(results: list[Result], hardware_name: str) -> str:
 if __name__ == "__main__":
     results = read_all_results()
     hardware_pages = [
-        (hardware_name, render_hardware_page(results, hardware_name))
-        for hardware_name in HARDWARE_NAMES
+        (hardware_name, render_hardware_page(results, hardware_hash))
+        for hardware_hash, hardware_name in HARDWARE_NAMES.items()
     ]
 
     html = BASE_TEMPLATE.render(rows=[

@@ -11,13 +11,6 @@ from .utils import stable_json, without_keys
 
 RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
 
-HARDWARE_NAMES = {
-    "500639": "small-laptop",
-    "0f5327": "AMD 48 cores",
-    "01ba0e": "AMD + Nvidia L4 GPU",
-    "268063": "Intel laptop"
-}
-
 
 @dataclass
 class Implementation:
@@ -39,7 +32,6 @@ class Implementation:
 class Result:
     # No support for functions for now.
 
-    hardware: str  # sklearn
     hardware_hash: str  # ...
     software: str  # pixi env name
     software_hash: str  # ...
@@ -135,10 +127,6 @@ def _split_method_metrics_attributes(
     return all_metrics, all_attributes
 
 
-def _hardware_name(hardware_hash: str) -> str:
-    return HARDWARE_NAMES.get(hardware_hash, hardware_hash)
-
-
 def read_all_results(path=None) -> list[Result]:
     """
     path defaults to ./results/
@@ -170,7 +158,6 @@ def read_all_results(path=None) -> list[Result]:
                     continue
                 results.append(
                     Result(
-                        hardware=_hardware_name(hardware_hash),
                         hardware_hash=hardware_hash,
                         software=software_hash,
                         software_hash=software_hash,
