@@ -18,7 +18,13 @@ from reporting.html import (
     _hover_lines,
     _safe_json,
 )
-from reporting.matching import read_all_results, date_range, Result
+from reporting.matching import (
+    MatchWarning,
+    append_cpu_fallback_warning,
+    read_all_results,
+    date_range,
+    Result,
+)
 
 
 GPU_HARDWARES = {
@@ -68,24 +74,55 @@ def trace_sort_key(label: str) -> tuple[int, int, str]:
     return implementation_rank, hardware_rank, implementation
 
 
+def result_warnings(result: Result) -> list[MatchWarning]:
+    warnings = []
+    append_cpu_fallback_warning(result, warnings)
+    return warnings
+
+
+def warning_tooltip_line(warning: MatchWarning) -> str:
+    if warning.short_message:
+        return f"{warning.icon} {warning.short_message}"
+    return warning.icon
+
+
+def warning_annotation_lines(warnings: list[MatchWarning]) -> list[str]:
+    lines = []
+    seen = set()
+    for warning in warnings:
+        key = (warning.icon, warning.message)
+        if key in seen:
+            continue
+        seen.add(key)
+        lines.append(f"{escape(warning.icon)}: {escape(warning.message)}")
+    return lines
+
+
 def result_hover_text(result: Result, hardware_name: str) -> str:
     algorithm = result.case.get("algorithm", {})
     data = result.case.get("data", {})
+    warnings = result_warnings(result)
+    warning_lines = [warning_tooltip_line(warning) for warning in warnings]
     estimator_params = "<br>".join(
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
     data_params = "<br>".join(escape(line) for line in _hover_lines(data))
-    return "<br>".join(
+    lines = [
+        f"<b>{escape(trace_label(result))}</b>",
+        f"{escape(hardware_name)} / {escape(result.method)}",
+        f"time: {custom_format(median(result.times))}",
+    ]
+    if warning_lines:
+        lines.extend(escape(line) for line in warning_lines)
+    lines.extend(
         [
-            f"<b>{escape(trace_label(result))}</b>",
-            f"{escape(hardware_name)} / {escape(result.method)}",
-            f"time: {custom_format(median(result.times))}",
             "<br><b>estimator params</b>",
             estimator_params,
             "<br><b>data params</b>",
             data_params,
         ]
     )
+    return "<br>".join(lines)
 
 
 def timing_plot_html(
@@ -134,6 +171,10 @@ def timing_plot_html(
                 median(result.times),
             ),
         )
+        marker_symbols = [
+            "square" if result_warnings(result) else "circle"
+            for result in label_results
+        ]
         traces.append(
             {
                 "type": "scatter",
@@ -158,9 +199,35 @@ def timing_plot_html(
                 "marker": {
                     "size": 10,
                     "color": trace_colors[label],
+                    "symbol": marker_symbols,
                 },
             }
         )
+
+    all_warnings = [
+        warning
+        for result in plot_results
+        for warning in result_warnings(result)
+    ]
+    annotations = []
+    bottom_margin = 110
+    warning_lines = warning_annotation_lines(all_warnings)
+    if warning_lines:
+        annotations.append(
+            {
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0,
+                "y": -0.28,
+                "xanchor": "left",
+                "yanchor": "top",
+                "align": "left",
+                "showarrow": False,
+                "text": "<br>".join(warning_lines),
+                "font": {"size": 12, "color": "#5f6368"},
+            }
+        )
+        bottom_margin += 18 * len(warning_lines)
 
     layout = {
         "xaxis": {
@@ -173,7 +240,8 @@ def timing_plot_html(
             "title": "median time [ms]",
             "type": "log",
         },
-        "margin": {"l": 70, "r": 20, "t": 20, "b": 110},
+        "margin": {"l": 70, "r": 20, "t": 20, "b": bottom_margin},
+        "annotations": annotations,
         "showlegend": True,
         "legend": {"orientation": "h"},
     }

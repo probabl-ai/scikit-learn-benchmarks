@@ -43,6 +43,7 @@ class Result:
     times: list[float]  # in ms
     data_desc: dict
     attributes: dict = field(default_factory=dict)
+    logs: dict = field(default_factory=dict)
     # TODO: collect attributes? e.g. solver, tree-structure, ...
     # first we need to record meaningful attributes in results
     # => any int/str, arrays with only a few elements should be transofrmed to list
@@ -168,6 +169,7 @@ def read_all_results(path=None) -> list[Result]:
                         times=[float(time) for time in times],
                         data_desc=bench_case.get("data_desc", {}).get(method, {}),
                         attributes=attributes,
+                        logs=bench_case.get("logs", {}),
                     )
                 )
 
@@ -256,6 +258,32 @@ MAX_BINS_WARNING = MatchWarning(
     short_message="histogram-based splits",
     message="Scikit-learn intelex uses binning & histogram-based splits while scikit-learn doesn't",
 )
+
+CPU_FALLBACK_WARNING = MatchWarning(
+    icon="↩",
+    short_message="CPU fallback",
+    message="Some operations fell back to CPU according to benchmark logs.",
+)
+
+
+def _logs_text(result: Result) -> str:
+    return "\n".join(str(result.logs.get(stream, "")) for stream in ("stdout", "stderr"))
+
+
+def has_cpu_fallback_warning(result: Result) -> bool:
+    text = _logs_text(result).lower()
+    return (
+        "fallback from xpu to cpu" in text
+        or ("aten op fallback" in text and "cpu" in text)
+    )
+
+
+def append_cpu_fallback_warning(result: Result, warnings: list):
+    if result.implementation.device not in {"cuda", "gpu", "xpu"}:
+        return
+    if has_cpu_fallback_warning(result):
+        warnings.append(CPU_FALLBACK_WARNING)
+
 
 def append_max_bins_warning(sklearn_res: Result, sklearnex_res: Result, warnings: list):
     assert sklearn_res.implementation.library == "sklearn"

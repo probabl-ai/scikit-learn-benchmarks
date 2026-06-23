@@ -7,7 +7,8 @@ from reporting.utils import partition_iterable, groupby
 
 from reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
-    find_matches, date_range, Match, MatchWarning, Result
+    find_matches, date_range, Match, MatchWarning, Result,
+    append_cpu_fallback_warning,
 )
 
 from reporting.envs import read_env, summarize_software_env, summarize_hardware_env
@@ -52,6 +53,7 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
     if candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
+    append_cpu_fallback_warning(candidate, warnings)
 
     # TODO? warning for attributes:
     # - tree structure
