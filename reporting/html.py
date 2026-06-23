@@ -427,6 +427,12 @@ def render_software_tabs(
   </script>
 </section>"""
 
+
+def _slug_id(label: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
+    return slug or "tab"
+
+
 def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
     if not pages:
         return '<section class="empty">No matching benchmark results.</section>'
@@ -435,7 +441,7 @@ def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
     panels = []
     for index, (label, html) in enumerate(pages):
         active = " active" if index == 0 else ""
-        marker = f"{tabs_id}-{index}"
+        marker = _slug_id(label)
         buttons.append(
             f'<button class="tab-button{active}" type="button" '
             f'data-tab-target="{marker}">{escape(label)}</button>'
@@ -445,16 +451,29 @@ def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
   <div class="tab-buttons">{''.join(buttons)}</div>
   {''.join(panels)}
   <script>
-    document.querySelectorAll("#{tabs_id} > .tab-buttons .tab-button").forEach((button) => {{
+    const hardwareTabButtons = document.querySelectorAll("#{tabs_id} > .tab-buttons .tab-button");
+    function activateHardwareTab(button, updateHash = false) {{
+      document.querySelectorAll("#{tabs_id} > .tab-buttons .tab-button").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll("#{tabs_id} > .tab-panel").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      const panel = document.getElementById(button.dataset.tabTarget);
+      panel.classList.add("active");
+      panel.querySelectorAll(".chart").forEach((chart) => Plotly.Plots.resize(chart));
+      if (updateHash) {{
+        history.replaceState(null, "", `#${{button.dataset.tabTarget}}`);
+      }}
+    }}
+    hardwareTabButtons.forEach((button) => {{
       button.addEventListener("click", () => {{
-        document.querySelectorAll("#{tabs_id} > .tab-buttons .tab-button").forEach((item) => item.classList.remove("active"));
-        document.querySelectorAll("#{tabs_id} > .tab-panel").forEach((item) => item.classList.remove("active"));
-        button.classList.add("active");
-        const panel = document.getElementById(button.dataset.tabTarget);
-        panel.classList.add("active");
-        panel.querySelectorAll(".chart").forEach((chart) => Plotly.Plots.resize(chart));
+        activateHardwareTab(button, true);
       }});
     }});
+    const hardwareTabFromHash = Array.from(hardwareTabButtons).find(
+      (button) => button.dataset.tabTarget === window.location.hash.slice(1)
+    );
+    if (hardwareTabFromHash) {{
+      activateHardwareTab(hardwareTabFromHash);
+    }}
   </script>
 </section>"""
 
@@ -490,14 +509,27 @@ def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
     return f'<section class="plot-grid" style="{style}">{"".join(cells)}</section>'
 
 
-def speedup_plot_html(matches: list[Match], *, variant_colors: dict[str, str] | None = None):
+def speedup_plot_html(
+    matches: list[Match],
+    *,
+    variant_colors: dict[str, str] | None = None,
+    trace_variant=None,
+    x_variant=None,
+    variant_sort_key=None,
+):
     if not matches:
         return '<div class="empty">No matches for this group.</div>'
 
     chart_id = f"chart-{next(_chart_ids)}"
+    if trace_variant is None:
+        trace_variant = _trace_variant
+    if x_variant is None:
+        x_variant = _x_variant
+    if variant_sort_key is None:
+        variant_sort_key = lambda variant: variant
     if variant_colors is None:
         variant_colors = variant_color_map(
-            sorted({_trace_variant(match) for match in matches})
+            sorted({trace_variant(match) for match in matches}, key=variant_sort_key)
         )
     estimators = sorted(
         {
@@ -508,14 +540,16 @@ def speedup_plot_html(matches: list[Match], *, variant_colors: dict[str, str] | 
     estimator_positions = {
         estimator: index for index, estimator in enumerate(estimators)
     }
-    x_variants = sorted({_x_variant(match) for match in matches})
+    x_variants = sorted({x_variant(match) for match in matches}, key=variant_sort_key)
     offsets = _variant_offsets(x_variants)
     grouped: dict[str, list[Match]] = {}
     for match in matches:
-        grouped.setdefault(_trace_variant(match), []).append(match)
+        grouped.setdefault(trace_variant(match), []).append(match)
 
     traces = []
-    for variant, variant_matches in sorted(grouped.items()):
+    for variant, variant_matches in sorted(
+        grouped.items(), key=lambda item: variant_sort_key(item[0])
+    ):
         variant_matches = sorted(
             variant_matches,
             key=_trace_sort_key,
@@ -542,7 +576,7 @@ def speedup_plot_html(matches: list[Match], *, variant_colors: dict[str, str] | 
                             "estimator", "unknown"
                         )
                     ]
-                    + offsets[_x_variant(match)]
+                    + offsets[x_variant(match)]
                     for match in variant_matches
                 ],
                 "y": [math.log2(match.speedup) for match in variant_matches],
