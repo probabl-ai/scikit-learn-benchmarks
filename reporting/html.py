@@ -371,15 +371,20 @@ def _trace_variant(match: Match) -> str:
     return match.matched_result.implementation.short_name
 
 
+def _has_histogram_splits_warning(match: Match) -> bool:
+    return any("histogram-based splits" in warning.message for warning in match.warnings)
+
+
 def _x_variant(match: Match) -> str:
     variant = match.matched_result.implementation.short_name
     if match.matched_result.category != "tree-based":
         return variant
 
-    estimator_params = match.matched_result.case.get("algorithm", {}).get(
-        "estimator_params", {}
+    max_bins_label = (
+        "1-max_bins_lt_n_samples"
+        if _has_histogram_splits_warning(match)
+        else "0-max_bins_eq_n_samples"
     )
-    max_bins_label = "max_bins" if "max_bins" in estimator_params else "no max_bins"
     return f"{variant} / {max_bins_label}"
 
 

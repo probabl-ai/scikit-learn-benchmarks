@@ -219,6 +219,9 @@ class Match:
 
     @property
     def metrics_differences(self) -> list[str]:
+        if self.base_result.method != "fit":
+            return []
+
         differences = []
         base_metrics, matched_metrics = (
             self._comparable_metrics()
@@ -260,13 +263,14 @@ def append_max_bins_warning(sklearn_res: Result, sklearnex_res: Result, warnings
 
     estimator_params = sklearnex_res.case.get("algorithm", {}).get("estimator_params", {})
     max_bins = estimator_params.get("max_bins", 255)
-    n_samples = sklearnex_res.data_desc.get("samples")
+    n_samples = (
+        sklearnex_res.case.get("data", {})
+        .get("generation_kwargs", {})
+        .get("n_samples")
+    )
     if n_samples is None:
-        n_samples = (
-            sklearnex_res.case.get("data", {})
-            .get("generation_kwargs", {})
-            .get("n_samples")
-        )
+        n_samples = sklearnex_res.data_desc.get("samples")
+
     if n_samples is not None and max_bins < n_samples:
         warnings.append(MAX_BINS_WARNING)
 
