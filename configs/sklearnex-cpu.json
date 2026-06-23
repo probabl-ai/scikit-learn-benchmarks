@@ -11,10 +11,10 @@
             }
         },
         "linear": {
-            "SETS": ["linear", "sklearnex[cpu,gpu]"]
+            "SETS": ["linear", "sklearnex[cpu]"]
         },
         "linear array-API": {
-            "SETS": ["linear array-API", "sklearnex[cpu,gpu]"]
+            "SETS": ["linear array-API", "sklearnex[cpu]"]
         },
         "clustering": {
             "SETS": ["clustering", "sklearnex[cpu]"]

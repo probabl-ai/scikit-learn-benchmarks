@@ -15,17 +15,7 @@
                 }
             }
         },
-        "sklearnex[cpu,gpu]": [
-            {
-                "implementation": {
-                    "library": "sklearnex",
-                    "device": "cpu",
-                    "sklearnex_context": {
-                        "allow_fallback_to_host": false,
-                        "allow_sklearn_after_onedal": false
-                    }
-                }
-            },
+        "sklearnex[gpu]": [
             {
                 "implementation": {
                     "library": "sklearnex",
