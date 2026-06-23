@@ -17,7 +17,7 @@
             "SETS": ["linear array-API", "sklearnex[cpu,gpu]"]
         },
         "clustering": {
-            "SETS": ["clustering", "sklearnex[cpu,gpu]"]
+            "SETS": ["clustering", "sklearnex[cpu]"]
         }
     }
 }
