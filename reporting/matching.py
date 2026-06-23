@@ -13,6 +13,9 @@ RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
 
 HARDWARE_NAMES = {
     "500639": "small-laptop",
+    "0f5327": "AMD 48 cores",
+    "01ba0e": "AMD + Nvidia L4 GPU",
+    "268063": "Intel laptop"
 }
 
 

@@ -16,11 +16,18 @@ from reporting.html import (
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
     SOFTWARE_TEMPLATE,
-    speedup_plot_html, render_software_tabs, assemble_plots_in_grid
+    assemble_plots_in_grid,
+    speedup_plot_html,
+    render_software_tabs,
+    render_hardware_tabs
 )
 
 
-HARDWARE_NAME = "small-laptop"  # single hardware for now
+HARDWARE_NAMES = [
+    "AMD 48 cores",
+    "AMD + Nvidia L4 GPU",
+    "Intel laptop",
+]
 BASE_IMPLEMENTATION = "sklearn"
 
 
@@ -54,19 +61,20 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
     )
 
 
-if __name__ == "__main__":
-
-    results = read_all_results()
-    results = [res for res in results if res.hardware == HARDWARE_NAME]
-
+def render_hardware_page(results: list[Result], hardware_name: str) -> str:
+    results = [res for res in results if res.hardware == hardware_name]
+    if not results:
+        return '<section class="empty">No benchmark results for this hardware.</section>'
     hardwares_set = {res.hardware_hash for res in results}
     if len(hardwares_set) > 1:
-        raise ValueError("Results are dirty: several hardwares share the same name")
+        raise ValueError(f"Results are dirty: several hardwares share the name {hardware_name!r}")
 
     base_results, other_results = partition_iterable(
         results,
         predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
     )
+    if not base_results:
+        return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
 
     grouped_results = groupby(base_results, lambda res: (res.category, res.method))
 
@@ -92,7 +100,7 @@ if __name__ == "__main__":
         env = read_env("software", res.software_hash)
         softwares.append(summarize_software_env(env, res.implementation))
 
-    html = BASE_TEMPLATE.render(rows=[
+    rows = [
         DATE_RANGE_TEMPLATE.render(date_range(results)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(hardware_env)),
         render_software_tabs([
@@ -104,6 +112,19 @@ if __name__ == "__main__":
             rows={"category": ["linear", "tree-based", "clustering"]},
             columns={"method": ["fit", "predict"]}
         )
+    ]
+    return "".join(f'<div class="page-row">{row}</div>' for row in rows)
+
+
+if __name__ == "__main__":
+    results = read_all_results()
+    hardware_pages = [
+        (hardware_name, render_hardware_page(results, hardware_name))
+        for hardware_name in HARDWARE_NAMES
+    ]
+
+    html = BASE_TEMPLATE.render(rows=[
+        render_hardware_tabs(hardware_pages),
     ])
 
     output = Path("dashboard/per_hardware.html")

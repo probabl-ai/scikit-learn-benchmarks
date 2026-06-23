@@ -376,6 +376,37 @@ def render_software_tabs(elements: list[str]):
   </script>
 </section>"""
 
+def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
+    if not pages:
+        return '<section class="empty">No matching benchmark results.</section>'
+    tabs_id = "hardware-tabs"
+    buttons = []
+    panels = []
+    for index, (label, html) in enumerate(pages):
+        active = " active" if index == 0 else ""
+        marker = f"{tabs_id}-{index}"
+        buttons.append(
+            f'<button class="tab-button{active}" type="button" '
+            f'data-tab-target="{marker}">{escape(label)}</button>'
+        )
+        panels.append(f'<div id="{marker}" class="tab-panel{active}">{html}</div>')
+    return f"""<section class="tabs" id="{tabs_id}">
+  <div class="tab-buttons">{''.join(buttons)}</div>
+  {''.join(panels)}
+  <script>
+    document.querySelectorAll("#{tabs_id} > .tab-buttons .tab-button").forEach((button) => {{
+      button.addEventListener("click", () => {{
+        document.querySelectorAll("#{tabs_id} > .tab-buttons .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#{tabs_id} > .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        const panel = document.getElementById(button.dataset.tabTarget);
+        panel.classList.add("active");
+        panel.querySelectorAll(".chart").forEach((chart) => Plotly.Plots.resize(chart));
+      }});
+    }});
+  </script>
+</section>"""
+
 
 def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
     row_key = rows if isinstance(rows, str) else list(rows)[0]
