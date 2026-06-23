@@ -27,7 +27,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>sklbench dashboard</title>
+  <title>{{ title|default("sklbench dashboard") }}</title>
   <script src="{{ plotly_cdn }}"></script>
   <style>
     :root {
@@ -118,7 +118,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
       column-gap: 40px;
       width: max-content;
       max-width: 100%;
-      margin: 0;
+      margin: 0 0 5px 0;
       padding-left: 18px;
     }
     @media (max-width: 900px) {
@@ -162,7 +162,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
   </style>
 </head>
 <body>
-  <h1>sklbench speed-up dashboard</h1>
+  <h1>{{ title|default("sklbench dashboard") }}</h1>
   {% for row in rows %}
   <div class="page-row">{{ row }}</div>
   {% endfor %}
