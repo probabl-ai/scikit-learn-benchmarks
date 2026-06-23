@@ -80,14 +80,6 @@ def match_trace_label(match) -> str:
     return trace_label(match.matched_result)
 
 
-def render_hardware_summaries() -> str:
-    summaries = [
-        HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hash_)))
-        for hash_ in GPU_HARDWARES
-    ]
-    return f'<section class="summary-grid">{"".join(summaries)}</section>'
-
-
 def render_software_hardware_tabs(
     baseline_results: list[Result],
     gpu_results: list[Result],
@@ -169,7 +161,6 @@ if __name__ == "__main__":
         title="sklbench GPU linear model dashboard",
         rows=[
             DATE_RANGE_TEMPLATE.render(date_range(baseline_results + gpu_results)),
-            render_hardware_summaries(),
             render_software_hardware_tabs(
                 baseline_results,
                 gpu_results,

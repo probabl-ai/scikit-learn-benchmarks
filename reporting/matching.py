@@ -323,17 +323,20 @@ def append_iterations_warning(base_res: Result, candidate: Result, warnings: lis
 def find_matches(
     base_results: list[Result],
     results_to_match: list[Result],
-    match_function
+    match_function,
+    match_key=None,
 ) -> list[Match]:
     # should assert all result in results_to_match match at most one base_results
+    if match_key is None:
+        match_key = lambda result: result.minimal_match_key
     base_by_minimal_key: dict[str, list[Result]] = {}
     for base_result in base_results:
-        base_by_minimal_key.setdefault(base_result.minimal_match_key, []).append(base_result)
+        base_by_minimal_key.setdefault(match_key(base_result), []).append(base_result)
 
     matches: list[Match] = []
     for result in results_to_match:
         candidate_matches = []
-        for base_result in base_by_minimal_key.get(result.minimal_match_key, []):
+        for base_result in base_by_minimal_key.get(match_key(result), []):
             match_result = match_function(base_result, result)
             if isinstance(match_result, tuple):
                 does_match, warnings = match_result
