@@ -3,14 +3,13 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from reporting.envs import read_env, summarize_hardware_env, summarize_software_env
+from reporting.envs import read_env, summarize_hardware_env
 from reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    SOFTWARE_TEMPLATE,
     assemble_plots_in_grid,
-    render_software_tabs,
+    render_software_hardware_tabs,
     speedup_plot_html,
     variant_color_map,
 )
@@ -96,53 +95,6 @@ def render_hardware_summaries() -> str:
     return f'<section class="summary-grid">{"".join(summaries)}</section>'
 
 
-def render_software_hardware_tabs(
-    baseline_results: list[Result],
-    candidate_results: list[Result],
-    *,
-    trace_colors: dict[str, str],
-) -> str:
-    elements = []
-    if baseline_results:
-        baseline = baseline_results[0]
-        software_summary = summarize_software_env(
-            read_env("software", baseline.software_hash),
-            baseline.implementation,
-        )
-        software_summary["name"] = BASELINE_LABEL
-        hardware_summary = summarize_hardware_env(
-            read_env("hardware", baseline.hardware_hash)
-        )
-        elements.append(
-            SOFTWARE_TEMPLATE.render(**software_summary)
-            + HARDWARE_TEMPLATE.render(hardware_summary)
-        )
-
-    seen_labels = set()
-    for result in sorted(
-        candidate_results, key=lambda result: trace_sort_key(trace_label(result))
-    ):
-        label = trace_label(result)
-        if label in seen_labels:
-            continue
-        seen_labels.add(label)
-
-        software_summary = summarize_software_env(
-            read_env("software", result.software_hash),
-            result.implementation,
-        )
-        software_summary["name"] = label
-        hardware_summary = summarize_hardware_env(
-            read_env("hardware", result.hardware_hash)
-        )
-        elements.append(
-            SOFTWARE_TEMPLATE.render(**software_summary)
-            + HARDWARE_TEMPLATE.render(hardware_summary)
-        )
-
-    return render_software_tabs(elements, variant_colors=trace_colors)
-
-
 if __name__ == "__main__":
     all_results = read_all_results()
     baseline_results = [
@@ -194,7 +146,10 @@ if __name__ == "__main__":
             render_software_hardware_tabs(
                 baseline_results,
                 candidate_results,
-                trace_colors=trace_colors,
+                baseline_label=BASELINE_LABEL,
+                comparison_label=trace_label,
+                comparison_sort_key=trace_sort_key,
+                variant_colors=trace_colors,
             ),
             assemble_plots_in_grid(
                 plots,

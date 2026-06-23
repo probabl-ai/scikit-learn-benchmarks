@@ -7,7 +7,8 @@ from statistics import median
 
 from jinja2 import Template
 
-from .matching import Match
+from .envs import read_env, summarize_hardware_env, summarize_software_env
+from .matching import Match, Result
 
 PLOTLY_CDN = "https://cdn.plot.ly/plotly-2.35.2.min.js"
 PLOTLY_DEFAULT_COLORS = [
@@ -426,6 +427,60 @@ def render_software_tabs(
     }});
   </script>
 </section>"""
+
+
+def render_software_hardware_tabs(
+    baseline_results: list[Result],
+    comparison_results: list[Result],
+    *,
+    baseline_label: str,
+    comparison_label,
+    comparison_sort_key=None,
+    variant_colors: dict[str, str] | None = None,
+) -> str:
+    elements = []
+    if baseline_results:
+        baseline = baseline_results[0]
+        software_summary = summarize_software_env(
+            read_env("software", baseline.software_hash),
+            baseline.implementation,
+        )
+        software_summary["name"] = baseline_label
+        hardware_summary = summarize_hardware_env(
+            read_env("hardware", baseline.hardware_hash)
+        )
+        elements.append(
+            SOFTWARE_TEMPLATE.render(**software_summary)
+            + HARDWARE_TEMPLATE.render(hardware_summary)
+        )
+
+    def sort_key(result: Result):
+        label = comparison_label(result)
+        if comparison_sort_key is None:
+            return label
+        return comparison_sort_key(label)
+
+    seen_labels = set()
+    for result in sorted(comparison_results, key=sort_key):
+        label = comparison_label(result)
+        if label in seen_labels:
+            continue
+        seen_labels.add(label)
+
+        software_summary = summarize_software_env(
+            read_env("software", result.software_hash),
+            result.implementation,
+        )
+        software_summary["name"] = label
+        hardware_summary = summarize_hardware_env(
+            read_env("hardware", result.hardware_hash)
+        )
+        elements.append(
+            SOFTWARE_TEMPLATE.render(**software_summary)
+            + HARDWARE_TEMPLATE.render(hardware_summary)
+        )
+
+    return render_software_tabs(elements, variant_colors=variant_colors)
 
 
 def _slug_id(label: str) -> str:
