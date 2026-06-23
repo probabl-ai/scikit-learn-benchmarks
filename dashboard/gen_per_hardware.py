@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from dashboard.output import dashboard_output_path
 from reporting.utils import partition_iterable, groupby
 
 from reporting.matching import (
@@ -133,6 +134,6 @@ if __name__ == "__main__":
         render_hardware_tabs(hardware_pages),
     ])
 
-    output = Path("dashboard/per_hardware.html")
+    output = dashboard_output_path("per_hardware.html")
     output.write_text(html)
     print(f"Dashboard written to {output}")

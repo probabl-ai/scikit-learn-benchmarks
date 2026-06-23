@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from dashboard.output import dashboard_output_path
 from reporting.envs import read_env, summarize_hardware_env
 from reporting.html import (
     BASE_TEMPLATE,
@@ -159,6 +160,6 @@ if __name__ == "__main__":
         ],
     )
 
-    output = Path("dashboard/cpu.html")
+    output = dashboard_output_path("cpu.html")
     output.write_text(html)
     print(f"Dashboard written to {output}")

@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from dashboard.output import dashboard_output_path
 from reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -128,6 +129,6 @@ if __name__ == "__main__":
         ],
     )
 
-    output = Path("dashboard/gpu_linear.html")
+    output = dashboard_output_path("gpu_linear.html")
     output.write_text(html)
     print(f"Dashboard written to {output}")
