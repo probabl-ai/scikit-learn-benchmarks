@@ -12,6 +12,16 @@ reporting scripts may change without compatibility guarantees.
 git submodule update --init --recursive
 ```
 
+Install Git LFS before checking out or adding benchmark results. On
+Ubuntu/Debian:
+
+```bash
+apt update
+apt install git-lfs
+git lfs install
+git lfs pull
+```
+
 ## Basic checks
 
 Validate the local benchmark configuration:
