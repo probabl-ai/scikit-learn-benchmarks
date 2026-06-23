@@ -47,7 +47,7 @@ class Result:
     timestamp_recorded: datetime  # based on filename
     case: dict  # case without the "bench" key
     # results:
-    metrics: dict
+    metrics: dict[str, dict]
     times: list[float]  # in ms
     data_desc: dict
     attributes: dict = field(default_factory=dict)
@@ -122,6 +122,19 @@ def _split_metrics_attributes(metrics: dict) -> tuple[dict, dict]:
     return metrics, attributes
 
 
+def _split_method_metrics_attributes(
+    method_metrics: dict[str, dict]
+) -> tuple[dict[str, dict], dict]:
+    all_metrics = {}
+    all_attributes = {}
+    for method, metrics in method_metrics.items():
+        clean_metrics, attributes = _split_metrics_attributes(metrics)
+        all_metrics[method] = clean_metrics
+        if method == "fit":
+            all_attributes = attributes
+    return all_metrics, all_attributes
+
+
 def _hardware_name(hardware_hash: str) -> str:
     return HARDWARE_NAMES.get(hardware_hash, hardware_hash)
 
@@ -149,12 +162,12 @@ def read_all_results(path=None) -> list[Result]:
 
         for bench_case in result_file.get("bench_cases", []):
             case = without_keys(bench_case.get("case", {}), excluded_names={"bench"})
+            metrics, attributes = _split_method_metrics_attributes(
+                bench_case.get("metrics", {})
+            )
             for method, times in bench_case.get("time[ms]", {}).items():
                 if not isinstance(times, list) or len(times) == 0:
                     continue
-                metrics, attributes = _split_metrics_attributes(
-                    bench_case.get("metrics", {}).get(method, {})
-                )
                 results.append(
                     Result(
                         hardware=_hardware_name(hardware_hash),
@@ -192,37 +205,48 @@ class Match:
     matched_result: Result
     warnings: list[MatchWarning]
 
-    def _comparable_metrics(self) -> tuple[dict, dict]:
-        base_metrics = self.base_result.metrics
-        matched_metrics = self.matched_result.metrics
+    @staticmethod
+    def _comparable_metric_values(metrics: dict) -> dict:
+        metrics = dict(metrics)
 
         # for regression, we pop RMSE, as it's redundant with R2 but
         # depends on the variance of y, which makes the comparison harder to do
-        if "R2" in base_metrics and "RMSE" in base_metrics:
-            base_metrics = {**base_metrics}
-            base_metrics.pop("RMSE")
-            matched_metrics = {**matched_metrics}
-            matched_metrics.pop("RMSE", None)
+        if "R2" in metrics and "RMSE" in metrics:
+            metrics.pop("RMSE")
+        return metrics
+
+    def _comparable_metrics(self) -> tuple[dict, dict]:
+        base_metrics = {
+            method: self._comparable_metric_values(metrics)
+            for method, metrics in self.base_result.metrics.items()
+        }
+        matched_metrics = {
+            method: self._comparable_metric_values(metrics)
+            for method, metrics in self.matched_result.metrics.items()
+        }
+
+        if set(base_metrics) != set(matched_metrics):
+            raise ValueError("Sets of metric methods differ")
+
         return base_metrics, matched_metrics
 
     @property
     def metrics_differences(self) -> list[str]:
-        # TODO: we should actually store both fit & predict metrics in a Result
-        # and compare both here
-        base_metrics, matched_metrics = self._comparable_metrics()
-
-        if set(base_metrics) != set(matched_metrics):
-            raise ValueError("Sets of metrics differ")
-
-        # maybe improve? e.g. for ROC AUC or R2,
-        # 0.991 vs 0.999 is quite different I'd say, but we consider
-        # them the same
         differences = []
-        for k, v in base_metrics.items():
-            if abs(v - matched_metrics[k]) > 0.01:
-                differences.append(
-                    f"{k}: base={v:.3g}, target={matched_metrics[k]:.3g}"
-                )
+        base_metrics, matched_metrics = (
+            self._comparable_metrics()
+        )
+
+        for method, base_method_metrics in base_metrics.items():
+            matched_method_metrics = matched_metrics[method]
+            if set(base_method_metrics) != set(matched_method_metrics):
+                raise ValueError(f"Sets of {method} metrics differ")
+
+            for k, v in base_method_metrics.items():
+                if not math.isclose(v, matched_method_metrics[k], rel_tol=0.01, abs_tol=0.01):
+                    differences.append(
+                        f"{method}.{k}: base={v:.3g}, target={matched_method_metrics[k]:.3g}"
+                    )
         return differences
 
     @property
