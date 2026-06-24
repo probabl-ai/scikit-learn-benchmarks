@@ -1,61 +1,48 @@
-# scikit-learn-benchmarks
+# scikit-learn Benchmarks
 
-Work-in-progress benchmark configuration for comparing scikit-learn-compatible
-machine learning libraries and array API backends.
+This repository publishes benchmark results for scikit-learn and compatible
+implementations across CPU, GPU, and Array API backends.
 
-This repository is currently exploratory. Configurations, result formats, and
-reporting scripts may change without compatibility guarantees.
+The goal is to make performance trade-offs visible for scikit-learn users:
+which workloads benefit from alternative hardware or backends, which results are
+comparable to the scikit-learn baseline, and where fallback behavior or metric
+differences require caution.
 
-## Setup
+## Dashboards
 
-```bash
-git submodule update --init --recursive
-```
+The latest generated dashboards are published on GitHub Pages:
 
-Install Git LFS before checking out or adding benchmark results. On
-Ubuntu/Debian:
+- [Dashboard index](https://probabl-ai.github.io/scikit-learn-benchmarks/)
+- [CPU hardware comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/cpu.html)
+- [GPU linear model comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/gpu_linear.html)
+- [Per-hardware implementation comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/per_hardware.html)
 
-```bash
-apt update
-apt install git-lfs
-git lfs install
-git lfs pull
-```
+## Reading the Results
 
-## Basic checks
+The dashboards compare matched benchmark cases and report speed-ups relative to
+a scikit-learn baseline. Hover over points to inspect the estimator, dataset
+shape, timings, warnings, and metric differences for a specific case.
 
-Validate the local benchmark configuration:
+Warnings call out important comparison details such as different iteration
+counts, histogram-based tree behavior, CPU fallback, or metric differences.
+Those cases are still useful, but they should not be read as strict
+like-for-like speed comparisons without checking the warning details.
 
-```bash
-pixi run python validate_config.py configs/sklearn.json
-```
+## Scope
 
-Preview the benchmark cases that would be expanded from the configs:
+The benchmark suite currently focuses on:
 
-```bash
-pixi run python preview_cases.py configs/sklearn.json trees --count
-```
+- linear models
+- tree-based models
+- clustering algorithms
+- scikit-learn, scikit-learn-intelex, and Array API backends
+- selected CPU, Intel GPU, and NVIDIA GPU environments
 
-## Running benchmarks
+> **Warning**
+> This project is still exploratory. Configurations, result formats, and
+> dashboards may change as the benchmark coverage matures.
 
-Run the default scikit-learn configuration:
+## Contributing
 
-```bash
-pixi run -e sklearn python -m sklbench --config configs/sklearn.json
-```
-
-For Intel and array API benchmark work, use the `intel` pixi environment:
-
-```bash
-pixi run -e intel ./test.sh
-```
-
-Generated benchmark results are written as flat `results/<timestamp>.json` files.
-Captured hardware/software environments are stored under `results/hardware-envs/`
-and `results/software-envs/` using hash-only filenames. JSON files under
-`results/` are tracked with Git LFS; run `git lfs install` before adding or
-checking out benchmark results.
-
-## Status
-
-Known next steps include: writing a proper TODO
+Developer setup, architecture notes, and instructions for adding benchmark
+cases or publishing new benchmark results live in [CONTRIBUTING.md](CONTRIBUTING.md).
