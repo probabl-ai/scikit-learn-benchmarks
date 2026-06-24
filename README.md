@@ -13,9 +13,8 @@ differences require caution.
 The latest generated dashboards are published on GitHub Pages:
 
 - [Dashboard index](https://probabl-ai.github.io/scikit-learn-benchmarks/)
-- [CPU hardware comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/cpu.html)
-- [GPU linear model comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/gpu_linear.html)
-- [Per-hardware implementation comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/per_hardware.html)
+- [Hardware comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/hardware_comparisons.html)
+- [Software/implementations comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/per_hardware.html)
 
 ## Reading the Results
 
