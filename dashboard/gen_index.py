@@ -9,7 +9,7 @@ from reporting.html import BASE_TEMPLATE
 
 DASHBOARDS = [
     ("CPU hardware comparison", "cpu.html"),
-    ("GPU linear model comparison", "gpu_linear.html"),
+    ("Hardware comparison", "hardware_comparisons.html"),
     ("Per-hardware implementation comparison", "per_hardware.html"),
 ]
 

@@ -129,6 +129,7 @@ if __name__ == "__main__":
                 {
                     "category": category,
                     "method": method,
+                    "point_count": len(matches),
                     "plot": speedup_plot_html(
                         matches,
                         variant_colors=trace_colors,

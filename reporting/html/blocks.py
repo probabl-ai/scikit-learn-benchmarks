@@ -151,6 +151,10 @@ def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
                 cells.append('<section class="plot-cell empty">No data</section>')
                 continue
             title = f"{row_value} / {column_value}"
+            point_count = plot.get("point_count")
+            if point_count is not None:
+                point_label = "point" if point_count == 1 else "points"
+                title = f"{title} ({point_count} {point_label})"
             cells.append(
                 '<section class="plot-cell">'
                 f"<h3>{escape(title)}</h3>"

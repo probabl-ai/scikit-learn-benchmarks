@@ -92,6 +92,7 @@ def render_hardware_page(results: list[Result], hardware_hash: str) -> str:
         plots.append({
             "category": category,
             "method": method,
+            "point_count": len(matches),
             "plot": speedup_plot_html(matches, variant_colors=variant_colors)
         })
 
