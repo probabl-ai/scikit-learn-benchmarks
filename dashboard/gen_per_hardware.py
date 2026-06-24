@@ -101,11 +101,23 @@ def render_hardware_page(results: list[Result], hardware_hash: str) -> str:
     base_sw_env = read_env("software", base_results[0].software_hash)
     base_implem = base_results[0].implementation
 
-    softwares = [summarize_software_env(base_sw_env, base_implem)]
+    softwares = [
+        summarize_software_env(
+            base_sw_env,
+            base_implem,
+            software_hash=base_results[0].software_hash,
+        )
+    ]
     for implem_name, implem_results in groupby(other_results, lambda res: res.implementation.short_name).items():
         res = implem_results[0]
         env = read_env("software", res.software_hash)
-        softwares.append(summarize_software_env(env, res.implementation))
+        softwares.append(
+            summarize_software_env(
+                env,
+                res.implementation,
+                software_hash=res.software_hash,
+            )
+        )
 
     rows = [
         DATE_RANGE_TEMPLATE.render(date_range(results)),

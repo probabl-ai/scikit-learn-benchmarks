@@ -110,7 +110,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
     }
     .software-details {
       display: grid;
-      grid-template-columns: max-content max-content max-content;
+      grid-template-columns: max-content max-content max-content max-content;
       gap: 12px 28px;
       align-items: start;
     }
@@ -205,7 +205,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
     <h3>{{ name }}</h3>
     <p> Python {{ python_version }}</p>
     {% if array_api_docs_url %}
-    <p><a href="{{ array_api_docs_url }}">Array API support</a></p>
+    <p><a href="{{ array_api_docs_url }}">Array API</a> active</p>
     {% endif %}
   </div>
   <div>
@@ -217,14 +217,16 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
     </ul>
   </div>
   <div>
-    {% if threadpools %}
     <h3>Threadpools</h3>
     <ul class="compact">
     {% for threadpool in threadpools %}
       <li>{{ threadpool }}</li>
     {% endfor %}
     </ul>
-    {% endif %}
+  </div>
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="{{ software_env_json_url }}">download pixi env JSON</a></p>
   </div>
 </section>""")
 
@@ -444,6 +446,7 @@ def render_software_hardware_tabs(
         software_summary = summarize_software_env(
             read_env("software", baseline.software_hash),
             baseline.implementation,
+            software_hash=baseline.software_hash,
         )
         software_summary["name"] = baseline_label
         hardware_summary = summarize_hardware_env(
@@ -470,6 +473,7 @@ def render_software_hardware_tabs(
         software_summary = summarize_software_env(
             read_env("software", result.software_hash),
             result.implementation,
+            software_hash=result.software_hash,
         )
         software_summary["name"] = label
         hardware_summary = summarize_hardware_env(

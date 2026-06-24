@@ -18,6 +18,14 @@ DEFAULT_SOURCE = {
     "conda": "https://conda.anaconda.org/conda-forge",
     "pypi": "https://pypi.org/simple",
 }
+RAW_RESULTS_BASE_URL = (
+    "https://media.githubusercontent.com/media/probabl-ai/"
+    "scikit-learn-benchmarks/main/results"
+)
+
+
+def software_env_json_url(software_hash: str) -> str:
+    return f"{RAW_RESULTS_BASE_URL}/software-envs/{software_hash}.json"
 
 
 def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
@@ -80,7 +88,12 @@ def _implementation_package_names(implementation: Implementation) -> list[str]:
     return [name for name in [library, data_library] if name]
 
 
-def summarize_software_env(env: dict, implementation: Implementation):
+def summarize_software_env(
+    env: dict,
+    implementation: Implementation,
+    *,
+    software_hash: str | None = None,
+):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
     # include:
@@ -96,11 +109,12 @@ def summarize_software_env(env: dict, implementation: Implementation):
         "name": implementation.short_name,
         "python_version": python_version["version"],
         "packages": _package_versions(env, package_names),
+        "threadpools": _threadpool_summary(env),
     }
+    if software_hash is not None:
+        out["software_env_json_url"] = software_env_json_url(software_hash)
     if implementation.library == "sklearn" and implementation.data_library:
         out["array_api_docs_url"] = "https://scikit-learn.org/stable/modules/array_api.html"
-    if implementation.library == "sklearn" and not implementation.data_library:
-        out["threadpools"] = _threadpool_summary(env)
     return out
 
 
