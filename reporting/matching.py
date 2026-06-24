@@ -366,4 +366,4 @@ def date_range(results: list[Result]) -> dict:
         date_range = start.strftime("%Y-%m-%d")
     else:
         date_range = f"{start:%Y-%m-%d} to {end:%Y-%m-%d}"
-    return {"label": f"{len(results)} benchamrk records from {date_range}"}
+    return {"label": f"{len(results)} benchmark records from {date_range}"}
