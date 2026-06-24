@@ -262,7 +262,7 @@ MAX_BINS_WARNING = MatchWarning(
 CPU_FALLBACK_WARNING = MatchWarning(
     icon="↩",
     short_message="CPU fallback",
-    message="Some operations fell back to CPU according to benchmark logs.",
+    message="Some operations fell back to CPU according to benchmark logs",
 )
 
 
@@ -315,7 +315,7 @@ def append_iterations_warning(base_res: Result, candidate: Result, warnings: lis
         MatchWarning(
             icon="🔁",
             short_message=f"({base_iterations} vs {candidate_iterations})",
-            message="Number of iteration differs: this might mean algorithms are different.",
+            message="Number of iteration differs: this might mean algorithms are different",
         )
     )
 

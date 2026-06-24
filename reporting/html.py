@@ -1,3 +1,4 @@
+from collections import defaultdict
 from html import escape
 import itertools
 import json
@@ -149,6 +150,46 @@ BASE_TEMPLATE = Template("""<!doctype html>
       width: 100%;
       height: 540px;
     }
+    .plot-notes {
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .plot-note {
+      display: grid;
+      grid-template-columns: 1.8em minmax(0, 1fr);
+      column-gap: 0.45em;
+      align-items: baseline;
+      margin: 3px 0;
+    }
+    .plot-note ul {
+      margin: 3px 0 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .plot-marker {
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+    }
+    .plot-marker-circle {
+      font-size: 20px;
+    }
+    .plot-marker-square,
+    .plot-marker-diamond {
+      font-size: 16px;
+    }
+    .warning-note {
+      display: grid;
+      grid-template-columns: 1.8em minmax(0, 1fr);
+      column-gap: 0.45em;
+      align-items: baseline;
+      margin: 2px 0;
+    }
+    .warning-icon {
+      text-align: center;
+    }
     .empty {
       color: var(--muted);
       padding: 24px;
@@ -279,20 +320,86 @@ def _warning_tooltip_line(warning) -> str:
     return f"{warning.icon} {message}"
 
 
-def _warning_annotation_lines(matches: list[Match]) -> list[str]:
-    warnings = []
-    seen = set()
+def _estimator_name(match: Match) -> str:
+    return match.matched_result.case.get("algorithm", {}).get(
+        "estimator", "unknown"
+    )
+
+
+def _format_point_count(count: int) -> str:
+    return f"{count} point" if count == 1 else f"{count} points"
+
+
+def _format_estimator_counts(estimator_counts: dict[str, int]) -> str:
+    parts = [
+        f"{escape(estimator)} ({count})"
+        for estimator, count in sorted(
+            estimator_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
+    return ", ".join(parts)
+
+
+def _marker_notes_html(matches: list[Match]) -> str:
+    metric_mismatch_count = sum(not match.metrics_match for match in matches)
+    warning_counts = {}
+    warning_order = []
+
     for match in matches:
         for warning in match.warnings:
             key = (warning.icon, warning.message)
-            if key in seen:
-                continue
-            seen.add(key)
-            warnings.append(warning)
-    return [
-        f"{escape(warning.icon)}: {escape(warning.message)}"
-        for warning in warnings
+            if key not in warning_order and match.metrics_match:
+                warning_order.append(key)
+            if key not in warning_counts:
+                warning_counts[key] = {
+                    "warning": warning,
+                    "estimators": defaultdict(int),
+                }
+            warning_counts[key]["estimators"][_estimator_name(match)] += 1
+
+    rows = [
+        '<div class="plot-note">'
+        '<span class="plot-marker plot-marker-circle">●</span>'
+        "<span>Metrics and benchmark setup match the baseline</span>"
+        "</div>"
     ]
+
+    if warning_order:
+        items = []
+        for key in warning_order:
+            warning = warning_counts[key]["warning"]
+            estimator_counts = warning_counts[key]["estimators"]
+            items.append(
+                '<li class="warning-note">'
+                f'<span class="warning-icon">{escape(warning.icon)}</span>'
+                "<span>"
+                f"{escape(warning.message)}"
+                f" - {_format_estimator_counts(estimator_counts)}"
+                "</span>"
+                "</li>"
+            )
+        rows.append(
+            '<div class="plot-note">'
+            '<span class="plot-marker plot-marker-square">■</span>'
+            "<span>"
+            "Metrics match the baseline, but some comparison details "
+            "are worth reporting:"
+            f"<ul>{''.join(items)}</ul>"
+            "</span>"
+            "</div>"
+        )
+    if metric_mismatch_count:
+        rows.append(
+            '<div class="plot-note">'
+            '<span class="plot-marker plot-marker-diamond">◆</span>'
+            "<span>"
+            "Metrics differ from the baseline "
+            f"({_format_point_count(metric_mismatch_count)})"
+            "</span>"
+            "</div>"
+        )
+    return f'<div class="plot-notes">{"".join(rows)}</div>'
+
 
 def custom_format(t):
     if t < 10:
@@ -364,10 +471,7 @@ def _marker_symbol(match: Match) -> str:
 
 
 def _trace_sort_key(match: Match) -> tuple[bool, str]:
-    estimator = match.matched_result.case.get("algorithm", {}).get(
-        "estimator", "unknown"
-    )
-    return (_marker_symbol(match) != "circle", estimator)
+    return (_marker_symbol(match) != "circle", _estimator_name(match))
 
 
 def _trace_variant(match: Match) -> str:
@@ -649,25 +753,7 @@ def speedup_plot_html(
     min_tick = math.floor(min(min(values), 0))
     max_tick = math.ceil(max(max(values), 0))
     tick_values = list(range(min_tick, max_tick + 1))
-    warning_annotation_lines = _warning_annotation_lines(matches)
-    annotations = []
-    bottom_margin = 110
-    if warning_annotation_lines:
-        annotations.append(
-            {
-                "xref": "paper",
-                "yref": "paper",
-                "x": 0,
-                "y": -0.28,
-                "xanchor": "left",
-                "yanchor": "top",
-                "align": "left",
-                "showarrow": False,
-                "text": "<br>".join(warning_annotation_lines),
-                "font": {"size": 12, "color": "#5f6368"},
-            }
-        )
-        bottom_margin += 18 * len(warning_annotation_lines)
+    marker_notes = _marker_notes_html(matches)
     layout = {
         "xaxis": {
             "tickmode": "array",
@@ -693,12 +779,12 @@ def speedup_plot_html(
                 "line": {"color": "#666", "width": 1, "dash": "dash"},
             }
         ],
-        "annotations": annotations,
-        "margin": {"l": 70, "r": 20, "t": 20, "b": bottom_margin},
+        "margin": {"l": 70, "r": 20, "t": 20, "b": 110},
         "showlegend": True,
         "legend": {"orientation": "h"},
     }
     return f"""<div id="{chart_id}" class="chart"></div>
 <script>
   Plotly.newPlot("{chart_id}", {_safe_json(traces)}, {_safe_json(layout)}, {{responsive: true}});
-</script>"""
+</script>
+{marker_notes}"""
