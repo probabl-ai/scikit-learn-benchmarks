@@ -27,7 +27,7 @@ from reporting.utils import stable_json, without_keys
 HARDWARES = {
     "268063": {"name": "Intel laptop", "short_name": "laptop"},
     "0f5327": {"name": "AMD 48 cores", "short_name": "AMD48"},
-    "01ba0e": {"name": "AMD + Nvidia L4 GPU", "short_name": "L4-host"},
+    "4cb66b": {"name": "AMD + Nvidia L4 GPU", "short_name": "L4-host"},
 }
 BASELINE_HARDWARE_HASH = "268063"
 BASELINE_LABEL = "sklearn-laptop"

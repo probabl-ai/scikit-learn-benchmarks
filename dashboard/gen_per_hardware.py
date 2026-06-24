@@ -28,7 +28,7 @@ from reporting.html import (
 
 HARDWARE_NAMES = {
     "0f5327": "AMD 48 cores",
-    "01ba0e": "AMD + Nvidia L4 GPU",
+    "4cb66b": "AMD + Nvidia L4 GPU",
     "268063": "Intel laptop",
 }
 BASE_IMPLEMENTATION = "sklearn"

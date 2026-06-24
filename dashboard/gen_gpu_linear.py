@@ -23,7 +23,7 @@ from reporting.matching import (
 
 
 GPU_HARDWARES = {
-    "01ba0e": {"name": "NVIDIA L4", "short_name": "L4"},
+    "4cb66b": {"name": "NVIDIA L4", "short_name": "L4"},
     "268063": {"name": "Intel Arc B390", "short_name": "B390"},
 }
 BASELINE_HARDWARE_HASH = "268063"
