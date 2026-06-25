@@ -17,6 +17,7 @@ psutil = "*"
 requests = "*"
 py-cpuinfo = "*"
 matplotlib = "*"
+pydantic = "*"
 
 [pypi-dependencies]
 openml = ">=0.15.1"
@@ -76,7 +77,6 @@ SCIPY_ARRAY_API = "1"
 scikit-learn = "1.9.*"
 jupyter = "*"
 matplotlib = "*"
-pydantic = "*"
 
 [feature.reporting.pypi-dependencies]
 Jinja2 = "*"
