@@ -1,8 +1,0 @@
-{
-    "INCLUDE": ["models_[SKBENCH_MODELS_TEMPLATE=test].json", "implem.json"],
-    "TEMPLATES": {
-        "linear array-API": {
-            "SETS": ["linear array-API", "sklearn[torch-xpu,dpnp-gpu]"]
-        }
-    }
-}

@@ -34,8 +34,9 @@ The project uses Pixi environments. Common environments are:
 
 The repository is split into a few layers:
 
-- `configs/`: benchmark matrices. Top-level config files select model/data
-  templates and implementation parameter sets.
+- `configs/`: Python benchmark case generators. Top-level config scripts
+  combine model/data helpers with implementation definitions and expose
+  `generate_cases()`.
 - `scikit-learn_bench/`: nested checkout of the benchmark runner.
 - `sklbench`: symlink to `scikit-learn_bench/sklbench`.
 - `results/`: captured benchmark outputs and environment metadata, tracked
@@ -47,53 +48,28 @@ The repository is split into a few layers:
   `dashboard/gen_*.py` scripts on pushes to `main` and publishes the generated
   HTML.
 
-Config files use `INCLUDE` to compose shared parameter sets. For example,
-`configs/sklearn.json` includes model templates from
-`configs/models_[SKBENCH_MODELS_TEMPLATE=test].json` and implementation
-definitions from `configs/implem.json`.
-
-Within model config files:
-
-- `PARAMETERS_SETS` define reusable benchmark fragments.
-- A `name+` entry adds variants to the base `name` entry.
-- `TEMPLATES` combine model/data parameter sets with implementation parameter
-  sets.
+Config scripts are regular Python. They return a list of JSON-serializable case
+dictionaries from `generate_cases()`, and the orchestrator validates each case
+before running it. Shared helpers live in `configs/_common.py`.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `configs/models_fast.json` or
-`configs/models_test.json`.
+Most case changes should start in `configs/_common.py`.
 
-Use `models_test.json` for the current small exploratory matrix. Use
-`models_fast.json` when working on a broader but still reasonably fast matrix.
-Top-level configs select one of these through `SKBENCH_MODELS_TEMPLATE`.
+Use the default `test` template for the current small exploratory matrix. Set
+`SKBENCH_MODELS_TEMPLATE=fast` when working on a broader but still reasonably
+fast matrix.
 
-List the available sets in a config:
-
-```bash
-pixi run python preview_cases.py configs/sklearn.json --list-sets
-```
-
-Preview the expansion for one template:
+Preview and validate a config by importing it directly:
 
 ```bash
-pixi run python preview_cases.py configs/sklearn.json trees --count
-pixi run python preview_cases.py configs/sklearn.json trees
-```
+pixi run python - <<'PY'
+from sklbench.config import load_cases_from_script
 
-Validate a config before running full benchmarks:
-
-```bash
-pixi run python validate_config.py configs/sklearn.json
-```
-
-Useful validation targets include:
-
-```bash
-pixi run python validate_config.py configs/sklearnex-cpu.json
-pixi run python validate_config.py configs/array-api-cpu.json
-pixi run python validate_config.py configs/array-api-intel.json
-pixi run python validate_config.py configs/array-api-nvidia.json
+cases = load_cases_from_script("configs/sklearn.py")
+print(len(cases))
+print(cases[0])
+PY
 ```
 
 When adding cases, keep the matrix small enough to run repeatedly, set
@@ -105,7 +81,7 @@ case can be compared to a baseline by the dashboard matching logic.
 Run the default scikit-learn configuration:
 
 ```bash
-pixi run -e sklearn python -m sklbench --config configs/sklearn.json
+pixi run -e sklearn python -m sklbench --config configs/sklearn.py
 ```
 
 Run the CPU benchmark set:

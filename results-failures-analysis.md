@@ -16,7 +16,7 @@ Analysis of `results/` as of the current checkout.
 
 These failures are expected from the current fairness guard.
 
-`configs/implem.json` sets both of these to `false` for sklearnex:
+`configs/_common.py` sets both of these to `false` for sklearnex:
 
 - `allow_fallback_to_host`
 - `allow_sklearn_after_onedal`

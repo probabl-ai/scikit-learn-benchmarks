@@ -19,5 +19,5 @@
 - Do not spend time preserving or normalizing LF vs CRLF line endings in this
   repository. Mixed line endings are acceptable here unless a tool actually
   fails because of them.
-- Prefer validating config changes with `validate_config.py` and previewing
-  expansions with `preview_cases.py` before running full benchmarks.
+- Prefer validating config changes by importing the config script and calling
+  `generate_cases()` before running full benchmarks.
