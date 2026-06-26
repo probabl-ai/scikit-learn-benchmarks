@@ -1,6 +1,7 @@
 from _common import (
     apply_sklearnex_cpu_tree_variants,
     clustering_cases,
+    exclude_estimators,
     linear_array_api_cases,
     linear_cases,
     sklearnex_cpu_implementation,
@@ -18,6 +19,11 @@ def generate_cases() -> list[dict]:
         )
     )
     cases.extend(with_implementations(linear_cases(), implementation))
-    cases.extend(with_implementations(linear_array_api_cases(), implementation))
+    cases.extend(
+        with_implementations(
+            exclude_estimators(linear_array_api_cases(), {"RidgeClassifier"}),
+            implementation,
+        )
+    )
     cases.extend(with_implementations(clustering_cases(), implementation))
     return cases
