@@ -45,6 +45,14 @@ def with_implementations(cases: Iterable[dict], implementations: Iterable[dict])
     ]
 
 
+def exclude_estimators(cases: Iterable[dict], estimators: set[str]) -> list[dict]:
+    return [
+        case
+        for case in cases
+        if case["algorithm"].get("estimator") not in estimators
+    ]
+
+
 def _physical_cpus() -> int:
     return psutil.cpu_count(logical=False) or psutil.cpu_count() or 1
 
@@ -176,7 +184,6 @@ def _test_tree_cases() -> list[dict]:
             "max_depth": 4,
             "n_jobs": 1,
         },
-        "estimator_methods": {"inference": "predict"},
     }
     base_generation = {
         "n_samples": 1000,
@@ -227,7 +234,6 @@ def _fast_tree_cases() -> list[dict]:
             "max_features": 0.3,
             "n_jobs": _physical_cpus(),
         },
-        "estimator_methods": {"inference": "predict"},
     }
     estimator_param_variants = [{}, {"max_depth": 4}, {"max_leaf_nodes": 1000}]
     split_kwargs = {"test_size": 0.2}
@@ -338,7 +344,7 @@ def _linear_cases(template: str, *, array_api: bool) -> list[dict]:
             }
         ]
 
-    base_algorithm = {"estimator_methods": {"inference": "predict"}}
+    base_algorithm = {}
     split_kwargs = {"test_size": 0.2}
     cases = []
     if array_api:
@@ -407,7 +413,6 @@ def _test_clustering_cases() -> list[dict]:
                     "tol": 0.001,
                     "random_state": 42,
                 },
-                "estimator_methods": {"inference": "predict"},
             },
             data={
                 "source": "make_blobs",
@@ -420,7 +425,7 @@ def _test_clustering_cases() -> list[dict]:
 
 def _fast_clustering_cases() -> list[dict]:
     bench = {"n_runs": 5, "time_limit": 10}
-    base_algorithm = {"estimator": "KMeans", "estimator_methods": {"inference": "predict"}}
+    base_algorithm = {"estimator": "KMeans"}
     params = {"n_init": 1, "max_iter": 30, "tol": 0.001, "random_state": 42}
     return [
         _case(

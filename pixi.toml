@@ -18,6 +18,7 @@ requests = "*"
 py-cpuinfo = "*"
 matplotlib = "*"
 pydantic = "*"
+pytest = "*"
 
 [pypi-dependencies]
 openml = ">=0.15.1"
