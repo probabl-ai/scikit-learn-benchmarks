@@ -178,7 +178,6 @@ def _test_tree_cases() -> list[dict]:
     bench = {"n_runs": 3}
     base_algorithm = {
         "estimator_params": {
-            "random_state": 42,
             "n_estimators": 16,
             "max_features": 0.5,
             "max_depth": 4,
@@ -229,7 +228,6 @@ def _fast_tree_cases() -> list[dict]:
     bench = {"n_runs": 5, "time_limit": 10}
     base_algorithm = {
         "estimator_params": {
-            "random_state": 42,
             "n_estimators": 64,
             "max_features": 0.3,
             "n_jobs": _physical_cpus(),
@@ -411,7 +409,6 @@ def _test_clustering_cases() -> list[dict]:
                     "n_init": 1,
                     "max_iter": 30,
                     "tol": 0.001,
-                    "random_state": 42,
                 },
             },
             data={
@@ -426,7 +423,7 @@ def _test_clustering_cases() -> list[dict]:
 def _fast_clustering_cases() -> list[dict]:
     bench = {"n_runs": 5, "time_limit": 10}
     base_algorithm = {"estimator": "KMeans"}
-    params = {"n_init": 1, "max_iter": 30, "tol": 0.001, "random_state": 42}
+    params = {"n_init": 1, "max_iter": 30, "tol": 0.001}
     return [
         _case(
             bench=bench,
