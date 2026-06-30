@@ -114,6 +114,59 @@ Generated benchmark results are written as flat `results/<timestamp>.json`
 files. Captured hardware and software environments are stored under
 `results/hardware-envs/` and `results/software-envs/` using hash-only filenames.
 
+## Running Against scikit-learn Branches
+
+For local performance PR checks, use the development Pixi environment and the
+scikit-learn setup helper. It fetches the requested scikit-learn ref into this
+repo's managed git cache under `.bench/`, creates a detached worktree, and
+installs that checkout editable into `sklearn-dev`.
+
+```bash
+scripts/setup_sklearn_ref.sh \
+  --ref main \
+  --label main
+
+pixi run -e sklearn-dev python -m sklbench --config configs/sklearn.py
+```
+
+Run the same config against a branch from a fork by changing only the remote and
+ref:
+
+```bash
+scripts/setup_sklearn_ref.sh \
+  --remote https://github.com/some-user/scikit-learn.git \
+  --ref my-perf-branch \
+  --label pr
+
+pixi run -e sklearn-dev python -m sklbench --config configs/sklearn.py
+```
+
+Pass orchestrator arguments directly to `sklbench` in the second command, for
+example `--runner-log-level INFO`, `--results-dir /tmp/sklbench-results`, or
+`--exit-on-error`.
+
+For local scikit-learn edits, make a temporary commit in the scikit-learn
+checkout and use that checkout as the remote. Benchmark results are meant to be
+identified by a commit SHA; uncommitted edits are intentionally not a supported
+input.
+
+```bash
+cd ~/src/scikit-learn
+git switch -c bench/my-change
+git add sklearn/path/to/file.py
+git commit -m "WIP benchmark change"
+
+cd -
+scripts/setup_sklearn_ref.sh \
+  --remote ~/src/scikit-learn \
+  --ref bench/my-change \
+  --label wip
+```
+
+The software environment JSON records runtime import metadata for packages such
+as `sklearn`, including git commit information when the imported package comes
+from a git checkout.
+
 ## Previewing Dashboards Locally
 
 Generate all dashboard pages into a temporary directory:

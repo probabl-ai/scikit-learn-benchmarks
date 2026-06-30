@@ -28,6 +28,17 @@ nvidia-ml-py = "*"
 [feature.sklearn.dependencies]
 scikit-learn = "1.9.*"
 
+[feature.sklearn-dev.dependencies]
+cython = "*"
+joblib = "*"
+meson-python = "*"
+ninja = "*"
+pip = "*"
+pkg-config = "*"
+threadpoolctl = "*"
+c-compiler = "*"
+cxx-compiler = "*"
+
 [feature.intel.dependencies]
 scikit-learn = "1.8.*"
 setuptools = "<82"
@@ -84,6 +95,7 @@ Jinja2 = "*"
 
 [environments]
 sklearn = ["sklearn"]
+sklearn-dev = ["sklearn-dev"]
 skl-cpu = ["sklearn", "skl-cpu"]
 skl-intel = ["sklearn", "skl-intel"]
 skl-nvidia = ["sklearn", "skl-nvidia"]
