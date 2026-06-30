@@ -20,7 +20,7 @@ from reporting.matching import (
     find_matches,
     read_all_results,
     date_range,
-    Result,
+    MethodResult,
 )
 from reporting.utils import stable_json, without_keys
 
@@ -45,7 +45,7 @@ GPU_HARDWARE_ORDER = ["B390", "L4"]
 CPU_HARDWARE_ORDER = ["laptop", "AMD8", "AMD48"]
 
 
-def _hardware_match_key(result: Result) -> str:
+def _hardware_match_key(result: MethodResult) -> str:
     case = without_keys(
         result.case,
         excluded_names={"implementation", "max_bins", "n_jobs"},
@@ -54,7 +54,7 @@ def _hardware_match_key(result: Result) -> str:
     return stable_json(case)
 
 
-def _is_gpu_result(result: Result, *, hardware_hashes: set[str]) -> bool:
+def _is_gpu_result(result: MethodResult, *, hardware_hashes: set[str]) -> bool:
     implementation = result.implementation
     return (
         result.hardware_hash in hardware_hashes
@@ -64,7 +64,7 @@ def _is_gpu_result(result: Result, *, hardware_hashes: set[str]) -> bool:
     )
 
 
-def is_linear_baseline_result(result: Result) -> bool:
+def is_linear_baseline_result(result: MethodResult) -> bool:
     return (
         result.hardware_hash == CPU_BASELINE_HARDWARE_HASH
         and result.category == "linear"
@@ -72,11 +72,11 @@ def is_linear_baseline_result(result: Result) -> bool:
     )
 
 
-def is_gpu_candidate_result(result: Result) -> bool:
+def is_gpu_candidate_result(result: MethodResult) -> bool:
     return _is_gpu_result(result, hardware_hashes=set(GPU_HARDWARES))
 
 
-def is_server_candidate_result(result: Result) -> bool:
+def is_server_candidate_result(result: MethodResult) -> bool:
     is_server_cpu = (
         result.hardware_hash in {SERVER_CPU_HARDWARE_HASH, SERVER_GPU_HARDWARE_HASH}
         and result.implementation.short_name in {BASE_IMPLEMENTATION, "sklearnex-cpu"}
@@ -87,12 +87,12 @@ def is_server_candidate_result(result: Result) -> bool:
     return is_server_cpu or is_server_gpu
 
 
-def gpu_trace_label(result: Result) -> str:
+def gpu_trace_label(result: MethodResult) -> str:
     hardware = GPU_HARDWARES[result.hardware_hash]
     return f"{result.implementation.short_name}-{hardware['short_name']}"
 
 
-def linear_trace_label(result: Result) -> str:
+def linear_trace_label(result: MethodResult) -> str:
     if result.implementation.device in {None, "default", "cpu"}:
         return cpu_trace_label(result)
     return gpu_trace_label(result)
@@ -109,7 +109,9 @@ def linear_trace_sort_key(label: str) -> tuple[int, int, int, str]:
     return 1, implementation_rank, hardware_rank, implementation
 
 
-def linear_result_matches(base_res: Result, candidate: Result) -> tuple[bool, list]:
+def linear_result_matches(
+    base_res: MethodResult, candidate: MethodResult
+) -> tuple[bool, list]:
     assert base_res.implementation.short_name == BASE_IMPLEMENTATION
 
     warnings = []
@@ -125,14 +127,14 @@ def linear_match_trace_label(match) -> str:
     return linear_trace_label(match.matched_result)
 
 
-def is_cpu_baseline_result(result: Result) -> bool:
+def is_cpu_baseline_result(result: MethodResult) -> bool:
     return (
         result.hardware_hash == CPU_BASELINE_HARDWARE_HASH
         and result.implementation.short_name == BASE_IMPLEMENTATION
     )
 
 
-def is_cpu_candidate_result(result: Result) -> bool:
+def is_cpu_candidate_result(result: MethodResult) -> bool:
     return (
         result.hardware_hash in CPU_HARDWARES
         and not (
@@ -143,7 +145,7 @@ def is_cpu_candidate_result(result: Result) -> bool:
     )
 
 
-def cpu_trace_label(result: Result) -> str:
+def cpu_trace_label(result: MethodResult) -> str:
     hardware = CPU_HARDWARES[result.hardware_hash]
     return f"{result.implementation.short_name}-{hardware['short_name']}"
 
@@ -157,7 +159,9 @@ def cpu_trace_sort_key(label: str) -> tuple[int, int, str]:
     return hardware_rank, len(implementation_order), label
 
 
-def cpu_result_matches(base_res: Result, candidate: Result) -> tuple[bool, list]:
+def cpu_result_matches(
+    base_res: MethodResult, candidate: MethodResult
+) -> tuple[bool, list]:
     assert base_res.implementation.short_name == BASE_IMPLEMENTATION
     assert candidate.implementation.short_name in {BASE_IMPLEMENTATION, "sklearnex-cpu"}
     assert base_res.hardware_hash == CPU_BASELINE_HARDWARE_HASH
@@ -179,7 +183,7 @@ def _comparison_page(rows: list[str]) -> str:
 
 
 def render_linear_comparison(
-    all_results: list[Result],
+    all_results: list[MethodResult],
     *,
     is_candidate_result,
 ) -> str:
@@ -241,7 +245,7 @@ def render_linear_comparison(
     )
 
 
-def render_server_comparison(all_results: list[Result]) -> str:
+def render_server_comparison(all_results: list[MethodResult]) -> str:
     baseline_results = [
         result for result in all_results if is_cpu_baseline_result(result)
     ]
@@ -309,7 +313,7 @@ def render_server_comparison(all_results: list[Result]) -> str:
     )
 
 
-def render_cpu_comparison(all_results: list[Result]) -> str:
+def render_cpu_comparison(all_results: list[MethodResult]) -> str:
     baseline_results = [
         result for result in all_results if is_cpu_baseline_result(result)
     ]

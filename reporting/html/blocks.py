@@ -3,7 +3,7 @@ import itertools
 import re
 
 from ..envs import read_env, summarize_hardware_env, summarize_software_env
-from ..matching import Result
+from ..matching import MethodResult
 from .templates import (
     HARDWARE_TABS_TEMPLATE,
     HARDWARE_TEMPLATE,
@@ -50,8 +50,8 @@ def render_software_tabs(
 
 
 def render_software_hardware_tabs(
-    baseline_results: list[Result],
-    comparison_results: list[Result],
+    baseline_results: list[MethodResult],
+    comparison_results: list[MethodResult],
     *,
     baseline_label: str,
     comparison_label,
@@ -75,7 +75,7 @@ def render_software_hardware_tabs(
             + HARDWARE_TEMPLATE.render(hardware_summary)
         )
 
-    def sort_key(result: Result):
+    def sort_key(result: MethodResult):
         label = comparison_label(result)
         if comparison_sort_key is None:
             return label
