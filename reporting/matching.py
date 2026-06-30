@@ -1,15 +1,24 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import math
 from pathlib import Path
 import json
 import re
-from statistics import median
+from statistics import mean, median, stdev
+from typing import Any
 
 from .utils import stable_json, without_keys
 
 
 RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
+METRIC_ABS_TOLERANCE_FLOOR = 0.01
+METRIC_REL_TOLERANCE_FLOOR = 0.01
+METRIC_STD_TOLERANCE_FACTOR = 3  # TODO: should be based on number of runs:
+# 3 std tol over the mean of e.g. 7 runs is quite a lot
+# 2 should be enough for 7 runs; 2.5 for1.959963984540 3 runs; 3 for 2 runs
+# this risks hiding bad matches
 
 
 @dataclass
@@ -26,27 +35,43 @@ class Implementation:
             if self.data_library is not None:
                 return f"{self.library}-{self.data_library}-{self.device}"
         return f"{self.library}-{self.device}"
-    
+
 
 @dataclass
-class Result:
+class BenchmarkRecord:
+    hardware_hash: str
+    software_hash: str
+    timestamp_recorded: datetime
+    case: dict
+    runs: list[dict]
+
+    @property
+    def implementation(self) -> Implementation:
+        implementation = self.case["implementation"]
+        return Implementation(
+            library=implementation.get("library"),
+            device=implementation.get("device"),
+            data_library=implementation.get("data_library"),
+        )
+
+
+@dataclass
+class MethodResult:
     # No support for functions for now.
 
-    hardware_hash: str  # ...
+    hardware_hash: str
     software: str  # pixi env name
-    software_hash: str  # ...
+    software_hash: str
     method: str  # fit/predict
-    timestamp_recorded: datetime  # based on filename
+    timestamp_recorded: datetime
     case: dict  # case without the "bench" key
-    # results:
-    metrics: dict[str, dict]
     times: list[float]  # in ms
     data_desc: dict
+    metric_samples: dict[str, dict[str, list[Any]]]
+    metrics: dict[str, dict[str, Any]]
     attributes: dict = field(default_factory=dict)
     logs: dict = field(default_factory=dict)
-    # TODO: collect attributes? e.g. solver, tree-structure, ...
-    # first we need to record meaningful attributes in results
-    # => any int/str, arrays with only a few elements should be transofrmed to list
+    record: BenchmarkRecord | None = None
 
     @property
     def implementation(self) -> Implementation:
@@ -69,33 +94,41 @@ class Result:
 
     @property
     def is_sklearnex_tree(self) -> bool:
-        return self.implementation.library == "sklearnex" and self.category == "tree-based"
-    
+        return (
+            self.implementation.library == "sklearnex"
+            and self.category == "tree-based"
+        )
+
     @property
     def minimal_match_key(self) -> str:
         """
         If two results don't share the same minimal_match_key, it will
-        never makes sense to compare them
+        never makes sense to compare them.
         """
         case = without_keys(
             self.case,
             excluded_names={"implementation", "max_bins"},
         )
-        case['method'] = self.method
+        case["method"] = self.method
         return stable_json(case)
 
     @property
     def full_match_key(self) -> str:
         """
         If two results share the same full_match_key, it's not useful to include
-        both in a given plot
+        both in a given plot.
         """
-        return stable_json({
-            **self.case,
-            "method": self.method,
-            "hardware": self.hardware_hash,
-            "software": self.software_hash
-        })
+        return stable_json(
+            {
+                **self.case,
+                "method": self.method,
+                "hardware": self.hardware_hash,
+                "software": self.software_hash,
+            }
+        )
+
+
+Result = MethodResult
 
 
 def _parse_result_timestamp(path: Path) -> datetime:
@@ -107,36 +140,128 @@ def _parse_result_timestamp(path: Path) -> datetime:
     return datetime.strptime(timestamp, date_format).replace(tzinfo=timezone.utc)
 
 
-def _split_metrics_attributes(metrics: dict) -> tuple[dict, dict]:
-    metrics = dict(metrics)
-    attributes = {}
-    if "iterations" in metrics:
-        attributes["iterations"] = metrics.pop("iterations")
-    return metrics, attributes
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def _split_method_metrics_attributes(
-    method_metrics: dict[str, dict]
-) -> tuple[dict[str, dict], dict]:
-    all_metrics = {}
-    all_attributes = {}
-    for method, metrics in method_metrics.items():
-        clean_metrics, attributes = _split_metrics_attributes(metrics)
-        all_metrics[method] = clean_metrics
-        if method == "fit":
-            all_attributes = attributes
-    return all_metrics, all_attributes
+def _numeric_values(values: list[Any]) -> list[float] | None:
+    if not values or not all(_is_number(value) for value in values):
+        return None
+    return [float(value) for value in values]
 
 
-def read_all_results(path=None) -> list[Result]:
+def _metric_mean(values: list[Any]) -> Any:
+    numeric_values = _numeric_values(values)
+    if numeric_values is None:
+        return values[0] if values else None
+    return mean(numeric_values)
+
+
+def _metric_tolerance(base_values: list[float]) -> float:
+    base_mean = mean(base_values)
+    base_std = stdev(base_values) if len(base_values) >= 2 else 0.0
+    return max(
+        METRIC_STD_TOLERANCE_FACTOR * base_std,
+        METRIC_ABS_TOLERANCE_FLOOR,
+        METRIC_REL_TOLERANCE_FLOOR * abs(base_mean),
+    )
+
+
+def _short_metric_value(value: float) -> str:
+    return f"{value:.3g}"
+
+
+def _first_non_empty_logs(rows: list[dict]) -> dict:
+    empty_logs = {"stdout": "", "stderr": ""}
+    for row in rows:
+        logs = row.get("logs", {}) or {}
+        stdout = str(logs.get("stdout", ""))
+        stderr = str(logs.get("stderr", ""))
+        if stdout or stderr:
+            return {"stdout": stdout, "stderr": stderr}
+    return empty_logs
+
+
+def _data_desc_for_method(record: BenchmarkRecord, method: str) -> dict:
+    data_descs = [
+        row.get("data_desc", {}).get(method, {})
+        for row in record.runs
+        if method in row.get("time_ms", {})
+    ]
+    if not data_descs:
+        return {}
+
+    first_data_desc = data_descs[0]
+    first_repr = stable_json(first_data_desc)
+    if any(stable_json(data_desc) != first_repr for data_desc in data_descs[1:]):
+        case_name = record.case.get("algorithm", {}).get("estimator", "unknown")
+        raise ValueError(
+            f"Inconsistent data_desc across repeats for {case_name} {method}"
+        )
+    return first_data_desc
+
+
+def _iter_method_names(record: BenchmarkRecord):
+    method_names = []
+    for row in record.runs:
+        for method in row.get("time_ms", {}):
+            if method not in method_names:
+                method_names.append(method)
+    return method_names
+
+
+def _metric_samples(rows: list[dict]) -> dict[str, dict[str, list[Any]]]:
+    samples: dict[str, dict[str, list[Any]]] = {}
+    for row in rows:
+        for method, method_metrics in row.get("metrics", {}).items():
+            method_samples = samples.setdefault(method, {})
+            for metric_name, metric_value in method_metrics.items():
+                method_samples.setdefault(metric_name, []).append(metric_value)
+    return samples
+
+
+def _metric_means(
+    metric_samples: dict[str, dict[str, list[Any]]]
+) -> dict[str, dict[str, Any]]:
+    return {
+        method: {
+            metric_name: _metric_mean(values)
+            for metric_name, values in method_samples.items()
+        }
+        for method, method_samples in metric_samples.items()
+    }
+
+
+def _as_list(value: Any) -> list:
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _normalize_iteration_attributes(rows: list[dict]) -> dict:
+    values = []
+    for row in rows:
+        attributes = row.get("attributes", {}) or {}
+        for key in ("iterations", "n_iter"):
+            if key in attributes:
+                values.extend(_as_list(attributes[key]))
+
+    if not values:
+        return {}
+
+    try:
+        unique_values = sorted(set(values))
+    except TypeError:
+        unique_values = values
+    return {"iterations": unique_values}
+
+
+def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
     """
-    path defaults to ./results/
-
-    Read all available results and de-duplicates redundant results, i.e.
-    results with the same `full_match_key` (keep the latest)
+    Read new-format benchmark result files from `path`, defaulting to ./results/.
     """
     results_root = Path(path) if path is not None else Path("results")
-    results: list[Result] = []
+    records: list[BenchmarkRecord] = []
 
     for result_path in sorted(results_root.glob("*.json")):
         if not RESULT_FILE_RE.match(result_path.name):
@@ -150,30 +275,71 @@ def read_all_results(path=None) -> list[Result]:
         timestamp = _parse_result_timestamp(result_path)
 
         for bench_case in result_file.get("bench_cases", []):
-            case = without_keys(bench_case.get("case", {}), excluded_names={"bench"})
-            metrics, attributes = _split_method_metrics_attributes(
-                bench_case.get("metrics", {})
-            )
-            for method, times in bench_case.get("time[ms]", {}).items():
-                if not isinstance(times, list) or len(times) == 0:
-                    continue
-                results.append(
-                    Result(
-                        hardware_hash=hardware_hash,
-                        software=software_hash,
-                        software_hash=software_hash,
-                        method=method,
-                        timestamp_recorded=timestamp,
-                        case=case,
-                        metrics=metrics,
-                        times=[float(time) for time in times],
-                        data_desc=bench_case.get("data_desc", {}).get(method, {}),
-                        attributes=attributes,
-                        logs=bench_case.get("logs", {}),
-                    )
+            if "results" not in bench_case:
+                raise ValueError(
+                    f"{result_path} contains legacy aggregated benchmark results"
                 )
+            records.append(
+                BenchmarkRecord(
+                    hardware_hash=hardware_hash,
+                    software_hash=software_hash,
+                    timestamp_recorded=timestamp,
+                    case=without_keys(
+                        bench_case.get("case", {}), excluded_names={"bench"}
+                    ),
+                    runs=bench_case.get("results", []),
+                )
+            )
 
-    latest_by_key: dict[str, Result] = {}
+    return records
+
+
+def method_results_from_records(records: list[BenchmarkRecord]) -> list[MethodResult]:
+    results: list[MethodResult] = []
+    for record in records:
+        metric_samples = _metric_samples(record.runs)
+        metrics = _metric_means(metric_samples)
+        attributes = _normalize_iteration_attributes(record.runs)
+        logs = _first_non_empty_logs(record.runs)
+
+        for method in _iter_method_names(record):
+            times = [
+                float(row["time_ms"][method])
+                for row in record.runs
+                if method in row.get("time_ms", {})
+            ]
+            if not times:
+                continue
+            results.append(
+                MethodResult(
+                    hardware_hash=record.hardware_hash,
+                    software=record.software_hash,
+                    software_hash=record.software_hash,
+                    method=method,
+                    timestamp_recorded=record.timestamp_recorded,
+                    case=record.case,
+                    times=times,
+                    data_desc=_data_desc_for_method(record, method),
+                    metric_samples=metric_samples,
+                    metrics=metrics,
+                    attributes=attributes,
+                    logs=logs,
+                    record=record,
+                )
+            )
+    return results
+
+
+def read_all_results(path=None) -> list[MethodResult]:
+    """
+    path defaults to ./results/
+
+    Read all available results and de-duplicates redundant results, i.e.
+    results with the same `full_match_key` (keep the latest).
+    """
+    results = method_results_from_records(read_benchmark_records(path))
+
+    latest_by_key: dict[str, MethodResult] = {}
     for result in results:
         current = latest_by_key.get(result.full_match_key)
         if current is None or result.timestamp_recorded > current.timestamp_recorded:
@@ -190,34 +356,52 @@ class MatchWarning:
 
 @dataclass(frozen=True)
 class Match:
-    base_result: Result
-    matched_result: Result
+    base_result: MethodResult
+    matched_result: MethodResult
     warnings: list[MatchWarning]
 
     @staticmethod
-    def _comparable_metric_values(metrics: dict) -> dict:
-        metrics = dict(metrics)
+    def _comparable_metric_samples(metric_samples: dict) -> dict:
+        metric_samples = {
+            method: dict(method_metrics)
+            for method, method_metrics in metric_samples.items()
+        }
 
         # for regression, we pop RMSE, as it's redundant with R2 but
-        # depends on the variance of y, which makes the comparison harder to do
-        if "R2" in metrics and "RMSE" in metrics:
-            metrics.pop("RMSE")
-        return metrics
+        # depends on the variance of y, which makes the comparison harder to do.
+        for metrics in metric_samples.values():
+            if "R2" in metrics and "RMSE" in metrics:
+                metrics.pop("RMSE")
+        return metric_samples
 
-    def _comparable_metrics(self) -> tuple[dict, dict]:
-        base_metrics = {
-            method: self._comparable_metric_values(metrics)
-            for method, metrics in self.base_result.metrics.items()
-        }
-        matched_metrics = {
-            method: self._comparable_metric_values(metrics)
-            for method, metrics in self.matched_result.metrics.items()
-        }
+    def _metric_difference(
+        self,
+        method: str,
+        metric_name: str,
+        base_values: list[Any],
+        matched_values: list[Any],
+    ) -> str | None:
+        numeric_base = _numeric_values(base_values)
+        numeric_matched = _numeric_values(matched_values)
+        if numeric_base is None or numeric_matched is None:
+            if base_values != matched_values:
+                return (
+                    f"{method}.{metric_name}: "
+                    f"base={base_values}, target={matched_values}"
+                )
+            return None
 
-        if set(base_metrics) != set(matched_metrics):
-            raise ValueError("Sets of metric methods differ")
-
-        return base_metrics, matched_metrics
+        base_mean = mean(numeric_base)
+        matched_mean = mean(numeric_matched)
+        tolerance = _metric_tolerance(numeric_base)
+        if abs(matched_mean - base_mean) > tolerance:
+            return (
+                f"{method}.{metric_name}: "
+                f"base_mean={_short_metric_value(base_mean)}, "
+                f"target_mean={_short_metric_value(matched_mean)}, "
+                f"tolerance={_short_metric_value(tolerance)}"
+            )
+        return None
 
     @property
     def metrics_differences(self) -> list[str]:
@@ -225,20 +409,41 @@ class Match:
             return []
 
         differences = []
-        base_metrics, matched_metrics = (
-            self._comparable_metrics()
+        base_metrics = self._comparable_metric_samples(
+            self.base_result.metric_samples
+        )
+        matched_metrics = self._comparable_metric_samples(
+            self.matched_result.metric_samples
         )
 
-        for method, base_method_metrics in base_metrics.items():
-            matched_method_metrics = matched_metrics[method]
-            if set(base_method_metrics) != set(matched_method_metrics):
-                raise ValueError(f"Sets of {method} metrics differ")
+        for method in sorted(set(base_metrics) | set(matched_metrics)):
+            if method not in base_metrics:
+                differences.append(f"{method}: missing in base")
+                continue
+            if method not in matched_metrics:
+                differences.append(f"{method}: missing in target")
+                continue
 
-            for k, v in base_method_metrics.items():
-                if not math.isclose(v, matched_method_metrics[k], rel_tol=0.01, abs_tol=0.01):
-                    differences.append(
-                        f"{method}.{k}: base={v:.3g}, target={matched_method_metrics[k]:.3g}"
-                    )
+            base_method_metrics = base_metrics[method]
+            matched_method_metrics = matched_metrics[method]
+            for metric_name in sorted(
+                set(base_method_metrics) | set(matched_method_metrics)
+            ):
+                if metric_name not in base_method_metrics:
+                    differences.append(f"{method}.{metric_name}: missing in base")
+                    continue
+                if metric_name not in matched_method_metrics:
+                    differences.append(f"{method}.{metric_name}: missing in target")
+                    continue
+
+                difference = self._metric_difference(
+                    method,
+                    metric_name,
+                    base_method_metrics[metric_name],
+                    matched_method_metrics[metric_name],
+                )
+                if difference is not None:
+                    differences.append(difference)
         return differences
 
     @property
@@ -256,7 +461,10 @@ class Match:
 MAX_BINS_WARNING = MatchWarning(
     icon="🧺",
     short_message="histogram-based splits",
-    message="Scikit-learn intelex uses binning & histogram-based splits while scikit-learn doesn't",
+    message=(
+        "Scikit-learn intelex uses binning & histogram-based splits "
+        "while scikit-learn doesn't"
+    ),
 )
 
 CPU_FALLBACK_WARNING = MatchWarning(
@@ -266,11 +474,11 @@ CPU_FALLBACK_WARNING = MatchWarning(
 )
 
 
-def _logs_text(result: Result) -> str:
+def _logs_text(result: MethodResult) -> str:
     return "\n".join(str(result.logs.get(stream, "")) for stream in ("stdout", "stderr"))
 
 
-def has_cpu_fallback_warning(result: Result) -> bool:
+def has_cpu_fallback_warning(result: MethodResult) -> bool:
     text = _logs_text(result).lower()
     return (
         "fallback from xpu to cpu" in text
@@ -278,18 +486,22 @@ def has_cpu_fallback_warning(result: Result) -> bool:
     )
 
 
-def append_cpu_fallback_warning(result: Result, warnings: list):
+def append_cpu_fallback_warning(result: MethodResult, warnings: list):
     if result.implementation.device not in {"cuda", "gpu", "xpu"}:
         return
     if has_cpu_fallback_warning(result):
         warnings.append(CPU_FALLBACK_WARNING)
 
 
-def append_max_bins_warning(sklearn_res: Result, sklearnex_res: Result, warnings: list):
+def append_max_bins_warning(
+    sklearn_res: MethodResult, sklearnex_res: MethodResult, warnings: list
+):
     assert sklearn_res.implementation.library == "sklearn"
     assert sklearnex_res.implementation.library == "sklearnex"
 
-    estimator_params = sklearnex_res.case.get("algorithm", {}).get("estimator_params", {})
+    estimator_params = sklearnex_res.case.get("algorithm", {}).get(
+        "estimator_params", {}
+    )
     max_bins = estimator_params.get("max_bins", 255)
     n_samples = (
         sklearnex_res.case.get("data", {})
@@ -303,7 +515,9 @@ def append_max_bins_warning(sklearn_res: Result, sklearnex_res: Result, warnings
         warnings.append(MAX_BINS_WARNING)
 
 
-def append_iterations_warning(base_res: Result, candidate: Result, warnings: list):
+def append_iterations_warning(
+    base_res: MethodResult, candidate: MethodResult, warnings: list
+):
     base_iterations = base_res.attributes.get("iterations")
     candidate_iterations = candidate.attributes.get("iterations")
     if base_iterations == candidate_iterations:
@@ -315,21 +529,21 @@ def append_iterations_warning(base_res: Result, candidate: Result, warnings: lis
         MatchWarning(
             icon="🔁",
             short_message=f"({base_iterations} vs {candidate_iterations})",
-            message="Number of iteration differs: this might mean algorithms are different",
+            message="Number of iteration differs: this might mean algorithms differ",
         )
     )
 
 
 def find_matches(
-    base_results: list[Result],
-    results_to_match: list[Result],
+    base_results: list[MethodResult],
+    results_to_match: list[MethodResult],
     match_function,
     match_key=None,
 ) -> list[Match]:
     # should assert all result in results_to_match match at most one base_results
     if match_key is None:
         match_key = lambda result: result.minimal_match_key
-    base_by_minimal_key: dict[str, list[Result]] = {}
+    base_by_minimal_key: dict[str, list[MethodResult]] = {}
     for base_result in base_results:
         base_by_minimal_key.setdefault(match_key(base_result), []).append(base_result)
 
@@ -357,7 +571,7 @@ def find_matches(
     return matches
 
 
-def date_range(results: list[Result]) -> dict:
+def date_range(results: list[MethodResult]) -> dict:
     if not results:
         return {"label": "No results"}
     start = min(result.timestamp_recorded for result in results)
