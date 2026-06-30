@@ -67,8 +67,7 @@ class MethodResult:
     case: dict  # case without the "bench" key
     times: list[float]  # in ms
     data_desc: dict
-    metric_samples: dict[str, dict[str, list[Any]]]
-    metrics: dict[str, dict[str, Any]]
+    metrics: dict[str, dict[str, list[Any]]]
     attributes: dict = field(default_factory=dict)
     logs: dict = field(default_factory=dict)
     record: BenchmarkRecord | None = None
@@ -128,9 +127,6 @@ class MethodResult:
         )
 
 
-Result = MethodResult
-
-
 def _parse_result_timestamp(path: Path) -> datetime:
     match = RESULT_FILE_RE.match(path.name)
     if not match:
@@ -148,13 +144,6 @@ def _numeric_values(values: list[Any]) -> list[float] | None:
     if not values or not all(_is_number(value) for value in values):
         return None
     return [float(value) for value in values]
-
-
-def _metric_mean(values: list[Any]) -> Any:
-    numeric_values = _numeric_values(values)
-    if numeric_values is None:
-        return values[0] if values else None
-    return mean(numeric_values)
 
 
 def _metric_tolerance(base_values: list[float]) -> float:
@@ -182,78 +171,33 @@ def _first_non_empty_logs(rows: list[dict]) -> dict:
     return empty_logs
 
 
-def _data_desc_for_method(record: BenchmarkRecord, method: str) -> dict:
-    data_descs = [
-        row.get("data_desc", {}).get(method, {})
-        for row in record.runs
-        if method in row.get("time_ms", {})
-    ]
-    if not data_descs:
-        return {}
-
-    first_data_desc = data_descs[0]
-    first_repr = stable_json(first_data_desc)
-    if any(stable_json(data_desc) != first_repr for data_desc in data_descs[1:]):
-        case_name = record.case.get("algorithm", {}).get("estimator", "unknown")
-        raise ValueError(
-            f"Inconsistent data_desc across repeats for {case_name} {method}"
-        )
-    return first_data_desc
-
-
-def _iter_method_names(record: BenchmarkRecord):
-    method_names = []
-    for row in record.runs:
-        for method in row.get("time_ms", {}):
-            if method not in method_names:
-                method_names.append(method)
-    return method_names
-
-
-def _metric_samples(rows: list[dict]) -> dict[str, dict[str, list[Any]]]:
-    samples: dict[str, dict[str, list[Any]]] = {}
-    for row in rows:
-        for method, method_metrics in row.get("metrics", {}).items():
-            method_samples = samples.setdefault(method, {})
-            for metric_name, metric_value in method_metrics.items():
-                method_samples.setdefault(metric_name, []).append(metric_value)
-    return samples
-
-
-def _metric_means(
-    metric_samples: dict[str, dict[str, list[Any]]]
-) -> dict[str, dict[str, Any]]:
-    return {
-        method: {
-            metric_name: _metric_mean(values)
-            for metric_name, values in method_samples.items()
-        }
-        for method, method_samples in metric_samples.items()
+def _runs_to_values(runs: list[dict]) -> dict:
+    values = {
+        "time_ms": {},
+        "data_desc": {},
+        "metrics": {},
+        "attributes": {},
     }
+    for run in runs:
+        for method, time_ms in run.get("time_ms", {}).items():
+            values["time_ms"].setdefault(method, []).append(float(time_ms))
 
+        for method, data_desc in run.get("data_desc", {}).items():
+            if method in values["data_desc"]:
+                if stable_json(data_desc) != stable_json(values["data_desc"][method]):
+                    raise ValueError(f"Inconsistent data_desc across repeats for {method}")
+            else:
+                values["data_desc"][method] = data_desc
 
-def _as_list(value: Any) -> list:
-    if isinstance(value, list):
-        return value
-    return [value]
+        for method, method_metrics in run.get("metrics", {}).items():
+            metric_values = values["metrics"].setdefault(method, {})
+            for metric_name, metric_value in method_metrics.items():
+                metric_values.setdefault(metric_name, []).append(metric_value)
 
+        for name, value in (run.get("attributes", {}) or {}).items():
+            values["attributes"].setdefault(name, []).append(value)
 
-def _normalize_iteration_attributes(rows: list[dict]) -> dict:
-    values = []
-    for row in rows:
-        attributes = row.get("attributes", {}) or {}
-        for key in ("iterations", "n_iter"):
-            if key in attributes:
-                values.extend(_as_list(attributes[key]))
-
-    if not values:
-        return {}
-
-    try:
-        unique_values = sorted(set(values))
-    except TypeError:
-        unique_values = values
-    return {"iterations": unique_values}
+    return values
 
 
 def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
@@ -297,19 +241,10 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
 def method_results_from_records(records: list[BenchmarkRecord]) -> list[MethodResult]:
     results: list[MethodResult] = []
     for record in records:
-        metric_samples = _metric_samples(record.runs)
-        metrics = _metric_means(metric_samples)
-        attributes = _normalize_iteration_attributes(record.runs)
+        values = _runs_to_values(record.runs)
         logs = _first_non_empty_logs(record.runs)
 
-        for method in _iter_method_names(record):
-            times = [
-                float(row["time_ms"][method])
-                for row in record.runs
-                if method in row.get("time_ms", {})
-            ]
-            if not times:
-                continue
+        for method, times in values["time_ms"].items():
             results.append(
                 MethodResult(
                     hardware_hash=record.hardware_hash,
@@ -319,10 +254,9 @@ def method_results_from_records(records: list[BenchmarkRecord]) -> list[MethodRe
                     timestamp_recorded=record.timestamp_recorded,
                     case=record.case,
                     times=times,
-                    data_desc=_data_desc_for_method(record, method),
-                    metric_samples=metric_samples,
-                    metrics=metrics,
-                    attributes=attributes,
+                    data_desc=values["data_desc"][method],
+                    metrics=values["metrics"],
+                    attributes=values["attributes"],
                     logs=logs,
                     record=record,
                 )
@@ -361,18 +295,18 @@ class Match:
     warnings: list[MatchWarning]
 
     @staticmethod
-    def _comparable_metric_samples(metric_samples: dict) -> dict:
-        metric_samples = {
+    def _comparable_metrics(metrics: dict) -> dict:
+        metrics = {
             method: dict(method_metrics)
-            for method, method_metrics in metric_samples.items()
+            for method, method_metrics in metrics.items()
         }
 
         # for regression, we pop RMSE, as it's redundant with R2 but
         # depends on the variance of y, which makes the comparison harder to do.
-        for metrics in metric_samples.values():
-            if "R2" in metrics and "RMSE" in metrics:
-                metrics.pop("RMSE")
-        return metric_samples
+        for method_metrics in metrics.values():
+            if "R2" in method_metrics and "RMSE" in method_metrics:
+                method_metrics.pop("RMSE")
+        return metrics
 
     def _metric_difference(
         self,
@@ -409,12 +343,8 @@ class Match:
             return []
 
         differences = []
-        base_metrics = self._comparable_metric_samples(
-            self.base_result.metric_samples
-        )
-        matched_metrics = self._comparable_metric_samples(
-            self.matched_result.metric_samples
-        )
+        base_metrics = self._comparable_metrics(self.base_result.metrics)
+        matched_metrics = self._comparable_metrics(self.matched_result.metrics)
 
         for method in sorted(set(base_metrics) | set(matched_metrics)):
             if method not in base_metrics:
@@ -518,20 +448,41 @@ def append_max_bins_warning(
 def append_iterations_warning(
     base_res: MethodResult, candidate: MethodResult, warnings: list
 ):
-    base_iterations = base_res.attributes.get("iterations")
-    candidate_iterations = candidate.attributes.get("iterations")
-    if base_iterations == candidate_iterations:
-        return
-    if base_iterations is None and candidate_iterations is None:
+    # expect .attributes to be in the form:
+    # {'n_iter': [...] (values for all the runs), ...}
+    base_iterations = base_res.attributes.get("n_iter", [])
+    candidate_iterations = candidate.attributes.get("n_iter", [])
+    if set(base_iterations) == set(candidate_iterations):
         return
 
-    warnings.append(
-        MatchWarning(
-            icon="🔁",
-            short_message=f"({base_iterations} vs {candidate_iterations})",
-            message="Number of iteration differs: this might mean algorithms differ",
+    if set(base_iterations).intersection(set(candidate_iterations)):
+        # this is quite permissive, but for now let's do that
+        return
+
+    if len(candidate_iterations) == 0:
+        warnings.append(
+            MatchWarning(
+                icon="🔁",
+                short_message=f"({base_iterations[0]} vs ?)",
+                message="Number iteration of iteration not reported for this variant",
+            )
         )
-    )
+    elif len(base_iterations) == 0:
+        warnings.append(
+            MatchWarning(
+                icon="🔁",
+                short_message=f"(? vs {candidate_iterations[0]})",
+                message="Number iteration of iteration not reported for the baseline",
+            )
+        )
+    else:
+        warnings.append(
+            MatchWarning(
+                icon="🔁",
+                short_message=f"({base_iterations[0]} vs {candidate_iterations[0]})",
+                message="Number of iteration differs: this might mean algorithms differ",
+            )
+        )
 
 
 def find_matches(

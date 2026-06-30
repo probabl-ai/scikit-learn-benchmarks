@@ -8,7 +8,7 @@ from reporting.utils import partition_iterable, groupby
 
 from reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
-    find_matches, date_range, Match, MatchWarning, Result,
+    find_matches, date_range, Match, MatchWarning, MethodResult,
     append_cpu_fallback_warning,
 )
 
@@ -34,7 +34,9 @@ HARDWARE_NAMES = {
 BASE_IMPLEMENTATION = "sklearn"
 
 
-def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[MatchWarning]]:
+def result_matches(
+    base_res: MethodResult, candidate: MethodResult
+) -> tuple[bool, list[MatchWarning]]:
     """
     Assumptions:
     - hardware matches
@@ -65,7 +67,7 @@ def result_matches(base_res: Result, candidate: Result) -> tuple[bool, list[Matc
     )
 
 
-def render_hardware_page(results: list[Result], hardware_hash: str) -> str:
+def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str:
     results = [res for res in results if res.hardware_hash == hardware_hash]
     if not results:
         return '<section class="empty">No benchmark results for this hardware.</section>'
