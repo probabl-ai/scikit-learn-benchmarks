@@ -4,7 +4,9 @@ import os
 from math import sqrt
 from pathlib import Path
 
-from _common import _physical_cpus, sklearn_implementation, with_implementations
+import joblib
+
+from _common import sklearn_implementation, with_implementations
 
 DFT_MAX_ITER = 100
 DFT_MAX_FEATURES = 0.5
@@ -82,6 +84,8 @@ WORKLOADS = [
     },
 ]
 
+WORKLOADS = WORKLOADS[:1]
+
 
 def _read_cpu_topology_id(cpu_id: int, name: str) -> str | None:
     path = Path(f"/sys/devices/system/cpu/cpu{cpu_id}/topology/{name}")
@@ -95,32 +99,28 @@ def _affinity_cpu_ids() -> list[int]:
     try:
         return sorted(os.sched_getaffinity(0))
     except AttributeError:
-        return list(range(os.cpu_count() or _physical_cpus()))
+        return list(range(joblib.cpu_count(only_physical_cores=False)))
 
 
-def _physical_core_cpu_ids() -> list[int]:
+def _logical_cpus_by_physical_core() -> list[list[int]]:
     cpu_ids = _affinity_cpu_ids()
-    selected = []
-    seen_cores = set()
+    core_groups = {}
     for cpu_id in cpu_ids:
         package_id = _read_cpu_topology_id(cpu_id, "physical_package_id")
         core_id = _read_cpu_topology_id(cpu_id, "core_id")
         if package_id is None or core_id is None:
-            return cpu_ids[: _physical_cpus()]
+            return [[cpu_id] for cpu_id in cpu_ids]
 
         core_key = (package_id, core_id)
-        if core_key not in seen_cores:
-            seen_cores.add(core_key)
-            selected.append(cpu_id)
-    return selected or cpu_ids[: _physical_cpus()]
-
-
-def _format_taskset(cpu_ids: list[int]) -> str:
-    return ",".join(str(cpu_id) for cpu_id in cpu_ids)
+        core_groups.setdefault(core_key, []).append(cpu_id)
+    return sorted(
+        (sorted(cpu_group) for cpu_group in core_groups.values()),
+        key=lambda cpu_group: cpu_group[0],
+    )
 
 
 def _thread_counts() -> list[int]:
-    physical_cpus = min(_physical_cpus(), len(_physical_core_cpu_ids()))
+    physical_cpus = joblib.cpu_count(only_physical_cores=True)
     counts = []
     thread_count = 1
     while thread_count < physical_cpus:
@@ -128,6 +128,28 @@ def _thread_counts() -> list[int]:
         thread_count *= 2
     counts.append(physical_cpus)
     return counts
+
+
+def taskset_for_physical_cores(n_cores: int) -> str:
+    # If n_cores == 1 and the first physical core has two logical CPUs,
+    # this returns both logical CPU ids, for instance "0,1".
+    if n_cores < 1:
+        raise ValueError("n_cores must be at least 1")
+    cpu_groups = _logical_cpus_by_physical_core()
+    if False:
+        # I think this should be the good way, but it doesn't work well
+        # with joblib
+        selected_cpus = [
+            cpu_id
+            for cpu_group in cpu_groups[:n_cores]
+            for cpu_id in cpu_group
+        ]
+    else:
+        selected_cpus = [
+            cpu_group[0]
+            for cpu_group in cpu_groups[:n_cores]
+        ]
+    return ",".join(str(cpu_id) for cpu_id in selected_cpus)
 
 
 def _case(workload: dict, thread_count: int) -> dict:
@@ -152,8 +174,7 @@ def _case(workload: dict, thread_count: int) -> dict:
     return {
         "bench": {
             "n_runs": 2,
-            "time_limit": 600,
-            "taskset": _format_taskset(_physical_core_cpu_ids()[:thread_count]),
+            "taskset": taskset_for_physical_cores(thread_count),
         },
         "algorithm": {
             "estimator": estimator,
@@ -163,7 +184,6 @@ def _case(workload: dict, thread_count: int) -> dict:
                 "max_features": workload.get("max_features", DFT_MAX_FEATURES),
                 "max_bins": 255,
                 "early_stopping": False,
-                "random_state": 0,
             },
         },
         "data": {
