@@ -24,6 +24,7 @@ pytest = "*"
 openml = ">=0.15.1"
 dpctl = "*"
 nvidia-ml-py = "*"
+py-spy = "*"
 
 [feature.sklearn.dependencies]
 scikit-learn = "1.9.*"
