@@ -44,6 +44,7 @@ class BenchmarkRecord:
     timestamp_recorded: datetime
     case: dict
     runs: list[dict]
+    profile_path: Path | None = None
 
     @property
     def implementation(self) -> Implementation:
@@ -195,19 +196,25 @@ def _runs_to_values(runs: list[dict]) -> dict:
                 metric_values.setdefault(metric_name, []).append(metric_value)
 
         for name, value in (run.get("attributes", {}) or {}).items():
-            values["attributes"].setdefault(name, []).append(value)
+            attribute_values = values["attributes"].setdefault(name, [])
+            if stable_json(value) not in {
+                stable_json(existing) for existing in attribute_values
+            }:
+                attribute_values.append(value)
 
     return values
 
 
 def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
     """
-    Read new-format benchmark result files from `path`, defaulting to ./results/.
+    Read one-record-per-case benchmark files from `path`, defaulting to ./results/.
     """
     results_root = Path(path) if path is not None else Path("results")
+    records_root = results_root / "records"
+    profiles_root = results_root / "profiles"
     records: list[BenchmarkRecord] = []
 
-    for result_path in sorted(results_root.glob("*.json")):
+    for result_path in sorted(records_root.glob("*.json")):
         if not RESULT_FILE_RE.match(result_path.name):
             continue
 
@@ -217,23 +224,20 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
         hardware_hash = result_file["hardware_hash"]
         software_hash = result_file["software_hash"]
         timestamp = _parse_result_timestamp(result_path)
+        profile_path = profiles_root / f"{result_path.stem}.svg"
+        if not profile_path.exists():
+            profile_path = None
 
-        for bench_case in result_file.get("bench_cases", []):
-            if "results" not in bench_case:
-                raise ValueError(
-                    f"{result_path} contains legacy aggregated benchmark results"
-                )
-            records.append(
-                BenchmarkRecord(
-                    hardware_hash=hardware_hash,
-                    software_hash=software_hash,
-                    timestamp_recorded=timestamp,
-                    case=without_keys(
-                        bench_case.get("case", {}), excluded_names={"bench"}
-                    ),
-                    runs=bench_case.get("results", []),
-                )
+        records.append(
+            BenchmarkRecord(
+                hardware_hash=hardware_hash,
+                software_hash=software_hash,
+                timestamp_recorded=timestamp,
+                case=without_keys(result_file["case"], excluded_names={"bench"}),
+                runs=result_file.get("results", []),
+                profile_path=profile_path,
             )
+        )
 
     return records
 
