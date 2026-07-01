@@ -369,9 +369,7 @@ def _linear_cases(template: str, *, array_api: bool) -> list[dict]:
         }
         source = "make_classification" if is_classifier else "make_regression"
         extra_generation_kwargs = (
-            {"n_classes": 2, **({} if array_api else {"n_redundant": 0})}
-            if is_classifier
-            else {}
+            {"n_classes": 2, "n_redundant": 0} if is_classifier else {}
         )
         data = {
             "source": source,
