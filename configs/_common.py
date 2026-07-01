@@ -6,7 +6,7 @@ from itertools import product
 from math import ceil
 from typing import Iterable
 
-import psutil
+from joblib import cpu_count
 
 
 def _merge_dicts(first: dict, second: dict) -> dict:
@@ -51,10 +51,6 @@ def exclude_estimators(cases: Iterable[dict], estimators: set[str]) -> list[dict
         for case in cases
         if case["algorithm"].get("estimator") not in estimators
     ]
-
-
-def _physical_cpus() -> int:
-    return psutil.cpu_count(logical=False) or psutil.cpu_count() or 1
 
 
 def _template_name() -> str:
@@ -230,7 +226,7 @@ def _fast_tree_cases() -> list[dict]:
         "estimator_params": {
             "n_estimators": 64,
             "max_features": 0.3,
-            "n_jobs": _physical_cpus(),
+            "n_jobs": cpu_count(only_physical_cores=True),
         },
     }
     estimator_param_variants = [{}, {"max_depth": 4}, {"max_leaf_nodes": 1000}]
