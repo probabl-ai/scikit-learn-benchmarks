@@ -15,7 +15,6 @@ fi
 mode="${1:-cpu}"
 
 run_cpu() {
-    pixi run -e sklearn python -m sklbench --config configs/hgb_scaling.py
     pixi run -e sklearn python -m sklbench --config configs/sklearn.py
     pixi run -e skl-cpu python -m sklbench --config configs/array_api_cpu.py
     pixi run -e intel python -m sklbench --config configs/sklearnex_cpu.py
