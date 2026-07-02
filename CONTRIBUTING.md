@@ -112,6 +112,10 @@ Generated benchmark records are written under `results/records/`. Captured
 hardware and software environments are stored under `results/hardware-envs/`
 and `results/software-envs/` using hash-only filenames.
 
+**Cloud machines can have high tail variability**, especially for scaling studies
+and short workloads. Prefer stable local/dedicated hardware when deciding whether
+one representative case can replace a broader matrix.
+
 ## Running Against scikit-learn Branches
 
 For local performance PR checks, use the development Pixi environment and the

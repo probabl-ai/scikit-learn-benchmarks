@@ -7,9 +7,12 @@ DFT_MAX_ITER = 100
 DFT_MAX_LEAF_NODES = 31
 DFT_MAX_FEATURES = 0.5
 
-TASKS = ["classification", "regression"]
-
-COLUMNS_KINDS = ["continuous", "mix"]
+# TASKS = ["classification", "regression"]
+# COLUMNS_KINDS = ["continuous", "mix"]
+# It has been found that the matrix TASKS x COLUMNS_KINDS was
+# redundant, so just keeping the simple case:
+TASKS = ["classification"]
+COLUMNS_KINDS = ["continuous"]
 
 
 WORKLOADS = [
