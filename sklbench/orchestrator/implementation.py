@@ -79,7 +79,6 @@ def save_benchmark_record(
     }
     with record_path.open("x", encoding="utf-8") as fp:
         json.dump(record, fp, indent=4)
-    logger.warning(f"Benchmark result saved to {record_path}")
 
 
 def call_benchmarks(
