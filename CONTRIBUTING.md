@@ -5,11 +5,8 @@ and reporting scripts for the published scikit-learn benchmark dashboards.
 
 ## Setup
 
-Initialize the nested benchmark runner checkout:
-
-```bash
-git submodule update --init --recursive
-```
+Install the Pixi environments from the repository root. The local `sklbench`
+package is installed editable by Pixi.
 
 Install Git LFS before checking out or adding benchmark results. On
 Ubuntu/Debian:
@@ -37,24 +34,25 @@ The repository is split into a few layers:
 - `configs/`: Python benchmark case generators. Top-level config scripts
   combine model/data helpers with implementation definitions and expose
   `generate_cases()`.
-- `scikit-learn_bench/`: nested checkout of the benchmark runner.
-- `sklbench`: symlink to `scikit-learn_bench/sklbench`.
+- `sklbench/`: local benchmark package containing config models, orchestrator,
+  runners, runner datasets, and reporting helpers.
 - `results/`: captured benchmark outputs and environment metadata, tracked
   with Git LFS.
-- `reporting/`: result matching, environment summaries, and HTML helpers.
-- `dashboard/gen_*.py`: dashboard entry points. Each script reads `results/`
+- `sklbench/reporting/`: result matching, environment summaries, and HTML helpers.
+- `dashboards/gen_*.py`: dashboard entry points. Each script reads `results/`
   and writes one HTML page.
 - `.github/workflows/dashboard-pages.yml`: GitHub Pages workflow. It runs all
-  `dashboard/gen_*.py` scripts on pushes to `main` and publishes the generated
+  `dashboards/gen_*.py` scripts on pushes to `main` and publishes the generated
   HTML.
 
 Config scripts are regular Python. They return a list of JSON-serializable case
-dictionaries from `generate_cases()`, and the orchestrator validates each case
-before running it. Shared helpers live in `configs/_common.py`.
+dictionaries or pydantic case models from `generate_cases()`, and the
+orchestrator validates each case before running it. Shared helpers live in
+`sklbench.config.generators`.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `configs/_common.py`.
+Most case changes should start in `sklbench.config.generators`.
 
 Use the default `test` template for the current small exploratory matrix. Set
 `SKBENCH_MODELS_TEMPLATE=fast` when working on a broader but still reasonably
@@ -110,9 +108,9 @@ pixi run -e intel ...
 pixi run -e reporting ...
 ```
 
-Generated benchmark results are written as flat `results/<timestamp>.json`
-files. Captured hardware and software environments are stored under
-`results/hardware-envs/` and `results/software-envs/` using hash-only filenames.
+Generated benchmark records are written under `results/records/`. Captured
+hardware and software environments are stored under `results/hardware-envs/`
+and `results/software-envs/` using hash-only filenames.
 
 ## Running Against scikit-learn Branches
 
@@ -142,8 +140,7 @@ pixi run -e sklearn-dev python -m sklbench --config configs/sklearn.py
 ```
 
 Pass orchestrator arguments directly to `sklbench` in the second command, for
-example `--runner-log-level INFO`, `--results-dir /tmp/sklbench-results`, or
-`--exit-on-error`.
+example `--results-dir /tmp/sklbench-results` or `--exit-on-error`.
 
 For local scikit-learn edits, make a temporary commit in the scikit-learn
 checkout and use that checkout as the remote. Benchmark results are meant to be
@@ -173,7 +170,7 @@ Generate all dashboard pages into a temporary directory:
 
 ```bash
 mkdir -p /tmp/sklbench-dashboard
-for script in dashboard/gen_*.py; do
+for script in dashboards/gen_*.py; do
   pixi run -e reporting python "$script" --output-dir /tmp/sklbench-dashboard
 done
 ```
@@ -182,7 +179,7 @@ Open `/tmp/sklbench-dashboard/index.html` in a browser to inspect the local
 output.
 
 During dashboard development, use the watcher to regenerate pages whenever
-`results/`, `reporting/`, or `dashboard/` changes:
+`results/`, `sklbench/reporting/`, or `dashboards/` changes:
 
 ```bash
 pixi run -e reporting python watch_dashboards.py --output-dir /tmp/sklbench-dashboard
@@ -224,5 +221,4 @@ dashboards automatically.
 `results/*.json` and `results/**/*.json` are tracked through Git LFS via
 `.gitattributes`. Do not bypass LFS for benchmark results.
 
-Changes under `sklbench/` belong to the nested `scikit-learn_bench` checkout,
-not this top-level repository.
+Changes under `sklbench/` are part of this repository.

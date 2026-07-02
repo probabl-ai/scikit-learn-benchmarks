@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scikit-learn-benchmarks"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sklbench*", "dashboards*"]
+
+[tool.setuptools.package-data]
+"sklbench.reporting.html" = ["base.css"]
+
+[tool.ruff]
+line-length = 90
+target-version = "py312"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

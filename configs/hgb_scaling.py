@@ -198,7 +198,7 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
 
 
 def generate_cases() -> list[dict]:
-    [
+    return [
         _case(workload, task, columns_kind, thread_count)
         for workload in WORKLOADS
         for task in TASKS

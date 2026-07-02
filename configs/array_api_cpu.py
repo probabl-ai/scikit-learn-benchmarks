@@ -1,4 +1,4 @@
-from _common import (
+from sklbench.config.generators import (
     array_api_cpu_implementations,
     linear_array_api_cases,
     with_implementations,

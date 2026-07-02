@@ -36,7 +36,7 @@ jobs:
       - name: Generate dashboards
         run: |
           mkdir -p _site
-          for script in dashboard/gen_*.py; do
+          for script in dashboards/gen_*.py; do
             pixi run -e reporting python "$script" --output-dir _site
           done
 

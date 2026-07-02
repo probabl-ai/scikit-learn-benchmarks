@@ -3,8 +3,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dashboard.output import dashboard_output_path
-from reporting.html import (
+from dashboards.output import dashboard_output_path
+from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     assemble_plots_in_grid,
@@ -13,7 +13,7 @@ from reporting.html import (
     speedup_plot_html,
     variant_color_map,
 )
-from reporting.matching import (
+from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
     append_iterations_warning,
     append_max_bins_warning,
@@ -22,7 +22,7 @@ from reporting.matching import (
     date_range,
     MethodResult,
 )
-from reporting.utils import stable_json, without_keys
+from sklbench.reporting.utils import stable_json, without_keys
 
 
 GPU_HARDWARES = {

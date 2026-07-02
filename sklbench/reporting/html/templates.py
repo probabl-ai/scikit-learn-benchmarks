@@ -4,7 +4,11 @@ from jinja2 import Template
 
 
 PLOTLY_CDN = "https://cdn.plot.ly/plotly-2.35.2.min.js"
-BASE_CSS = files("reporting.html").joinpath("base.css").read_text(encoding="utf-8")
+BASE_CSS = (
+    files("sklbench.reporting.html")
+    .joinpath("base.css")
+    .read_text(encoding="utf-8")
+)
 
 BASE_TEMPLATE = Template("""<!doctype html>
 <html lang="en">
