@@ -75,8 +75,6 @@ WORKLOADS = [
     },
 ]
 
-WORKLOADS = WORKLOADS[:1]
-
 
 def _read_cpu_topology_id(cpu_id: int, name: str) -> str | None:
     path = Path(f"/sys/devices/system/cpu/cpu{cpu_id}/topology/{name}")
