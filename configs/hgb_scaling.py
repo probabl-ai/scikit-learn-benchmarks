@@ -1,6 +1,6 @@
 from math import sqrt
 
-from ._scaling import get_n_cores_list, taskset_for_physical_cores
+from _scaling import get_n_cores_list, taskset_for_physical_cores
 
 
 DFT_MAX_ITER = 100
