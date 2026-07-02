@@ -44,7 +44,9 @@ def generate_cases():
 
 
 def test_shipped_configs_generate_valid_cases():
-    config_paths = sorted(Path("configs").glob("*.py"))
+    config_paths = sorted(
+        path for path in Path("configs").glob("*.py") if not path.name.startswith("_")
+    )
 
     cases_by_config = {
         path.name: load_cases_from_script(path)

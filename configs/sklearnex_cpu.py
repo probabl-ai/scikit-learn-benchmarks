@@ -1,4 +1,4 @@
-from sklbench.config.generators import (
+from _generators import (
     apply_sklearnex_cpu_tree_variants,
     clustering_cases,
     exclude_estimators,

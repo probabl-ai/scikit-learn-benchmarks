@@ -1,4 +1,4 @@
-from sklbench.config.generators import (
+from _generators import (
     clustering_cases,
     linear_array_api_cases,
     linear_cases,

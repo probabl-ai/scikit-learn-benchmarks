@@ -48,11 +48,11 @@ The repository is split into a few layers:
 Config scripts are regular Python. They return a list of JSON-serializable case
 dictionaries or pydantic case models from `generate_cases()`, and the
 orchestrator validates each case before running it. Shared helpers live in
-`sklbench.config.generators`.
+`configs/_generators.py`.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `sklbench.config.generators`.
+Most case changes should start in `configs/_generators.py`.
 
 Use the default `test` template for the current small exploratory matrix. Set
 `SKBENCH_MODELS_TEMPLATE=fast` when working on a broader but still reasonably
