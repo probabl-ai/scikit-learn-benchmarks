@@ -224,9 +224,11 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
         hardware_hash = result_file["hardware_hash"]
         software_hash = result_file["software_hash"]
         timestamp = _parse_result_timestamp(result_path)
-        profile_path = profiles_root / f"{result_path.stem}.svg"
+        profile_path = profiles_root / f"{result_path.stem}.raw.gz"
         if not profile_path.exists():
-            profile_path = None
+            profile_path = profiles_root / f"{result_path.stem}.svg"
+            if not profile_path.exists():
+                profile_path = None
 
         records.append(
             BenchmarkRecord(
