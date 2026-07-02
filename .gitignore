@@ -21,7 +21,7 @@ results/**/*
 !results/
 !results/**/
 !results/*.json
-!results/*.svg
+!results/**/*.svg
 !results/**/*.json
 
 dashboards/*.html
