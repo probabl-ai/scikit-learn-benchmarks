@@ -1,4 +1,0 @@
-[submodule "scikit-learn_bench"]
-	path = scikit-learn_bench
-	url = git@github.com:cakedev0/scikit-learn_bench.git
-	branch = probabl-fork

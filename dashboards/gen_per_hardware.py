@@ -3,17 +3,17 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dashboard.output import dashboard_output_path
-from reporting.utils import partition_iterable, groupby
+from dashboards.output import dashboard_output_path
+from sklbench.reporting.utils import partition_iterable, groupby
 
-from reporting.matching import (
+from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     find_matches, date_range, Match, MatchWarning, MethodResult,
     append_cpu_fallback_warning,
 )
 
-from reporting.envs import read_env, summarize_software_env, summarize_hardware_env
-from reporting.html import (
+from sklbench.reporting.envs import read_env, summarize_software_env, summarize_hardware_env
+from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,

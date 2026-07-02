@@ -1,4 +1,4 @@
-from _common import (
+from sklbench.config.generators import (
     linear_array_api_cases,
     linear_cases,
     sklearnex_gpu_implementation,

@@ -3,8 +3,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dashboard.output import dashboard_output_path
-from reporting.html import BASE_TEMPLATE
+from dashboards.output import dashboard_output_path
+from sklbench.reporting.html import BASE_TEMPLATE
 
 
 DASHBOARDS = [

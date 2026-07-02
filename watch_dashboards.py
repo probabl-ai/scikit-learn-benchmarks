@@ -10,20 +10,20 @@ import time
 from pathlib import Path
 
 
-WATCH_ROOTS = (Path("results"), Path("reporting"), Path("dashboard"))
+WATCH_ROOTS = (Path("results"), Path("sklbench/reporting"), Path("dashboards"))
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Watch results/, reporting/, and dashboard/ and regenerate all "
+            "Watch results/, sklbench/reporting/, and dashboards/ and regenerate all "
             "dashboard pages when a change is detected."
         )
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("dashboard"),
+        default=Path("dashboards"),
         help="Directory where generated HTML files are written.",
     )
     parser.add_argument(
@@ -46,7 +46,7 @@ def _is_ignored(path: Path) -> bool:
         return True
     if path.suffix in {".pyc", ".pyo"}:
         return True
-    if path.parent == Path("dashboard") and path.suffix == ".html":
+    if path.parent == Path("dashboards") and path.suffix == ".html":
         return True
     return False
 
@@ -73,14 +73,14 @@ def _changed_paths(
 
 
 def _generator_scripts() -> list[Path]:
-    return sorted(Path("dashboard").glob("gen_*.py"))
+    return sorted(Path("dashboards").glob("gen_*.py"))
 
 
 def _generate(output_dir: Path) -> bool:
     output_dir.mkdir(parents=True, exist_ok=True)
     scripts = _generator_scripts()
     if not scripts:
-        print("No dashboard/gen_*.py scripts found.", file=sys.stderr)
+        print("No dashboards/gen_*.py scripts found.", file=sys.stderr)
         return False
 
     print(f"Regenerating {len(scripts)} dashboards into {output_dir}...", flush=True)
@@ -112,7 +112,7 @@ def main() -> int:
     _generate(args.output_dir)
     previous = _snapshot()
     print(
-        "Watching results/, reporting/, and dashboard/. "
+        "Watching results/, sklbench/reporting/, and dashboards/. "
         "Press Ctrl-C to stop.",
     )
 

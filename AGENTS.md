@@ -8,14 +8,14 @@
   `pixi run -e reporting ...`.
 - During dashboard iteration, assume the user is running
   `pixi run -e reporting python watch_dashboards.py` on the side to regenerate
-  dashboard HTML when `results/`, `reporting/`, or `dashboard/` changes. Do not
+  dashboard HTML when `results/`, `sklbench/reporting/`, or `dashboards/` changes. Do not
   start a second watcher unless explicitly asked; use one-shot generator runs or
   `py_compile` only when a validation check is useful.
-- Dashboard entry points live in `dashboard/gen_*.py`, read benchmark data from
-  `results/`, and should write HTML through `dashboard/output.py` so
+- Dashboard entry points live in `dashboards/gen_*.py`, read benchmark data from
+  `results/`, and should write HTML through `dashboards/output.py` so
   `--output-dir` works with the watcher and publishing workflow.
-- `sklbench` is a symlink to the nested `scikit-learn_bench/sklbench`
-  checkout. Changes under `sklbench/` belong to that nested repository.
+- `sklbench/` is the local benchmark package. Changes under `sklbench/` belong
+  to this repository.
 - Do not spend time preserving or normalizing LF vs CRLF line endings in this
   repository. Mixed line endings are acceptable here unless a tool actually
   fails because of them.

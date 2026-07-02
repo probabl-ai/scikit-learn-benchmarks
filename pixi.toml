@@ -21,6 +21,7 @@ pydantic = "*"
 pytest = "*"
 
 [pypi-dependencies]
+scikit-learn-benchmarks = { path = ".", editable = true }
 openml = ">=0.15.1"
 dpctl = "*"
 nvidia-ml-py = "*"
