@@ -21,3 +21,5 @@
   fails because of them.
 - Prefer validating config changes by importing the config script and calling
   `generate_cases()` before running full benchmarks.
+- Do not add tests for small UX/log-noise details, such as filtering known
+  benign command-line warnings from orchestrator output.

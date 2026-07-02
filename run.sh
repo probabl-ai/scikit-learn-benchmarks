@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 usage() {
     echo "Usage: $0 [intel|nvidia]" >&2
