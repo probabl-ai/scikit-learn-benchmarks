@@ -6,6 +6,9 @@
   `pixi run -e intel ...`.
 - Use the `reporting` pixi environment for dashboard and reporting work:
   `pixi run -e reporting ...`.
+- Run all Python commands through Pixi using the appropriate repository
+  environment; do not invoke the system `python`, `python3`, or environment
+  binaries directly unless Pixi itself is unavailable.
 - During dashboard iteration, assume the user is running
   `pixi run -e reporting python watch_dashboards.py` on the side to regenerate
   dashboard HTML when `results/`, `sklbench/reporting/`, or `dashboards/` changes. Do not

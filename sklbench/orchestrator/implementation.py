@@ -1,7 +1,9 @@
+import gzip
 import json
 import logging
 import re
 import shlex
+import tempfile
 from datetime import datetime, timezone
 from multiprocessing import Pool
 from pathlib import Path
@@ -43,6 +45,12 @@ def _truncate_log(log: str) -> str:
     if len(log) <= _MAX_LOG_CHARS:
         return log
     return f"... truncated ...\n{log[-_MAX_LOG_CHARS:]}"
+
+
+def _gzip_file(source: Path, destination: Path) -> None:
+    destination.write_bytes(
+        gzip.compress(source.read_bytes(), compresslevel=9, mtime=0)
+    )
 
 
 def _log_failed_case(
@@ -137,7 +145,7 @@ def call_benchmarks(
     for bench_case in bench_cases_with_pbar:
         basename = _case_basename(bench_case)
         record_path = records_dir / f"{basename}.json"
-        profile_path = profiles_dir / f"{basename}.svg"
+        profile_path = profiles_dir / f"{basename}.raw.gz"
         record_saved = False
         bench_cases_with_pbar.set_description(
             custom_format(bench_case.name(shortened=True), bcolor="HEADER")
@@ -177,11 +185,17 @@ def call_benchmarks(
             if bench_return_code == 0 and bench_case.bench.py_spy_profiling:
                 profiles_dir.mkdir(parents=True, exist_ok=True)
                 profile_n_runs = max(1, bench_case.bench.n_runs // 3)
-                profile_return_code, _, profile_failed_case = run_runner_from_case(
-                    bench_case,
-                    py_spy_output=profile_path,
-                    n_runs_override=profile_n_runs,
-                )
+                with tempfile.TemporaryDirectory(
+                    prefix="sklbench-profile-"
+                ) as profile_tmp_dir:
+                    raw_profile_path = Path(profile_tmp_dir) / f"{basename}.raw"
+                    profile_return_code, _, profile_failed_case = run_runner_from_case(
+                        bench_case,
+                        py_spy_output=raw_profile_path,
+                        n_runs_override=profile_n_runs,
+                    )
+                    if profile_return_code == 0:
+                        _gzip_file(raw_profile_path, profile_path)
                 if profile_return_code != 0:
                     return_code = profile_return_code
                     _log_failed_case(
