@@ -36,28 +36,15 @@ from ..config import PipelineCase
 logger = logging.getLogger(__name__)
 
 
-def _as_jsonable(value: Any):
-    if isinstance(value, np.generic):
-        return value.item()
-    if isinstance(value, np.ndarray):
-        return value.tolist()
-    if isinstance(value, dict):
-        return {str(key): _as_jsonable(inner) for key, inner in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_as_jsonable(inner) for inner in value]
-    return value
-
-
 def _load_data(case: PipelineCase):
     X, y = fetch_openml(
         data_id=case.data.openml_data_id,
-        as_frame=case.data.as_frame,
+        as_frame=True,
         return_X_y=True,
     )
+    string_cols = X.select_dtypes(include=["object", "string"]).columns
+    X[string_cols] = X[string_cols].astype("category")
     y = y.astype(np.float32).values
-    if case.data.max_samples is not None:
-        X = X.iloc[: case.data.max_samples]
-        y = y[: case.data.max_samples]
     return X, y
 
 
@@ -157,18 +144,7 @@ def _default_param_distributions(case: PipelineCase):
     }
 
 
-def _n_jobs_values(case: PipelineCase) -> list[int]:
-    if case.run.n_jobs is not None:
-        return case.run.n_jobs
-    max_workers = case.run.max_n_workers or joblib.cpu_count(only_physical_cores=True)
-    max_workers = max(1, int(max_workers))
-    return [int(2**power) for power in range(int(np.log2(max_workers)) + 1)]
-
-
-def run_case_once(case: PipelineCase) -> dict:
-    warnings.filterwarnings("ignore", category=UserWarning, message=".*A worker stopped.*")
-    warnings.filterwarnings("error", category=RuntimeWarning)
-
+def run_pipeline_tunning(case: PipelineCase) -> dict:
     X, y = _load_data(case)
     cv = ShuffleSplit(
         n_splits=case.run.cv_n_splits,
@@ -180,68 +156,39 @@ def run_case_once(case: PipelineCase) -> dict:
         case.run.param_distributions
         or _default_param_distributions(case)
     )
-    timings = []
+    n_jobs = case.run.n_jobs
 
     with joblib.parallel_config(backend=case.run.joblib_backend):
-        for n_jobs in _n_jobs_values(case):
-            Parallel(n_jobs=n_jobs)([delayed(lambda: None)() for _ in range(10)])
-            search = RandomizedSearchCV(
-                pipeline,
-                param_distributions,
-                n_iter=case.run.n_iter,
-                cv=cv,
-                n_jobs=n_jobs,
-                scoring="r2",
-                error_score="raise",
-                random_state=case.run.random_state,
-            )
-            tic = time.time()
-            error = None
-            if case.run.capture_errors:
-                try:
-                    search.fit(X, y)
-                except Exception:
-                    error = traceback.format_exc()
-            else:
-                search.fit(X, y)
+        Parallel(n_jobs=n_jobs)([delayed(lambda: None)() for _ in range(10)])
+        search = RandomizedSearchCV(
+            pipeline,
+            param_distributions,
+            n_iter=case.run.n_iter,
+            cv=cv,
+            n_jobs=n_jobs,
+            scoring="r2",
+            error_score="raise",
+            random_state=case.run.random_state,
+        )
+        tic = time.time()
+        search.fit(X, y)
 
-            duration_s = time.time() - tic
-            timing = {
-                "n_jobs": int(n_jobs),
-                "duration_s": duration_s,
-                "best_r2": None if error is not None else float(search.best_score_),
-                "error": error,
-            }
-            timings.append(timing)
-
-    successful = [timing for timing in timings if timing["error"] is None]
-    best_r2 = max((timing["best_r2"] for timing in successful), default=None)
-    total_duration_ms = 1000 * sum(timing["duration_s"] for timing in timings)
+    duration_s = time.time() - tic
     return {
         "data_desc": {
-            "tune": {
-                "samples": len(X),
-                "features": int(getattr(X, "shape", [len(X), 0])[1]),
-                "openml_data_id": case.data.openml_data_id,
-            }
+            "n_samples": len(X),
+            "n_features": X.shape[1],
         },
-        "time_ms": {"tune": total_duration_ms},
-        "metrics": {"tune": {"best_r2": best_r2}},
-        "profiling_metrics": {"tune": {}},
-        "attributes": {
-            "array_api_namespace": case.run.array_api_namespace,
-            "device": case.run.device,
-            "joblib_backend": case.run.joblib_backend,
-            "timings": timings,
-        },
+        "duration_s": duration_s,
+        "best_r2": float(search.best_score_),
     }
 
 
 def run_case_to_jsonl(case: PipelineCase, n_runs: int, output_jsonl: Path):
     with output_jsonl.open("w", encoding="utf-8") as fp:
         for _ in range(n_runs):
-            row = run_case_once(case)
-            fp.write(json.dumps(row, default=_as_jsonable) + "\n")
+            row = run_pipeline_tunning(case)
+            fp.write(json.dumps(row) + "\n")
             fp.flush()
 
 

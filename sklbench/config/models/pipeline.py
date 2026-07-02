@@ -18,13 +18,12 @@ class PipelineRun(Section):
     array_api_namespace: str = "numpy"
     device: str = "cpu"
     joblib_backend: str = "loky"
-    max_n_workers: int | None = None
     capture_errors: bool = True
     n_iter: int = 30
     cv_n_splits: int = 3
     cv_test_size: float = 0.2
     random_state: int = 42
-    n_jobs: list[int] | None = None
+    n_jobs: int = 1
     param_distributions: JsonDict = Field(default_factory=dict)
 
 
@@ -43,5 +42,6 @@ class PipelineCase(BaseCase):
                 self.data.name(shortened=shortened),
                 self.run.array_api_namespace,
                 self.run.device,
+                f"n_jobs_{self.run.n_jobs}",
             ]
         )
