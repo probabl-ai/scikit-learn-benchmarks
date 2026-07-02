@@ -11,6 +11,17 @@ RUNNER_MODULES = {
     "estimator": "sklbench.runners.estimator",
     "pipeline": "sklbench.runners.pipeline",
 }
+PY_SPY_NO_CHILD_PROCESS_ERROR = "Error: No child process (os error 10)"
+
+
+def filter_py_spy_stderr(stderr: str) -> tuple[str, bool]:
+    lines = stderr.splitlines()
+    filtered_lines = [
+        line
+        for line in lines
+        if line.strip() != PY_SPY_NO_CHILD_PROCESS_ERROR
+    ]
+    return "\n".join(filtered_lines).strip(), len(filtered_lines) != len(lines)
 
 
 def generate_runner_command(
@@ -100,6 +111,11 @@ def run_runner_from_case(
             stderr = (exc.stderr or "").strip()
             timeout_message = f"Runner exceeded time limit ({bench_time_limit} seconds)."
             stderr = f"{stderr}\n{timeout_message}".strip()
+
+        if py_spy_output is not None:
+            stderr, filtered_py_spy_error = filter_py_spy_stderr(stderr)
+            if return_code != 0 and filtered_py_spy_error and not stderr:
+                return_code = 0
 
         rows = parse_runner_jsonl(output_jsonl)
         logs = {"stdout": stdout, "stderr": stderr}
