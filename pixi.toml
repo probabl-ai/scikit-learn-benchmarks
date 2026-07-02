@@ -1,7 +1,10 @@
 [workspace]
 name = "scikit-learn-benchmarks"
 channels = ["conda-forge"]
-platforms = ["linux-64"]
+platforms = [
+    "linux-64",
+    { name = "linux-64-cuda-12-9", platform = "linux-64", cuda = "12.9" },
+]
 
 [dependencies]
 python = "3.12.*"
@@ -55,9 +58,7 @@ SCIPY_ARRAY_API = "1"
 
 [feature.skl-nvidia]
 channels = ["conda-forge", "nvidia"]
-
-[feature.skl-nvidia.system-requirements]
-cuda = "12.9"
+platforms = ["linux-64-cuda-12-9"]
 
 [feature.skl-nvidia.dependencies]
 cuda-version = "12.9.*"
