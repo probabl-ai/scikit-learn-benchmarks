@@ -1,86 +1,77 @@
-from __future__ import annotations
-
 import os
 from math import sqrt
 from pathlib import Path
 
 import joblib
 
-from _common import sklearn_implementation, with_implementations
 
 DFT_MAX_ITER = 100
+DFT_MAX_LEAF_NODES = 31
 DFT_MAX_FEATURES = 0.5
+
+TASKS = ["classification", "regression"]
+
+COLUMNS_KINDS = ["continuous", "mix"]
 
 
 WORKLOADS = [
     {
-        "name": "clf-m",
-        "problem": "classification",
-        "n_samples": 10_000,
-        "n_features": 30,
-        "max_leaf_nodes": 31,
-    },
-    {
-        "name": "baseline_clf",
-        "problem": "classification",
-        "n_samples": 100_000,
-        "n_features": 100,
-        "max_leaf_nodes": 31,
-    },
-    {
-        "name": "all_features_per_split",
-        "problem": "classification",
-        "n_samples": 100_000,
-        "n_features": 100,
-        "max_leaf_nodes": 31,
+        "name": "XS",
+        "n_samples": 1000,
+        "n_features": 10,
         "max_features": 1.0,
     },
     {
-        "name": "stumps_leaf2",
-        "problem": "classification",
+        "name": "S-thin",
+        "n_samples": 5_000,
+        "n_features": 10,
+        "max_features": 1.0,
+    },
+    {
+        "name": "S",
+        "n_samples": 1_000,
+        "n_features": 100,
+    },
+    {
+        "name": "M",
+        "n_samples": 20_000,
+        "n_features": 50,
+    },
+    {
+        "name": "M-very-thin",
+        "n_samples": 50_000,
+        "n_features": 5,
+        "max_features": 1.0,
+    },
+    {
+        "name": "L-thin",
+        "n_samples": 500_000,
+        "n_features": 10,
+        "max_features": 1.0,
+    },
+    {
+        "name": "L",
         "n_samples": 100_000,
+        "n_features": 100,
+    },
+    {
+        "name": "M-stumps",
+        "n_samples": 200_000,
         "n_features": 100,
         "max_leaf_nodes": 2,
     },
     {
-        "name": "large_leaf255",
-        "problem": "classification",
-        "n_samples": 100_000,
+        "name": "L-stumps",
+        "n_samples": 1_000_000,
         "n_features": 100,
-        "max_iter": 50,
-        "max_leaf_nodes": 255,
+        "max_leaf_nodes": 2,
     },
     {
-        "name": "huge_leaf1000",
-        "problem": "classification",
-        "n_samples": 60_000,
+        "name": "L-leaf255",
+        "n_samples": 100_000,
         "n_features": 100,
         "max_iter": 20,
-        "max_leaf_nodes": 1000,
-    },
-    {
-        "name": "few_features",
-        "problem": "classification",
-        "n_samples": 100_000,
-        "n_features": 10,
-        "max_leaf_nodes": 31,
-        "max_features": 1.0,
-    },
-    {
-        "name": "many_features",
-        "problem": "classification",
-        "n_samples": 30_000,
-        "n_features": 1000,
-        "max_iter": 50,
-        "max_leaf_nodes": 31,
-        "max_features": 0.1,
-    },
-    {
-        "name": "baseline_reg",
-        "problem": "regression",
-        "n_samples": 100_000,
-        "n_features": 100,
-        "max_leaf_nodes": 31,
+        "max_leaf_nodes": 255,
     },
 ]
 
@@ -152,35 +143,45 @@ def taskset_for_physical_cores(n_cores: int) -> str:
     return ",".join(str(cpu_id) for cpu_id in selected_cpus)
 
 
-def _case(workload: dict, thread_count: int) -> dict:
-    is_classifier = workload["problem"] == "classification"
+def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> dict:
+    is_classifier = task == "classification"
     estimator = (
         "HistGradientBoostingClassifier"
         if is_classifier
         else "HistGradientBoostingRegressor"
     )
-    source = "make_classification" if is_classifier else "make_regression"
-    n_features = workload["n_features"]
-    default_n_informative = round(sqrt(n_features))
+
+    source = f"make_trees_{task}_data"
+    default_n_informative = round(sqrt(workload["n_features"]))
     generation_kwargs = {
         "n_samples": workload["n_samples"],
-        "n_features": n_features,
+        "n_features": workload["n_features"],
         "n_informative": workload.get("n_informative", default_n_informative),
         "random_state": 0,
+        "n_redundant": 0,
+        "columns": columns_kind,
     }
     if is_classifier:
-        generation_kwargs.update({"n_classes": 2, "n_redundant": 0})
+        generation_kwargs.update({"n_classes": 2})
 
     return {
         "bench": {
             "n_runs": 2,
             "taskset": taskset_for_physical_cores(thread_count),
         },
+        "implementation": {
+            "library": "sklearn",
+        },
+        "metadata": {
+            "task": task,
+            "name": workload["name"],
+            "columns_kind": columns_kind,
+        },
         "algorithm": {
             "estimator": estimator,
             "estimator_params": {
                 "max_iter": workload.get("max_iter", DFT_MAX_ITER),
-                "max_leaf_nodes": workload["max_leaf_nodes"],
+                "max_leaf_nodes": workload.get("max_leaf_nodes", DFT_MAX_LEAF_NODES),
                 "max_features": workload.get("max_features", DFT_MAX_FEATURES),
                 "max_bins": 255,
                 "early_stopping": False,
@@ -196,13 +197,11 @@ def _case(workload: dict, thread_count: int) -> dict:
     }
 
 
-def hgb_scaling_cases() -> list[dict]:
-    return [
-        _case(workload, thread_count)
+def generate_cases() -> list[dict]:
+    [
+        _case(workload, task, columns_kind, thread_count)
         for workload in WORKLOADS
+        for task in TASKS
+        for columns_kind in COLUMNS_KINDS
         for thread_count in _thread_counts()
     ]
-
-
-def generate_cases() -> list[dict]:
-    return with_implementations(hgb_scaling_cases(), sklearn_implementation())
