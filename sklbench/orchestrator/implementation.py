@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import shlex
 from datetime import datetime, timezone
 from multiprocessing import Pool
 from pathlib import Path
@@ -16,6 +17,7 @@ from .env import get_environment_info
 
 logger = logging.getLogger(__name__)
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
+_MAX_LOG_CHARS = 4000
 
 
 def get_hardware_hash(hardware_info: dict) -> str:
@@ -35,6 +37,42 @@ def _case_basename(bench_case: Case) -> str:
     case_slug = _UNSAFE_FILENAME_CHARS.sub("_", case_slug).strip("_")
     case_hash = hash_from_json_repr(bench_case.json_dict())
     return f"{case_slug}_{case_hash}_{_timestamp()}"
+
+
+def _truncate_log(log: str) -> str:
+    if len(log) <= _MAX_LOG_CHARS:
+        return log
+    return f"... truncated ...\n{log[-_MAX_LOG_CHARS:]}"
+
+
+def _log_failed_case(
+    bench_case: Case,
+    failed_case: dict | None,
+    *,
+    stage: str,
+    return_code: int,
+) -> None:
+    case_name = bench_case.name(shortened=True)
+    message_parts = [
+        f"{stage} failed for {case_name!r} with return code {return_code}."
+    ]
+    if failed_case is not None:
+        error = failed_case.get("error")
+        if error:
+            message_parts.append(f"error: {error}")
+        command = failed_case.get("command")
+        if command:
+            message_parts.append(
+                "command: " + shlex.join(str(part) for part in command)
+            )
+        logs = failed_case.get("logs", {})
+        stderr = logs.get("stderr")
+        if stderr:
+            message_parts.append(f"stderr:\n{_truncate_log(stderr)}")
+        stdout = logs.get("stdout")
+        if stdout:
+            message_parts.append(f"stdout:\n{_truncate_log(stdout)}")
+    logger.warning("\n".join(message_parts))
 
 
 def save_environment_sidecars(
@@ -117,6 +155,12 @@ def call_benchmarks(
             record_saved = True
             if bench_return_code != 0:
                 return_code = bench_return_code
+                _log_failed_case(
+                    bench_case,
+                    failed_case,
+                    stage="Benchmark",
+                    return_code=bench_return_code,
+                )
                 if failed_case is not None:
                     failed_cases.append(failed_case)
                 if early_exit:
@@ -140,6 +184,12 @@ def call_benchmarks(
                 )
                 if profile_return_code != 0:
                     return_code = profile_return_code
+                    _log_failed_case(
+                        bench_case,
+                        profile_failed_case,
+                        stage="Profiling benchmark",
+                        return_code=profile_return_code,
+                    )
                     if profile_failed_case is not None:
                         failed_cases.append(profile_failed_case)
                     if early_exit:
@@ -162,6 +212,12 @@ def call_benchmarks(
                     software_hash,
                 )
             failed_cases.append(failed_case)
+            _log_failed_case(
+                bench_case,
+                failed_case,
+                stage="Benchmark",
+                return_code=return_code,
+            )
             break
         except Exception as exc:
             return_code = -1
@@ -181,7 +237,12 @@ def call_benchmarks(
                     software_hash,
                 )
             failed_cases.append(failed_case)
-            logger.warning(f"Benchmark failed before subprocess execution: {exc}")
+            _log_failed_case(
+                bench_case,
+                failed_case,
+                stage="Benchmark setup",
+                return_code=return_code,
+            )
             if early_exit:
                 break
     return return_code, results, failed_cases

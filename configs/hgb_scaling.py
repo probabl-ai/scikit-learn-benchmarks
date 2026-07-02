@@ -89,11 +89,10 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
         "n_features": workload["n_features"],
         "n_informative": workload.get("n_informative", default_n_informative),
         "random_state": 0,
-        "n_redundant": 0,
         "columns": columns_kind,
     }
     if is_classifier:
-        generation_kwargs.update({"n_classes": 2})
+        generation_kwargs.update({"n_classes": 2, "n_redundant": 0})
 
     return {
         "bench": {
