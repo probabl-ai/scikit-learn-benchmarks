@@ -15,13 +15,4 @@ __pycache__/
 # Dataset cache produced by sklbench
 data_cache/
 
-# Benchmark results are stored through Git LFS.
-results/*
-results/**/*
-!results/
-!results/**/
-!results/*.json
-!results/**/*.svg
-!results/**/*.json
-
 dashboards/*.html

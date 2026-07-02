@@ -56,6 +56,8 @@ def generate_runner_command(
         return command_prefix + [
             "py-spy",
             "record",
+            "--format",
+            "raw",
             "-o",
             str(py_spy_output),
             "--",
@@ -92,7 +94,11 @@ def run_runner_from_case(
             json.dump(bench_case_dict, fp)
 
         command = generate_runner_command(
-            bench_case, case_file, n_runs, output_jsonl, py_spy_output
+            bench_case,
+            case_file,
+            n_runs,
+            output_jsonl,
+            py_spy_output,
         )
         try:
             result = sp.run(
