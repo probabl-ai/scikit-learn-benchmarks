@@ -92,6 +92,7 @@ SCIPY_ARRAY_API = "1"
 scikit-learn = "1.9.*"
 jupyter = "*"
 matplotlib = "*"
+plotly = "*"
 
 [feature.reporting.pypi-dependencies]
 Jinja2 = "*"
