@@ -15,4 +15,5 @@ __pycache__/
 # Dataset cache produced by sklbench
 data_cache/
 
+_site/
 dashboards/*.html

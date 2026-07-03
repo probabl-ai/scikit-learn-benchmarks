@@ -1,9 +1,10 @@
 from importlib.resources import files
 
 from jinja2 import Template
+from plotly.offline import get_plotlyjs_version
 
 
-PLOTLY_CDN = "https://cdn.plot.ly/plotly-2.35.2.min.js"
+PLOTLY_CDN = f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
 BASE_CSS = (
     files("sklbench.reporting.html")
     .joinpath("base.css")
@@ -85,7 +86,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
   </div>
   <div>
     <h3>Full environment</h3>
-    <p><a href="{{ software_env_json_url }}">download pixi env JSON</a></p>
+    <p><a href="{{ software_env_json_url }}">view pixi env JSON</a></p>
   </div>
 </section>""")
 
@@ -127,7 +128,7 @@ HARDWARE_TABS_TEMPLATE = Template("""<section class="tabs" id="{{ tabs_id }}">
       button.classList.add("active");
       const panel = document.getElementById(button.dataset.tabTarget);
       panel.classList.add("active");
-      panel.querySelectorAll(".chart").forEach((chart) => Plotly.Plots.resize(chart));
+      panel.querySelectorAll(".plotly-graph-div").forEach((chart) => Plotly.Plots.resize(chart));
       if (updateHash) {
         history.replaceState(null, "", `#${button.dataset.tabTarget}`);
       }

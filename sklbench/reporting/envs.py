@@ -1,6 +1,9 @@
 
 import json
+import os
 from pathlib import Path
+import subprocess
+from urllib.parse import quote
 
 from .matching import Implementation
 
@@ -18,14 +21,35 @@ DEFAULT_SOURCE = {
     "conda": "https://conda.anaconda.org/conda-forge",
     "pypi": "https://pypi.org/simple",
 }
-RAW_RESULTS_BASE_URL = (
-    "https://media.githubusercontent.com/media/probabl-ai/"
-    "scikit-learn-benchmarks/main/results"
+
+RESULTS_REPOSITORY = "probabl-ai/scikit-learn-benchmarks"
+DEFAULT_RESULTS_REF = "refs/heads/main"
+JSON_VIEWER_BASE_URL = (
+    "https://flamegraph-viewer-839234844562.europe-west1.run.app/json"
 )
 
 
+def _current_results_ref() -> str:
+    try:
+        branch = subprocess.check_output(
+            ["git", "branch", "--show-current"],
+            encoding="utf-8",
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        branch = ""
+    if branch:
+        return f"refs/heads/{branch}"
+
+    return DEFAULT_RESULTS_REF
+
+
 def software_env_json_url(software_hash: str) -> str:
-    return f"{RAW_RESULTS_BASE_URL}/software-envs/{software_hash}.json"
+    raw_url = (
+        f"https://github.com/{RESULTS_REPOSITORY}/raw/{_current_results_ref()}/"
+        f"results/software-envs/{software_hash}.json"
+    )
+    return f"{JSON_VIEWER_BASE_URL}?url={quote(raw_url, safe='')}"
 
 
 def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:

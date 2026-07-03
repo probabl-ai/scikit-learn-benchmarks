@@ -23,7 +23,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("dashboards"),
+        default=Path("_site"),
         help="Directory where generated HTML files are written.",
     )
     parser.add_argument(
