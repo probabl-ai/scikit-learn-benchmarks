@@ -44,6 +44,7 @@ class BenchmarkRecord:
     timestamp_recorded: datetime
     case: dict
     runs: list[dict]
+    record_path: Path | None = None
     profile_path: Path | None = None
 
     @property
@@ -237,6 +238,7 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 timestamp_recorded=timestamp,
                 case=without_keys(result_file["case"], excluded_names={"bench"}),
                 runs=result_file.get("results", []),
+                record_path=result_path,
                 profile_path=profile_path,
             )
         )

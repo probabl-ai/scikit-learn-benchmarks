@@ -122,7 +122,14 @@ def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
     )
 
 
-def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
+def assemble_plots_in_grid(
+    plots: list[dict],
+    *,
+    rows=None,
+    columns=None,
+    details_by_row=None,
+    details_after_grid=None,
+):
     row_key = rows if isinstance(rows, str) else list(rows)[0]
     column_key = columns if isinstance(columns, str) else list(columns)[0]
 
@@ -143,6 +150,10 @@ def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
         (plot[row_key], plot[column_key]): plot
         for plot in plots
     }
+    if details_by_row is None:
+        details_by_row = {}
+    if details_after_grid is None:
+        details_after_grid = []
     cells = []
     for row_value in row_values:
         for column_value in column_values:
@@ -161,5 +172,9 @@ def assemble_plots_in_grid(plots: list[dict], *, rows=None, columns=None):
                 f"{plot['plot']}"
                 "</section>"
             )
+        detail = details_by_row.get(row_value)
+        if detail:
+            cells.append(f'<section class="plot-detail-row">{detail}</section>')
     style = f"grid-template-columns: repeat({len(column_values)}, minmax(0, 1fr));"
-    return f'<section class="plot-grid" style="{style}">{"".join(cells)}</section>'
+    grid = f'<section class="plot-grid" style="{style}">{"".join(cells)}</section>'
+    return grid + "".join(details_after_grid)

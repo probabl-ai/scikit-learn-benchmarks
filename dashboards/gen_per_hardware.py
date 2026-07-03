@@ -19,6 +19,7 @@ from sklbench.reporting.html import (
     HARDWARE_TEMPLATE,
     SOFTWARE_TEMPLATE,
     assemble_plots_in_grid,
+    detailed_results_table_html,
     speedup_plot_html,
     render_software_tabs,
     render_hardware_tabs,
@@ -88,8 +89,10 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
     grouped_results = groupby(base_results, lambda res: (res.category, res.method))
 
     plots = []
+    matches_by_category = {}
     for (category, method), group_base_results in grouped_results.items():
         matches = find_matches(group_base_results, other_results, result_matches)
+        matches_by_category.setdefault(category, {})[method] = matches
         # create a JS snippet for plotly:
         plots.append({
             "category": category,
@@ -97,6 +100,15 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
             "point_count": len(matches),
             "plot": speedup_plot_html(matches, variant_colors=variant_colors)
         })
+    details_by_category = {
+        category: detailed_results_table_html(
+            category,
+            method_matches,
+            baseline_label=BASE_IMPLEMENTATION,
+            variant_label=lambda result: result.implementation.short_name,
+        )
+        for category, method_matches in matches_by_category.items()
+    }
 
     hardware_hash, = hardwares_set
     hardware_env = read_env("hardware", hardware_hash)
@@ -132,7 +144,8 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
         assemble_plots_in_grid(
             plots,
             rows={"category": ["linear", "tree-based", "clustering"]},
-            columns={"method": ["fit", "predict"]}
+            columns={"method": ["fit", "predict"]},
+            details_by_row=details_by_category,
         )
     ]
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)

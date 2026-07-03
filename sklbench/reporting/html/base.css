@@ -116,6 +116,32 @@ code {
   width: 100%;
   height: 540px;
 }
+.plot-detail-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.detailed-results {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+.detailed-results summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.detailed-results-table {
+  margin-top: 12px;
+}
+.speedup-positive {
+  color: #18794e;
+  font-weight: 600;
+}
+.speedup-negative {
+  color: #b42318;
+  font-weight: 600;
+}
 .plot-notes {
   margin-top: 8px;
   color: var(--text);

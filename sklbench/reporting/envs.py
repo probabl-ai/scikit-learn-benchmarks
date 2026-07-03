@@ -27,9 +27,20 @@ DEFAULT_RESULTS_REF = "refs/heads/main"
 JSON_VIEWER_BASE_URL = (
     "https://flamegraph-viewer-839234844562.europe-west1.run.app/json"
 )
+FLAMEGRAPH_VIEWER_BASE_URL = (
+    "https://flamegraph-viewer-839234844562.europe-west1.run.app/"
+)
 
 
 def _current_results_ref() -> str:
+    explicit_ref = os.environ.get("SKLBENCH_RESULTS_REF")
+    if explicit_ref:
+        return explicit_ref.strip("/")
+
+    github_ref = os.environ.get("GITHUB_REF")
+    if github_ref:
+        return github_ref.strip("/")
+
     try:
         branch = subprocess.check_output(
             ["git", "branch", "--show-current"],
@@ -44,11 +55,24 @@ def _current_results_ref() -> str:
     return DEFAULT_RESULTS_REF
 
 
-def software_env_json_url(software_hash: str) -> str:
-    raw_url = (
+def github_raw_url(path: Path | str) -> str:
+    path = Path(path).as_posix().lstrip("/")
+    return (
         f"https://github.com/{RESULTS_REPOSITORY}/raw/{_current_results_ref()}/"
-        f"results/software-envs/{software_hash}.json"
+        f"{path}"
     )
+
+
+def json_viewer_url(path: Path | str) -> str:
+    return f"{JSON_VIEWER_BASE_URL}?url={quote(github_raw_url(path), safe='')}"
+
+
+def profile_viewer_url(path: Path | str) -> str:
+    return f"{FLAMEGRAPH_VIEWER_BASE_URL}?url={quote(github_raw_url(path), safe='')}"
+
+
+def software_env_json_url(software_hash: str) -> str:
+    raw_url = github_raw_url(f"results/software-envs/{software_hash}.json")
     return f"{JSON_VIEWER_BASE_URL}?url={quote(raw_url, safe='')}"
 
 

@@ -5,6 +5,8 @@ from plotly.offline import get_plotlyjs_version
 
 
 PLOTLY_CDN = f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
+TABULATOR_CSS = "https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css"
+TABULATOR_JS = "https://unpkg.com/tabulator-tables@6.5.0/dist/js/tabulator.min.js"
 BASE_CSS = (
     files("sklbench.reporting.html")
     .joinpath("base.css")
@@ -16,10 +18,90 @@ BASE_TEMPLATE = Template("""<!doctype html>
 <head>
   <meta charset="utf-8">
   <title>{{ title|default("sklbench dashboard") }}</title>
+  <link href="{{ tabulator_css }}" rel="stylesheet">
   <script src="{{ plotly_cdn }}"></script>
+  <script src="{{ tabulator_js }}"></script>
   <style>
 {{ base_css }}
   </style>
+  <script>
+    window.sklbenchTables = window.sklbenchTables || {};
+
+    function sklbenchFormatDuration(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (value < 10) {
+        return `${value.toPrecision(2)}ms`;
+      }
+      if (value < 1000) {
+        return `${Math.round(value)}ms`;
+      }
+      if (value < 10000) {
+        return `${(value / 1000).toPrecision(2)}s`;
+      }
+      return `${Math.round(value / 1000)}s`;
+    }
+
+    function sklbenchDurationFormatter(cell) {
+      return sklbenchFormatDuration(cell.getValue());
+    }
+
+    function sklbenchSpeedupFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      const className = value > 1 ? "speedup-positive" : "speedup-negative";
+      return `<span class="${className}">${value.toPrecision(2)}x</span>`;
+    }
+
+    function sklbenchLinkFormatter(cell, formatterParams) {
+      const value = cell.getValue();
+      if (!value) {
+        return "N/A";
+      }
+      const label = formatterParams.label || "open";
+      return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
+    }
+
+    function sklbenchPrepareColumns(columns) {
+      return columns.map((column) => {
+        const prepared = {...column};
+        if (prepared.formatterName === "duration") {
+          prepared.formatter = sklbenchDurationFormatter;
+        } else if (prepared.formatterName === "speedup") {
+          prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "link") {
+          prepared.formatter = sklbenchLinkFormatter;
+          prepared.formatterParams = {label: prepared.linkLabel || "open"};
+        }
+        delete prepared.formatterName;
+        delete prepared.linkLabel;
+        return prepared;
+      });
+    }
+
+    function sklbenchInitTable(tableId, rows, columns) {
+      if (window.sklbenchTables[tableId]) {
+        window.sklbenchTables[tableId].redraw(true);
+        return;
+      }
+      window.sklbenchTables[tableId] = new Tabulator(`#${tableId}`, {
+        data: rows,
+        columns: sklbenchPrepareColumns(columns),
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 25,
+        paginationSizeSelector: [10, 25, 50, 100, true],
+        initialSort: [
+          {column: "estimator", dir: "asc"},
+          {column: "dataset", dir: "asc"},
+          {column: "variant", dir: "asc"},
+        ],
+      });
+    }
+  </script>
 </head>
 <body>
   <h1>{{ title|default("sklbench dashboard") }}</h1>
@@ -30,6 +112,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
 </html>
 """)
 BASE_TEMPLATE.globals["plotly_cdn"] = PLOTLY_CDN
+BASE_TEMPLATE.globals["tabulator_css"] = TABULATOR_CSS
+BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
 
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">

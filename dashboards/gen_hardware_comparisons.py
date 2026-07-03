@@ -8,6 +8,7 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     assemble_plots_in_grid,
+    detailed_results_table_html,
     render_hardware_tabs,
     render_software_hardware_tabs,
     speedup_plot_html,
@@ -201,6 +202,7 @@ def render_linear_comparison(
     )
 
     plots = []
+    matches_by_method = {}
     for method in METHODS:
         matches = find_matches(
             [result for result in baseline_results if result.method == method],
@@ -208,6 +210,7 @@ def render_linear_comparison(
             linear_result_matches,
             match_key=_hardware_match_key,
         )
+        matches_by_method[method] = matches
         plots.append(
             {
                 "method": method,
@@ -240,6 +243,14 @@ def render_linear_comparison(
                 plots,
                 rows={"method": METHODS},
                 columns={"comparison": [f"speed-up vs {BASELINE_LABEL}"]},
+                details_after_grid=[
+                    detailed_results_table_html(
+                        "linear",
+                        matches_by_method,
+                        baseline_label=BASELINE_LABEL,
+                        variant_label=linear_trace_label,
+                    )
+                ],
             ),
         ]
     )
@@ -260,6 +271,7 @@ def render_server_comparison(all_results: list[MethodResult]) -> str:
     )
 
     plots = []
+    matches_by_category = {}
     for category in CATEGORIES:
         for method in METHODS:
             matches = find_matches(
@@ -276,6 +288,7 @@ def render_server_comparison(all_results: list[MethodResult]) -> str:
                 linear_result_matches,
                 match_key=_hardware_match_key,
             )
+            matches_by_category.setdefault(category, {})[method] = matches
             plots.append(
                 {
                     "category": category,
@@ -308,6 +321,15 @@ def render_server_comparison(all_results: list[MethodResult]) -> str:
                 plots,
                 rows={"category": CATEGORIES},
                 columns={"method": METHODS},
+                details_by_row={
+                    category: detailed_results_table_html(
+                        category,
+                        matches_by_method,
+                        baseline_label=BASELINE_LABEL,
+                        variant_label=linear_trace_label,
+                    )
+                    for category, matches_by_method in matches_by_category.items()
+                },
             ),
         ]
     )
@@ -328,6 +350,7 @@ def render_cpu_comparison(all_results: list[MethodResult]) -> str:
     )
 
     plots = []
+    matches_by_category = {}
     for category in CATEGORIES:
         for method in METHODS:
             matches = find_matches(
@@ -344,6 +367,7 @@ def render_cpu_comparison(all_results: list[MethodResult]) -> str:
                 cpu_result_matches,
                 match_key=_hardware_match_key,
             )
+            matches_by_category.setdefault(category, {})[method] = matches
             plots.append(
                 {
                     "category": category,
@@ -376,6 +400,15 @@ def render_cpu_comparison(all_results: list[MethodResult]) -> str:
                 plots,
                 rows={"category": CATEGORIES},
                 columns={"method": METHODS},
+                details_by_row={
+                    category: detailed_results_table_html(
+                        category,
+                        matches_by_method,
+                        baseline_label=BASELINE_LABEL,
+                        variant_label=cpu_trace_label,
+                    )
+                    for category, matches_by_method in matches_by_category.items()
+                },
             ),
         ]
     )
