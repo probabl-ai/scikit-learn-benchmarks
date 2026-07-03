@@ -56,6 +56,7 @@ def generate_runner_command(
         return command_prefix + [
             "py-spy",
             "record",
+            "--native",
             "--format",
             "raw",
             "-o",
