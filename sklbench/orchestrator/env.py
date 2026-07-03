@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import subprocess
+from functools import lru_cache
 from importlib import metadata
 from pathlib import Path
 
@@ -38,6 +39,21 @@ def _check_output(command: list[str], cwd: str | Path | None = None) -> str | No
         return None
 
 
+@lru_cache
+def _benchmark_repo_git_root() -> Path | None:
+    pixi_project_root = os.environ.get("PIXI_PROJECT_ROOT")
+    if pixi_project_root:
+        return Path(pixi_project_root).resolve()
+
+    git_root = _check_output(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=Path(__file__).resolve().parent,
+    )
+    if git_root is None:
+        return None
+    return Path(git_root).resolve()
+
+
 def _git_info_for_path(path: Path) -> dict | None:
     """Return git metadata for an imported module path when it is in a checkout.
 
@@ -49,6 +65,9 @@ def _git_info_for_path(path: Path) -> dict | None:
     module_dir = path if path.is_dir() else path.parent
     git_root = _check_output(["git", "rev-parse", "--show-toplevel"], cwd=module_dir)
     if git_root is None:
+        return None
+    git_root = Path(git_root).resolve()
+    if git_root == _benchmark_repo_git_root():
         return None
 
     commit = _check_output(["git", "rev-parse", "HEAD"], cwd=git_root)
