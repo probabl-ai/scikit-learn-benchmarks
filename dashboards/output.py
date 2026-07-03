@@ -7,7 +7,7 @@ def dashboard_output_path(default_filename: str) -> Path:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("dashboards"),
+        default=Path("_site"),
         help="Directory where the generated dashboard HTML file is written.",
     )
     args = parser.parse_args()

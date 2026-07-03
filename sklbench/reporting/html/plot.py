@@ -5,6 +5,8 @@ import json
 import math
 from statistics import median
 
+from plotly import graph_objects as go
+
 from ..matching import Match
 from .templates import PLOT_NOTES_TEMPLATE
 
@@ -24,10 +26,6 @@ PLOTLY_DEFAULT_COLORS = [
 
 
 chart_ids = itertools.count()
-
-
-def _safe_json(value):
-    return json.dumps(value, sort_keys=True, default=str).replace("</", "<\\/")
 
 
 def _format_speedup_tick(value: float) -> str:
@@ -258,7 +256,7 @@ def speedup_plot_html(
     for match in matches:
         grouped.setdefault(trace_variant(match), []).append(match)
 
-    traces = []
+    fig = go.Figure()
     for variant, variant_matches in sorted(
         grouped.items(), key=lambda item: variant_sort_key(item[0])
     ):
@@ -276,13 +274,12 @@ def speedup_plot_html(
         color = variant_colors.get(variant)
         if color is not None:
             marker["color"] = color
-        traces.append(
-            {
-                "type": "scatter",
-                "mode": "markers",
-                "name": variant,
-                "showlegend": True,
-                "x": [
+        fig.add_trace(
+            go.Scatter(
+                mode="markers",
+                name=variant,
+                showlegend=True,
+                x=[
                     estimator_positions[
                         match.matched_result.case.get("algorithm", {}).get(
                             "estimator", "unknown"
@@ -291,11 +288,11 @@ def speedup_plot_html(
                     + offsets[x_variant(match)]
                     for match in variant_matches
                 ],
-                "y": [math.log2(match.speedup) for match in variant_matches],
-                "text": [_hover_text(match) for match in variant_matches],
-                "hovertemplate": "%{text}<extra></extra>",
-                "marker": marker,
-            }
+                y=[math.log2(match.speedup) for match in variant_matches],
+                text=[_hover_text(match) for match in variant_matches],
+                hovertemplate="%{text}<extra></extra>",
+                marker=marker,
+            )
         )
 
     values = [math.log2(match.speedup) for match in matches]
@@ -303,20 +300,20 @@ def speedup_plot_html(
     max_tick = math.ceil(max(max(values), 0))
     tick_values = list(range(min_tick, max_tick + 1))
     marker_notes = _marker_notes_html(matches)
-    layout = {
-        "xaxis": {
+    fig.update_layout(
+        xaxis={
             "tickmode": "array",
             "tickvals": list(range(len(estimators))),
             "ticktext": estimators,
             "range": [-0.5, len(estimators) - 0.5],
         },
-        "yaxis": {
+        yaxis={
             "title": "speed-up",
             "tickmode": "array",
             "tickvals": tick_values,
             "ticktext": [_format_speedup_tick(2**tick) for tick in tick_values],
         },
-        "shapes": [
+        shapes=[
             {
                 "type": "line",
                 "xref": "paper",
@@ -328,12 +325,17 @@ def speedup_plot_html(
                 "line": {"color": "#666", "width": 1, "dash": "dash"},
             }
         ],
-        "margin": {"l": 70, "r": 20, "t": 20, "b": 110},
-        "showlegend": True,
-        "legend": {"orientation": "h"},
-    }
-    return f"""<div id="{chart_id}" class="chart"></div>
-<script>
-  Plotly.newPlot("{chart_id}", {_safe_json(traces)}, {_safe_json(layout)}, {{responsive: true}});
-</script>
-{marker_notes}"""
+        margin={"l": 70, "r": 20, "t": 20, "b": 110},
+        showlegend=True,
+        legend={"orientation": "h"},
+        template="none",
+    )
+    fragment = fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height="540px",
+        div_id=chart_id,
+    )
+    return f"{fragment}\n{marker_notes}"

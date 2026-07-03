@@ -170,23 +170,21 @@ from a git checkout.
 
 ## Previewing Dashboards Locally
 
-Generate all dashboard pages into a temporary directory:
+Generate all dashboard pages into `_site/`:
 
 ```bash
-mkdir -p /tmp/sklbench-dashboard
 for script in dashboards/gen_*.py; do
-  pixi run -e reporting python "$script" --output-dir /tmp/sklbench-dashboard
+  pixi run -e reporting python "$script"
 done
 ```
 
-Open `/tmp/sklbench-dashboard/index.html` in a browser to inspect the local
-output.
+Open `_site/index.html` in a browser to inspect the local output.
 
 During dashboard development, use the watcher to regenerate pages whenever
 `results/`, `sklbench/reporting/`, or `dashboards/` changes:
 
 ```bash
-pixi run -e reporting python watch_dashboards.py --output-dir /tmp/sklbench-dashboard
+pixi run -e reporting python watch_dashboards.py
 ```
 
 ## Publishing New Results
