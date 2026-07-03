@@ -82,12 +82,16 @@ BASE_TEMPLATE = Template("""<!doctype html>
       });
     }
 
-    function sklbenchInitTable(tableId, rows, columns) {
+    function sklbenchInitTable(tableId, rows, columns, resetButtonId) {
       if (window.sklbenchTables[tableId]) {
         window.sklbenchTables[tableId].redraw(true);
         return;
       }
-      window.sklbenchTables[tableId] = new Tabulator(`#${tableId}`, {
+      const resetButton = document.getElementById(resetButtonId);
+      const resetToolbar = resetButton
+        ? resetButton.closest(".detailed-results-toolbar")
+        : null;
+      const table = new Tabulator(`#${tableId}`, {
         data: rows,
         columns: sklbenchPrepareColumns(columns),
         layout: "fitDataStretch",
@@ -100,6 +104,28 @@ BASE_TEMPLATE = Template("""<!doctype html>
           {column: "variant", dir: "asc"},
         ],
       });
+      table.on("rowClick", (event, row) => {
+        if (event.target.closest("a, button")) {
+          return;
+        }
+        const comparisonKey = row.getData().comparison_key;
+        if (!comparisonKey) {
+          return;
+        }
+        table.setFilter("comparison_key", "=", comparisonKey);
+        if (resetToolbar) {
+          resetToolbar.hidden = false;
+        }
+      });
+      if (resetButton) {
+        resetButton.addEventListener("click", () => {
+          table.clearFilter();
+          if (resetToolbar) {
+            resetToolbar.hidden = true;
+          }
+        });
+      }
+      window.sklbenchTables[tableId] = table;
     }
   </script>
 </head>

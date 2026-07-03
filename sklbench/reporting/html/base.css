@@ -134,6 +134,33 @@ code {
 .detailed-results-table {
   margin-top: 12px;
 }
+.detailed-results-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 28px;
+  margin-top: 8px;
+}
+.detailed-results-toolbar[hidden] {
+  display: none;
+}
+.row-filter-reset {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.row-filter-reset:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+.detailed-results-table .tabulator-row {
+  cursor: pointer;
+}
 .speedup-positive {
   color: #18794e;
   font-weight: 600;

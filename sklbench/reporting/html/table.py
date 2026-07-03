@@ -68,9 +68,20 @@ def _result_params(result: MethodResult) -> dict:
     return result.case.get("algorithm", {}).get("estimator_params", {}) or {}
 
 
-def _new_row(result: MethodResult, variant: str) -> dict:
+def _default_comparison_key(result: MethodResult) -> str:
+    return stable_json(
+        without_keys(result.case, excluded_names={"implementation", "max_bins"})
+    )
+
+
+def _new_row(
+    result: MethodResult,
+    variant: str,
+    comparison_key: str,
+) -> dict:
     data_desc = result.data_desc or {}
     row = {
+        "comparison_key": comparison_key,
         "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
         "dataset": _dataset_name(result),
         "variant": variant,
@@ -100,9 +111,10 @@ def _add_result_method(
     result: MethodResult,
     base_result: MethodResult,
     variant: str,
+    comparison_key: str,
 ):
     key = _row_key(result, variant)
-    row = rows.setdefault(key, _new_row(result, variant))
+    row = rows.setdefault(key, _new_row(result, variant, comparison_key))
     method = result.method
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
@@ -115,6 +127,7 @@ def _column(
     title: str,
     field: str,
     *,
+    visible: bool | None = None,
     header_filter: bool = False,
     header_sort: bool | None = None,
     sorter: str | None = None,
@@ -122,6 +135,8 @@ def _column(
     link_label: str | None = None,
 ) -> dict:
     column = {"title": title, "field": field}
+    if visible is not None:
+        column["visible"] = visible
     if header_filter:
         column["headerFilter"] = "list"
         column["headerFilterParams"] = {
@@ -146,6 +161,7 @@ def detailed_results_table_html(
     *,
     baseline_label: str,
     variant_label: Callable[[MethodResult], str],
+    comparison_key: Callable[[MethodResult], str] = _default_comparison_key,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set()
@@ -161,12 +177,14 @@ def detailed_results_table_html(
                 result=base,
                 base_result=base,
                 variant=baseline_label,
+                comparison_key=comparison_key(base),
             )
             _add_result_method(
                 rows_by_key,
                 result=result,
                 base_result=base,
                 variant=variant_label(result),
+                comparison_key=comparison_key(result),
             )
 
     if not rows_by_key:
@@ -207,6 +225,7 @@ def detailed_results_table_html(
     )
 
     columns = [
+        _column("comparison_key", "comparison_key", visible=False, header_sort=False),
         _column("Estimator name", "estimator", header_filter=True, sorter="string"),
         _column("Dataset name", "dataset", header_filter=True, sorter="string"),
         _column("Variant name", "variant", header_filter=True, sorter="string"),
@@ -256,8 +275,12 @@ def detailed_results_table_html(
     )
 
     table_id = f"detailed-results-{next(table_ids)}"
+    reset_button_id = f"{table_id}-reset"
     return f"""<details class="detailed-results">
   <summary>Detailed results</summary>
+  <div class="detailed-results-toolbar" hidden>
+    <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row filter" aria-label="Clear row filter">x</button>
+  </div>
   <div id="{table_id}" class="detailed-results-table"></div>
   <script>
     document.currentScript.closest("details").addEventListener("toggle", (event) => {{
@@ -267,7 +290,8 @@ def detailed_results_table_html(
       sklbenchInitTable(
         "{table_id}",
         {_safe_json(rows)},
-        {_safe_json(columns)}
+        {_safe_json(columns)},
+        "{reset_button_id}"
       );
     }}, {{once: true}});
   </script>

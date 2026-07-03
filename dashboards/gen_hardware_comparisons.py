@@ -55,6 +55,15 @@ def _hardware_match_key(result: MethodResult) -> str:
     return stable_json(case)
 
 
+def _hardware_table_comparison_key(result: MethodResult) -> str:
+    return stable_json(
+        without_keys(
+            result.case,
+            excluded_names={"implementation", "max_bins", "n_jobs"},
+        )
+    )
+
+
 def _is_gpu_result(result: MethodResult, *, hardware_hashes: set[str]) -> bool:
     implementation = result.implementation
     return (
@@ -249,6 +258,7 @@ def render_linear_comparison(
                         matches_by_method,
                         baseline_label=BASELINE_LABEL,
                         variant_label=linear_trace_label,
+                        comparison_key=_hardware_table_comparison_key,
                     )
                 ],
             ),
@@ -327,6 +337,7 @@ def render_server_comparison(all_results: list[MethodResult]) -> str:
                         matches_by_method,
                         baseline_label=BASELINE_LABEL,
                         variant_label=linear_trace_label,
+                        comparison_key=_hardware_table_comparison_key,
                     )
                     for category, matches_by_method in matches_by_category.items()
                 },
@@ -406,6 +417,7 @@ def render_cpu_comparison(all_results: list[MethodResult]) -> str:
                         matches_by_method,
                         baseline_label=BASELINE_LABEL,
                         variant_label=cpu_trace_label,
+                        comparison_key=_hardware_table_comparison_key,
                     )
                     for category, matches_by_method in matches_by_category.items()
                 },
