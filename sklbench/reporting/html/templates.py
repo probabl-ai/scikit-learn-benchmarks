@@ -52,8 +52,14 @@ BASE_TEMPLATE = Template("""<!doctype html>
       if (value === null || value === undefined || !Number.isFinite(value)) {
         return "N/A";
       }
-      const className = value > 1 ? "speedup-positive" : "speedup-negative";
-      return `<span class="${className}">${value.toPrecision(2)}x</span>`;
+      const label = `${value.toPrecision(2)}x`;
+      if (value > 1.1) {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (value < 0.9) {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
     }
 
     function sklbenchLinkFormatter(cell, formatterParams) {
