@@ -35,15 +35,10 @@ def generate_runner_command(
     if bench_case.bench.taskset is not None:
         command_prefix.extend(["taskset", "-c", str(bench_case.bench.taskset)])
 
-    try:
-        runner_module = RUNNER_MODULES[bench_case.runner]
-    except KeyError as exc:
-        raise ValueError(f"Unknown runner: {bench_case.runner}") from exc
-
     runner_command = [
         sys.executable,
         "-m",
-        runner_module,
+        bench_case.runner_module,
         "--case-file",
         str(case_file),
         "--n-runs",

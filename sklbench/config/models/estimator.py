@@ -62,10 +62,7 @@ class EstimatorCase(BaseCase):
     algorithm: Algorithm
     data: Data
     implementation: Implementation
-
-    @property
-    def runner(self) -> str:
-        return "estimator"
+    runner_module: str = "sklbench.runners.pipeline"
 
     def name(self, shortened: bool = False, separator: str = " ") -> str:
         name_args = [

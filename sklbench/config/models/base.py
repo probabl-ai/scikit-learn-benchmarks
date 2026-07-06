@@ -29,10 +29,7 @@ class BaseCase(BaseModel):
 
     bench: Bench = Field(default_factory=Bench)
     metadata: JsonDict = Field(default_factory=dict)
-
-    @property
-    def runner(self) -> str:
-        raise NotImplementedError
+    runner_module: str | None = None
 
     def json_dict(self) -> JsonDict:
         return self.model_dump(mode="json", exclude_none=True, exclude_defaults=True)

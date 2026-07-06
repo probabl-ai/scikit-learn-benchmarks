@@ -30,10 +30,7 @@ class PipelineRun(Section):
 class PipelineCase(BaseCase):
     data: PipelineData = Field(default_factory=PipelineData)
     run: PipelineRun = Field(default_factory=PipelineRun)
-
-    @property
-    def runner(self) -> str:
-        return "pipeline"
+    runner_module: str = "sklbench.runners.pipeline"
 
     def name(self, shortened: bool = False, separator: str = " ") -> str:
         return separator.join(
