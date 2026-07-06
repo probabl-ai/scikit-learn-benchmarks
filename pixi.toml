@@ -31,7 +31,31 @@ dpctl = "*"
 nvidia-ml-py = "*"
 py-spy = "*"
 
-[feature.sklearn.dependencies]
+[feature.sklearn.pypi-dependencies]
+scikit-learn = "==1.9.*"
+
+[feature.sklearn-conda.dependencies]
+scikit-learn = "1.9.*"
+
+[feature.sklearn-openblas-pthreads.dependencies]
+libblas = { version = "*", build = "*_openblas" }
+liblapack = { version = "*", build = "*_openblas" }
+libopenblas = { version = "*", build = "*pthreads*" }
+scikit-learn = "1.9.*"
+
+[feature.sklearn-openblas-openmp.dependencies]
+libblas = { version = "*", build = "*_openblas" }
+liblapack = { version = "*", build = "*_openblas" }
+libopenblas = { version = "*", build = "*openmp*" }
+scikit-learn = "1.9.*"
+
+[feature.sklearn-mkl]
+platforms = ["linux-64"]
+
+[feature.sklearn-mkl.dependencies]
+libblas = { version = "*", build = "*mkl*" }
+liblapack = { version = "*", build = "*mkl*" }
+mkl = "*"
 scikit-learn = "1.9.*"
 
 [feature.sklearn-dev.dependencies]
@@ -100,6 +124,10 @@ Jinja2 = "*"
 
 [environments]
 sklearn = ["sklearn"]
+sklearn-conda = ["sklearn-conda"]
+sklearn-openblas-pthreads = ["sklearn-openblas-pthreads"]
+sklearn-openblas-openmp = ["sklearn-openblas-openmp"]
+sklearn-mkl = ["sklearn-mkl"]
 sklearn-dev = ["sklearn-dev"]
 skl-cpu = ["sklearn", "skl-cpu"]
 skl-intel = ["sklearn", "skl-intel"]
