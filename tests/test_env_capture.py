@@ -1,6 +1,63 @@
+import subprocess
+import sys
 from pathlib import Path
 
 from sklbench.orchestrator import env
+
+
+def test_parse_openmp_display_env():
+    output = """
+OPENMP DISPLAY ENVIRONMENT BEGIN
+  _OPENMP = '201511'
+  OMP_NUM_THREADS = '16'
+  OMP_WAIT_POLICY = 'PASSIVE'
+  GOMP_SPINCOUNT = '300000'
+OPENMP DISPLAY ENVIRONMENT END
+"""
+
+    assert env._parse_openmp_display_env(output) == {
+        "_OPENMP": "201511",
+        "OMP_NUM_THREADS": "16",
+        "OMP_WAIT_POLICY": "PASSIVE",
+        "GOMP_SPINCOUNT": "300000",
+    }
+
+
+def test_get_openmp_runtime_info(monkeypatch):
+    monkeypatch.setenv("OMP_NUM_THREADS", "2")
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="",
+            stderr="""
+OPENMP DISPLAY ENVIRONMENT BEGIN
+  OMP_NUM_THREADS = '2'
+  GOMP_SPINCOUNT = '300000'
+OPENMP DISPLAY ENVIRONMENT END
+""",
+        )
+
+    monkeypatch.setattr(env.subprocess, "run", fake_run)
+
+    assert env.get_openmp_runtime_info() == {
+        "OMP_NUM_THREADS": "2",
+        "GOMP_SPINCOUNT": "300000",
+    }
+    command, kwargs = calls[0]
+    assert command == [
+        sys.executable,
+        "-c",
+        "from sklearn.utils._openmp_helpers import _openmp_parallelism_enabled",
+    ]
+    assert kwargs["env"]["OMP_DISPLAY_ENV"] == "VERBOSE"
+    assert kwargs["env"]["OMP_NUM_THREADS"] == "2"
+    assert kwargs["capture_output"] is True
+    assert kwargs["check"] is False
+    assert kwargs["text"] is True
 
 
 def test_git_info_for_path_ignores_benchmark_repo_root(tmp_path, monkeypatch):

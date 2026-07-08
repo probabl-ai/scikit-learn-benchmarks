@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 from functools import lru_cache
 from importlib import metadata
 from pathlib import Path
@@ -23,6 +24,62 @@ def get_threadpool_info():
     for threadpool in threadpools:
         threadpool.pop("filepath", None)
     return threadpools
+
+
+def _parse_openmp_display_env(output: str) -> dict[str, str]:
+    """Parse the environment emitted by OpenMP when OMP_DISPLAY_ENV is set."""
+    settings = {}
+    in_display_env = False
+    for line in output.splitlines():
+        stripped = line.strip()
+        if stripped == "OPENMP DISPLAY ENVIRONMENT BEGIN":
+            in_display_env = True
+            continue
+        if stripped == "OPENMP DISPLAY ENVIRONMENT END":
+            break
+        if not in_display_env or "=" not in stripped:
+            continue
+
+        name, value = stripped.split("=", 1)
+        name = name.strip()
+        value = value.strip()
+        if value.startswith("'") and value.endswith("'"):
+            value = value[1:-1]
+        settings[name] = value
+    return settings
+
+
+def get_openmp_runtime_info() -> dict:
+    """Collect resolved OpenMP runtime settings from a fresh Python process."""
+    env = os.environ.copy()
+    env["OMP_DISPLAY_ENV"] = "VERBOSE"
+    import_script = (
+        "from sklearn.utils._openmp_helpers import _openmp_parallelism_enabled"
+    )
+
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-c", import_script],
+            check=False,
+            capture_output=True,
+            env=env,
+            text=True,
+            timeout=30,
+        )
+    except Exception as exc:
+        logger.warning(f"Unable to get OpenMP runtime settings: {exc}")
+        return {"error": repr(exc)}
+
+    output = "\n".join([completed.stdout, completed.stderr])
+    info = _parse_openmp_display_env(output)
+
+    if completed.returncode != 0:
+        info["returncode"] = completed.returncode
+        logger.warning(
+            "Unable to get complete OpenMP runtime settings: "
+            f"subprocess exited with return code {completed.returncode}"
+        )
+    return info
 
 
 def _check_output(command: list[str], cwd: str | Path | None = None) -> str | None:
@@ -145,6 +202,7 @@ def get_runtime_import_info(import_names: list[str] | None = None) -> dict:
 def get_software_info() -> dict:
     result = {}
     result["threadpool_info"] = get_threadpool_info()
+    result["openmp_runtime_info"] = get_openmp_runtime_info()
     result["runtime_imports"] = get_runtime_import_info()
 
     pixi_project_root = os.environ.get("PIXI_PROJECT_ROOT")
