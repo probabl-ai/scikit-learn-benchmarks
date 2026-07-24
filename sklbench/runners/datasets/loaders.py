@@ -30,7 +30,7 @@ from sklearn.datasets import (
     make_regression,
 )
 
-from .common import cache, load_data_description, load_data_from_cache, preprocess
+from .common import cache, preprocess
 from .downloaders import download_and_read_csv, load_openml, retrieve
 from .synthetic import make_trees_classification_data, make_trees_regression_data
 
@@ -80,18 +80,6 @@ def load_sklearn_synthetic_data(
     elif function_name in ["make_circles", "make_moons"]:
         data_desc["n_classes"] = 2
     return {"x": x, "y": y}, data_desc
-
-
-@preprocess
-def load_custom_data(
-    data_name: str,
-    data_cache: str,
-    raw_data_cache: str,
-):
-    """Function to load data specified by user and stored in format compatible with scikit-learn_bench cache"""
-    return load_data_from_cache(data_cache, data_name), load_data_description(
-        data_cache, data_name
-    )
 
 
 """

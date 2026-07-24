@@ -21,7 +21,6 @@ from ...config import EstimatorCase
 from ...utils.common import custom_format
 from .loaders import (
     dataset_loading_functions,
-    load_custom_data,
     load_openml_data,
     load_sklearn_synthetic_data,
 )
@@ -41,14 +40,12 @@ def load_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
     os.makedirs(data_cache, exist_ok=True)
     os.makedirs(raw_data_cache, exist_ok=True)
 
-    if data_params.dataset is not None:
-        if data_params.dataset in dataset_loading_functions:
-            return dataset_loading_functions[data_params.dataset](
-                **common_kwargs,
-                preproc_kwargs=preproc_kwargs,
-                dataset_params=data_params.dataset_kwargs,
-            )
-        return load_custom_data(**common_kwargs, preproc_kwargs=preproc_kwargs)
+    if data_params.dataset is not None and data_params.dataset in dataset_loading_functions:
+        return dataset_loading_functions[data_params.dataset](
+            **common_kwargs,
+            preproc_kwargs=preproc_kwargs,
+            dataset_params=data_params.dataset_kwargs,
+        )
 
     if data_params.source is not None:
         if data_params.source.startswith("make_"):
