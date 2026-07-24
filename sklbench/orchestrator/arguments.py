@@ -38,8 +38,9 @@ def add_orchestrator_arguments(
         "--config",
         "-c",
         type=str,
+        nargs="+",
         default=None,
-        help="Path to a Python config script.",
+        help="Path(s) to one or more Python config scripts.",
     )
     parser.add_argument(
         "--results-dir",

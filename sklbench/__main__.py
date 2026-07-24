@@ -31,7 +31,9 @@ def main():
     if args.config is None:
         parser.error("--config is required unless --describe-parser is used")
 
-    bench_cases = load_cases_from_script(args.config)
+    bench_cases = [
+        case for config in args.config for case in load_cases_from_script(config)
+    ]
     return orchestrate_benchmarks(bench_cases, args)
 
 
