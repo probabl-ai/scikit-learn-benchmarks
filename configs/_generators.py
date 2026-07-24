@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from copy import deepcopy
 from itertools import product
 from math import ceil
@@ -28,21 +27,12 @@ def _case(
     bench: dict,
     algorithm: dict,
     data: dict,
-    implementation: dict | None = None,
 ) -> dict:
     return {
         "bench": deepcopy(bench),
         "algorithm": deepcopy(algorithm),
         "data": deepcopy(data),
-        "implementation": deepcopy(implementation or {}),
     }
-
-
-def with_implementations(cases: Iterable[dict], implementations: Iterable[dict]):
-    return [
-        _merge_dicts(case, {"implementation": implementation})
-        for case, implementation in product(cases, implementations)
-    ]
 
 
 def exclude_estimators(cases: Iterable[dict], estimators: set[str]) -> list[dict]:
@@ -53,104 +43,19 @@ def exclude_estimators(cases: Iterable[dict], estimators: set[str]) -> list[dict
     ]
 
 
-def _template_name() -> str:
-    return os.environ.get("SKBENCH_MODELS_TEMPLATE", "test")
-
-
-def sklearn_implementation() -> list[dict]:
-    return [{"library": "sklearn"}]
-
-
-def sklearnex_cpu_implementation() -> list[dict]:
-    return [
-        {
-            "library": "sklearnex",
-            "device": "cpu",
-            "sklearnex_context": {
-                "allow_fallback_to_host": False,
-                "allow_sklearn_after_onedal": False,
-            },
-        }
-    ]
-
-
-def sklearnex_gpu_implementation() -> list[dict]:
-    return [
-        {
-            "library": "sklearnex",
-            "device": "gpu",
-            "data_library": "dpnp",
-            "sklearnex_context": {
-                "array_api_dispatch": True,
-                "allow_fallback_to_host": False,
-                "allow_sklearn_after_onedal": False,
-            },
-        }
-    ]
-
-
-def array_api_cpu_implementations() -> list[dict]:
-    return [
-        {
-            "library": "sklearn",
-            "device": "cpu",
-            "data_library": "torch",
-            "sklearn_context": {"array_api_dispatch": True},
-        }
-    ]
-
-
-def array_api_intel_implementations() -> list[dict]:
-    return [
-        {
-            "library": "sklearn",
-            "device": "xpu",
-            "data_library": "torch",
-            "sklearn_context": {"array_api_dispatch": True},
-        },
-        {
-            "library": "sklearn",
-            "device": "gpu",
-            "data_library": "dpnp",
-            "sklearn_context": {"array_api_dispatch": True},
-        },
-    ]
-
-
-def array_api_nvidia_implementations() -> list[dict]:
-    return [
-        {
-            "library": "sklearn",
-            "device": "cuda",
-            "data_library": "torch",
-            "sklearn_context": {"array_api_dispatch": True},
-        },
-        {
-            "library": "sklearn",
-            "device": "cuda",
-            "data_library": "cupy",
-            "sklearn_context": {"array_api_dispatch": True},
-        },
-    ]
-
-
-def tree_cases(template: str | None = None) -> list[dict]:
-    template = template or _template_name()
+def tree_cases(template: str) -> list[dict]:
     return _fast_tree_cases() if template == "fast" else _test_tree_cases()
 
 
-def linear_cases(template: str | None = None) -> list[dict]:
-    template = template or _template_name()
+def linear_cases(template: str) -> list[dict]:
     return _linear_cases(template, array_api=False)
 
 
-def linear_array_api_cases(template: str | None = None) -> list[dict]:
-    template = template or _template_name()
+def linear_array_api_cases(template: str) -> list[dict]:
     return _linear_cases(template, array_api=True)
 
 
-def clustering_cases(template: str | None = None) -> list[dict]:
-    template = template or _template_name()
+def clustering_cases(template: str) -> list[dict]:
     return _fast_clustering_cases() if template == "fast" else _test_clustering_cases()
 
 

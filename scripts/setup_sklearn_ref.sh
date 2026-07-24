@@ -133,5 +133,5 @@ scikit-learn setup complete
 
 Run benchmarks with:
 
-  pixi run -e '$pixi_env' python -m sklbench --config configs/sklearn.py
+  pixi run -e '$pixi_env' python -m sklbench --config configs/all_models_test.py
 EOF

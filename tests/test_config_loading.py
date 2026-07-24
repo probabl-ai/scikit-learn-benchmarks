@@ -1,6 +1,27 @@
 from pathlib import Path
 
+import pytest
+
 from sklbench.config import EstimatorCase, PipelineCase, load_cases_from_script
+
+
+SKLEARN_ENVS = [
+    "sklearn",
+    "sklearn-conda",
+    "sklearn-openblas-pthreads",
+    "sklearn-openblas-openmp",
+    "sklearn-mkl",
+    "sklearn-dev",
+]
+GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]
+ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia"]
+
+ENV_SENSITIVE_CONFIGS = {
+    Path("configs/all_models_test.py"): GENERAL_ENVS,
+    Path("configs/all_models_fast.py"): GENERAL_ENVS,
+    Path("configs/array_api_test.py"): ARRAY_API_ENVS,
+    Path("configs/array_api_fast.py"): ARRAY_API_ENVS,
+}
 
 
 def test_load_cases_from_script_accepts_model_instances(tmp_path):
@@ -45,10 +66,57 @@ def generate_cases():
     assert cases[0].metadata == {}
 
 
-def test_shipped_configs_generate_valid_cases():
+def test_shipped_configs_generate_valid_cases(monkeypatch):
     config_paths = sorted(
         path for path in Path("configs").glob("*.py") if not path.name.startswith("_")
     )
 
     for path in config_paths:
+        if path in ENV_SENSITIVE_CONFIGS:
+            continue
+        monkeypatch.delenv("PIXI_ENVIRONMENT_NAME", raising=False)
         load_cases_from_script(path)
+
+    for path, pixi_envs in ENV_SENSITIVE_CONFIGS.items():
+        for pixi_env in pixi_envs:
+            monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", pixi_env)
+
+            cases = load_cases_from_script(path)
+
+            assert cases
+            assert all(isinstance(case, EstimatorCase) for case in cases)
+
+
+def test_env_sensitive_configs_require_pixi_environment(monkeypatch):
+    monkeypatch.delenv("PIXI_ENVIRONMENT_NAME", raising=False)
+
+    with pytest.raises(ValueError, match="PIXI_ENVIRONMENT_NAME is not set"):
+        load_cases_from_script("configs/all_models_test.py")
+
+
+def test_env_sensitive_configs_reject_unknown_pixi_environment(monkeypatch):
+    monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "unknown")
+
+    with pytest.raises(ValueError, match="Unsupported PIXI_ENVIRONMENT_NAME"):
+        load_cases_from_script("configs/all_models_test.py")
+
+
+def test_all_models_configs_reject_array_api_only_pixi_environments(monkeypatch):
+    monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "skl-cpu")
+
+    with pytest.raises(ValueError, match="does not support the 'all_models' workload"):
+        load_cases_from_script("configs/all_models_test.py")
+
+
+def test_intel_array_api_workload_excludes_ridge_classifier(monkeypatch):
+    monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "intel")
+
+    cases = load_cases_from_script("configs/array_api_test.py")
+
+    assert cases
+    assert {
+        case.implementation.library for case in cases if isinstance(case, EstimatorCase)
+    } == {"sklearnex"}
+    assert "RidgeClassifier" not in {
+        case.algorithm.estimator for case in cases if isinstance(case, EstimatorCase)
+    }

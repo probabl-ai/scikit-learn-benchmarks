@@ -15,9 +15,11 @@ fi
 mode="${1:-cpu}"
 
 run_cpu() {
-    pixi run -e sklearn python -m sklbench --config configs/sklearn.py
-    pixi run -e skl-cpu python -m sklbench --config configs/array_api_cpu.py
-    pixi run -e intel python -m sklbench --config configs/sklearnex_cpu.py
+    pixi run -e sklearn python -m sklbench --config configs/all_models_test.py
+    pixi run -e sklearn python -m sklbench --config configs/array_api_test.py
+    pixi run -e skl-cpu python -m sklbench --config configs/array_api_test.py
+    pixi run -e intel python -m sklbench --config configs/all_models_test.py
+    pixi run -e intel python -m sklbench --config configs/array_api_test.py
 }
 
 case "$mode" in
@@ -39,10 +41,9 @@ case "$mode" in
     cpu)
         ;;
     intel)
-        pixi run -e skl-intel python -m sklbench --config configs/array_api_intel.py
-        pixi run -e intel python -m sklbench --config configs/sklearnex_gpu.py
+        pixi run -e skl-intel python -m sklbench --config configs/array_api_test.py
         ;;
     nvidia)
-        pixi run -e skl-nvidia python -m sklbench --config configs/array_api_nvidia.py
+        pixi run -e skl-nvidia python -m sklbench --config configs/array_api_test.py
         ;;
 esac

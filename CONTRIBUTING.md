@@ -24,15 +24,15 @@ The project uses Pixi environments. Common environments are:
 - `skl-cpu`: Array API CPU benchmark runs
 - `skl-intel`: Intel Array API benchmark runs
 - `skl-nvidia`: NVIDIA Array API benchmark runs
-- `intel`: scikit-learn-intelex CPU/GPU benchmark runs
+- `intel`: scikit-learn-intelex CPU benchmark runs
 - `reporting`: dashboard generation and reporting utilities
 
 ## Architecture
 
 The repository is split into a few layers:
 
-- `configs/`: Python benchmark case generators. Top-level config scripts
-  combine model/data helpers with implementation definitions and expose
+- `configs/`: Python benchmark case generators. Public config scripts
+  combine workload helpers with implementation selection and expose
   `generate_cases()`.
 - `sklbench/`: local benchmark package containing config models, orchestrator,
   runners, runner datasets, and reporting helpers.
@@ -47,24 +47,25 @@ The repository is split into a few layers:
 
 Config scripts are regular Python. They return a list of JSON-serializable case
 dictionaries or pydantic case models from `generate_cases()`, and the
-orchestrator validates each case before running it. Shared helpers live in
-`configs/_generators.py`.
+orchestrator validates each case before running it. Shared workload helpers live
+in `configs/_generators.py`, and Pixi-environment implementation selection lives
+in `configs/_implementations.py`.
 
 ## Adding Benchmark Cases
 
 Most case changes should start in `configs/_generators.py`.
 
-Use the default `test` template for the current small exploratory matrix. Set
-`SKBENCH_MODELS_TEMPLATE=fast` when working on a broader but still reasonably
-fast matrix.
+Use `configs/all_models_test.py` and `configs/array_api_test.py` for the current
+small exploratory matrices. Use the matching `*_fast.py` configs when working on
+broader but still reasonably fast matrices.
 
 Preview and validate a config by importing it directly:
 
 ```bash
-pixi run python - <<'PY'
+pixi run -e sklearn python - <<'PY'
 from sklbench.config import load_cases_from_script
 
-cases = load_cases_from_script("configs/sklearn.py")
+cases = load_cases_from_script("configs/all_models_test.py")
 print(len(cases))
 print(cases[0])
 PY
@@ -79,7 +80,8 @@ case can be compared to a baseline by the dashboard matching logic.
 Run the default scikit-learn configuration:
 
 ```bash
-pixi run -e sklearn python -m sklbench --config configs/sklearn.py
+pixi run -e sklearn python -m sklbench --config configs/all_models_test.py
+pixi run -e sklearn python -m sklbench --config configs/array_api_test.py
 ```
 
 Run the CPU benchmark set:
@@ -101,7 +103,9 @@ Run CPU plus NVIDIA GPU benchmarks:
 ```
 
 `run.sh` expands to the appropriate Pixi environments and config files for
-each mode. For ad hoc Intel or reporting work, prefer the explicit environments:
+each mode. The `intel` mode runs Array API Intel GPU benchmarks; sklearnex GPU
+benchmarks are not generated currently. For ad hoc Intel or reporting work,
+prefer the explicit environments:
 
 ```bash
 pixi run -e intel ...
@@ -128,7 +132,7 @@ scripts/setup_sklearn_ref.sh \
   --ref main \
   --label main
 
-pixi run -e sklearn-dev python -m sklbench --config configs/sklearn.py
+pixi run -e sklearn-dev python -m sklbench --config configs/all_models_test.py
 ```
 
 Run the same config against a branch from a fork by changing only the remote and
@@ -140,7 +144,7 @@ scripts/setup_sklearn_ref.sh \
   --ref my-perf-branch \
   --label pr
 
-pixi run -e sklearn-dev python -m sklbench --config configs/sklearn.py
+pixi run -e sklearn-dev python -m sklbench --config configs/all_models_test.py
 ```
 
 Pass orchestrator arguments directly to `sklbench` in the second command, for
