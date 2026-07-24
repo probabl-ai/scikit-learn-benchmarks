@@ -30,10 +30,8 @@ from .loaders import (
 def load_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
     data_params = bench_case.data
     data_name = data_params.name(shortened=False)
-    data_cache = data_params.cache_directory or os.environ.get(
-        "SKLBENCH_DATA_CACHE", "data_cache"
-    )
-    raw_data_cache = data_params.raw_cache_directory or os.path.join(data_cache, "raw")
+    data_cache = os.environ.get("SKLBENCH_DATA_CACHE", "data_cache")
+    raw_data_cache = os.path.join(data_cache, "raw")
     common_kwargs = {
         "data_name": data_name,
         "data_cache": data_cache,

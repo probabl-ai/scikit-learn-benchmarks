@@ -14,8 +14,6 @@ class Data(Section):
     source: str | None = None
     dataset: str | None = None
     id: int | str | None = None
-    cache_directory: str | None = None
-    raw_cache_directory: str | None = None
     generation_kwargs: JsonDict = Field(default_factory=dict)
     dataset_kwargs: JsonDict = Field(default_factory=dict)
     split_kwargs: JsonDict = Field(default_factory=dict)

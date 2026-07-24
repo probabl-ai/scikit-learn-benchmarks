@@ -96,7 +96,7 @@ Example of `{dataset name}.json`:
 
 Currently, `x` (data) and `y` (labels) are the only supported and *required* data components.
 
-Scikit-learn_bench-compatible dataset should be stored in `data:cache_directory` (`${PWD}/data_cache` or `{repository root}/data_cache` by default).
+Scikit-learn_bench-compatible dataset should be stored in the directory pointed to by the `SKLBENCH_DATA_CACHE` environment variable (`data_cache` by default).
 
 You can specify created compatible dataset in config files the same way as datasets explicitly registered in scikit-learn_bench using its name:
 ```json
