@@ -77,14 +77,8 @@ def load_sklearn_synthetic_data(
     data_desc = dict()
     if function_name in ("make_classification", "make_trees_classification_data"):
         data_desc["n_classes"] = generation_kwargs["n_classes"]
-        data_desc["n_clusters_per_class"] = generation_kwargs.get(
-            "n_clusters_per_class", 2
-        )
-    elif function_name == "make_blobs":
-        data_desc["n_clusters"] = generation_kwargs["centers"]
     elif function_name in ["make_circles", "make_moons"]:
         data_desc["n_classes"] = 2
-        data_desc["n_clusters"] = 2
     return {"x": x, "y": y}, data_desc
 
 

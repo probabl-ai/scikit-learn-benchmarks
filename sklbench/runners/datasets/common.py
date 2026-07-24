@@ -155,10 +155,10 @@ def cache(function):
 
 
 def preprocess_data(
-    data_dict: list[dict[str, Array]],
+    data_dict: dict[str, Array],
     subsample: float | int | None = None,
     **kwargs,
-) -> list[dict[str, Array]]:
+) -> dict[str, Array]:
     """Preprocessing function applied for all data arguments."""
     if subsample is not None:
         for data_name, data in data_dict.items():
