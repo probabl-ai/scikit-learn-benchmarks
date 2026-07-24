@@ -20,6 +20,10 @@ class Data(Section):
     preprocessing_kwargs: JsonDict = Field(default_factory=dict)
     order: str | None = None
     dtype: str | None = None
+    x_train: JsonDict | None = None
+    x_test: JsonDict | None = None
+    y_train: JsonDict | None = None
+    y_test: JsonDict | None = None
 
     def name(self, shortened: bool = False) -> str:
         if self.dataset is not None:
