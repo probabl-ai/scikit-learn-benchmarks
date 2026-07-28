@@ -17,12 +17,10 @@ import os
 
 import numpy as np
 import pandas as pd
-from scipy import sparse
 from sklearn.datasets import (
     fetch_california_housing,
     fetch_covtype,
     load_digits,
-    load_svmlight_file,
 )
 
 from .downloaders import download_and_read_csv, load_openml, retrieve
@@ -235,45 +233,6 @@ def load_covtype(raw_data_cache: str) -> tuple[dict, dict]:
     data_desc = {
         "n_classes": 7,
         "default_split": {"test_size": 0.2, "random_state": 77},
-    }
-    return {"x": x, "y": y}, data_desc
-
-
-def load_epsilon(raw_data_cache: str) -> tuple[dict, dict]:
-    """
-    Epsilon dataset
-    https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html
-
-    Classification task. n_classes = 2.
-    """
-    url_train = (
-        "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary"
-        "/epsilon_normalized.bz2"
-    )
-    url_test = (
-        "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary"
-        "/epsilon_normalized.t.bz2"
-    )
-    local_url_train = os.path.join(raw_data_cache, os.path.basename(url_train))
-    local_url_test = os.path.join(raw_data_cache, os.path.basename(url_test))
-
-    retrieve(url_train, local_url_train)
-    retrieve(url_test, local_url_test)
-
-    x_train, y_train = load_svmlight_file(local_url_train, dtype=np.float32)
-    x_test, y_test = load_svmlight_file(local_url_test, dtype=np.float32)
-
-    x = sparse.vstack([x_train, x_test])
-    y = np.hstack([y_train, y_test])
-    y[y <= 0] = 0
-
-    data_desc = {
-        "n_classes": 2,
-        "default_split": {
-            "train_size": y_train.shape[0],
-            "test_size": y_test.shape[0],
-            "shuffle": False,
-        },
     }
     return {"x": x, "y": y}, data_desc
 
@@ -554,27 +513,30 @@ def load_sensit(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
-def load_szilard_1m(raw_data_cache: str) -> tuple[dict, dict]:
+def load_szilard_template(train_url: str, raw_data_cache: str) -> tuple[dict, dict]:
     """
     https://github.com/szilard/GBM-perf
-    """
-    url = "https://s3.amazonaws.com/benchm-ml--main/train-1m.csv"
-    d_train = download_and_read_csv(url, raw_data_cache)
 
-    url = "https://s3.amazonaws.com/benchm-ml--main/test.csv"
-    d_test = download_and_read_csv(url, raw_data_cache)
+    Returns the raw (not one-hot encoded) features, with string columns cast to
+    pandas `category` dtype, so estimators with native categorical support can
+    use them as-is. Use `preprocessing_kwargs: {"category_encoding": "onehot"}`
+    to get a numeric-only encoding instead.
+    """
+    d_train = download_and_read_csv(train_url, raw_data_cache)
+
+    test_url = "https://s3.amazonaws.com/benchm-ml--main/test.csv"
+    d_test = download_and_read_csv(test_url, raw_data_cache)
 
     label_col = "dep_delayed_15min"
     y_train = (d_train[label_col] == "Y").astype(int).values
     y_test = (d_test[label_col] == "Y").astype(int).values
     y = np.concatenate([y_train, y_test])
 
-    X_train_raw = d_train.drop(columns=[label_col])
-    X_test_raw = d_test.drop(columns=[label_col])
-
-    combined = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)
-    X_combined_oh = pd.get_dummies(combined)
-    x = sparse.csr_matrix(X_combined_oh.values)
+    x_train = d_train.drop(columns=[label_col])
+    x_test = d_test.drop(columns=[label_col])
+    x = pd.concat([x_train, x_test], axis=0, ignore_index=True)
+    for col in x.select_dtypes(["object"]).columns:
+        x[col] = x[col].astype("category")
 
     n_train = len(d_train)
     n_test = len(d_test)
@@ -583,37 +545,18 @@ def load_szilard_1m(raw_data_cache: str) -> tuple[dict, dict]:
     }
 
     return {"x": x, "y": y}, data_desc
+
+
+def load_szilard_1m(raw_data_cache: str) -> tuple[dict, dict]:
+    return load_szilard_template(
+        "https://s3.amazonaws.com/benchm-ml--main/train-1m.csv", raw_data_cache
+    )
 
 
 def load_szilard_10m(raw_data_cache: str) -> tuple[dict, dict]:
-    """
-    https://github.com/szilard/GBM-perf
-    """
-    url = "https://s3.amazonaws.com/benchm-ml--main/train-10m.csv"
-    d_train = download_and_read_csv(url, raw_data_cache)
-
-    url = "https://s3.amazonaws.com/benchm-ml--main/test.csv"
-    d_test = download_and_read_csv(url, raw_data_cache)
-
-    label_col = "dep_delayed_15min"
-    y_train = (d_train[label_col] == "Y").astype(int).values
-    y_test = (d_test[label_col] == "Y").astype(int).values
-    y = np.concatenate([y_train, y_test])
-
-    X_train_raw = d_train.drop(columns=[label_col])
-    X_test_raw = d_test.drop(columns=[label_col])
-
-    combined = pd.concat([X_train_raw, X_test_raw], axis=0, ignore_index=True)
-    X_combined_oh = pd.get_dummies(combined, sparse=True)
-    x = sparse.csr_matrix(X_combined_oh)
-
-    n_train = len(d_train)
-    n_test = len(d_test)
-    data_desc = {
-        "default_split": {"train_size": n_train, "test_size": n_test, "shuffle": False}
-    }
-
-    return {"x": x, "y": y}, data_desc
+    return load_szilard_template(
+        "https://s3.amazonaws.com/benchm-ml--main/train-10m.csv", raw_data_cache
+    )
 
 
 """
@@ -739,7 +682,6 @@ dataset_loading_functions = {
     "covtype": load_covtype,
     "creditcard": load_creditcard,
     "digits": load_sklearn_digits,
-    "epsilon": load_epsilon,
     "fraud": load_fraud,
     "gisette": load_gisette,
     "hepmass": load_hepmass,

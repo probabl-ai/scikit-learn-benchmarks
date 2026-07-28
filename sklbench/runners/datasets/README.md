@@ -26,7 +26,6 @@ as target extraction, dropped columns, category encoding, or one-hot encoding.
 | `covtype` | 581,012 | 54 | Classification | Numerical, binary indicators |
 | `creditcard` | 284,807 | 30 | Classification | Numerical |
 | `digits` | 1,797 | 64 | Classification | Numerical pixels |
-| `epsilon` | 500,000 | 2,000 | Classification | Sparse numerical |
 | `fraud` | 284,807 | 30 | Classification | Numerical |
 | `gisette` | 7,000 | 5,000 | Classification | Numerical |
 | `hepmass` | 10,500,000 | 27 | Classification | Numerical |
@@ -43,8 +42,8 @@ as target extraction, dropped columns, category encoding, or one-hot encoding.
 | `svhn` | 99,289 | 3,072 | Classification | Numerical pixels |
 | `sensit` | 98,528 | 100 | Classification | Numerical |
 | `letters` | 20,000 | 16 | Classification | Numerical |
-| `szilard_1m` | 1,100,000 | 690 | Classification | Sparse one-hot encoded categorical, numerical |
-| `szilard_10m` | 10,100,000 | 690 | Classification | Sparse one-hot encoded categorical, numerical |
+| `szilard_1m` | 1,100,000 | 9 | Classification | Numerical, categorical |
+| `szilard_10m` | 10,100,000 | 9 | Classification | Numerical, categorical |
 | `abalone` | 4,177 | 8 | Regression | Numerical, encoded categorical |
 | `california_housing` | 20,640 | 8 | Regression | Numerical |
 | `fried` | 40,768 | 10 | Regression | Numerical |
