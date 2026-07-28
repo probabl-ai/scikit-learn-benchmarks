@@ -131,17 +131,27 @@ def save_benchmark_record(
         json.dump(record, fp, indent=4)
 
 
-def call_benchmarks(
+def orchestrate_benchmarks(
     bench_cases: list[Case],
-    hardware_hash: str,
-    software_hash: str,
-    results_dir: str,
-    early_exit: bool = False,
-) -> tuple[int, list[dict], list[dict]]:
-    results = []
-    failed_cases = []
+    args,
+) -> int:
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(levelname)s - %(name)s - %(message)s",
+    )
+
+    env_info = get_environment_info()
+    hardware_hash = get_hardware_hash(env_info["hardware"])
+    software_hash = get_software_hash(env_info["software"])
+    save_environment_sidecars(
+        hardware_hash,
+        software_hash,
+        env_info,
+        args.results_dir,
+    )
+
     return_code = 0
-    results_root = Path(results_dir)
+    results_root = Path(args.results_dir)
     records_dir = results_root / "records"
     profiles_dir = results_root / "profiles"
 
@@ -171,19 +181,8 @@ def call_benchmarks(
                     stage="Benchmark",
                     return_code=bench_return_code,
                 )
-                if failed_case is not None:
-                    failed_cases.append(failed_case)
-                if early_exit:
+                if args.exit_on_error:
                     break
-            results.append(
-                {
-                    "hardware_hash": hardware_hash,
-                    "software_hash": software_hash,
-                    "case": bench_case.json_dict(),
-                    "results": rows,
-                    "failed_case": failed_case,
-                }
-            )
             if bench_return_code == 0 and bench_case.bench.py_spy_profiling:
                 profiles_dir.mkdir(parents=True, exist_ok=True)
                 profile_n_runs = max(1, bench_case.bench.n_runs // 3)
@@ -206,9 +205,7 @@ def call_benchmarks(
                         stage="Profiling benchmark",
                         return_code=profile_return_code,
                     )
-                    if profile_failed_case is not None:
-                        failed_cases.append(profile_failed_case)
-                    if early_exit:
+                    if args.exit_on_error:
                         break
         except KeyboardInterrupt:
             return_code = -1
@@ -227,7 +224,6 @@ def call_benchmarks(
                     hardware_hash,
                     software_hash,
                 )
-            failed_cases.append(failed_case)
             _log_failed_case(
                 bench_case,
                 failed_case,
@@ -252,42 +248,12 @@ def call_benchmarks(
                     hardware_hash,
                     software_hash,
                 )
-            failed_cases.append(failed_case)
             _log_failed_case(
                 bench_case,
                 failed_case,
                 stage="Benchmark setup",
                 return_code=return_code,
             )
-            if early_exit:
+            if args.exit_on_error:
                 break
-    return return_code, results, failed_cases
-
-
-def orchestrate_benchmarks(
-    bench_cases: list[Case],
-    args,
-) -> int:
-    logging.basicConfig(
-        level=logging.WARNING,
-        format="%(levelname)s - %(name)s - %(message)s",
-    )
-
-    env_info = get_environment_info()
-    hardware_hash = get_hardware_hash(env_info["hardware"])
-    software_hash = get_software_hash(env_info["software"])
-    save_environment_sidecars(
-        hardware_hash,
-        software_hash,
-        env_info,
-        args.results_dir,
-    )
-
-    return_code, _, _ = call_benchmarks(
-        bench_cases,
-        hardware_hash,
-        software_hash,
-        args.results_dir,
-        args.exit_on_error,
-    )
     return return_code

@@ -17,19 +17,14 @@
 import sys
 
 from sklbench.config import load_cases_from_script
-from sklbench.orchestrator import get_orchestrator_parser, get_parser_description
-from sklbench.orchestrator import orchestrate_benchmarks
+from sklbench.orchestrator import get_orchestrator_parser, orchestrate_benchmarks
 
 
 def main():
     parser = get_orchestrator_parser()
     args = parser.parse_args()
-    if args.describe_parser:
-        print(get_parser_description(parser))
-        return 0
-
     if args.config is None:
-        parser.error("--config is required unless --describe-parser is used")
+        parser.error("--config is required")
 
     bench_cases = [
         case for config in args.config for case in load_cases_from_script(config)

@@ -66,6 +66,16 @@ def generate_cases():
     assert cases[0].metadata == {}
 
 
+def test_estimator_case_routes_to_estimator_runner():
+    case = EstimatorCase(
+        algorithm={"estimator": "Ridge"},
+        data={"source": "make_regression"},
+        implementation={"library": "sklearn"},
+    )
+
+    assert case.runner_module == "sklbench.runners.estimator"
+
+
 def test_shipped_configs_generate_valid_cases(monkeypatch):
     config_paths = sorted(
         path for path in Path("configs").glob("*.py") if not path.name.startswith("_")
