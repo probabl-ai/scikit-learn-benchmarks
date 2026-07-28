@@ -7,8 +7,6 @@ import shlex
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from pprint import pformat
-from shutil import get_terminal_size
 from typing import Any
 
 from tqdm import tqdm
@@ -20,35 +18,6 @@ from .env import get_environment_info
 logger = logging.getLogger(__name__)
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
 _MAX_LOG_CHARS = 4000
-
-# ANSI escape codes for in-terminal formatting
-BCOLORS = {
-    "FAIL": "\033[91m",
-    "OKGREEN": "\033[92m",
-    "WARNING": "\033[93m",
-    "OKBLUE": "\033[94m",
-    "HEADER": "\033[95m",
-    "OKCYAN": "\033[96m",
-    "ENDC": "\033[0m",
-    "BOLD": "\033[1m",
-    "UNDERLINE": "\033[4m",
-}
-
-
-def custom_format(
-    input_obj: Any,
-    bcolor: str | None = None,
-    prettify: bool = True,
-    width: int = get_terminal_size().columns,
-    indent: int = 4,
-) -> str:
-    """Pretty format with terminal highlighting"""
-    output = input_obj.copy() if hasattr(input_obj, "copy") else input_obj
-    if prettify:
-        output = pformat(input_obj, width=width, indent=indent)
-    if bcolor is not None:
-        output = BCOLORS[bcolor] + str(input_obj) + BCOLORS["ENDC"]
-    return output
 
 
 def hash_from_json_repr(x: Any, hash_limit: int = 5) -> str:
@@ -182,9 +151,7 @@ def call_benchmarks(
         record_path = records_dir / f"{basename}.json"
         profile_path = profiles_dir / f"{basename}.raw.gz"
         record_saved = False
-        bench_cases_with_pbar.set_description(
-            custom_format(bench_case.name(shortened=True), bcolor="HEADER")
-        )
+        bench_cases_with_pbar.set_description(bench_case.name(shortened=True))
         try:
             bench_return_code, rows, failed_case = run_runner_from_case(bench_case)
             save_benchmark_record(
@@ -316,13 +283,11 @@ def orchestrate_benchmarks(
         args.results_dir,
     )
 
-    return_code, result, failed_cases = call_benchmarks(
+    return_code, _, _ = call_benchmarks(
         bench_cases,
         hardware_hash,
         software_hash,
         args.results_dir,
         args.exit_on_error,
     )
-    logger.debug(custom_format(result))
-    logger.debug(custom_format(failed_cases))
     return return_code
