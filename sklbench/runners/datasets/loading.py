@@ -68,9 +68,12 @@ def load_data_file(filepath, extension):
     return data
 
 
-def load_data_from_cache(data_cache: str, data_name: str) -> dict:
+def load_data_from_cache(
+    data_cache: str, data_name: str, categorical_columns: dict[str, list[str]] | None = None
+) -> dict:
     # data filename format:
     # {data_name}_{data_component}.{file_ext}
+    categorical_columns = categorical_columns or {}
     data_filenames = get_filenames_by_prefix(data_cache, data_name)
     data = dict()
     for data_filename in data_filenames:
@@ -78,13 +81,21 @@ def load_data_from_cache(data_cache: str, data_name: str) -> dict:
             continue
         postfix = data_filename.replace(data_name, "")[1:]
         component, file_ext = postfix.split(".", 1)
-        data[component] = load_data_file(
+        component_data = load_data_file(
             os.path.join(data_cache, data_filename), file_ext
         )
+        # parquet round-trips lose (fastparquet<->pyarrow) or corrupt
+        # (fastparquet<->fastparquet) pandas `category` dtype, so it's
+        # restored here from the columns recorded at cache-write time.
+        for column in categorical_columns.get(component, []):
+            if column in component_data.columns:
+                component_data[column] = component_data[column].astype("category")
+        data[component] = component_data
     return data
 
 
-def save_data_to_cache(data: dict, data_cache: str, data_name: str):
+def save_data_to_cache(data: dict, data_cache: str, data_name: str) -> dict[str, list[str]]:
+    categorical_columns = {}
     for component_name, data_compoment in data.items():
         component_filepath = os.path.join(data_cache, f"{data_name}_{component_name}")
         # convert 2d numpy array to pandas DataFrame for better caching
@@ -97,6 +108,11 @@ def save_data_to_cache(data: dict, data_cache: str, data_name: str):
                 column if isinstance(column, str) else str(column)
                 for column in list(data_compoment.columns)
             ]
+            component_categorical_columns = list(
+                data_compoment.columns[data_compoment.dtypes == "category"]
+            )
+            if component_categorical_columns:
+                categorical_columns[component_name] = component_categorical_columns
             data_compoment.to_parquet(
                 component_filepath, engine="fastparquet", compression="snappy"
             )
@@ -115,6 +131,7 @@ def save_data_to_cache(data: dict, data_cache: str, data_name: str):
         elif isinstance(data_compoment, np.ndarray):
             component_filepath += ".npz"
             np.savez(component_filepath, data_compoment)
+    return categorical_columns
 
 
 def load_data_description(data_cache: str, data_name: str) -> dict:
@@ -133,11 +150,15 @@ def load_from_cache_or_compute(
 ) -> tuple[dict, dict]:
     if len(get_filenames_by_prefix(data_cache, data_name)) > 0:
         logger.info(f'Loading "{data_name}" dataset from cache files')
-        data = load_data_from_cache(data_cache, data_name)
         data_desc = load_data_description(data_cache, data_name)
+        data = load_data_from_cache(
+            data_cache, data_name, categorical_columns=data_desc.get("categorical_columns")
+        )
     else:
         logger.info(f'Loading "{data_name}" dataset from scratch')
         data, data_desc = function(raw_data_cache=raw_data_cache, **extra_kwargs)
-        save_data_to_cache(data, data_cache, data_name)
+        categorical_columns = save_data_to_cache(data, data_cache, data_name)
+        if categorical_columns:
+            data_desc["categorical_columns"] = categorical_columns
         save_data_description(data_desc, data_cache, data_name)
     return data, data_desc
