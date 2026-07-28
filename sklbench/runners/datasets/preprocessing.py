@@ -25,9 +25,9 @@ from sklearn.preprocessing import (
     StandardScaler,
 )
 
-from ...utils.custom_types import Array
-
 logger = logging.getLogger(__name__)
+
+Array = pd.DataFrame | np.ndarray
 
 
 def preprocess_data(

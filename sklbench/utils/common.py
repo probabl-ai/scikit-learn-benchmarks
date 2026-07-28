@@ -22,7 +22,8 @@ from pprint import pformat
 from shutil import get_terminal_size
 from typing import Any
 
-from .custom_types import JsonTypesUnion, ModuleContentMap
+JsonTypesUnion = int | float | bool | str | None | list | dict
+ModuleContentMap = dict[str, list[Any]]
 
 # ANSI escape codes for in-terminal formatting
 BCOLORS = {
