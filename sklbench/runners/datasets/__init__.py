@@ -19,8 +19,9 @@ import os
 
 from ...config import EstimatorCase
 from ...utils.common import custom_format
-from .common import load_from_cache_or_compute, preprocess_data, preprocess_x
 from .loaders import dataset_loading_functions, load_openml_data
+from .loading import load_from_cache_or_compute
+from .preprocessing import preprocess_data, preprocess_x
 from .synthetic import generate_synthetic_data
 from .transformer import convert_subsets, split_data
 
