@@ -18,7 +18,6 @@ import gc
 import os
 
 from ...config import EstimatorCase
-from ...utils.common import custom_format
 from .loaders import dataset_loading_functions, load_openml_data
 from .loading import load_from_cache_or_compute
 from .preprocessing import preprocess_data, preprocess_x
@@ -58,7 +57,7 @@ def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
     else:
         raise ValueError(
             "Unable to get data from bench_case:\n"
-            f"{custom_format(data_params.model_dump(mode='json', exclude_none=True))}"
+            f"{data_params.model_dump(exclude_none=True)}"
         )
 
     preproc_kwargs = data_params.preprocessing_kwargs

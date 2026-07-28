@@ -1,12 +1,74 @@
 import importlib
+import inspect
 import logging
+from typing import Any
 
 from sklearn.base import BaseEstimator
 
 from ...config import Implementation
-from ...utils.common import get_module_members
 
 logger = logging.getLogger(__name__)
+
+ModuleContentMap = dict[str, list[Any]]
+
+
+def get_module_members(
+    module_names_chain: list | str,
+) -> tuple[ModuleContentMap, ModuleContentMap]:
+    def get_module_name(module_names_chain: list[str]) -> str:
+        name = module_names_chain[0]
+        for subname in module_names_chain[1:]:
+            name += "." + subname
+        return name
+
+    def merge_maps(
+        first_map: ModuleContentMap, second_map: ModuleContentMap
+    ) -> ModuleContentMap:
+        output = dict()
+        all_keys = set(first_map.keys()) | set(second_map.keys())
+        for key in all_keys:
+            if key in first_map and key in second_map:
+                output[key] = first_map[key] + second_map[key]
+            elif key in first_map:
+                output[key] = first_map[key]
+            elif key in second_map:
+                output[key] = second_map[key]
+        return output
+
+    if isinstance(module_names_chain, str):
+        module_names_chain = [module_names_chain]
+    module_name = get_module_name(module_names_chain)
+    classes_map: ModuleContentMap = dict()
+    functions_map: ModuleContentMap = dict()
+
+    try:
+        module = importlib.__import__(module_name, globals(), locals(), [], 0)
+        for subname in module_names_chain[1:]:
+            module = getattr(module, subname)
+    except ModuleNotFoundError:
+        return dict(), dict()
+
+    for name, obj in inspect.getmembers(module):
+        if inspect.isclass(obj):
+            if name in classes_map and obj not in classes_map[name]:
+                classes_map[name].append(obj)
+            else:
+                classes_map[name] = [obj]
+        elif inspect.isfunction(obj):
+            if name in functions_map and obj not in functions_map[name]:
+                functions_map[name].append(obj)
+            else:
+                functions_map[name] = [obj]
+
+    if hasattr(module, "__all__"):
+        for name in module.__all__:
+            sub_classes_map, sub_functions_map = get_module_members(
+                module_names_chain + [name]
+            )
+            classes_map = merge_maps(classes_map, sub_classes_map)
+            functions_map = merge_maps(functions_map, sub_functions_map)
+
+    return classes_map, functions_map
 
 
 TASK_TO_ESTIMATOR_SUFFIXES = {

@@ -1,4 +1,5 @@
 import gzip
+import hashlib
 import json
 import logging
 import re
@@ -7,19 +8,56 @@ import tempfile
 from datetime import datetime, timezone
 from multiprocessing import Pool
 from pathlib import Path
+from pprint import pformat
+from shutil import get_terminal_size
+from typing import Any
 
 from psutil import cpu_count
 from tqdm import tqdm
 
 from ..config import Case, EstimatorCase
 from ..runners.datasets import load_data_with_cleanup
-from ..utils.common import custom_format, hash_from_json_repr
 from .commands import run_runner_from_case
 from .env import get_environment_info
 
 logger = logging.getLogger(__name__)
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
 _MAX_LOG_CHARS = 4000
+
+# ANSI escape codes for in-terminal formatting
+BCOLORS = {
+    "FAIL": "\033[91m",
+    "OKGREEN": "\033[92m",
+    "WARNING": "\033[93m",
+    "OKBLUE": "\033[94m",
+    "HEADER": "\033[95m",
+    "OKCYAN": "\033[96m",
+    "ENDC": "\033[0m",
+    "BOLD": "\033[1m",
+    "UNDERLINE": "\033[4m",
+}
+
+
+def custom_format(
+    input_obj: Any,
+    bcolor: str | None = None,
+    prettify: bool = True,
+    width: int = get_terminal_size().columns,
+    indent: int = 4,
+) -> str:
+    """Pretty format with terminal highlighting"""
+    output = input_obj.copy() if hasattr(input_obj, "copy") else input_obj
+    if prettify:
+        output = pformat(input_obj, width=width, indent=indent)
+    if bcolor is not None:
+        output = BCOLORS[bcolor] + str(input_obj) + BCOLORS["ENDC"]
+    return output
+
+
+def hash_from_json_repr(x: Any, hash_limit: int = 5) -> str:
+    h = hashlib.sha256()
+    h.update(bytes(json.dumps(x), encoding="utf-8"))
+    return h.hexdigest()[:hash_limit]
 
 
 def get_hardware_hash(hardware_info: dict) -> str:
