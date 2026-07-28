@@ -6,17 +6,14 @@ import re
 import shlex
 import tempfile
 from datetime import datetime, timezone
-from multiprocessing import Pool
 from pathlib import Path
 from pprint import pformat
 from shutil import get_terminal_size
 from typing import Any
 
-from psutil import cpu_count
 from tqdm import tqdm
 
-from ..config import Case, EstimatorCase
-from ..runners.datasets import load_data_with_cleanup
+from ..config import Case
 from .commands import run_runner_from_case
 from .env import get_environment_info
 
@@ -318,28 +315,6 @@ def orchestrate_benchmarks(
         env_info,
         args.results_dir,
     )
-
-    if args.prefetch_datasets:
-        dataset_cases = {
-            case.data.name(): case
-            for case in bench_cases
-            if isinstance(case, EstimatorCase)
-        }
-        n_datasets = len(dataset_cases)
-        if n_datasets == 0:
-            logger.info("No estimator datasets to prefetch")
-            return call_benchmarks(
-                bench_cases,
-                hardware_hash,
-                software_hash,
-                args.results_dir,
-                args.exit_on_error,
-            )[0]
-        logger.debug(f"Unique dataset names to load:\n{list(dataset_cases.keys())}")
-        n_proc = min([16, cpu_count(), n_datasets])
-        logger.info(f"Prefetching {n_datasets} datasets with {n_proc} processes")
-        with Pool(n_proc) as pool:
-            pool.map(load_data_with_cleanup, dataset_cases.values())
 
     return_code, result, failed_cases = call_benchmarks(
         bench_cases,

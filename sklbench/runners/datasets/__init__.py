@@ -14,7 +14,6 @@
 # limitations under the License.
 # ===============================================================================
 
-import gc
 import os
 
 from ...config import EstimatorCase
@@ -66,9 +65,3 @@ def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
 
     data_dict, data_description = split_data(bench_case, data, data_description)
     return convert_subsets(bench_case, data_dict, data_description)
-
-
-def load_data_with_cleanup(bench_case: EstimatorCase):
-    result = load_data(bench_case)
-    del result
-    gc.collect()

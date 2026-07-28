@@ -49,12 +49,6 @@ def add_orchestrator_arguments(
         help="Directory path to store scikit-learn_bench results.",
     )
     parser.add_argument(
-        "--prefetch-datasets",
-        default=False,
-        action="store_true",
-        help="Load all requested datasets in parallel before running benchmarks.",
-    )
-    parser.add_argument(
         "--exit-on-error",
         default=False,
         action="store_true",
