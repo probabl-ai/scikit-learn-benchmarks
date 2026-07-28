@@ -1,49 +1,43 @@
 #!/usr/bin/env bash
 
 usage() {
-    echo "Usage: $0 [intel|nvidia]" >&2
-    echo "  no argument: run CPU-only benchmarks" >&2
-    echo "  intel:       also run Intel GPU benchmarks" >&2
-    echo "  nvidia:      also run NVIDIA GPU benchmarks" >&2
+    echo "Usage: $0 env1 [env2 ...] [sklbench args...]" >&2
+    echo "  Runs 'pixi run -e <env> python -m sklbench <args...>' for each" >&2
+    echo "  environment given. Environments are the leading arguments, up to" >&2
+    echo "  the first one starting with '-'; everything from there on is" >&2
+    echo "  passed through to sklbench." >&2
+    echo "  Example: $0 sklearn intel --config configs/all_models_test.py" >&2
 }
 
-if [ "$#" -gt 1 ]; then
+if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    usage
+    exit 0
+fi
+
+envs=()
+args=()
+parsing_envs=true
+
+for arg in "$@"; do
+    if [ "$parsing_envs" = true ] && [[ "$arg" != -* ]]; then
+        envs+=("$arg")
+    else
+        parsing_envs=false
+        args+=("$arg")
+    fi
+done
+
+if [ "${#envs[@]}" -eq 0 ]; then
     usage
     exit 2
 fi
 
-mode="${1:-cpu}"
+status=0
+for env in "${envs[@]}"; do
+    echo "=== pixi run -e $env python -m sklbench ${args[*]} ===" >&2
+    if ! pixi run -e "$env" python -m sklbench "${args[@]}"; then
+        status=1
+    fi
+done
 
-run_cpu() {
-    pixi run -e sklearn python -m sklbench --config configs/all_models_test.py
-    pixi run -e sklearn python -m sklbench --config configs/array_api_test.py
-    pixi run -e skl-cpu python -m sklbench --config configs/array_api_test.py
-    pixi run -e intel python -m sklbench --config configs/all_models_test.py
-    pixi run -e intel python -m sklbench --config configs/array_api_test.py
-}
-
-case "$mode" in
-    cpu|intel|nvidia)
-        ;;
-    -h|--help|help)
-        usage
-        exit 0
-        ;;
-    *)
-        usage
-        exit 2
-        ;;
-esac
-
-run_cpu
-
-case "$mode" in
-    cpu)
-        ;;
-    intel)
-        pixi run -e skl-intel python -m sklbench --config configs/array_api_test.py
-        ;;
-    nvidia)
-        pixi run -e skl-nvidia python -m sklbench --config configs/array_api_test.py
-        ;;
-esac
+exit "$status"

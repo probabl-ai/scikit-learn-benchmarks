@@ -84,28 +84,39 @@ pixi run -e sklearn python -m sklbench --config configs/all_models_test.py
 pixi run -e sklearn python -m sklbench --config configs/array_api_test.py
 ```
 
-Run the CPU benchmark set:
+`run.sh` runs the same `python -m sklbench` invocation across one or more
+Pixi environments:
 
 ```bash
-./run.sh
+./run.sh env1 [env2 ...] [sklbench args...]
 ```
 
-Run CPU plus Intel GPU benchmarks:
+The leading arguments, up to the first one starting with `-`, are treated as
+Pixi environments; everything from there on is passed through to `sklbench`
+unchanged. For example, to reproduce the CPU benchmark set:
 
 ```bash
-./run.sh intel
+./run.sh sklearn --config configs/all_models_test.py
+./run.sh sklearn --config configs/array_api_test.py
+./run.sh skl-cpu --config configs/array_api_test.py
+./run.sh intel --config configs/all_models_test.py
+./run.sh intel --config configs/array_api_test.py
 ```
 
-Run CPU plus NVIDIA GPU benchmarks:
+Add Intel GPU benchmarks (Array API only; sklearnex GPU benchmarks are not
+generated currently):
 
 ```bash
-./run.sh nvidia
+./run.sh skl-intel --config configs/array_api_test.py
 ```
 
-`run.sh` expands to the appropriate Pixi environments and config files for
-each mode. The `intel` mode runs Array API Intel GPU benchmarks; sklearnex GPU
-benchmarks are not generated currently. For ad hoc Intel or reporting work,
-prefer the explicit environments:
+Add NVIDIA GPU benchmarks:
+
+```bash
+./run.sh skl-nvidia --config configs/array_api_test.py
+```
+
+For ad hoc Intel or reporting work, prefer the explicit environments:
 
 ```bash
 pixi run -e intel ...
