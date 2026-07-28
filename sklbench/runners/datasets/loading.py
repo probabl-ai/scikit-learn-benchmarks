@@ -21,13 +21,12 @@ import re
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 
 logger = logging.getLogger(__name__)
 
 # NB: non-registered data components and extensions will not be found by loader
 KNOWN_DATA_COMPONENTS = ["x", "y"]
-KNOWN_DATA_EXTENSIONS = ["parq", "npz", "csr.npz"]
+KNOWN_DATA_EXTENSIONS = ["parq", "npz"]
 
 
 def get_expr_by_prefix(prefix: str) -> str:
@@ -52,16 +51,9 @@ def get_filenames_by_prefix(directory: str, prefix: str) -> list[str]:
 def load_data_file(filepath, extension):
     if extension == "parq":
         data = pd.read_parquet(filepath)
-    elif extension.endswith("npz"):
+    elif extension == "npz":
         npz_content = np.load(filepath)
-        if extension == "npz":
-            data = npz_content["arr_0"]
-        elif extension == "csr.npz":
-            data = csr_matrix(
-                tuple(npz_content[attr] for attr in ["data", "indices", "indptr"])
-            )
-        else:
-            raise ValueError(f'Unknown npz subextension "{extension}"')
+        data = npz_content["arr_0"]
         npz_content.close()
     else:
         raise ValueError(f'Unknown extension "{extension}"')
@@ -115,15 +107,6 @@ def save_data_to_cache(data: dict, data_cache: str, data_name: str) -> dict[str,
                 categorical_columns[component_name] = component_categorical_columns
             data_compoment.to_parquet(
                 component_filepath, engine="fastparquet", compression="snappy"
-            )
-        elif isinstance(data_compoment, csr_matrix):
-            component_filepath += ".csr.npz"
-            np.savez(
-                component_filepath,
-                **{
-                    attr: getattr(data_compoment, attr)
-                    for attr in ["data", "indices", "indptr"]
-                },
             )
         elif isinstance(data_compoment, pd.Series):
             component_filepath += ".npz"

@@ -18,7 +18,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 
 NumpyNumeric = np.unsignedinteger | np.integer | np.floating
 Scalar = int | float | bool | str | None
@@ -30,4 +29,4 @@ BenchTemplate = dict[str, Any]
 
 BenchResult = dict[str, Scalar | list]
 
-Array = pd.DataFrame | np.ndarray | csr_matrix
+Array = pd.DataFrame | np.ndarray

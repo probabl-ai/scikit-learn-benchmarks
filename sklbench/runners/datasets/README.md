@@ -75,7 +75,6 @@ Cached file formats:
 | --- | --- | --- | --- |
 | [Parquet](https://parquet.apache.org) | `.parq` | pandas.DataFrame |  |
 | Numpy uncompressed binary dense data | `.npz` | numpy.ndarray, pandas.Series | Data is stored under `arr_0` name |
-| Numpy uncompressed binary CSR data | `.csr.npz` | scipy.sparse.csr_matrix | Data is stored under `data`, `indices` and `indptr` names |
 
 ---
 [Documentation tree](../../README.md#-documentation)

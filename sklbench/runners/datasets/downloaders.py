@@ -22,7 +22,6 @@ import numpy as np
 import openml
 import pandas as pd
 import requests
-from scipy.sparse import csr_matrix
 
 
 def retrieve(url: str, filename: str, max_retries: int = 3) -> None:
@@ -102,7 +101,7 @@ def fetch_and_correct_openml(
     )
 
     # Validate x type
-    if not isinstance(x, (csr_matrix, pd.DataFrame, np.ndarray)):
+    if not isinstance(x, (pd.DataFrame, np.ndarray)):
         raise ValueError(f'Unknown x type "{type(x)}" returned from openml')
 
     # Convert sparse DataFrame to dense format

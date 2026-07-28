@@ -18,7 +18,6 @@ import logging
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import (
     MinMaxScaler,
@@ -50,13 +49,10 @@ def preprocess_x(
     replace_nan="auto",
     category_encoding="ordinal",
     normalize=None,
-    force_for_sparse=True,
     **kwargs,
 ) -> Array:
     """Preprocessing function applied only for `x` data argument."""
     return_type = type(x)
-    if force_for_sparse and isinstance(x, csr_matrix):
-        x = x.toarray()
     if isinstance(x, np.ndarray):
         x = pd.DataFrame(x)
     if not isinstance(x, pd.DataFrame):

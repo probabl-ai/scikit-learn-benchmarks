@@ -20,7 +20,6 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 from sklearn.model_selection import train_test_split
 
 from ...config import EstimatorCase
@@ -62,12 +61,10 @@ def convert_data(
     """
     if dformat is None and order is None and dtype is None:
         return data
-    if isinstance(data, csr_matrix) and dformat not in (None, "csr_matrix"):
-        data = data.toarray()
     if dtype == "preserve":
         dtype = None
 
-    if isinstance(data, (pd.DataFrame, pd.Series, csr_matrix)):
+    if isinstance(data, (pd.DataFrame, pd.Series)):
         if dtype is not None:
             data = data.astype(dtype)
     else:
