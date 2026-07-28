@@ -19,15 +19,22 @@ import os
 
 from ...config import EstimatorCase
 from ...utils.common import custom_format
-from .loaders import (
-    dataset_loading_functions,
-    load_openml_data,
-    load_sklearn_synthetic_data,
-)
+from .common import load_from_cache_or_compute, preprocess_data, preprocess_x
+from .loaders import dataset_loading_functions, load_openml_data
+from .synthetic import generate_synthetic_data
+from .transformer import convert_subsets, split_data
 
 
-def load_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
+def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
     data_params = bench_case.data
+
+    if data_params.generation_kwargs is not None:
+        data_dict, data_description = generate_synthetic_data(
+            function_name=data_params.source,
+            generation_kwargs=data_params.generation_kwargs,
+        )
+        return convert_subsets(bench_case, data_dict, data_description)
+
     data_name = data_params.name(shortened=False)
     data_cache = os.environ.get("SKLBENCH_DATA_CACHE", "data_cache")
     raw_data_cache = os.path.join(data_cache, "raw")
@@ -36,36 +43,29 @@ def load_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
         "data_cache": data_cache,
         "raw_data_cache": raw_data_cache,
     }
-    preproc_kwargs = data_params.preprocessing_kwargs
     os.makedirs(data_cache, exist_ok=True)
     os.makedirs(raw_data_cache, exist_ok=True)
 
     if data_params.dataset is not None and data_params.dataset in dataset_loading_functions:
-        return dataset_loading_functions[data_params.dataset](
-            **common_kwargs,
-            preproc_kwargs=preproc_kwargs,
-            dataset_params=data_params.dataset_kwargs,
+        data, data_description = load_from_cache_or_compute(
+            dataset_loading_functions[data_params.dataset], **common_kwargs
+        )
+    elif data_params.source == "fetch_openml":
+        data, data_description = load_from_cache_or_compute(
+            load_openml_data, openml_id=data_params.id, **common_kwargs
+        )
+    else:
+        raise ValueError(
+            "Unable to get data from bench_case:\n"
+            f"{custom_format(data_params.model_dump(mode='json', exclude_none=True))}"
         )
 
-    if data_params.source is not None:
-        if data_params.source.startswith("make_"):
-            return load_sklearn_synthetic_data(
-                function_name=data_params.source,
-                input_kwargs=data_params.generation_kwargs,
-                preproc_kwargs=preproc_kwargs,
-                **common_kwargs,
-            )
-        if data_params.source == "fetch_openml":
-            return load_openml_data(
-                openml_id=data_params.id,
-                preproc_kwargs=preproc_kwargs,
-                **common_kwargs,
-            )
+    preproc_kwargs = data_params.preprocessing_kwargs
+    data = preprocess_data(data, **preproc_kwargs)
+    data["x"] = preprocess_x(data["x"], **preproc_kwargs)
 
-    raise ValueError(
-        "Unable to get data from bench_case:\n"
-        f"{custom_format(data_params.model_dump(mode='json', exclude_none=True))}"
-    )
+    data_dict, data_description = split_data(bench_case, data, data_description)
+    return convert_subsets(bench_case, data_dict, data_description)
 
 
 def load_data_with_cleanup(bench_case: EstimatorCase):

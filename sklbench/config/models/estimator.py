@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from .base import BaseCase, JsonDict, Section
 
@@ -14,8 +14,7 @@ class Data(Section):
     source: str | None = None
     dataset: str | None = None
     id: int | str | None = None
-    generation_kwargs: JsonDict = Field(default_factory=dict)
-    dataset_kwargs: JsonDict = Field(default_factory=dict)
+    generation_kwargs: JsonDict | None = None
     split_kwargs: JsonDict = Field(default_factory=dict)
     preprocessing_kwargs: JsonDict = Field(default_factory=dict)
     order: str | None = None
@@ -25,16 +24,28 @@ class Data(Section):
     y_train: JsonDict | None = None
     y_test: JsonDict | None = None
 
+    @model_validator(mode="after")
+    def _check_synthetic_exclusive_options(self) -> "Data":
+        if self.generation_kwargs is not None:
+            if self.split_kwargs:
+                raise ValueError(
+                    "split_kwargs is not allowed together with generation_kwargs: "
+                    "synthetic data always uses a fixed 50/50 train/test split."
+                )
+            if self.preprocessing_kwargs:
+                raise ValueError(
+                    "preprocessing_kwargs is not allowed together with "
+                    "generation_kwargs: synthetic data is never preprocessed."
+                )
+        return self
+
     def name(self, shortened: bool = False) -> str:
         if self.dataset is not None:
             return self.dataset
 
         source = self.source
         generation_postfix = "".join(
-            f"_{key}_{value}" for key, value in self.generation_kwargs.items()
-        )
-        dataset_postfix = "".join(
-            f"_{key}_{value}" for key, value in self.dataset_kwargs.items()
+            f"_{key}_{value}" for key, value in (self.generation_kwargs or {}).items()
         )
 
         if source == "fetch_openml":
@@ -44,7 +55,7 @@ class Data(Section):
                 return source.replace("classification", "clsf").replace(
                     "regression", "regr"
                 )
-            return f"{source}{generation_postfix}{dataset_postfix}"
+            return f"{source}{generation_postfix}"
         raise ValueError("Unable to get data name")
 
 

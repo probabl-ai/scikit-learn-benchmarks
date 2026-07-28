@@ -13,7 +13,6 @@ import numpy as np
 from ...config import EstimatorCase
 from .._measurement import measure_perf
 from ..datasets import load_data
-from ..datasets.transformer import split_and_transform_data
 from .loading import estimator_to_task, get_context, get_estimator
 from .metrics import get_subset_metrics_of_estimator
 
@@ -210,11 +209,7 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
     estimator_name = bench_case.algorithm.estimator
     estimator_class = get_estimator(library_name, estimator_name)
 
-    raw_data, data_description = load_data(bench_case)
-    data, data_description = split_and_transform_data(
-        bench_case, raw_data, data_description
-    )
-    data = tuple(data)
+    data, data_description = load_data(bench_case)
     estimator_params = dict(bench_case.algorithm.estimator_params)
 
     with (

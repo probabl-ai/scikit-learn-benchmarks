@@ -90,7 +90,6 @@ def _test_tree_cases() -> list[dict]:
         "n_features": 10,
         "n_informative": 5,
     }
-    split_kwargs = {"test_size": 0.2}
     cases = []
     for estimator in ["RandomForestClassifier", "ExtraTreesClassifier"]:
         cases.append(
@@ -103,7 +102,6 @@ def _test_tree_cases() -> list[dict]:
                         base_generation,
                         {"columns": "mix", "n_classes": 2},
                     ),
-                    "split_kwargs": split_kwargs,
                 },
             )
         )
@@ -118,7 +116,6 @@ def _test_tree_cases() -> list[dict]:
                         base_generation,
                         {"columns": "mix", "noise": 0.1},
                     ),
-                    "split_kwargs": split_kwargs,
                 },
             )
         )
@@ -135,7 +132,6 @@ def _fast_tree_cases() -> list[dict]:
         },
     }
     estimator_param_variants = [{}, {"max_depth": 4}, {"max_leaf_nodes": 1000}]
-    split_kwargs = {"test_size": 0.2}
     cases = []
 
     classification_data = [
@@ -178,7 +174,6 @@ def _fast_tree_cases() -> list[dict]:
                     data={
                         "source": "make_trees_classification_data",
                         "generation_kwargs": generation_kwargs,
-                        "split_kwargs": split_kwargs,
                     },
                 )
             )
@@ -217,7 +212,6 @@ def _fast_tree_cases() -> list[dict]:
                     data={
                         "source": "make_trees_regression_data",
                         "generation_kwargs": generation_kwargs,
-                        "split_kwargs": split_kwargs,
                     },
                 )
             )
@@ -244,7 +238,6 @@ def _linear_cases(template: str, *, array_api: bool) -> list[dict]:
         ]
 
     base_algorithm = {}
-    split_kwargs = {"test_size": 0.2}
     cases = []
     if array_api:
         algorithm_variants = [
@@ -277,7 +270,6 @@ def _linear_cases(template: str, *, array_api: bool) -> list[dict]:
             "generation_kwargs": _merge_dicts(
                 generation_kwargs, extra_generation_kwargs
             ),
-            "split_kwargs": split_kwargs,
         }
         if not array_api or algorithm["estimator"] == "Ridge":
             data["order"] = "C"
@@ -313,7 +305,6 @@ def _test_clustering_cases() -> list[dict]:
             data={
                 "source": "make_blobs",
                 "generation_kwargs": generation_kwargs,
-                "split_kwargs": {"ignore": True},
             },
         )
     ]
@@ -343,7 +334,6 @@ def _fast_clustering_cases() -> list[dict]:
                     "n_samples": 500000,
                     "n_features": 3,
                 },
-                "split_kwargs": {"ignore": True},
             },
         ),
         _case(

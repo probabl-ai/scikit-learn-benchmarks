@@ -5,7 +5,7 @@ import pytest
 from sklbench.runners.datasets.synthetic import (
     make_trees_classification_data,
     make_trees_regression_data,
-    transform_columns,
+    tree_synthetic_transform,
 )
 
 
@@ -13,7 +13,7 @@ def test_transform_columns_keeps_continuous_columns_unchanged():
     X = np.arange(12, dtype=float).reshape(4, 3)
     original = X.copy()
 
-    transformed = transform_columns(X, "continuous", np.random.RandomState(0))
+    transformed = tree_synthetic_transform(X, "continuous", np.random.RandomState(0))
 
     assert transformed is X
     np.testing.assert_array_equal(X, original)
@@ -22,7 +22,7 @@ def test_transform_columns_keeps_continuous_columns_unchanged():
 def test_transform_columns_binarizes_columns():
     X = np.random.RandomState(42).normal(size=(40, 3))
 
-    transformed = transform_columns(X, "binary", np.random.RandomState(0))
+    transformed = tree_synthetic_transform(X, "binary", np.random.RandomState(0))
 
     assert transformed is X
     assert set(np.unique(X)) <= {0.0, 1.0}
@@ -32,7 +32,7 @@ def test_transform_columns_binarizes_columns():
 def test_transform_columns_generates_long_tail_integer_bins():
     X = np.random.RandomState(42).normal(size=(40, 3))
 
-    transform_columns(X, "long-tail", np.random.RandomState(0))
+    tree_synthetic_transform(X, "long-tail", np.random.RandomState(0))
 
     assert np.all(X >= 0)
     assert np.all(X == X.astype(int))
@@ -43,7 +43,7 @@ def test_transform_columns_accepts_sequence_column_spec():
     X = np.tile(np.arange(12, dtype=float), (3, 1)).T
     original = X.copy()
 
-    transform_columns(
+    tree_synthetic_transform(
         X,
         ["continuous", "binary", "long-tail"],
         np.random.RandomState(0),
@@ -57,7 +57,7 @@ def test_transform_columns_accepts_sequence_column_spec():
 def test_transform_columns_returns_dataframe_with_categorical_long_tail_columns():
     X = np.random.RandomState(42).normal(size=(40, 3))
 
-    transformed = transform_columns(
+    transformed = tree_synthetic_transform(
         X,
         "long-tail",
         np.random.RandomState(2),
@@ -76,7 +76,7 @@ def test_transform_columns_rejects_unknown_column_type():
     X = np.arange(12, dtype=float).reshape(4, 3)
 
     with pytest.raises(ValueError, match="unknown"):
-        transform_columns(X, "unknown", np.random.RandomState(0))
+        tree_synthetic_transform(X, "unknown", np.random.RandomState(0))
 
 
 def test_make_trees_regression_data_uses_transform_columns():

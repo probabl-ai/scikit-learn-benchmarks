@@ -47,17 +47,39 @@ def _torch_dtype(dtype: str | None):
     return torch_dtype
 
 
-def convert_data(data, dformat: str, order: str, dtype: str, device: str = None):
-    if isinstance(data, csr_matrix) and dformat != "csr_matrix":
+def convert_data(
+    data,
+    dformat: str | None = None,
+    order: str | None = None,
+    dtype: str | None = None,
+    device: str = None,
+):
+    """Convert `data` to the requested library/order/dtype.
+
+    A no-op unless `dformat`, `order` or `dtype` is given. `order` only applies to
+    array libraries (numpy, dpnp, torch, ...) — it is ignored for pandas (and,
+    once introduced, polars) since those formats have no equivalent concept.
+    """
+    if dformat is None and order is None and dtype is None:
+        return data
+    if isinstance(data, csr_matrix) and dformat not in (None, "csr_matrix"):
         data = data.toarray()
     if dtype == "preserve":
         dtype = None
-    if order == "F":
-        data = np.asfortranarray(data, dtype=dtype)
-    elif order == "C":
-        data = np.ascontiguousarray(data, dtype=dtype)
+
+    if isinstance(data, (pd.DataFrame, pd.Series, csr_matrix)):
+        if dtype is not None:
+            data = data.astype(dtype)
     else:
-        raise ValueError(f"Unknown data order {order}")
+        if order == "F":
+            data = np.asfortranarray(data, dtype=dtype)
+        elif order == "C" or (order is None and dtype is not None):
+            data = np.ascontiguousarray(data, dtype=dtype)
+        elif order is not None:
+            raise ValueError(f"Unknown data order {order}")
+
+    if dformat is None:
+        return data
     if dformat == "numpy":
         return data
     elif dformat == "pandas":
@@ -112,7 +134,14 @@ def train_test_split_wrapper(*args, **kwargs):
         return train_test_split(*args, **kwargs)
 
 
-def split_and_transform_data(bench_case: EstimatorCase, data, data_description):
+def split_data(
+    bench_case: EstimatorCase, data: dict, data_description: dict
+) -> tuple[dict, dict]:
+    """Split loaded `{"x": ..., "y": ...}` data into train/test subsets.
+
+    Uses the dataset's own `default_split` (set by individual loaders) as a
+    base, overridden by the case's `split_kwargs`.
+    """
     data_params = bench_case.data
     if "default_split" in data_description:
         split_kwargs = data_description["default_split"].copy()
@@ -127,17 +156,30 @@ def split_and_transform_data(bench_case: EstimatorCase, data, data_description):
         x_train, x_test = train_test_split_wrapper(x, **split_kwargs)
         y_train, y_test = None, None
 
-    device = bench_case.implementation.device
-    common_data_format = bench_case.implementation.data_library or "pandas"
-    common_data_order = data_params.order or "F"
-    common_data_dtype = data_params.dtype or "float32"
-
     data_dict = {
         "x_train": x_train,
         "x_test": x_test,
         "y_train": y_train,
         "y_test": y_test,
     }
+    return data_dict, data_description
+
+
+def convert_subsets(
+    bench_case: EstimatorCase, data_dict: dict, data_description: dict
+) -> tuple[tuple, dict]:
+    """Common final step for both the synthetic and loaded paths.
+
+    Converts each `x_train`/`x_test`/`y_train`/`y_test` subset to the requested
+    library/device/order/dtype. A no-op for any subset that has nothing
+    requested (no `implementation.data_library`, no `data.order`/`data.dtype`,
+    no per-subset override).
+    """
+    data_params = bench_case.data
+    device = bench_case.implementation.device
+    common_data_format = bench_case.implementation.data_library
+    common_data_order = data_params.order
+    common_data_dtype = data_params.dtype
 
     if "n_classes" in data_description:
         required_label_dtype = "int"
@@ -172,6 +214,6 @@ def split_and_transform_data(bench_case: EstimatorCase, data, data_description):
                 data_description[subset_name]["features"] = converted_data.shape[1]
 
     return (
-        (data_dict[name] for name in ["x_train", "x_test", "y_train", "y_test"]),
+        tuple(data_dict[name] for name in ["x_train", "x_test", "y_train", "y_test"]),
         data_description,
     )

@@ -124,7 +124,6 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
             "id": workload["name"],
             "source": source,
             "generation_kwargs": generation_kwargs,
-            "split_kwargs": {"test_size": 0.2},
             "order": "C",
         },
     }

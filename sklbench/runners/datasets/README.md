@@ -20,10 +20,10 @@ as target extraction, dropped columns, category encoding, or one-hot encoding.
 
 | Name | n_samples | n_features | Task(s) | Features |
 | --- | ---: | ---: | --- | --- |
-| `airline_depdelay` | ~115,000,000 | 13 | Classification, regression with `dataset_kwargs: {"task": "regression"}` | Numerical, categorical |
+| `airline_depdelay` | ~115,000,000 | 13 | Classification | Numerical, categorical |
 | `a9a` | 48,842 | 123 | Classification | Numerical / binary indicators |
 | `codrnanorm` | 488,565 | 8 | Classification | Numerical |
-| `covtype` | 581,012 | 54 | Classification, binary classification with `dataset_kwargs: {"binary": true}` | Numerical, binary indicators |
+| `covtype` | 581,012 | 54 | Classification | Numerical, binary indicators |
 | `creditcard` | 284,807 | 30 | Classification | Numerical |
 | `digits` | 1,797 | 64 | Classification | Numerical pixels |
 | `epsilon` | 500,000 | 2,000 | Classification | Sparse numerical |
@@ -34,7 +34,7 @@ as target extraction, dropped columns, category encoding, or one-hot encoding.
 | `susy` | 5,000,000 | 18 | Classification | Numerical |
 | `ijcnn` | 191,681 | 22 | Classification | Numerical |
 | `klaverjas` | 981,541 | 35 | Classification | Numerical, categorical/string |
-| `cifar` | 60,000 | 3,072 | Classification, binary classification with `dataset_kwargs: {"binary": true}` | Numerical pixels |
+| `cifar` | 60,000 | 3,072 | Classification | Numerical pixels |
 | `connect` | 67,557 | 126 | Classification | Numerical / binary indicators |
 | `covertype` | 581,012 | 54 | Classification | Numerical, categorical |
 | `skin_segmentation` | 245,057 | 3 | Classification | Numerical |

@@ -136,22 +136,19 @@ def save_data_description(data_desc: dict, data_cache: str, data_name: str):
         json.dump(data_desc, desc_file)
 
 
-def cache(function):
-    def cache_wrapper(**kwargs):
-        data_name = kwargs["data_name"]
-        data_cache = kwargs["data_cache"]
-        if len(get_filenames_by_prefix(data_cache, data_name)) > 0:
-            logger.info(f'Loading "{data_name}" dataset from cache files')
-            data = load_data_from_cache(data_cache, data_name)
-            data_desc = load_data_description(data_cache, data_name)
-        else:
-            logger.info(f'Loading "{data_name}" dataset from scratch')
-            data, data_desc = function(**kwargs)
-            save_data_to_cache(data, data_cache, data_name)
-            save_data_description(data_desc, data_cache, data_name)
-        return data, data_desc
-
-    return cache_wrapper
+def load_from_cache_or_compute(
+    function, *, data_name: str, data_cache: str, raw_data_cache: str, **extra_kwargs
+) -> tuple[dict, dict]:
+    if len(get_filenames_by_prefix(data_cache, data_name)) > 0:
+        logger.info(f'Loading "{data_name}" dataset from cache files')
+        data = load_data_from_cache(data_cache, data_name)
+        data_desc = load_data_description(data_cache, data_name)
+    else:
+        logger.info(f'Loading "{data_name}" dataset from scratch')
+        data, data_desc = function(raw_data_cache=raw_data_cache, **extra_kwargs)
+        save_data_to_cache(data, data_cache, data_name)
+        save_data_description(data_desc, data_cache, data_name)
+    return data, data_desc
 
 
 def preprocess_data(
@@ -240,14 +237,3 @@ def preprocess_x(
         return np.array(x)
     else:
         return x
-
-
-def preprocess(function):
-    def preprocess_wrapper(**kwargs):
-        preproc_kwargs = kwargs.pop("preproc_kwargs", dict())
-        data, data_desc = function(**kwargs)
-        data = preprocess_data(data, **preproc_kwargs)
-        data["x"] = preprocess_x(data["x"], **preproc_kwargs)
-        return data, data_desc
-
-    return preprocess_wrapper

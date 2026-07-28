@@ -17,14 +17,21 @@ from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
-from sklearn.datasets import make_classification, make_regression
+from sklearn.datasets import (
+    make_blobs,
+    make_circles,
+    make_classification,
+    make_moons,
+    make_regression,
+)
+from sklearn.model_selection import train_test_split
 from sklearn.utils import check_random_state
 
 
 ColumnSpec = str | Sequence[str]
 
 
-def transform_columns(
+def tree_synthetic_transform(
     X: np.ndarray, columns: str, rng: np.random.RandomState,
     as_frame=False,
 ) -> None:
@@ -73,12 +80,56 @@ def transform_columns(
 def make_trees_regression_data(*, columns: ColumnSpec, random_state=None, as_frame=False, **kwargs):
     rng = check_random_state(random_state)
     X, y = make_regression(**kwargs, random_state=rng)
-    X = transform_columns(X, columns, rng, as_frame=as_frame)
+    X = tree_synthetic_transform(X, columns, rng, as_frame=as_frame)
     return X, y
 
 
 def make_trees_classification_data(*, columns: ColumnSpec, random_state=None, as_frame=False, **kwargs):
     rng = check_random_state(random_state)
     X, y = make_classification(**kwargs, random_state=rng)
-    X = transform_columns(X, columns, rng, as_frame=as_frame)
+    X = tree_synthetic_transform(X, columns, rng, as_frame=as_frame)
     return X, y
+
+
+SYNTHETIC_DATA_FUNCTIONS = {
+    "make_classification": make_classification,
+    "make_regression": make_regression,
+    "make_trees_classification_data": make_trees_classification_data,
+    "make_trees_regression_data": make_trees_regression_data,
+    "make_blobs": make_blobs,
+    "make_moons": make_moons,
+    "make_circles": make_circles,
+}
+
+
+def generate_synthetic_data(
+    function_name: str, generation_kwargs: dict
+) -> tuple[dict, dict]:
+    """Generate a synthetic dataset already split into a fixed 50/50 train/test pair.
+
+    Samples `2 * n_samples` from the requested sklearn generator, then splits it
+    into `n_samples` for train and `n_samples` for test.
+    """
+    if function_name not in SYNTHETIC_DATA_FUNCTIONS:
+        raise ValueError(
+            f"Unknown {function_name} function for synthetic data generation"
+        )
+
+    kwargs = {"random_state": 42}
+    kwargs.update(generation_kwargs)
+    n_samples = kwargs["n_samples"]
+    kwargs["n_samples"] = 2 * n_samples
+
+    x, y = SYNTHETIC_DATA_FUNCTIONS[function_name](**kwargs)
+
+    data_desc = dict()
+    if function_name in ("make_classification", "make_trees_classification_data"):
+        data_desc["n_classes"] = kwargs.get("n_classes", 2)
+    elif function_name in ("make_circles", "make_moons"):
+        data_desc["n_classes"] = 2
+
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, train_size=n_samples, test_size=n_samples, random_state=kwargs["random_state"]
+    )
+    data = {"x_train": x_train, "x_test": x_test, "y_train": y_train, "y_test": y_test}
+    return data, data_desc
