@@ -4,8 +4,9 @@ Each Python file in this directory defines a benchmark matrix through a
 `generate_cases()` function. The function must return a list of plain
 dictionaries or pydantic case models exported by `sklbench.config`.
 
-Shared workload helpers live in `configs/_generators.py`; implementation
-selection lives in `configs/_implementations.py`.
+Shared workload helpers live in `configs/_trees.py`, `configs/_linear.py`, and
+`configs/_clustering.py` (with common utilities in `configs/_common.py`);
+implementation selection lives in `configs/_implementations.py`.
 
 Public estimator configs are split by workload and size:
 

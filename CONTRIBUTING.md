@@ -48,12 +48,14 @@ The repository is split into a few layers:
 Config scripts are regular Python. They return a list of JSON-serializable case
 dictionaries or pydantic case models from `generate_cases()`, and the
 orchestrator validates each case before running it. Shared workload helpers live
-in `configs/_generators.py`, and Pixi-environment implementation selection lives
-in `configs/_implementations.py`.
+in `configs/_trees.py`, `configs/_linear.py`, and `configs/_clustering.py`
+(with common utilities in `configs/_common.py`), and Pixi-environment
+implementation selection lives in `configs/_implementations.py`.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `configs/_generators.py`.
+Most case changes should start in `configs/_trees.py`, `configs/_linear.py`,
+or `configs/_clustering.py`, depending on the workload.
 
 Use `configs/all_models_test.py` and `configs/array_api_test.py` for the current
 small exploratory matrices. Use the matching `*_fast.py` configs when working on

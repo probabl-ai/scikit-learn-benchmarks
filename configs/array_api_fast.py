@@ -1,5 +1,6 @@
-from _generators import exclude_estimators, linear_array_api_cases
+from _common import exclude_estimators
 from _implementations import implementations_for_pixi_env, with_implementations
+from _linear import linear_array_api_cases
 
 
 def generate_cases() -> list[dict]:

@@ -1,10 +1,7 @@
-from _generators import (
-    apply_sklearnex_cpu_tree_variants,
-    clustering_cases,
-    linear_cases,
-    tree_cases,
-)
+from _clustering import clustering_cases
 from _implementations import implementations_for_pixi_env, with_implementations
+from _linear import linear_cases
+from _trees import apply_sklearnex_cpu_tree_variants, tree_cases
 
 
 def generate_cases() -> list[dict]:

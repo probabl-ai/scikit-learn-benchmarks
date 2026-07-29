@@ -1,26 +1,11 @@
-from __future__ import annotations
-
 import os
 from copy import deepcopy
 from itertools import product
 from typing import Iterable, Literal
 
+from _common import _merge_dicts
 
 Workload = Literal["all_models", "array_api"]
-
-
-def _merge_dicts(first: dict, second: dict) -> dict:
-    result = deepcopy(first)
-    for key, value in second.items():
-        if (
-            key in result
-            and isinstance(result[key], dict)
-            and isinstance(value, dict)
-        ):
-            result[key] = _merge_dicts(result[key], value)
-        else:
-            result[key] = deepcopy(value)
-    return result
 
 
 def with_implementations(cases: Iterable[dict], implementations: Iterable[dict]):
