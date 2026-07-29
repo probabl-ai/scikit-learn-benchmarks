@@ -123,3 +123,27 @@ def _test_tree_cases() -> Iterable[dict]:
         case = deepcopy(case)
         case["bench"]["n_runs"] = 2
         yield case
+
+    yield from _real_data_tree_cases()
+
+
+def _real_data_tree_cases() -> Iterable[dict]:
+    """Real-dataset cases exercising the `trees` preprocessing kind.
+
+    `ames_housing` has both categorical (mostly `object`-dtype) and numeric
+    columns with real missing values, unlike the synthetic data above.
+    """
+    estimator_params = {
+        "n_estimators": 64,
+        "max_features": 0.3,
+        "n_jobs": cpu_count(only_physical_cores=True),
+    }
+    for estimator in ["RandomForestRegressor", "ExtraTreesRegressor"]:
+        yield {
+            "bench": {"n_runs": 2},
+            "algorithm": {
+                "estimator": estimator,
+                "estimator_params": estimator_params,
+            },
+            "data": {"dataset": "ames_housing", "preprocessing_kind": "trees"},
+        }

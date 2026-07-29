@@ -599,6 +599,22 @@ def load_medical_charges_nominal(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
+def load_ames_housing(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Ames Housing dataset (openml id 42165).
+
+    1460 samples, 79 features, a mix of numeric and (mostly `object`-dtype)
+    categorical columns, with real missing values in both. Small enough to be
+    used in the "test" tier of configs.
+
+    Regression task: predict `SalePrice`.
+    """
+    x, y = load_openml(42165, raw_data_cache, as_frame=True)
+
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
 def load_twodplanes(raw_data_cache: str) -> tuple[dict, dict]:
     x, y = load_openml(1197, raw_data_cache)
     data_desc = {"default_split": {"test_size": 0.4, "random_state": 42}}
@@ -702,6 +718,7 @@ dataset_loading_functions = {
     "szilard_10m": load_szilard_10m,
     # regression
     "abalone": load_abalone,
+    "ames_housing": load_ames_housing,
     "california_housing": load_california_housing,
     "fried": load_fried,
     "medical_charges_nominal": load_medical_charges_nominal,

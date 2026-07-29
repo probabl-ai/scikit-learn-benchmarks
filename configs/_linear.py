@@ -67,3 +67,19 @@ def _linear_cases(template: str, *, array_api: bool) -> Iterable[dict]:
             "algorithm": algorithm,
             "data": data,
         }
+
+    if template != "fast" and not array_api:
+        yield from _real_data_linear_cases(bench)
+
+
+def _real_data_linear_cases(bench: dict) -> Iterable[dict]:
+    """Real-dataset cases exercising the `linear` preprocessing kind.
+
+    `ames_housing` has both categorical (mostly `object`-dtype) and numeric
+    columns with real missing values, unlike the synthetic data above.
+    """
+    yield {
+        "bench": bench,
+        "algorithm": {"estimator": "Ridge"},
+        "data": {"dataset": "ames_housing", "preprocessing_kind": "linear"},
+    }

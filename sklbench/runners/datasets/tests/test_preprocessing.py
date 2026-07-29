@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.datasets import fetch_openml
 
+from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
     hgb_preprocessing,
     linear_preprocessor,
@@ -12,17 +12,18 @@ from sklbench.runners.datasets.preprocessing import (
     trees_preprocessor,
 )
 
-# Ames Housing (openml id 42165): real dataset with both categorical columns
-# (many as plain "object" dtype, as produced by this codebase's openml loader)
-# and actual missing values in both categorical and numeric columns, so it
-# exercises every code path in the preprocessing functions below.
-OPENML_HOUSING_ID = 42165
+# Ames Housing (`ames_housing` loader, openml id 42165): real dataset with both
+# categorical columns (mostly plain "object" dtype, as produced by this
+# codebase's openml loader) and actual missing values in both categorical and
+# numeric columns, so it exercises every code path in the preprocessing
+# functions below.
 
 
 @pytest.fixture(scope="module")
-def housing_xy():
-    x, y = fetch_openml(data_id=OPENML_HOUSING_ID, as_frame=True, return_X_y=True)
-    return x, y.to_numpy(dtype=float)
+def housing_xy(tmp_path_factory):
+    raw_data_cache = str(tmp_path_factory.mktemp("ames_housing_raw"))
+    data, _ = load_ames_housing(raw_data_cache)
+    return data["x"], data["y"].astype(float)
 
 
 @pytest.fixture
