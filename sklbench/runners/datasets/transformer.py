@@ -15,12 +15,10 @@
 # ===============================================================================
 
 import logging
-import os
 import warnings
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 from ...config import EstimatorCase
 
@@ -119,47 +117,6 @@ def convert_data(
         return cupy.array(data)
     else:
         raise ValueError(f"Unknown data format {dformat}")
-
-
-def train_test_split_wrapper(*args, **kwargs):
-    if "ignore" in kwargs:
-        result = []
-        for arg in args:
-            result += [arg, arg]
-        return result
-    else:
-        return train_test_split(*args, **kwargs)
-
-
-def split_data(
-    bench_case: EstimatorCase, data: dict, data_description: dict
-) -> tuple[dict, dict]:
-    """Split loaded `{"x": ..., "y": ...}` data into train/test subsets.
-
-    Uses the dataset's own `default_split` (set by individual loaders) as a
-    base, overridden by the case's `split_kwargs`.
-    """
-    data_params = bench_case.data
-    if "default_split" in data_description:
-        split_kwargs = data_description["default_split"].copy()
-    else:
-        split_kwargs = {"random_state": 42}
-    split_kwargs.update(data_params.split_kwargs)
-    x = data["x"]
-    if "y" in data:
-        y = data["y"]
-        x_train, x_test, y_train, y_test = train_test_split_wrapper(x, y, **split_kwargs)
-    else:
-        x_train, x_test = train_test_split_wrapper(x, **split_kwargs)
-        y_train, y_test = None, None
-
-    data_dict = {
-        "x_train": x_train,
-        "x_test": x_test,
-        "y_train": y_train,
-        "y_test": y_test,
-    }
-    return data_dict, data_description
 
 
 def convert_subsets(

@@ -19,97 +19,208 @@ import logging
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.pipeline import FeatureUnion, make_pipeline
 from sklearn.preprocessing import (
-    MinMaxScaler,
+    OneHotEncoder,
     OrdinalEncoder,
-    StandardScaler,
+    SplineTransformer,
+    TargetEncoder,
 )
+from sklearn.kernel_approximation import Nystroem
+
 
 logger = logging.getLogger(__name__)
 
 Array = pd.DataFrame | np.ndarray
 
 
-def preprocess_data(
+def split_and_preprocess_data(
     data_dict: dict[str, Array],
-    subsample: float | int | None = None,
-    **kwargs,
+    split_kwargs: dict | None = None,
+    default_split: dict | None = None,
+    preprocessing_kind: str | None = None,
+    preprocessing_kwargs: dict | None = None,
 ) -> dict[str, Array]:
     """Preprocessing function applied for all data arguments."""
-    if subsample is not None:
-        for data_name, data in data_dict.items():
-            data_dict[data_name] = train_test_split(
-                data, train_size=subsample, random_state=42, shuffle=True
-            )[0]
+    data_dict = split_data(data_dict, split_kwargs, default_split)
+    if preprocessing_kind is None:
+        return data_dict
+    preprocessing_func = PREPROCESSINGS[preprocessing_kind]
+    data_dict['x_train'], data_dict['x_test'] = preprocessing_func(
+        data_dict['x_train'], data_dict['x_test'], data_dict['y_train'],
+        **preprocessing_kwargs
+    )
     return data_dict
 
 
-def preprocess_x(
-    x: Array,
-    replace_nan="auto",
-    category_encoding="ordinal",
-    normalize=None,
-    **kwargs,
-) -> Array:
-    """Preprocessing function applied only for `x` data argument."""
-    return_type = type(x)
-    if isinstance(x, np.ndarray):
-        x = pd.DataFrame(x)
-    if not isinstance(x, pd.DataFrame):
-        logger.warning(
-            "Preprocessing is supported only for pandas DataFrames "
-            f"and numpy ndarray. Got {type(x)} instead."
-        )
-        return x
-    # NaN values replacement
-    if x.isna().any().any():
-        nan_columns = x.columns[x.isna().any(axis=0)]
-        nan_df = x[nan_columns]
-        if replace_nan == "auto":
-            replace_nan = "median"
-            logger.debug(f'Changing "replace_nan" from "auto" to "{replace_nan}".')
-        if replace_nan == "median":
-            nan_df = nan_df.fillna(nan_df.median())
-        elif replace_nan == "mean":
-            nan_df = nan_df.fillna(nan_df.mean())
-        elif replace_nan == "ignore":
-            pass
-        else:
-            logger.warning(f'Unknown "{replace_nan}" replace nan type.')
-        x[nan_columns] = nan_df
-    # Categorical features transformation
-    categ_columns = x.columns[(x.dtypes == "category") + (x.dtypes == "object")]
-    if len(categ_columns) > 0:
-        if category_encoding == "onehot":
-            prev_n_columns = x.shape[1]
-            x = pd.get_dummies(x, columns=list(categ_columns))
-            logger.debug(
-                f"OneHotEncoder extended {prev_n_columns} columns to {x.shape[1]}."
-            )
-        elif category_encoding == "ordinal":
-            encoder = OrdinalEncoder()
-            encoder.set_output(transform="pandas")
-            ordinal_df = encoder.fit_transform(x[categ_columns])
-            x = x.drop(columns=categ_columns).join(ordinal_df)
-        elif category_encoding == "drop":
-            x = x.drop(columns=categ_columns)
-        elif category_encoding == "ignore":
-            pass
-        else:
-            logger.warning(f'Unknown "{category_encoding}" category encoding type.')
-    # Normalization
-    if normalize:
-        if normalize == "standard":
-            scaler = StandardScaler(with_mean=True, with_std=True)
-        elif normalize == "mean":
-            scaler = StandardScaler(with_mean=True, with_std=False)
-        elif normalize == "minmax":
-            scaler = MinMaxScaler(feature_range=(0, 1))
-        else:
-            logger.warning(f'Unknown "{normalize}" normalization type.')
-        if scaler is not None:
-            x = pd.DataFrame(scaler.fit_transform(x), columns=x.columns, index=x.index)
-    if return_type == np.ndarray:
-        return np.array(x)
+def train_test_split_wrapper(*args, **kwargs):
+    if "ignore" in kwargs:
+        result = []
+        for arg in args:
+            result += [arg, arg]
+        return result
     else:
-        return x
+        return train_test_split(*args, **kwargs)
+
+
+def split_data(
+    data: dict, split_kwargs: dict | None, default_split: dict | None
+) -> tuple[dict, dict]:
+    """Split loaded `{"x": ..., "y": ...}` data into train/test subsets.
+
+    Uses the dataset's own `default_split` (set by individual loaders) as a
+    base, overridden by the case's `split_kwargs`.
+    """
+    kwargs = (default_split or {}) | (split_kwargs or {})
+    kwargs.setdefault("random_state", 42)
+
+    x = data["x"]
+    if "y" in data:
+        y = data["y"]
+        x_train, x_test, y_train, y_test = train_test_split_wrapper(x, y, **kwargs)
+    else:
+        x_train, x_test = train_test_split_wrapper(x, **kwargs)
+        y_train, y_test = None, None
+
+    data_dict = {
+        "x_train": x_train,
+        "x_test": x_test,
+        "y_train": y_train,
+        "y_test": y_test,
+    }
+    return data_dict
+
+
+def preprocessor_to_preprocessing(f):
+
+    def preprocesing(X_train, X_test, y_train=None, **kwargs):
+        preprocessor = f(**kwargs)
+        X_train = preprocessor.fit_transform(X_train, y_train)
+        X_test = preprocessor.transform(X_test)
+        return X_train, X_test
+
+    return preprocesing
+
+
+@preprocessor_to_preprocessing
+def trees_preprocessor(encoding : str = "ordinal"):
+
+    encoders = {
+        "ordinal": OrdinalEncoder(
+            handle_unknown="use_encoded_value",
+            unknown_value=np.nan,
+            encoded_missing_value=-1,
+            min_frequency=5
+        ),
+        "one-hot": OneHotEncoder(
+            handle_unknown="infrequent_if_exist",
+            max_categories=10,
+            min_frequency=5,
+        ),
+        # TODO? target encoding
+    } 
+
+    encoder = encoders[encoding]
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            (
+                "encoder",
+                encoder,
+                make_column_selector(dtype_include=["category", "string", object]),
+            ),
+        ],
+        remainder='passthrough'
+    )
+
+    # TODO? returning categorical type as done for HGB
+    # useful for sklearn nightly (categorical support)
+
+    return preprocessor
+
+
+@preprocessor_to_preprocessing
+def linear_preprocessor(
+    nystroem = None
+):
+
+    target_encoder = TargetEncoder(
+        target_type="continuous",
+        cv=5,
+        shuffle=True,
+        random_state=0,
+    )
+
+    one_hot_encoder = OneHotEncoder(
+        sparse_output=False,
+        handle_unknown="infrequent_if_exist",
+        max_categories=10,
+        min_frequency=5,
+    )
+
+    preprocessor = ColumnTransformer(
+        transformers=[
+            (
+                "categorical",
+                FeatureUnion([
+                    ("onehot", one_hot_encoder),
+                    ("target", target_encoder),
+                ]),
+                make_column_selector(dtype_include=["category", object]),
+            ),
+            (
+                "numeric",
+                SplineTransformer(n_knots=10, degree=2, handle_missing="zeros"),
+                make_column_selector(dtype_include=["number"]),
+            ),
+        ]
+    )
+
+    if nystroem == "no":
+        # it's already scaled I think?
+        # So it should be fine for fitting linear models
+        return preprocessor
+
+    nystroem = nystroem or {}
+    nystroem |= dict(kernel="poly", degree=2, n_components=300, random_state=721)
+
+    return make_pipeline(preprocessor, Nystroem(**nystroem))
+
+
+def hgb_preprocessing(X_train, X_test, y_train=None):
+
+    if not isinstance(X_train, pd.DataFrame):
+        X_train = pd.DataFrame(X_train)
+    if not isinstance(X_test, pd.DataFrame):
+        X_test = pd.DataFrame(X_test)
+
+    encoder = OrdinalEncoder(
+        handle_unknown="use_encoded_value",
+        unknown_value=np.nan,
+        encoded_missing_value=-1,
+        min_frequency=5,
+        max_categories=252
+    )
+
+    categorical_columns = X_train.select_dtypes(["category", object]).columns.to_list()
+    preprocessor = ColumnTransformer(
+        transformers=[("encoder", encoder, categorical_columns)],
+        remainder='passthrough',
+        verbose_feature_names_out=False,
+    )
+    preprocessor.set_output(transform="pandas")
+    X_train = preprocessor.fit_transform(X_train)
+    X_test = preprocessor.transform(X_test)
+    for col in categorical_columns:
+        X_train[col] = X_train[col].astype('category')
+        X_test[col] = X_test[col].astype('category')
+
+    return X_train, X_test
+
+
+PREPROCESSINGS = {
+    'trees': trees_preprocessor,
+    'linear': linear_preprocessor,
+    'hgb': hgb_preprocessing,
+}

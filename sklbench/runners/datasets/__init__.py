@@ -19,9 +19,9 @@ import os
 from ...config import EstimatorCase
 from .loaders import dataset_loading_functions, load_openml_data
 from .loading import load_from_cache_or_compute
-from .preprocessing import preprocess_data, preprocess_x
+from .preprocessing import split_and_preprocess_data
 from .synthetic import generate_synthetic_data
-from .transformer import convert_subsets, split_data
+from .transformer import convert_subsets
 
 
 def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
@@ -59,9 +59,12 @@ def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
             f"{data_params.model_dump(exclude_none=True)}"
         )
 
-    preproc_kwargs = data_params.preprocessing_kwargs
-    data = preprocess_data(data, **preproc_kwargs)
-    data["x"] = preprocess_x(data["x"], **preproc_kwargs)
+    data_dict = split_and_preprocess_data(
+        data,
+        split_kwargs=data_params.split_kwargs,
+        default_split=data_description.get('default_split'),
+        preprocessing_kind=data_params.preprocessing_kind,
+        preprocessing_kwargs=data_params.preprocessing_kwargs
+    )
 
-    data_dict, data_description = split_data(bench_case, data, data_description)
     return convert_subsets(bench_case, data_dict, data_description)

@@ -16,6 +16,7 @@ class Data(Section):
     id: int | str | None = None
     generation_kwargs: JsonDict | None = None
     split_kwargs: JsonDict = Field(default_factory=dict)
+    preprocessing_kind: str | None = None
     preprocessing_kwargs: JsonDict = Field(default_factory=dict)
     order: str | None = None
     dtype: str | None = None
@@ -32,10 +33,10 @@ class Data(Section):
                     "split_kwargs is not allowed together with generation_kwargs: "
                     "synthetic data always uses a fixed 50/50 train/test split."
                 )
-            if self.preprocessing_kwargs:
+            if self.preprocessing_kind is not None or self.preprocessing_kwargs:
                 raise ValueError(
-                    "preprocessing_kwargs is not allowed together with "
-                    "generation_kwargs: synthetic data is never preprocessed."
+                    "preprocessing_kind/preprocessing_kwargs is not allowed together "
+                    "with generation_kwargs: synthetic data is never preprocessed."
                 )
         return self
 
