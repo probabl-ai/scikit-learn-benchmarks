@@ -1,5 +1,25 @@
+import hashlib
+import json
 from copy import deepcopy
 from typing import Iterable
+import random
+
+
+def deterministic_random_choice(seed: object, choices: list, n: int = 1):
+    """Deterministically pick one of `choices` based on the JSON content of `seed`.
+
+    The same `seed` always yields the same choice, regardless of call order or
+    process-level random state, so config scripts stay reproducible while still
+    varying a parameter across cases without spelling out every combination.
+    """
+    digest = hashlib.sha256(
+        json.dumps(seed, sort_keys=True).encode("utf-8")
+    ).digest()
+    rng = random.Random(digest)
+    if n == 1:
+        return rng.choice(choices)
+    else:
+        return rng.choices(choices, k=n)
 
 
 def _merge_dicts(first: dict, second: dict) -> dict:
