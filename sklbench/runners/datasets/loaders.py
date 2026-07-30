@@ -914,6 +914,27 @@ def load_gist(raw_data_cache: str) -> tuple[dict, dict]:
     return load_ann_dataset_template(url, raw_data_cache)
 
 
+def load_glove_100_l2_normalized(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    GloVe 100-dim word embeddings from ann-benchmarks.com
+    (glove-100-angular.hdf5), L2-normalized.
+
+    The source dataset is meant for cosine/angular-distance ANN search, so
+    vectors aren't normalized as stored. L2-normalizing here makes
+    Euclidean distance (and thus k-means) equivalent to cosine distance.
+    """
+    url = "http://ann-benchmarks.com/glove-100-angular.hdf5"
+    data, data_desc = load_ann_dataset_template(url, raw_data_cache)
+    x = data["x"]
+    x /= np.linalg.norm(x, axis=1, keepdims=True)
+    return {"x": x, "y": data["y"]}, data_desc
+
+
+def load_fashion_mnist_784_euclidean(raw_data_cache: str) -> tuple[dict, dict]:
+    url = "http://ann-benchmarks.com/fashion-mnist-784-euclidean.hdf5"
+    return load_ann_dataset_template(url, raw_data_cache)
+
+
 dataset_loading_functions = {
     # used by configs/*.py
     "ames_housing": load_ames_housing,
@@ -958,4 +979,6 @@ dataset_loading_functions = {
     # index search
     "sift": load_sift,
     "gist": load_gist,
+    "glove_100": load_glove_100_l2_normalized,
+    "fashion_mnist_784": load_fashion_mnist_784_euclidean,
 }
