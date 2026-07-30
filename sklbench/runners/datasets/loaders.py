@@ -559,6 +559,96 @@ def load_szilard_10m(raw_data_cache: str) -> tuple[dict, dict]:
     )
 
 
+def load_amazon_employee_access(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Amazon Employee Access Challenge dataset (OpenML id 4135, originally a
+    Kaggle competition).
+
+    32769 samples, 9 features, all of them categorical (pandas `category`
+    dtype) describing employee/resource/role attributes (e.g. RESOURCE,
+    MGR_ID, ROLE_ROLLUP_1/2, ROLE_DEPTNAME, ROLE_TITLE, ROLE_FAMILY_DESC,
+    ROLE_FAMILY, ROLE_CODE). Cardinality ranges widely across columns, from
+    a few dozen unique values up to several thousand (RESOURCE has 7518,
+    MGR_ID has 4243), so this dataset exercises categorical preprocessing
+    with a mix of low- and very high-cardinality columns. No missing values.
+
+    Classification task: predict ACTION (whether access was granted).
+    n_classes = 2, notably imbalanced (~94% granted / ~6% denied).
+    """
+    x, y = load_openml(4135, raw_data_cache, as_frame=True)
+
+    data_desc = {
+        "n_classes": 2,
+        "default_split": {"test_size": 0.2, "random_state": 42},
+    }
+    return {"x": x, "y": y}, data_desc
+
+
+def load_kddcup09_churn(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    KDD Cup 2009 "churn" task (openml id 1112).
+    https://www.openml.org/d/1112
+
+    Raw shape is 50000 rows x 230 columns (174 float64, 18 `object`, and
+    38 `category` columns -- 56 categorical-like columns total). 23 of the
+    230 columns are entirely useless (all-NaN or constant, i.e.
+    `nunique(dropna=True) <= 1`) and are dropped here, leaving 207 columns.
+
+    Missingness remains heavy even after dropping the useless columns: 161
+    of the original 230 columns have >50% NaN. This is real, expected
+    messiness for this dataset and is left untouched -- downstream
+    preprocessing/models must handle NaN (HGB-style histogram trees do so
+    natively; plain sklearn trees currently don't, which is a known
+    limitation of this repo's tree preprocessing, not something to fix
+    here).
+
+    Categorical cardinality is bimodal: most of the 56 categorical-like
+    columns are low-cardinality (many between 2 and 100 uniques), but a
+    handful are very high-cardinality, e.g. Var214/Var200 (15415 uniques
+    each), Var217 (13990), Var202 (5713), Var199 (5073), and
+    Var198/Var220/Var222 (4291 each). This dataset is included specifically
+    to exercise categorical preprocessing across both extremes.
+
+    Classification task. n_classes = 2. Target is highly imbalanced:
+    y=0 (no churn) = 46328 (92.7%), y=1 (churn) = 3672 (7.3%), so the
+    default split stratifies on y to keep churn examples in both subsets.
+    """
+    x, y = load_openml(1112, raw_data_cache, as_frame=True)
+
+    useless_cols = [col for col in x.columns if x[col].nunique(dropna=True) <= 1]
+    x = x.drop(columns=useless_cols)
+
+    data_desc = {
+        "n_classes": 2,
+        "default_split": {"test_size": 0.2, "random_state": 42, "stratify": "y"},
+    }
+    return {"x": x, "y": y}, data_desc
+
+
+def load_kick(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Don't Get Kicked (openml id 41162).
+
+    72983 samples, 32 columns describing used vehicles purchased at auction,
+    with a realistic mix of 9 numeric columns (price/odometer/age fields like
+    VehOdo, VehicleAge, several MMR* price columns, VehBCost, WarrantyCost)
+    and `category`-dtype columns spanning low to high cardinality (from 2
+    up to 1063 unique values for Model, 863 for SubModel, 134 for Trim).
+    PRIMEUNIT and AUCGUART are ~95% missing but left as-is: the missingness
+    itself is an informative low-frequency category rather than noise.
+
+    Classification task: predict IsBadBuy (whether the purchase was a "kick").
+    Imbalanced target, ~87.7% negative / 12.3% positive. n_classes = 2.
+    """
+    x, y = load_openml(41162, raw_data_cache, as_frame=True)
+
+    data_desc = {
+        "n_classes": 2,
+        "default_split": {"test_size": 0.2, "random_state": 42},
+    }
+    return {"x": x, "y": y}, data_desc
+
+
 """
 Regression datasets
 """
@@ -717,6 +807,9 @@ dataset_loading_functions = {
     "letters": load_letters,
     "szilard_1m": load_szilard_1m,
     "szilard_10m": load_szilard_10m,
+    "amazon_employee_access": load_amazon_employee_access,
+    "kddcup09_churn": load_kddcup09_churn,
+    "kick": load_kick,
     # regression
     "abalone": load_abalone,
     "ames_housing": load_ames_housing,

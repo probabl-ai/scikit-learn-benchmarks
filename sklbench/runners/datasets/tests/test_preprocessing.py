@@ -54,6 +54,18 @@ def test_split_data_split_kwargs_override_default_split():
     assert split["x_test"].shape[0] == 3
 
 
+def test_split_data_resolves_stratify_sentinel_to_y_array():
+    y = np.array([0] * 18 + [1] * 2)
+    data = {"x": np.arange(20).reshape(10, 2).repeat(2, axis=0), "y": y}
+
+    split = split_data(
+        data, split_kwargs=None, default_split={"test_size": 0.5, "stratify": "y"}
+    )
+
+    assert (split["y_train"] == 1).sum() == 1
+    assert (split["y_test"] == 1).sum() == 1
+
+
 def test_split_data_without_y_leaves_y_train_test_none():
     data = {"x": np.arange(20).reshape(10, 2)}
 

@@ -71,6 +71,11 @@ def split_data(
 
     Uses the dataset's own `default_split` (set by individual loaders) as a
     base, overridden by the case's `split_kwargs`.
+
+    `default_split` is JSON-serialized to disk, so it cannot carry the actual
+    `y` array for stratification. A loader that needs a stratified split sets
+    `"stratify": "y"` as a string sentinel instead; it is resolved here to
+    the real `y` array before being passed to `train_test_split`.
     """
     kwargs = (default_split or {}) | (split_kwargs or {})
     kwargs.setdefault("random_state", 42)
@@ -78,6 +83,8 @@ def split_data(
     x = data["x"]
     if "y" in data:
         y = data["y"]
+        if kwargs.get("stratify") == "y":
+            kwargs["stratify"] = y
         x_train, x_test, y_train, y_test = train_test_split_wrapper(x, y, **kwargs)
     else:
         x_train, x_test = train_test_split_wrapper(x, **kwargs)
@@ -146,7 +153,7 @@ def linear_preprocessor(
 ):
 
     target_encoder = TargetEncoder(
-        target_type="continuous",
+        target_type="auto",
         cv=5,
         shuffle=True,
         random_state=0,
