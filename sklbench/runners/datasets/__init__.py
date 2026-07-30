@@ -59,12 +59,15 @@ def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
             f"{data_params.model_dump(exclude_none=True)}"
         )
 
+    preprocessing_defaults = data_description.get('preprocessing_defaults', {}).get(
+        data_params.preprocessing_kind, {}
+    )
     data_dict = split_and_preprocess_data(
         data,
         split_kwargs=data_params.split_kwargs,
         default_split=data_description.get('default_split'),
         preprocessing_kind=data_params.preprocessing_kind,
-        preprocessing_kwargs=data_params.preprocessing_kwargs
+        preprocessing_kwargs=preprocessing_defaults | data_params.preprocessing_kwargs
     )
 
     return convert_subsets(bench_case, data_dict, data_description)

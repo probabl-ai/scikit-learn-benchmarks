@@ -14,6 +14,7 @@
 # limitations under the License.
 # ===============================================================================
 import os
+import re
 
 import numpy as np
 import pandas as pd
@@ -186,6 +187,14 @@ def load_higgs(raw_data_cache: str) -> tuple[dict, dict]:
 
 
 def load_susy(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    SUSY dataset from UCI machine learning repository
+    https://archive.ics.uci.edu/ml/datasets/SUSY
+
+    5,000,000 samples, 18 features, all numeric (kinematic properties of
+    simulated particle collisions). No missing values. Binary
+    classification, roughly balanced (~45.7% positive).
+    """
     return load_higgs_susy_subsample("susy", raw_data_cache)
 
 
@@ -219,15 +228,41 @@ def load_sklearn_digits(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
+def undo_one_hot(x: pd.DataFrame) -> pd.DataFrame:
+    """Collapse `<prefix>_<int>`-named one-hot dummy columns (as produced by
+    sklearn's `as_frame=True` fetchers for originally-categorical UCI
+    features) back into one `category`-dtype column per prefix."""
+    x = x.copy()
+    matches = [re.match(r"(.*)_[0-9]+$", col) for col in x.columns]
+    col_mapping = {m.group(0): m.group(1) for m in matches if m}
+
+    for col in set(col_mapping.values()):
+        x[col] = -1
+    for src_col, col in col_mapping.items():
+        val = int(src_col.split("_")[-1])
+        x.loc[x[src_col] > 0, col] = val
+    x = x.drop(columns=list(col_mapping))
+    for col in set(col_mapping.values()):
+        x[col] = x[col].astype("category")
+    return x
+
+
 def load_covtype(raw_data_cache: str) -> tuple[dict, dict]:
     """
     Cover type dataset from UCI machine learning repository
     https://archive.ics.uci.edu/ml/datasets/covertype
 
+    581012 samples, 12 features: 10 continuous numeric (elevation, slope,
+    hillshade, distances to hydrology/roadways/fire points, ...) plus 2
+    categorical features reconstructed (via `undo_one_hot`) from their
+    one-hot-encoded source columns - `Wilderness_Area` (4 categories) and
+    `Soil_Type` (40 categories). No missing values.
+
     y contains 7 unique class labels from 1 to 7 inclusive.
     Classification task. n_classes = 7.
     """
-    x, y = fetch_covtype(return_X_y=True, data_home=raw_data_cache)
+    x, y = fetch_covtype(return_X_y=True, as_frame=True, data_home=raw_data_cache)
+    x = undo_one_hot(x)
     y = y.astype(int) - 1
 
     data_desc = {
@@ -333,10 +368,46 @@ def load_creditcard(raw_data_cache: str) -> tuple[dict, dict]:
 
 
 def load_fraud(raw_data_cache: str) -> tuple[dict, dict]:
-    x, y = load_openml(42175, raw_data_cache)
+    """
+    Credit Card Fraud Detection dataset (openml id 42175).
+
+    284807 samples, 30 features, all numeric: 28 PCA-derived components
+    (V1-V28, anonymized for confidentiality) plus `Time` and `Amount`. No
+    missing values.
+
+    `Time` (seconds since the first transaction, spanning ~2 days) is
+    replaced with `Time_of_day` (`Time` modulo 86400) since the raw
+    elapsed-time counter isn't meaningful on its own but time-of-day is.
+    For the `linear` preprocessing kind: V1-V28 are already well-conditioned
+    PCA components and are passed through untouched (flagged via
+    `preprocessing_defaults`), while `Time_of_day` and `Amount` get
+    spline-encoded with 20 knots instead of the linear preprocessor's
+    default 10.
+
+    Rows are in chronological order (confirmed via the original `Time`
+    column), so the default split is *not* shuffled: train on the first
+    80% of transactions, test on the most recent 20% (417 vs 75 fraud
+    cases) - this mirrors real fraud-detection deployment (train on past
+    transactions, evaluate on future ones) rather than an optimistic
+    random split.
+
+    Classification task. n_classes = 2, extremely imbalanced: 492 fraud
+    cases (0.17%) out of 284807 transactions.
+    """
+    x, y = load_openml(42175, raw_data_cache, as_frame=True)
+    x = x.rename(columns={"Time": "Time_of_day"})
+    x["Time_of_day"] = x["Time_of_day"] % 86400
+
+    v_columns = [col for col in x.columns if col.startswith("V")]
     data_desc = {
         "n_classes": 2,
-        "default_split": {"test_size": 0.2, "random_state": 77},
+        "default_split": {"test_size": 0.2, "shuffle": False},
+        "preprocessing_defaults": {
+            "linear": {
+                "passthrough_columns": v_columns,
+                "spline_kwargs": {"n_knots": 20},
+            },
+        },
     }
     return {"x": x, "y": y}, data_desc
 
@@ -683,9 +754,48 @@ def load_fried(raw_data_cache: str) -> tuple[dict, dict]:
 
 
 def load_medical_charges_nominal(raw_data_cache: str) -> tuple[dict, dict]:
-    x, y = load_openml(42559, raw_data_cache)
+    """
+    Medical charges dataset (openml id 42559): US hospital inpatient charges
+    by diagnosis-related group (DRG) and provider.
+
+    163065 samples, 11 features: one moderate-cardinality categorical
+    (`DRG_Definition`, 100 categories) plus several very-high-cardinality
+    "nominal" identifier-like categoricals for the billing provider
+    (`Provider_Id`/`Provider_Name`/`Provider_Street_Address` each with
+    ~3000-3300 categories, `Provider_Zip_Code` ~3053, `Provider_City` ~1977,
+    `Hospital_Referral_Region_(HRR)_Description` ~306, `Provider_State` 51),
+    plus 2 numeric features and 1 numeric count. No missing values. This is
+    a standard benchmark for high-cardinality categorical encoding.
+
+    Regression task: predict average total payment per DRG/provider.
+    """
+    x, y = load_openml(42559, raw_data_cache, as_frame=True)
 
     data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
+def load_bank_marketing(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Bank Marketing dataset (openml id 1461): UCI phone-based term-deposit
+    marketing campaign data from a Portuguese bank.
+
+    45211 samples, 16 features (columns are anonymized as V1-V16 by this
+    OpenML version but correspond to the standard UCI schema: age, job,
+    marital, education, default, balance, housing, loan, contact, day,
+    month, duration, campaign, pdays, previous, poutcome). 9 categorical
+    columns with low cardinality (2 to 12 categories), the rest numeric. No
+    missing values.
+
+    Classification task: predict whether the client subscribed to a term
+    deposit. n_classes = 2, imbalanced (~88.3% no / ~11.7% yes).
+    """
+    x, y = load_openml(1461, raw_data_cache, as_frame=True)
+
+    data_desc = {
+        "n_classes": 2,
+        "default_split": {"test_size": 0.2, "random_state": 42},
+    }
     return {"x": x, "y": y}, data_desc
 
 
@@ -713,12 +823,29 @@ def load_twodplanes(raw_data_cache: str) -> tuple[dict, dict]:
 
 
 def load_year_prediction_msd(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    YearPredictionMSD dataset (subset of the Million Song Dataset) from UCI
+    machine learning repository
+    https://archive.ics.uci.edu/ml/datasets/YearPredictionMSD
+
+    515345 samples, 90 features, all numeric (timbre-based audio features:
+    12 average values + 78 covariance values). No missing values.
+
+    Regression task: predict the song's release year, ranging 1922-2011.
+    Inherently hard - published baselines report R2 around 0.2-0.3, so a
+    low R2 here reflects the task, not an undertuned model.
+    """
     url = (
         "https://archive.ics.uci.edu/ml/machine-learning-databases/00203/"
         "YearPredictionMSD.txt.zip"
     )
     data = download_and_read_csv(url, raw_data_cache, header=None)
     x, y = data.iloc[:, 1:], data.iloc[:, 0]
+    # `x`'s columns are otherwise the leftover integer labels [1..90] from
+    # the headerless CSV read, which `ColumnTransformer` misreads as
+    # 0-indexed positional indices (breaking `linear`/`trees`
+    # preprocessing) - string-label them to remove the ambiguity.
+    x.columns = [str(col) for col in x.columns]
     data_desc = {"default_split": {"test_size": 0.1, "shuffle": False}}
     return {"x": x, "y": y}, data_desc
 
@@ -810,6 +937,7 @@ dataset_loading_functions = {
     "amazon_employee_access": load_amazon_employee_access,
     "kddcup09_churn": load_kddcup09_churn,
     "kick": load_kick,
+    "bank_marketing": load_bank_marketing,
     # regression
     "abalone": load_abalone,
     "ames_housing": load_ames_housing,

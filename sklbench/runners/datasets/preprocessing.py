@@ -149,8 +149,18 @@ def trees_preprocessor(encoding : str = "ordinal"):
 
 @preprocessor_to_preprocessing
 def linear_preprocessor(
-    nystroem = None
+    nystroem = None,
+    passthrough_columns = (),
+    spline_kwargs = None,
 ):
+    """
+    `passthrough_columns` and `spline_kwargs` let a loader flag (via
+    `data_desc["preprocessing_defaults"]["linear"]`, merged into these
+    kwargs by `load_data`) that some numeric columns are already
+    well-conditioned features that shouldn't be spline-expanded (e.g.
+    `fraud`'s PCA components), and/or that the spline transform applied to
+    the remaining numeric columns should use non-default knot settings.
+    """
 
     target_encoder = TargetEncoder(
         target_type="auto",
@@ -166,23 +176,34 @@ def linear_preprocessor(
         min_frequency=5,
     )
 
-    preprocessor = ColumnTransformer(
-        transformers=[
-            (
-                "categorical",
-                FeatureUnion([
-                    ("onehot", one_hot_encoder),
-                    ("target", target_encoder),
-                ]),
-                make_column_selector(dtype_include=["category", object]),
-            ),
-            (
-                "numeric",
-                SplineTransformer(n_knots=10, degree=2, handle_missing="zeros"),
-                make_column_selector(dtype_include=["number"]),
-            ),
-        ]
+    numeric_selector = make_column_selector(dtype_include=["number"])
+
+    def numeric_non_passthrough_columns(x):
+        return [c for c in numeric_selector(x) if c not in passthrough_columns]
+
+    spline_kwargs = {"n_knots": 10, "degree": 2, "handle_missing": "zeros"} | (
+        spline_kwargs or {}
     )
+
+    transformers = [
+        (
+            "categorical",
+            FeatureUnion([
+                ("onehot", one_hot_encoder),
+                ("target", target_encoder),
+            ]),
+            make_column_selector(dtype_include=["category", object]),
+        ),
+        (
+            "numeric",
+            SplineTransformer(**spline_kwargs),
+            numeric_non_passthrough_columns,
+        ),
+    ]
+    if passthrough_columns:
+        transformers.append(("passthrough", "passthrough", list(passthrough_columns)))
+
+    preprocessor = ColumnTransformer(transformers=transformers)
 
     if nystroem == "no":
         # it's already scaled I think?
