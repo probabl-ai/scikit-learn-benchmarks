@@ -610,6 +610,7 @@ def load_ames_housing(raw_data_cache: str) -> tuple[dict, dict]:
     Regression task: predict `SalePrice`.
     """
     x, y = load_openml(42165, raw_data_cache, as_frame=True)
+    x.drop(columns=['Id'], inplace=True)
 
     data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
     return {"x": x, "y": y}, data_desc

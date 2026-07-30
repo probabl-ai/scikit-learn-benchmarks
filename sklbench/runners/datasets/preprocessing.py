@@ -128,7 +128,7 @@ def trees_preprocessor(encoding : str = "ordinal"):
             (
                 "encoder",
                 encoder,
-                make_column_selector(dtype_include=["category", "string", object]),
+                make_column_selector(dtype_include=["category", object]),
             ),
         ],
         remainder='passthrough'
