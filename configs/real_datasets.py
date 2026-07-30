@@ -252,7 +252,13 @@ REAL_DATASET_CASES = [
         "linear": [
             # LogisticRegression, no preprocessing: test acc 0.789, bal.acc 0.780, ROC AUC 0.859
             _linear_case(
-                {"estimator": "LogisticRegression", "estimator_params": {"max_iter": 200}},
+                {
+                    "estimator": "LogisticRegression",
+                    "estimator_params": {
+                        "max_iter": 200,
+                        "solver": "newton-cholesky",
+                    },
+                },
                 preprocessing=NO_PREPROCESSING,
             ),
         ],
