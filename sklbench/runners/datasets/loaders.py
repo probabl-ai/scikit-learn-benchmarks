@@ -935,6 +935,27 @@ def load_fashion_mnist_784_euclidean(raw_data_cache: str) -> tuple[dict, dict]:
     return load_ann_dataset_template(url, raw_data_cache)
 
 
+def load_nytimes_256_l2_normalized(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    NYTimes 256-dim bag-of-words embeddings from ann-benchmarks.com
+    (nytimes-256-angular.hdf5), L2-normalized.
+
+    The source dataset is meant for cosine/angular-distance ANN search, so
+    vectors aren't normalized as stored. L2-normalizing here makes
+    Euclidean distance (and thus k-means) equivalent to cosine distance.
+
+    248/300000 rows are exact all-zero vectors (documents with no overlap
+    with the source vocabulary) - dividing those by their own (zero) norm
+    would produce NaN, so they're left as zero vectors instead.
+    """
+    url = "http://ann-benchmarks.com/nytimes-256-angular.hdf5"
+    data, data_desc = load_ann_dataset_template(url, raw_data_cache)
+    x = data["x"]
+    norms = np.linalg.norm(x, axis=1, keepdims=True)
+    x /= np.where(norms == 0, 1, norms)
+    return {"x": x, "y": data["y"]}, data_desc
+
+
 dataset_loading_functions = {
     # used by configs/*.py
     "ames_housing": load_ames_housing,
@@ -981,4 +1002,5 @@ dataset_loading_functions = {
     "gist": load_gist,
     "glove_100": load_glove_100_l2_normalized,
     "fashion_mnist_784": load_fashion_mnist_784_euclidean,
+    "nytimes_256": load_nytimes_256_l2_normalized,
 }
