@@ -210,8 +210,9 @@ def linear_preprocessor(
         # So it should be fine for fitting linear models
         return preprocessor
 
-    nystroem = nystroem or {}
-    nystroem |= dict(kernel="poly", degree=2, n_components=300, random_state=721)
+    nystroem = dict(kernel="poly", degree=2, n_components=300, random_state=721) | (
+        nystroem or {}
+    )
 
     return make_pipeline(preprocessor, Nystroem(**nystroem))
 

@@ -32,6 +32,12 @@ def retrieve(url: str, filename: str, max_retries: int = 3) -> None:
     if not url.startswith("http"):
         raise ValueError(f"URL must start with http:// or https://, got: {url}")
 
+    # Download to a temp path first and only move it into place once fully
+    # verified, so a process kill (e.g. the orchestrator's time_limit) mid-download
+    # can never leave a truncated file at `filename` that later runs mistake for
+    # a valid cache hit.
+    tmp_filename = f"{filename}.part"
+
     for attempt in range(max_retries):
         try:
             response = requests.get(url, stream=True, timeout=120)
@@ -44,7 +50,7 @@ def retrieve(url: str, filename: str, max_retries: int = 3) -> None:
             total_size = int(response.headers.get("content-length", 0))
             block_size = 8192
 
-            with open(filename, "wb") as datafile:
+            with open(tmp_filename, "wb") as datafile:
                 bytes_written = 0
                 for data in response.iter_content(block_size):
                     if data:
@@ -53,7 +59,7 @@ def retrieve(url: str, filename: str, max_retries: int = 3) -> None:
 
             # Verify download completeness if size is known
             if total_size > 0 and bytes_written != total_size:
-                os.remove(filename)
+                os.remove(tmp_filename)
                 if attempt < max_retries - 1:
                     time.sleep(1)
                     continue
@@ -61,14 +67,15 @@ def retrieve(url: str, filename: str, max_retries: int = 3) -> None:
                     f"Incomplete download from {url}. "
                     f"Expected {total_size} bytes, got {bytes_written}"
                 )
+            os.replace(tmp_filename, filename)
             return
 
         except (
             requests.exceptions.RequestException,
             IOError,
         ) as e:
-            if os.path.isfile(filename):
-                os.remove(filename)
+            if os.path.isfile(tmp_filename):
+                os.remove(tmp_filename)
             if attempt < max_retries - 1:
                 time.sleep(1)
                 continue
