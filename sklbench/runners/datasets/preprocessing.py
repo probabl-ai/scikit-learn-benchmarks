@@ -205,14 +205,12 @@ def linear_preprocessor(
 
     preprocessor = ColumnTransformer(transformers=transformers)
 
-    if nystroem == "no":
+    if nystroem is None:
         # it's already scaled I think?
         # So it should be fine for fitting linear models
         return preprocessor
 
-    nystroem = dict(kernel="poly", degree=2, n_components=300, random_state=721) | (
-        nystroem or {}
-    )
+    nystroem = dict(kernel="poly", degree=2, n_components=300, random_state=721) | nystroem
 
     return make_pipeline(preprocessor, Nystroem(**nystroem))
 
