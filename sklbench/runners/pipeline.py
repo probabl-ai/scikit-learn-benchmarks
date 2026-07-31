@@ -36,7 +36,7 @@ from ..config import PipelineCase
 logger = logging.getLogger(__name__)
 
 
-def _load_data(case: PipelineCase):
+def load_data(case: PipelineCase):
     X, y = fetch_openml(
         data_id=case.data.openml_data_id,
         as_frame=True,
@@ -145,7 +145,7 @@ def _default_param_distributions(case: PipelineCase):
 
 
 def run_pipeline_tunning(case: PipelineCase) -> dict:
-    X, y = _load_data(case)
+    X, y = load_data(case)
     cv = ShuffleSplit(
         n_splits=case.run.cv_n_splits,
         test_size=case.run.cv_test_size,

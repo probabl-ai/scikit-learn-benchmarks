@@ -11,7 +11,7 @@ from typing import Any
 
 from tqdm import tqdm
 
-from ..config import Case
+from ..config import Case, EstimatorCase, PipelineCase
 from .commands import run_runner_from_case
 from .env import get_environment_info
 
@@ -129,6 +129,38 @@ def save_benchmark_record(
     }
     with record_path.open("x", encoding="utf-8") as fp:
         json.dump(record, fp, indent=4)
+
+
+def _load_case_dataset(bench_case: Case) -> None:
+    if isinstance(bench_case, EstimatorCase):
+        from ..runners.datasets import load_data
+    elif isinstance(bench_case, PipelineCase):
+        from ..runners.pipeline import load_data
+    else:
+        raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
+    load_data(bench_case)
+
+
+def load_datasets_only(bench_cases: list[Case], args) -> int:
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(levelname)s - %(name)s - %(message)s",
+    )
+
+    return_code = 0
+    bench_cases_with_pbar = tqdm(bench_cases)
+    for bench_case in bench_cases_with_pbar:
+        bench_cases_with_pbar.set_description(bench_case.name(shortened=True))
+        try:
+            _load_case_dataset(bench_case)
+        except Exception as exc:
+            return_code = -1
+            logger.warning(
+                f"Failed to load dataset for {bench_case.name(shortened=True)!r}: {exc!r}"
+            )
+            if args.exit_on_error:
+                break
+    return return_code
 
 
 def orchestrate_benchmarks(

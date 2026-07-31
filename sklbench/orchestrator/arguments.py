@@ -24,6 +24,16 @@ def add_orchestrator_arguments(
         action="store_true",
         help="Interrupt orchestrator and exit if last benchmark failed with error.",
     )
+    parser.add_argument(
+        "--load-datasets-only",
+        default=False,
+        action="store_true",
+        help=(
+            "Load (and cache) the dataset for every case from the given "
+            "config(s) without running any benchmarks. Useful for "
+            "pre-filling the dataset cache and for validating configs."
+        ),
+    )
     return parser
 
 
