@@ -15,6 +15,7 @@ path (`kick`'s second LogisticRegression case below), which opts in via
 """
 from typing import Callable, Iterable
 
+import sklearn
 from joblib import cpu_count
 
 from sklbench.config import Implementation
@@ -70,16 +71,22 @@ def real_case_dataset(dataset, task, tier):
     return decorator
 
 
+def _sklearn_version() -> tuple[int, int]:
+    major, minor = sklearn.__version__.split(".")[:2]
+    return (int(major), int(minor))
+
+
 def supported_logistic_regression_solvers(implem: Implementation):
     if implem.library == "sklearnex":
         return {'lbfgs', 'newton-cg'}
     elif implem.library == "sklearn":
         if implem.data_library is None:
             return {"lbfgs", "liblinear", "newton-cg", "newton-cholesky", "sag", "saga"}
-        return {"lbfgs"}
-        # TODO: in future 1.10 and nightly build, "newton-cholesky" is supported
-        # with array API
-        # ^ this requires to check the pixi env
+        solvers = {"lbfgs"}
+        if _sklearn_version() >= (1, 10):
+            # newton-cholesky gained array API support in 1.10.
+            solvers.add("newton-cholesky")
+        return solvers
     else:
         raise NotImplementedError()
 
