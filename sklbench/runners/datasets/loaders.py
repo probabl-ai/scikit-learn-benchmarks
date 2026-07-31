@@ -878,6 +878,68 @@ def load_road_network(raw_data_cache: str) -> tuple[dict, dict]:
 
 
 """
+Clustering datasets
+"""
+
+
+def load_road_network_points(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    3D Road Network (North Jutland, Denmark) dataset from UCI machine
+    learning repository, same source file as `load_road_network` above:
+    https://archive.ics.uci.edu/ml/datasets/3D+Road+Network+%28North+Jutland%2C+Denmark%29
+
+    434874 samples, 3 features, all numeric and real (not synthetic):
+    longitude, latitude and altitude of points sampled along roads, derived
+    from a real GPS/elevation survey. No missing values.
+
+    Unlike `load_road_network` (which pairs the coordinates with the row's
+    OSM way id as a regression target), this loader keeps only the 3D
+    position itself, with no target - meant for clustering algorithms like
+    KMeans on genuine low-dimensional spatial data rather than a synthetic
+    `make_blobs` or high-dimensional dataset like MNIST.
+    """
+    url = "http://archive.ics.uci.edu/ml/machine-learning-databases/00246/3D_spatial_network.txt"
+    data = download_and_read_csv(
+        url,
+        raw_data_cache,
+        header=None,
+        names=["osm_id", "longitude", "latitude", "altitude"],
+    )
+    x = data[["longitude", "latitude", "altitude"]].to_numpy(dtype=np.float64)
+    y = np.zeros(x.shape[0])
+
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
+def load_airports(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Airports dataset from OurAirports (public domain,
+    https://ourairports.com/data/), a community-maintained worldwide
+    directory of airports, heliports and seaplane bases.
+
+    60466 samples (after filtering, see below), 3 features, all numeric and
+    real: longitude, latitude and elevation (in feet) of each facility.
+    `closed` facilities and rows missing `elevation_ft` are dropped (from
+    85819 raw rows) - elevation is unset for a meaningful fraction of small,
+    unsurveyed airstrips/heliports, and closed facilities no longer
+    represent a real, currently-operating location. No target - meant for
+    clustering algorithms like KMeans on genuine low-dimensional spatial
+    data (e.g. grouping airports by continent/region) rather than a
+    synthetic `make_blobs` or high-dimensional dataset like MNIST.
+    """
+    url = "https://davidmegginson.github.io/ourairports-data/airports.csv"
+    data = download_and_read_csv(url, raw_data_cache)
+    data = data[data["type"] != "closed"]
+    data = data.dropna(subset=["elevation_ft"])
+    x = data[["longitude_deg", "latitude_deg", "elevation_ft"]].to_numpy(dtype=np.float64)
+    y = np.zeros(x.shape[0])
+
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
+"""
 Index/neighbors search datasets
 """
 
@@ -997,6 +1059,9 @@ dataset_loading_functions = {
     "twodplanes": load_twodplanes,
     "yolanda": load_yolanda,
     "road_network": load_road_network,
+    # clustering
+    "road_network_points": load_road_network_points,
+    "airports": load_airports,
     # index search
     "sift": load_sift,
     "gist": load_gist,

@@ -12,6 +12,12 @@ was measured to hurt held-out performance on every dataset below (e.g. ROC
 AUC -0.02 to -0.06), unless the case is specifically exercising the Nystroem
 path (`kick`'s second LogisticRegression case below), which opts in via
 `preprocessing_kwargs={"nystroem": {}}`.
+
+The clustering cases (`sift`, `nytimes_256`, `fashion_mnist_784`) are dense
+embedding datasets from ann-benchmarks.com and only get a single KMeans
+case each, run at library-default hyperparameters aside from `n_clusters`
+and `random_state`: unlike the linear/tree cases above, the interesting
+axis here is n_samples/n_clusters, not per-model hyperparameter tuning.
 """
 from typing import Callable, Iterable
 
@@ -31,6 +37,7 @@ DEFAULT_PREPROCESSING_KIND = {
     "RandomForestClassifier": "trees",
     "ExtraTreesClassifier": "trees",
     "ExtraTreesRegressor": "trees",
+    "KMeans": None,
 }
 
 
@@ -48,6 +55,8 @@ def real_case_dataset(dataset, task, tier):
                 implem = Implementation(library="sklearn")
             bench = bench or BENCH
             for entry in f(implem):
+                entry_tier = entry.pop("tier", tier)
+                split_kwargs = entry.pop("split_kwargs", None) or {}
                 preprocessing_kwargs = entry.pop("preprocessing_kwargs", None) or {}
                 preprocessing_kind = entry.pop(
                     "preprocessing_kind",
@@ -56,10 +65,11 @@ def real_case_dataset(dataset, task, tier):
                 yield {
                     "bench": bench,
                     "implementation": implem.model_dump(mode="json", exclude_none=True),
-                    "metadata": {"task": task, "tier": tier},
+                    "metadata": {"task": task, "tier": entry_tier},
                     "algorithm": {**entry},
                     "data": {
                         "dataset": dataset,
+                        "split_kwargs": split_kwargs,
                         "preprocessing_kind": preprocessing_kind,
                         "preprocessing_kwargs": preprocessing_kwargs,
                     },
@@ -390,6 +400,91 @@ def bank_marketing(implem: Implementation):
             "random_state": 0,
             "n_jobs": N_JOBS,
         },
+    }
+
+
+@real_case_dataset("sift", "clustering", "normal")
+def sift(implem: Implementation):
+    # ANN-benchmarks vertical: SIFT image descriptors, 128-dim, Euclidean
+    # distance native (no L2-normalization needed, unlike the angular
+    # datasets below). 1,000,000 train vectors by default.
+
+    # KMeans, full dataset, few clusters: ~3s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 10, "random_state": 0},
+        "tier": "fast",
+    }
+    # KMeans, full dataset, many clusters: ~29s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 100, "random_state": 0},
+    }
+    # n_samples/n_clusters ~= 100 (10000/100).
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 1000, "random_state": 0},
+        "split_kwargs": {"train_size": 100000, "test_size": 1000},
+    }
+
+
+@real_case_dataset("nytimes_256", "clustering", "fast")
+def nytimes_256(implem: Implementation):
+    # ANN-benchmarks vertical: NYTimes bag-of-words document embeddings,
+    # 256-dim. The loader L2-normalizes so Euclidean distance (and thus
+    # k-means) matches the dataset's native cosine/angular distance.
+    # 290,000 train vectors by default.
+
+    # KMeans, full dataset, few clusters: ~2s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 10, "random_state": 0},
+    }
+    # KMeans, full dataset, many clusters: ~15s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 100, "random_state": 0},
+        "tier": "normal",
+    }
+    # Small subsample via split_kwargs: a near-instant sanity-check case for
+    # validating the config wiring, not a realistic workload.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 5, "random_state": 0},
+        "split_kwargs": {"train_size": 2000, "test_size": 200},
+        "tier": "test",
+    }
+
+
+@real_case_dataset("fashion_mnist_784", "clustering", "normal")
+def fashion_mnist_784(implem: Implementation):
+    # ANN-benchmarks vertical: Fashion-MNIST images flattened to 784-dim
+    # pixel vectors, Euclidean distance native. 60,000 train vectors by
+    # default. KMeans, full dataset, many clusters: ~7.5s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 100, "random_state": 0},
+    }
+
+
+@real_case_dataset("road_network_points", "clustering", "fast")
+def road_network_points(implem: Implementation):
+    # Genuine low-dimensional spatial vertical (contrast with the dense
+    # embedding datasets above): 3D Road Network GPS points, 434874 x 3
+    # (longitude/latitude/altitude), no target. Being only 3-dim, k-means is
+    # cheap per cluster - reaching a "normal"-tier fit time needs far more
+    # clusters here than for the ~100-1000 dim embedding datasets.
+
+    # KMeans, full dataset, few clusters: ~0.2s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 10, "random_state": 0},
+    }
+    # KMeans, full dataset, many clusters: ~14s/fit.
+    yield {
+        "estimator": "KMeans",
+        "estimator_params": {"n_clusters": 1000, "random_state": 0},
+        "tier": "normal",
     }
 
 
