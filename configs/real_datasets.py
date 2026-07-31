@@ -19,11 +19,7 @@ from joblib import cpu_count
 
 from sklbench.config import Implementation
 
-BENCH = {"n_runs": 5, "py_spy_profiling": False}
-# For cases whose single fit takes minutes at multi-million-row scale
-# (RandomForest doesn't scale as gracefully as histogram-based boosting) -
-# still exercised, just not repeated 5x.
-BENCH_SLOW = {"n_runs": 2, "py_spy_profiling": False}
+BENCH = {"n_runs": 1, "py_spy_profiling": False}
 
 N_JOBS = cpu_count(only_physical_cores=True)
 
@@ -49,16 +45,15 @@ def real_case_dataset(dataset, task, tier):
         def decorated(implem: Implementation | None = None, bench: dict | None = None):
             if implem is None:
                 implem = Implementation(library="sklearn")
-            default_bench = bench or BENCH
+            bench = bench or BENCH
             for entry in f(implem):
-                entry_bench = entry.pop("bench", None) or default_bench
                 preprocessing_kwargs = entry.pop("preprocessing_kwargs", None) or {}
                 preprocessing_kind = entry.pop(
                     "preprocessing_kind",
                     DEFAULT_PREPROCESSING_KIND[entry["estimator"]],
                 )
                 yield {
-                    "bench": entry_bench,
+                    "bench": bench,
                     "implementation": implem.model_dump(mode="json", exclude_none=True),
                     "metadata": {"task": task, "tier": tier},
                     "algorithm": {**entry},
@@ -118,7 +113,7 @@ def ames_housing(implem: Implementation):
     }
 
 
-@real_case_dataset("kddcup09_churn", "classification", "fast")
+@real_case_dataset("kddcup09_churn", "classification", "normal")
 def kddcup(implem: Implementation):
     # Severe imbalance (7.3% churn) makes the best-by-ROC-AUC model for
     # both estimators collapse to predicting the majority class
@@ -151,7 +146,7 @@ def kddcup(implem: Implementation):
     }
 
 
-@real_case_dataset("amazon_employee_access", "classification", "normal")
+@real_case_dataset("amazon_employee_access", "classification", "fast")
 def amazon_employee_access(implem: Implementation):
     # LogisticRegression, linear/no-nystroem: test acc 0.826, bal.acc 0.794, ROC AUC 0.843
     yield {
@@ -176,21 +171,10 @@ def amazon_employee_access(implem: Implementation):
     }
 
 
-@real_case_dataset("kick", "classification", "normal")
+@real_case_dataset("kick", "classification", "fast")
 def kick(implem: Implementation):
-    # LogisticRegression, linear/no-nystroem: test acc 0.738, bal.acc 0.700, ROC AUC 0.773
-    yield {
-        "estimator": "LogisticRegression",
-        "estimator_params": {
-            "solver": "lbfgs",
-            "max_iter": 1000,
-            "C": 30.0,
-            "class_weight": "balanced",
-        },
-    }
     # LogisticRegression w/ Nystroem (poly deg-2, 300 components):
     # test acc 0.737, bal.acc 0.697, ROC AUC 0.768 - close to the
-    # no-nystroem case above, exercises the kernel-approximation path.
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
@@ -200,19 +184,6 @@ def kick(implem: Implementation):
             "class_weight": "balanced",
         },
         "preprocessing_kwargs": {"nystroem": {}},
-    }
-    # RandomForestClassifier, trees/ordinal: test acc 0.856, bal.acc 0.679, ROC AUC 0.767
-    yield {
-        "estimator": "RandomForestClassifier",
-        "estimator_params": {
-            "n_estimators": 300,
-            "max_depth": 20,
-            "max_features": "sqrt",
-            "min_samples_leaf": 5,
-            "class_weight": "balanced",
-            "random_state": 0,
-            "n_jobs": N_JOBS,
-        },
     }
     # ExtraTreesClassifier, trees/ordinal: test acc 0.809, bal.acc 0.684, ROC AUC 0.760
     yield {
@@ -240,20 +211,18 @@ def covtype(implem: Implementation):
     # severely imbalanced (smallest class is 0.47% of rows), so
     # class_weight="balanced" is used for the linear case; RandomForest
     # handles the imbalance fine on its own.
-    # TODO? finetune (very poor results compared to trees)
-    # TODO? use poly/n_components=100 nystroem kernel? (much faster)
 
-    # LogisticRegression, linear/no-nystroem: test acc 0.628, bal.acc 0.754
-    # (~70s/fit - splines over 10 numeric cols + encoding 2 categoricals)
+    # LogisticRegression, linear/poly-nystroem (100 components): test acc
+    # 0.629, bal.acc 0.752, ~48s/fit
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
-            "C": 1.0,
+            "C": 10.0,
             "class_weight": "balanced",
             "solver": "lbfgs",
             "max_iter": 1000,
         },
-        "bench": BENCH_SLOW,
+        "preprocessing_kwargs": {"nystroem": {"n_components": 100}},
     }
     # RandomForestClassifier, trees/ordinal: test acc 0.963, bal.acc 0.921
     yield {
@@ -282,8 +251,8 @@ def susy(implem: Implementation):
         "preprocessing_kind": None,
     }
     # ExtraTreesClassifier, no preprocessing: test acc 0.798, bal.acc 0.790,
-    # ROC AUC 0.869. ~250s/fit at 4.5M rows (RandomForest doesn't scale as
-    # gracefully as histogram-based boosting) - kept small and run fewer times.
+    # ROC AUC 0.869. ~20-30s/fit at 4.5M rows (RandomForest doesn't scale as
+    # gracefully as histogram-based boosting).
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
@@ -294,7 +263,6 @@ def susy(implem: Implementation):
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
-        "bench": BENCH_SLOW,
     }
 
 
@@ -324,7 +292,6 @@ def year_prediction_msd(implem: Implementation):
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
-        "bench": BENCH_SLOW,
     }
 
 
@@ -387,7 +354,7 @@ def medical_charges_nominal(implem: Implementation):
     }
 
 
-@real_case_dataset("bank_marketing", "classification", "normal")
+@real_case_dataset("bank_marketing", "classification", "fast")
 def bank_marketing(implem: Implementation):
     # Banking/finance vertical (distinct from `fraud`'s transaction-fraud
     # angle: this is telemarketing conversion). 45211 x 16, 9 low-
