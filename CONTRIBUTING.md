@@ -47,19 +47,28 @@ The repository is split into a few layers:
 
 Config scripts are regular Python. They return a list of JSON-serializable case
 dictionaries or pydantic case models from `generate_cases()`, and the
-orchestrator validates each case before running it. Shared workload helpers live
-in `configs/_trees.py`, `configs/_linear.py`, and `configs/_clustering.py`
-(with common utilities in `configs/_common.py`), and Pixi-environment
-implementation selection lives in `configs/_implementations.py`.
+orchestrator validates each case before running it. Per-workload case
+generators live in `configs/synthetic_trees.py`, `configs/synthetic_linear.py`,
+and `configs/real_datasets.py`; each exposes a `generate_cases(implem, tier)`
+function that bakes a specific implementation dict into every case it yields.
+Common utilities live in `configs/_common.py`, and Pixi-environment
+implementation selection lives in `configs/_implementations.py`. The top-level
+entry-point configs, `configs/all_models_test.py` and `configs/all_models_fast.py`,
+loop over the implementations for the current Pixi environment, call each
+workload generator per implementation, and merge the results - including
+array-API implementations, which are filtered down to the estimators that
+support them via `filter_array_api_supported_cases_if_needed`.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `configs/_trees.py`, `configs/_linear.py`,
-or `configs/_clustering.py`, depending on the workload.
+Most case changes should start in `configs/synthetic_trees.py`,
+`configs/synthetic_linear.py`, or `configs/real_datasets.py`, depending on the
+workload.
 
-Use `configs/all_models_test.py` and `configs/array_api_test.py` for the current
-small exploratory matrices. Use the matching `*_fast.py` configs when working on
-broader but still reasonably fast matrices.
+Use `configs/all_models_test.py` for the current small exploratory matrix.
+Use `configs/all_models_fast.py` when working on a broader but still
+reasonably fast matrix. Both cover Array API Pixi environments as well as
+plain sklearn/sklearnex ones.
 
 Preview and validate a config by importing it directly:
 
@@ -83,7 +92,6 @@ Run the default scikit-learn configuration:
 
 ```bash
 pixi run -e sklearn python -m sklbench --config configs/all_models_test.py
-pixi run -e sklearn python -m sklbench --config configs/array_api_test.py
 ```
 
 `run.sh` runs the same `python -m sklbench` invocation across one or more
@@ -99,23 +107,21 @@ unchanged. For example, to reproduce the CPU benchmark set:
 
 ```bash
 ./run.sh sklearn --config configs/all_models_test.py
-./run.sh sklearn --config configs/array_api_test.py
-./run.sh skl-cpu --config configs/array_api_test.py
+./run.sh skl-cpu --config configs/all_models_test.py
 ./run.sh intel --config configs/all_models_test.py
-./run.sh intel --config configs/array_api_test.py
 ```
 
 Add Intel GPU benchmarks (Array API only; sklearnex GPU benchmarks are not
 generated currently):
 
 ```bash
-./run.sh skl-intel --config configs/array_api_test.py
+./run.sh skl-intel --config configs/all_models_test.py
 ```
 
 Add NVIDIA GPU benchmarks:
 
 ```bash
-./run.sh skl-nvidia --config configs/array_api_test.py
+./run.sh skl-nvidia --config configs/all_models_test.py
 ```
 
 For ad hoc Intel or reporting work, prefer the explicit environments:

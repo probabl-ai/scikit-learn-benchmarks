@@ -67,6 +67,16 @@ class Implementation(Section):
     sklearn_context: JsonDict | None = None
     sklearnex_context: JsonDict | None = None
 
+    @property
+    def context(self) -> JsonDict:
+        return (
+            (self.sklearn_context or {})
+            | (self.sklearnex_context or {})
+        )
+
+    def is_array_api(self) -> bool:
+        return self.context.get("array_api_dispatch", False)
+
 
 class EstimatorCase(BaseCase):
     algorithm: Algorithm

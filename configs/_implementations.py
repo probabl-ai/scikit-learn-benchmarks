@@ -1,11 +1,9 @@
 import os
 from copy import deepcopy
 from itertools import product
-from typing import Iterable, Literal
+from typing import Iterable
 
 from _common import _merge_dicts
-
-Workload = Literal["all_models", "array_api"]
 
 
 def with_implementations(cases: Iterable[dict], implementations: Iterable[dict]):
@@ -99,21 +97,7 @@ PIXI_TO_IMPLEMENTATIONS = {
 }
 
 
-WORKLOAD_TO_PIXI_ENVS: dict[Workload, set[str]] = {
-    "all_models": {
-        "sklearn",
-        "sklearn-conda",
-        "sklearn-openblas-pthreads",
-        "sklearn-openblas-openmp",
-        "sklearn-mkl",
-        "sklearn-dev",
-        "intel",
-    },
-    "array_api": set(PIXI_TO_IMPLEMENTATIONS),
-}
-
-
-def implementations_for_pixi_env(*, workload: Workload) -> list[dict]:
+def implementations_for_pixi_env() -> list[dict]:
     pixi_env = os.environ.get("PIXI_ENVIRONMENT_NAME")
     if pixi_env is None:
         raise ValueError(
@@ -127,14 +111,6 @@ def implementations_for_pixi_env(*, workload: Workload) -> list[dict]:
         raise ValueError(
             f"Unsupported PIXI_ENVIRONMENT_NAME={pixi_env!r}. "
             f"Expected one of: {known_envs}."
-        )
-
-    workload_envs = WORKLOAD_TO_PIXI_ENVS[workload]
-    if pixi_env not in workload_envs:
-        supported_envs = ", ".join(sorted(workload_envs))
-        raise ValueError(
-            f"Pixi environment {pixi_env!r} does not support the {workload!r} "
-            f"workload. Supported environments: {supported_envs}."
         )
 
     return deepcopy(implementations)

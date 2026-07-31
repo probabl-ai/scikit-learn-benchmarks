@@ -21,10 +21,9 @@ axis here is n_samples/n_clusters, not per-model hyperparameter tuning.
 """
 from typing import Callable, Iterable
 
-import sklearn
 from joblib import cpu_count
 
-from sklbench.config import Implementation
+from sklbench.config.utils import select_logistic_regression_solver
 
 BENCH = {"n_runs": 1, "py_spy_profiling": False}
 
@@ -48,11 +47,11 @@ REAL_DATASET_CASE_FUNCS: list[Callable] = []
 
 def real_case_dataset(dataset, task, tier):
 
-    def decorator(f: Callable[[Implementation], Iterable[dict]]):
+    def decorator(f: Callable[[dict], Iterable[dict]]):
 
-        def decorated(implem: Implementation | None = None, bench: dict | None = None):
+        def decorated(implem: dict | None = None, bench: dict | None = None):
             if implem is None:
-                implem = Implementation(library="sklearn")
+                implem = {"library": "sklearn"}
             bench = bench or BENCH
             for entry in f(implem):
                 entry_tier = entry.pop("tier", tier)
@@ -64,7 +63,7 @@ def real_case_dataset(dataset, task, tier):
                 )
                 yield {
                     "bench": bench,
-                    "implementation": implem.model_dump(mode="json", exclude_none=True),
+                    "implementation": implem,
                     "metadata": {"task": task, "tier": entry_tier},
                     "algorithm": {**entry},
                     "data": {
@@ -81,36 +80,8 @@ def real_case_dataset(dataset, task, tier):
     return decorator
 
 
-def _sklearn_version() -> tuple[int, int]:
-    major, minor = sklearn.__version__.split(".")[:2]
-    return (int(major), int(minor))
-
-
-def supported_logistic_regression_solvers(implem: Implementation):
-    if implem.library == "sklearnex":
-        return {'lbfgs', 'newton-cg'}
-    elif implem.library == "sklearn":
-        if implem.data_library is None:
-            return {"lbfgs", "liblinear", "newton-cg", "newton-cholesky", "sag", "saga"}
-        solvers = {"lbfgs"}
-        if _sklearn_version() >= (1, 10):
-            # newton-cholesky gained array API support in 1.10.
-            solvers.add("newton-cholesky")
-        return solvers
-    else:
-        raise NotImplementedError()
-
-
-def select_logistic_regression_solver(implem, solvers):
-    allowed = supported_logistic_regression_solvers(implem)
-    for solver in solvers:
-        if solver in allowed:
-            return solver
-    raise ValueError(f"No supported solvers in {solvers}")
-
-
 @real_case_dataset("ames_housing", "regression", "test")
-def ames_housing(implem: Implementation):
+def ames_housing(implem: dict):
     # Ridge(alpha=1.0), linear/no-nystroem: test R2 0.89
     yield {
         "estimator": "Ridge",
@@ -131,7 +102,7 @@ def ames_housing(implem: Implementation):
 
 
 @real_case_dataset("kddcup09_churn", "classification", "normal")
-def kddcup(implem: Implementation):
+def kddcup(implem: dict):
     # Severe imbalance (7.3% churn) makes the best-by-ROC-AUC model for
     # both estimators collapse to predicting the majority class
     # (balanced accuracy ~0.50, i.e. useless for churn detection), so
@@ -164,7 +135,7 @@ def kddcup(implem: Implementation):
 
 
 @real_case_dataset("amazon_employee_access", "classification", "fast")
-def amazon_employee_access(implem: Implementation):
+def amazon_employee_access(implem: dict):
     # LogisticRegression, linear/no-nystroem: test acc 0.826, bal.acc 0.794, ROC AUC 0.843
     yield {
         "estimator": "LogisticRegression",
@@ -189,7 +160,7 @@ def amazon_employee_access(implem: Implementation):
 
 
 @real_case_dataset("kick", "classification", "fast")
-def kick(implem: Implementation):
+def kick(implem: dict):
     # LogisticRegression w/ Nystroem (poly deg-2, 300 components):
     # test acc 0.737, bal.acc 0.697, ROC AUC 0.768 - close to the
     yield {
@@ -218,7 +189,7 @@ def kick(implem: Implementation):
 
 
 @real_case_dataset("covtype", "classification", "normal")
-def covtype(implem: Implementation):
+def covtype(implem: dict):
     # Environmental/forestry vertical. 581012 x 12: 10 continuous numeric
     # (elevation, slope, hillshade, distances, ...) plus 2 categorical
     # features (`Wilderness_Area` 4 cats, `Soil_Type` 40 cats)
@@ -253,7 +224,7 @@ def covtype(implem: Implementation):
 
 
 @real_case_dataset("susy", "classification", "normal")
-def susy(implem: Implementation):
+def susy(implem: dict):
     # This dataset's features are already standardized by the source
     # (means ~0/1, stds all in [0.2, 1.0]), so no scaling/preprocessing
     # is needed for the linear case either.
@@ -284,7 +255,7 @@ def susy(implem: Implementation):
 
 
 @real_case_dataset("year_prediction_msd", "regression", "normal")
-def year_prediction_msd(implem: Implementation):
+def year_prediction_msd(implem: dict):
     # Music/audio vertical. 515345 x 90, all numeric, regression
     # (predict a song's release year from timbre features). Inherently
     # hard task - R2 ~0.2-0.3 matches published baselines for this
@@ -313,7 +284,7 @@ def year_prediction_msd(implem: Implementation):
 
 
 @real_case_dataset("fraud", "classification", "normal")
-def fraud(implem: Implementation):
+def fraud(implem: dict):
     # Finance/fraud vertical. 284807 x 30 (PCA-anonymized transaction
     # features), all numeric. Extreme imbalance (0.17% fraud) - much
     # more severe than kddcup09_churn's 7.3%, so class_weight="balanced"
@@ -347,7 +318,7 @@ def fraud(implem: Implementation):
 
 
 @real_case_dataset("medical_charges_nominal", "regression", "normal")
-def medical_charges_nominal(implem: Implementation):
+def medical_charges_nominal(implem: dict):
     # Healthcare vertical. 163065 x 11, regression (predict average
     # hospital payment per diagnosis-related group/provider). Standard
     # benchmark for very-high-cardinality categorical encoding: several
@@ -372,7 +343,7 @@ def medical_charges_nominal(implem: Implementation):
 
 
 @real_case_dataset("bank_marketing", "classification", "fast")
-def bank_marketing(implem: Implementation):
+def bank_marketing(implem: dict):
     # Banking/finance vertical (distinct from `fraud`'s transaction-fraud
     # angle: this is telemarketing conversion). 45211 x 16, 9 low-
     # cardinality categoricals (2-12 categories) + numeric. Moderate
@@ -404,7 +375,7 @@ def bank_marketing(implem: Implementation):
 
 
 @real_case_dataset("sift", "clustering", "normal")
-def sift(implem: Implementation):
+def sift(implem: dict):
     # ANN-benchmarks vertical: SIFT image descriptors, 128-dim, Euclidean
     # distance native (no L2-normalization needed, unlike the angular
     # datasets below). 1,000,000 train vectors by default.
@@ -429,7 +400,7 @@ def sift(implem: Implementation):
 
 
 @real_case_dataset("nytimes_256", "clustering", "fast")
-def nytimes_256(implem: Implementation):
+def nytimes_256(implem: dict):
     # ANN-benchmarks vertical: NYTimes bag-of-words document embeddings,
     # 256-dim. The loader L2-normalizes so Euclidean distance (and thus
     # k-means) matches the dataset's native cosine/angular distance.
@@ -457,7 +428,7 @@ def nytimes_256(implem: Implementation):
 
 
 @real_case_dataset("fashion_mnist_784", "clustering", "normal")
-def fashion_mnist_784(implem: Implementation):
+def fashion_mnist_784(implem: dict):
     # ANN-benchmarks vertical: Fashion-MNIST images flattened to 784-dim
     # pixel vectors, Euclidean distance native. 60,000 train vectors by
     # default. KMeans, full dataset, many clusters: ~7.5s/fit.
@@ -468,7 +439,7 @@ def fashion_mnist_784(implem: Implementation):
 
 
 @real_case_dataset("road_network_points", "clustering", "fast")
-def road_network_points(implem: Implementation):
+def road_network_points(implem: dict):
     # Genuine low-dimensional spatial vertical (contrast with the dense
     # embedding datasets above): 3D Road Network GPS points, 434874 x 3
     # (longitude/latitude/altitude), no target. Being only 3-dim, k-means is
@@ -488,10 +459,7 @@ def road_network_points(implem: Implementation):
     }
 
 
-def generate_cases(implem: Implementation | None = None, max_tier: str = "normal") -> list[dict]:
-    if implem is None:
-        implem = Implementation(library="sklearn")
-
+def generate_cases(implem: dict | None = None, max_tier: str = "normal") -> list[dict]:
     max_tier_index = TIERS.index(max_tier)
     cases = []
     for case_func in REAL_DATASET_CASE_FUNCS:

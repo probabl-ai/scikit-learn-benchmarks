@@ -2,18 +2,17 @@ from itertools import product
 from math import ceil
 from typing import Iterable
 
-
-def linear_cases(template: str) -> Iterable[dict]:
-    return _linear_cases(template, array_api=False)
+from sklbench.config import Implementation
 
 
-def linear_array_api_cases(template: str) -> Iterable[dict]:
-    return _linear_cases(template, array_api=True)
+def _is_array_api(implem: dict) -> bool:
+    return Implementation(**implem).is_array_api()
 
 
-def _linear_cases(template: str, *, array_api: bool) -> Iterable[dict]:
-    bench = {"n_runs": 5, "time_limit": 10} if template == "fast" else {"n_runs": 3}
-    if template == "fast":
+def _synthetic_linear_cases(implem: dict, tier: str) -> Iterable[dict]:
+    array_api = _is_array_api(implem)
+    bench = {"n_runs": 5, "time_limit": 10} if tier == "fast" else {"n_runs": 3}
+    if tier == "fast":
         data_variants = [
             {"n_samples": 5000000, "n_features": 2, "n_informative": 2},
             {"n_samples": 500000, "n_features": 20, "n_informative": 5},
@@ -66,20 +65,11 @@ def _linear_cases(template: str, *, array_api: bool) -> Iterable[dict]:
             "bench": bench,
             "algorithm": algorithm,
             "data": data,
+            "implementation": implem,
         }
 
-    if template != "fast" and not array_api:
-        yield from _real_data_linear_cases(bench)
 
-
-def _real_data_linear_cases(bench: dict) -> Iterable[dict]:
-    """Real-dataset cases exercising the `linear` preprocessing kind.
-
-    `ames_housing` has both categorical (mostly `object`-dtype) and numeric
-    columns with real missing values, unlike the synthetic data above.
-    """
-    yield {
-        "bench": bench,
-        "algorithm": {"estimator": "Ridge"},
-        "data": {"dataset": "ames_housing", "preprocessing_kind": "linear"},
-    }
+def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dict]:
+    if implem is None:
+        implem = {"library": "sklearn"}
+    return list(_synthetic_linear_cases(implem, tier))

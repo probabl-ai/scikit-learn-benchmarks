@@ -17,10 +17,8 @@ GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]
 ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia"]
 
 ENV_SENSITIVE_CONFIGS = {
-    Path("configs/all_models_test.py"): GENERAL_ENVS,
-    Path("configs/all_models_fast.py"): GENERAL_ENVS,
-    Path("configs/array_api_test.py"): ARRAY_API_ENVS,
-    Path("configs/array_api_fast.py"): ARRAY_API_ENVS,
+    Path("configs/all_models_test.py"): ARRAY_API_ENVS,
+    Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
 }
 
 
@@ -111,22 +109,41 @@ def test_env_sensitive_configs_reject_unknown_pixi_environment(monkeypatch):
         load_cases_from_script("configs/all_models_test.py")
 
 
-def test_all_models_configs_reject_array_api_only_pixi_environments(monkeypatch):
+def test_all_models_configs_support_array_api_pixi_environments(monkeypatch):
     monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "skl-cpu")
 
-    with pytest.raises(ValueError, match="does not support the 'all_models' workload"):
-        load_cases_from_script("configs/all_models_test.py")
-
-
-def test_intel_array_api_workload_excludes_ridge_classifier(monkeypatch):
-    monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "intel")
-
-    cases = load_cases_from_script("configs/array_api_test.py")
+    cases = load_cases_from_script("configs/all_models_test.py")
 
     assert cases
-    assert {
-        case.implementation.library for case in cases if isinstance(case, EstimatorCase)
-    } == {"sklearnex"}
-    assert "RidgeClassifier" not in {
-        case.algorithm.estimator for case in cases if isinstance(case, EstimatorCase)
-    }
+    assert all(isinstance(case, EstimatorCase) for case in cases)
+    assert all(case.implementation.is_array_api() for case in cases)
+
+
+def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
+    from sklbench.config.utils import filter_array_api_supported_cases_if_needed
+
+    cases = [
+        {
+            "algorithm": {
+                "estimator": "RidgeClassifier",
+                "estimator_params": {"solver": "svd"},
+            },
+            "data": {"source": "make_classification"},
+            "implementation": {
+                "library": "sklearnex",
+                "sklearnex_context": {"array_api_dispatch": True},
+            },
+        },
+        {
+            "algorithm": {"estimator": "Ridge", "estimator_params": {"solver": "svd"}},
+            "data": {"source": "make_regression"},
+            "implementation": {
+                "library": "sklearn",
+                "sklearn_context": {"array_api_dispatch": True},
+            },
+        },
+    ]
+
+    kept = list(filter_array_api_supported_cases_if_needed(cases))
+
+    assert [case.algorithm.estimator for case in kept] == ["Ridge"]

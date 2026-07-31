@@ -75,11 +75,6 @@ def load_cases_from_script(path: str | Path) -> list[Case]:
         raise TypeError(f"{config_path}:generate_cases is not callable")
 
     raw_cases = generate_cases()
-    if not isinstance(raw_cases, list):
-        raise TypeError(
-            f"{config_path}:generate_cases() must return a list, "
-            f"got {type(raw_cases).__name__}"
-        )
 
     cases = []
     for index, case in enumerate(raw_cases):
