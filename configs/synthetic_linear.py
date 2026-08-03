@@ -67,9 +67,9 @@ def _build_case(
     return case
 
 
-def _linear_cases_for(implem: dict, bench: dict, data_variants: list[dict]) -> Iterable[dict]:
-    for algorithm, generation_kwargs in product(
-        ALGORITHM_VARIANTS, data_variants
+def _linear_cases_for(implem: dict, benchs: list[dict], data_variants: list[dict]) -> Iterable[dict]:
+    for algorithm, (bench, generation_kwargs) in product(
+        ALGORITHM_VARIANTS, zip(benchs, data_variants)
     ):
         yield _build_case(bench, algorithm, generation_kwargs, implem)
 
@@ -84,7 +84,7 @@ def _test_linear_cases(implem: dict) -> Iterable[dict]:
         }
     ]
 
-    yield from _linear_cases_for(implem, bench, data_variants)
+    yield from _linear_cases_for(implem, [bench], data_variants)
 
 
 def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
@@ -92,8 +92,6 @@ def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
     so "normal"'s first rung sits at roughly the same magnitude as "fast",
     then grows from there - mirroring `synthetic_trees.py`'s scale ladder.
     """
-    bench = {"time_limit": scale}
-
     data_shapes = [
         {"n_samples": 500000 * scale, "n_features": 2, "n_informative": 2},
         {"n_samples": 50000 * scale, "n_features": 20, "n_informative": 5},
@@ -101,7 +99,12 @@ def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
         {"n_samples": 500 * scale, "n_features": 2000, "n_informative": 100},
     ]
 
-    yield from _linear_cases_for(implem, bench, data_shapes)
+    benchs = [{"time_limit": 2 + scale * 2} for _ in data_shapes]
+    if implem['library'] == 'sklearn':
+        # 2 features is very slow in sklearn
+        benchs[0]["time_limit"] *= 2
+
+    yield from _linear_cases_for(implem, benchs, data_shapes)
 
 
 def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dict]:

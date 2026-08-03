@@ -20,6 +20,7 @@ and `random_state`: unlike the linear/tree cases above, the interesting
 axis here is n_samples/n_clusters, not per-model hyperparameter tuning.
 """
 from typing import Callable, Iterable
+from math import floor
 
 from joblib import cpu_count
 
@@ -27,7 +28,7 @@ from sklbench.config.utils import select_logistic_regression_solver
 
 BENCH = {"n_runs": 1, "py_spy_profiling": False}
 
-N_JOBS = cpu_count(only_physical_cores=True)
+N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
 # RF/ET n_estimators below are `max(<tuned floor>, N_JOBS * 3)`: use at least
 # as many trees as were tuned on a typical dev machine, but scale up on
 # many-core machines so the forest actually uses the available parallelism.

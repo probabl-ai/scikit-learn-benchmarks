@@ -3,8 +3,9 @@ from itertools import product, chain
 from typing import Iterable
 
 from joblib import cpu_count
+from math import floor
 
-N_JOBS = cpu_count(only_physical_cores=True)
+N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
 
 from _common import deterministic_random_choice
 
