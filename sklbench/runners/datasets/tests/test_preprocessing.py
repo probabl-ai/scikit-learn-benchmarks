@@ -157,7 +157,7 @@ def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
     housing_data,
 ):
     x_train, x_test = linear_preprocessor(
-        housing_data["x"], housing_data["x"], housing_data["y"], nystroem="no"
+        housing_data["x"], housing_data["x"], housing_data["y"], nystroem=None
     )
 
     assert np.issubdtype(np.asarray(x_train).dtype, np.number)
@@ -169,7 +169,7 @@ def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
 def test_linear_preprocessor_requires_y_train_for_target_encoding(housing_data):
     with pytest.raises(ValueError):
         linear_preprocessor(
-            housing_data["x"], housing_data["x"], None, nystroem="no"
+            housing_data["x"], housing_data["x"], None, nystroem=None
         )
 
 
@@ -179,7 +179,7 @@ def test_split_and_preprocess_data_with_linear_kind_end_to_end(housing_data):
         split_kwargs={"test_size": 0.25, "random_state": 0},
         default_split=None,
         preprocessing_kind="linear",
-        preprocessing_kwargs={"nystroem": "no"},
+        preprocessing_kwargs={"nystroem": None},
     )
 
     x_train, x_test = out["x_train"], out["x_test"]
