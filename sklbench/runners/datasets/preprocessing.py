@@ -18,7 +18,8 @@ import logging
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import sklearn
+from sklearn.model_selection import KFold, train_test_split
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.pipeline import FeatureUnion, make_pipeline
 from sklearn.preprocessing import (
@@ -33,6 +34,13 @@ from sklearn.kernel_approximation import Nystroem
 logger = logging.getLogger(__name__)
 
 Array = pd.DataFrame | np.ndarray
+
+# sklearn <1.9 requires TargetEncoder's `cv` to be an int and takes shuffling
+# via `shuffle`/`random_state`; >=1.9 deprecates those two in favor of passing
+# a cv splitter (e.g. KFold) directly as `cv`.
+_SKLEARN_TARGET_ENCODER_CV_SPLITTER = tuple(
+    int(v) for v in sklearn.__version__.split(".")[:2]
+) >= (1, 9)
 
 
 def split_and_preprocess_data(
@@ -162,12 +170,18 @@ def linear_preprocessor(
     the remaining numeric columns should use non-default knot settings.
     """
 
-    target_encoder = TargetEncoder(
-        target_type="auto",
-        cv=5,
-        shuffle=True,
-        random_state=0,
-    )
+    if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
+        target_encoder = TargetEncoder(
+            target_type="auto",
+            cv=KFold(n_splits=5, shuffle=True, random_state=0),
+        )
+    else:
+        target_encoder = TargetEncoder(
+            target_type="auto",
+            cv=5,
+            shuffle=True,
+            random_state=0,
+        )
 
     one_hot_encoder = OneHotEncoder(
         sparse_output=False,
