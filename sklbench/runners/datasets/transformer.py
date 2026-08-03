@@ -62,6 +62,9 @@ def convert_data(
     if dtype == "preserve":
         dtype = None
 
+    if isinstance(data, (pd.DataFrame, pd.Series)) and dformat not in (None, "pandas"):
+        data = data.to_numpy()
+
     if isinstance(data, (pd.DataFrame, pd.Series)):
         if dtype is not None:
             data = data.astype(dtype)
