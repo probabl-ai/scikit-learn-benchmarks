@@ -28,6 +28,9 @@ from sklbench.config.utils import select_logistic_regression_solver
 BENCH = {"n_runs": 1, "py_spy_profiling": False}
 
 N_JOBS = cpu_count(only_physical_cores=True)
+# RF/ET n_estimators below are `max(<tuned floor>, N_JOBS * 3)`: use at least
+# as many trees as were tuned on a typical dev machine, but scale up on
+# many-core machines so the forest actually uses the available parallelism.
 
 DEFAULT_PREPROCESSING_KIND = {
     "Ridge": "linear",
@@ -94,7 +97,7 @@ def ames_housing(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": 300,
+            "n_estimators": max(300, N_JOBS * 6),
             "max_depth": 20,
             "max_features": 0.5,
             "min_samples_leaf": 1,
@@ -153,7 +156,7 @@ def amazon_employee_access(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": 200,
+            "n_estimators": max(200, N_JOBS * 4),
             "max_features": 0.3,
             "min_samples_leaf": 2,
             "random_state": 0,
@@ -180,7 +183,7 @@ def kick(implem: dict):
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
-            "n_estimators": 200,
+            "n_estimators": max(200, N_JOBS * 4),
             "max_depth": 30,
             "max_features": "sqrt",
             "min_samples_leaf": 10,
@@ -219,7 +222,7 @@ def covtype(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": 100,
+            "n_estimators": max(100, N_JOBS * 3),
             "random_state": 0,
             "n_jobs": N_JOBS,
         },
@@ -247,7 +250,7 @@ def susy(implem: dict):
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
-            "n_estimators": 50,
+            "n_estimators": max(50, N_JOBS * 2),
             "min_impurity_decrease": 3e-6,
             "max_depth": 16,
             "random_state": 0,
@@ -277,7 +280,7 @@ def year_prediction_msd(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": 30,
+            "n_estimators": max(30, N_JOBS * 2),
             "max_depth": 10,
             "random_state": 0,
             "n_jobs": N_JOBS,
@@ -311,7 +314,7 @@ def fraud(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": 200,
+            "n_estimators": max(200, N_JOBS * 4),
             "class_weight": "balanced",
             "random_state": 0,
             "n_jobs": N_JOBS,
@@ -336,7 +339,7 @@ def medical_charges_nominal(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": 300,
+            "n_estimators": max(300, N_JOBS * 6),
             "max_depth": 20,
             "max_features": 0.5,
             "random_state": 0,
@@ -366,7 +369,7 @@ def bank_marketing(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": 300,
+            "n_estimators": max(300, N_JOBS * 6),
             "max_depth": 20,
             "max_features": 0.3,
             "min_samples_leaf": 2,
