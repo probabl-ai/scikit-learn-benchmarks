@@ -1,10 +1,11 @@
 import json
+import os
 import subprocess as sp
 import sys
 import tempfile
 from pathlib import Path
 
-from ..config import Case
+from ..config import Case, EstimatorCase
 
 
 RUNNER_MODULES = {
@@ -12,6 +13,40 @@ RUNNER_MODULES = {
     "pipeline": "sklbench.runners.pipeline",
 }
 PY_SPY_NO_CHILD_PROCESS_ERROR = "Error: No child process (os error 10)"
+
+
+def _n_jobs(bench_case: Case) -> int:
+    """Effective thread/process parallelism the benchmarked run will use.
+
+    Falls back to `os.cpu_count()` for `n_jobs <= 0` (joblib/sklearn's
+    "use all cores" convention), so the py-spy rate policy below reacts to
+    actual parallelism rather than the literal sentinel value.
+    """
+    if isinstance(bench_case, EstimatorCase):
+        n_jobs = bench_case.algorithm.estimator_params.get("n_jobs", 1)
+    else:
+        n_jobs = bench_case.run.n_jobs
+    if not n_jobs or n_jobs <= 0:
+        return os.cpu_count() or 1
+    return n_jobs
+
+
+def py_spy_rate(bench_case: Case) -> int:
+    """py-spy sampling rate (Hz), lowered as `n_jobs` grows.
+
+    High-`n_jobs` cases push more threads through py-spy's ptrace-based
+    per-tick stack walk, which can trigger a scheduler-churn feedback loop
+    that makes profiling fall pathologically behind real time (see
+    https://github.com/cakedev0/scikit-learn/issues/14). Lowering the rate
+    keeps profiling overhead bounded on those cases.
+    """
+    n_jobs = _n_jobs(bench_case)
+    if n_jobs < 5:
+        return 100
+    elif n_jobs <= 20:
+        return 30
+    else:
+        return 15
 
 
 def filter_py_spy_stderr(stderr: str) -> tuple[str, bool]:
@@ -52,6 +87,8 @@ def generate_runner_command(
             "py-spy",
             "record",
             "--native",
+            "--rate",
+            str(py_spy_rate(bench_case)),
             "--format",
             "raw",
             "-o",
