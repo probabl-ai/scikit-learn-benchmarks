@@ -65,39 +65,35 @@ def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
         {"n_samples": 1000 * scale, "n_features": 20, "n_informative": 10},
         {"n_samples": 100 * scale, "n_features": 500, "n_informative": 50},
     ]
+    data = []
+    for data_spec_mix in base_data[:]:
+        data_spec_mix["columns"] = "mix"
+        data_spec_other = deepcopy(data_spec_mix)
+        data_spec_other["columns"] = deterministic_random_choice(
+            seed=data_spec_mix,
+            choices=["continuous", "binary", "long-tail"]
+        )
+        data.append((data_spec_mix, data_spec_other))
 
     classification_data = []
-    for data_spec in base_data:
-        data_spec = deepcopy(data_spec)
-        data_spec.update({
+    regression_data = []
+    for (data_spec_clf, data_spec_reg) in data:
+        seed = (data_spec_clf, data_spec_reg)
+        if deterministic_random_choice(seed, [0, 1]):
+            data_spec_clf, data_spec_reg = data_spec_reg, data_spec_clf
+
+        data_spec_clf.update({
             "n_classes": 2,
             "n_redundant": 0,
-            "columns": "mix"
         })
-        if data_spec["n_features"] == 1:
-            data_spec["n_clusters_per_class"] = 1
-        classification_data.append(data_spec)
-        data_spec = deepcopy(data_spec)
-        data_spec["columns"] = deterministic_random_choice(
-            seed=data_spec,
-            choices=["continuous", "binary", "long-tail"]
-        )
-        classification_data.append(data_spec)
+        if data_spec_clf["n_features"] == 1:
+            data_spec_clf["n_clusters_per_class"] = 1
+        classification_data.append(data_spec_clf)
 
-    regression_data = []
-    for data_spec in base_data:
-        data_spec = deepcopy(data_spec)
-        data_spec.update({
+        data_spec_reg.update({
             "noise": 0.1,
-            "columns": "mix"
         })
-        regression_data.append(data_spec)
-        data_spec = deepcopy(data_spec)
-        data_spec["columns"] = deterministic_random_choice(
-            seed=data_spec,
-            choices=["continuous", "binary", "long-tail"]
-        )
-        regression_data.append(data_spec)
+        regression_data.append(data_spec_reg)
 
     entries = chain(
         product(
