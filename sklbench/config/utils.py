@@ -64,16 +64,22 @@ def filter_array_api_supported_cases_if_needed(cases):
             continue
 
         estimator = case.algorithm.estimator
+        is_sklearnex = implem.library == "sklearnex"
         if estimator == "LogisticRegression":
             solver = case.algorithm.estimator_params.get('solver', 'lbfgs')
             if solver not in supported_logistic_regression_solvers(implem):
                 continue
-        elif estimator == "RidgeClassifier" and implem.library == "sklearnex":
+        elif estimator == "RidgeClassifier" and is_sklearnex:
             continue
         elif estimator in ("Ridge", "RidgeClassifier"):
             solver = case.algorithm.estimator_params.get('solver', 'auto')
-            supported_solvers = ('auto', 'svd') if implem.library == "sklearn" else ('auto',)
+            supported_solvers = ('auto',) if is_sklearnex else ('auto', 'svd')
             if solver not in supported_solvers:
+                continue
+            if case.data.order == "F" and is_sklearnex:
+                # supported but way too slow:
+                # https://github.com/uxlfoundation/scikit-learn-intelex/issues/3235
+                # TODO: remove this if once the fix is released
                 continue
         else:
             continue
