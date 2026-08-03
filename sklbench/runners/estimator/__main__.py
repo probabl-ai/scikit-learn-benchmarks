@@ -1,4 +1,5 @@
 import argparse
+import gc
 import inspect
 import json
 import logging
@@ -210,6 +211,7 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
     estimator_class = get_estimator(library_name, estimator_name)
 
     data, data_description = load_data(bench_case)
+    gc.collect()
     estimator_params = dict(bench_case.algorithm.estimator_params)
 
     with (
