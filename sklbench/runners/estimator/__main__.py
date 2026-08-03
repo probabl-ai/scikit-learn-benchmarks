@@ -179,12 +179,20 @@ def run_case_once(
         data_desc["fit"].update({"n_classes": data_description["n_classes"]})
         data_desc["predict"].update({"n_classes": data_description["n_classes"]})
 
+    attributes = _collect_model_attributes(estimator)
+    if bench_case.implementation.library == "sklearnex":
+        # sklearnex silently falls back to stock sklearn per-estimator when
+        # oneDAL doesn't support the given params/data (e.g. RandomForestClassifier
+        # with class_weight="balanced_subsample"), so a "sklearnex" record isn't
+        # necessarily measuring oneDAL acceleration.
+        attributes["has_onedal_estimator"] = hasattr(estimator, "_onedal_estimator")
+
     return {
         "data_desc": data_desc,
         "time_ms": times,
         "metrics": quality_metrics,
         "profiling_metrics": profiling_metrics,
-        "attributes": _collect_model_attributes(estimator),
+        "attributes": attributes,
     }
 
 
