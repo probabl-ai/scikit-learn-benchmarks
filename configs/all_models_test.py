@@ -34,7 +34,7 @@ def generate_cases() -> list[dict]:
     for case in cases:
         case.setdefault('bench', {})
         case['bench'] |= {'n_runs': 1, 'py_spy_profiling': True}
-        case['bench'].setdefault('time_limit', 2)
+        case['bench'].setdefault('time_limit', 4)
 
     cases = list(filter_array_api_supported_cases_if_needed(cases))
 

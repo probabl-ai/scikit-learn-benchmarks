@@ -16,6 +16,11 @@ def generate_cases() -> list[dict]:
         cases += generate_linear_cases(implem, tier='normal')
         cases += generate_real_cases(implem, max_tier='normal')
 
+    for case in cases:
+        case.setdefault('bench', {})
+        case['bench'] |= {'n_runs': 7, 'py_spy_profiling': True}
+        case['bench'].setdefault('time_limit', 300)
+
     cases = list(filter_array_api_supported_cases_if_needed(cases))
 
     return cases
