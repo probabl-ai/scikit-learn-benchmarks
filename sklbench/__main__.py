@@ -17,11 +17,7 @@
 import sys
 
 from sklbench.config import load_cases_from_script
-from sklbench.orchestrator import (
-    get_orchestrator_parser,
-    load_datasets_only,
-    orchestrate_benchmarks,
-)
+from sklbench.orchestrator import get_orchestrator_parser, orchestrate_benchmarks
 
 
 def main():
@@ -33,10 +29,6 @@ def main():
     bench_cases = [
         case for config in args.config for case in load_cases_from_script(config)
     ]
-
-    if args.load_datasets_only:
-        return load_datasets_only(bench_cases, args)
-
     return orchestrate_benchmarks(bench_cases, args)
 
 

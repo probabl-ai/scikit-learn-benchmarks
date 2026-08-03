@@ -19,7 +19,6 @@ ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia"]
 ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models_test.py"): ARRAY_API_ENVS,
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
-    Path("configs/all_models.py"): ARRAY_API_ENVS,
 }
 
 
