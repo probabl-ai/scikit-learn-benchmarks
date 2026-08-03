@@ -10,15 +10,25 @@ from _common import deterministic_random_choice
 
 
 def _stable_seed(case: dict) -> dict:
-    """`case["algorithm"]["estimator_params"]` embeds `n_jobs`/`n_estimators`,
-    both scaled from `N_JOBS = joblib.cpu_count(...)`, i.e. machine-dependent.
-    Strip them before hashing so `deterministic_random_choice` picks the same
-    cases regardless of how many physical cores the machine running this
-    script has.
+    """Strip fields that vary across otherwise-identical cases so
+    `deterministic_random_choice` picks the same cases regardless of which
+    machine or implementation generated them:
+
+    - `case["algorithm"]["estimator_params"]` embeds `n_jobs`/`n_estimators`,
+      both scaled from `N_JOBS = joblib.cpu_count(...)`, i.e. machine-dependent,
+      plus `max_bins`, which is only ever added for sklearnex cases.
+    - `case["implementation"]` differs between sklearn/sklearnex/array-API for
+      what is meant to be the same logical case. Hashing it in means each
+      implementation independently samples a different one-third subset of
+      the matrix, so a case kept for sklearn can be dropped for sklearnex (and
+      vice versa) - breaking the sklearn-vs-sklearnex/array-API comparison for
+      most of the matrix.
     """
     seed = deepcopy(case)
     seed["algorithm"]["estimator_params"].pop("n_jobs", None)
     seed["algorithm"]["estimator_params"].pop("n_estimators", None)
+    seed["algorithm"]["estimator_params"].pop("max_bins", None)
+    seed.pop("implementation", None)
     return seed
 
 

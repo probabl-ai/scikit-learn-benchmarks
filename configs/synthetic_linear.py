@@ -1,9 +1,23 @@
+from copy import deepcopy
 from itertools import chain, product
 from math import ceil
 from typing import Iterable
 
 #TODO: in utils or in _common? wierd overlap
 from _common import deterministic_random_choice
+
+
+def _stable_seed(case: dict) -> dict:
+    """Strip `case["implementation"]` before hashing so the one-third
+    subsample in `generate_cases` picks the same cases regardless of which
+    implementation (sklearn/sklearnex/array-API) generated them. Without
+    this, each implementation independently samples a different subset of
+    the matrix, breaking the sklearn-vs-sklearnex/array-API comparison for
+    most cases (see the same fix in synthetic_trees.py's `_stable_seed`).
+    """
+    seed = deepcopy(case)
+    seed.pop("implementation", None)
+    return seed
 
 
 ALGORITHM_VARIANTS = [
@@ -116,7 +130,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
     # sub-sample one third of the matrix
     cases = [
         case for case in cases
-        if deterministic_random_choice(case, [0, 0, 1])
+        if deterministic_random_choice(_stable_seed(case), [0, 0, 1])
     ]
 
     return cases
