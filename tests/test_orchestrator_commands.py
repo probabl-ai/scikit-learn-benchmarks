@@ -18,6 +18,8 @@ def test_generate_runner_command_enables_native_py_spy_profiling():
         "py-spy",
         "record",
         "--native",
+        "--rate",
+        "100",
         "--format",
         "raw",
         "-o",

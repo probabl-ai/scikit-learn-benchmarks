@@ -57,14 +57,23 @@ def get_estimator_params_variants(n_samples: int, n_estimators: int | None = Non
         yield {**params, **params_base}
 
 
-def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
-    bench = {"n_runs": 5, "time_limit": 2 + scale * 2}
+def tree_data_shapes(scale: int) -> list[dict]:
+    """Base (n_samples, n_features, n_informative) shapes at a given scale.
 
-    base_data = [
+    Shared with `all_models_scaling.py`'s thread-count scaling study so both
+    configs stay in sync on what "scale N" means.
+    """
+    return [
         {"n_samples": 10000 * scale, "n_features": 1, "n_informative": 1},
         {"n_samples": 1000 * scale, "n_features": 20, "n_informative": 10},
         {"n_samples": 100 * scale, "n_features": 500, "n_informative": 50},
     ]
+
+
+def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
+    bench = {"n_runs": 5, "time_limit": 2 + scale * 2}
+
+    base_data = tree_data_shapes(scale)
     data = []
     for data_spec_mix in base_data[:]:
         data_spec_mix["columns"] = "mix"
