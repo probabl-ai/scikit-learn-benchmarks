@@ -9,6 +9,19 @@ N_JOBS = cpu_count(only_physical_cores=True)
 from _common import deterministic_random_choice
 
 
+def _stable_seed(case: dict) -> dict:
+    """`case["algorithm"]["estimator_params"]` embeds `n_jobs`/`n_estimators`,
+    both scaled from `N_JOBS = joblib.cpu_count(...)`, i.e. machine-dependent.
+    Strip them before hashing so `deterministic_random_choice` picks the same
+    cases regardless of how many physical cores the machine running this
+    script has.
+    """
+    seed = deepcopy(case)
+    seed["algorithm"]["estimator_params"].pop("n_jobs", None)
+    seed["algorithm"]["estimator_params"].pop("n_estimators", None)
+    return seed
+
+
 def get_estimator_params_variants(n_samples: int, n_estimators: int | None = None, broad=False):
     params_list = [
         {},
@@ -108,7 +121,7 @@ def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
             }
             if (
                 implem["library"] == "sklearnex"
-                and deterministic_random_choice(case, [True, False])
+                and deterministic_random_choice(_stable_seed(case), [True, False])
             ):
                 case["algorithm"]["estimator_params"]["max_bins"] = n_samples
             yield case
@@ -154,7 +167,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
     # sub-sample one third of the matrix
     cases = [
         case for case in cases
-        if deterministic_random_choice(case, [0, 0, 1])
+        if deterministic_random_choice(_stable_seed(case), [0, 0, 1])
     ]
 
     return cases
