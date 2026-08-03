@@ -39,6 +39,9 @@ DEFAULT_PREPROCESSING_KIND = {
     "KMeans": None,
 }
 
+# TODO? use Ridge on some clf datasets
+# or ask sklearnex to support RidgeClassifier?
+
 
 TIERS = ("test", "fast", "normal", "slow")
 

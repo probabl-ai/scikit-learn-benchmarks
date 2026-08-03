@@ -59,9 +59,6 @@ def result_matches(
     append_iterations_warning(base_res, candidate, warnings)
     append_cpu_fallback_warning(candidate, warnings)
 
-    # TODO? warning for attributes:
-    # - tree structure
-
     return (
         base_res.minimal_match_key == candidate.minimal_match_key,
         warnings

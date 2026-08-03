@@ -43,8 +43,6 @@ def generate_cases():
 
 
 def test_load_cases_from_script_accepts_estimator_dict(tmp_path):
-    # TODO: a dict should not instantly become an EstimatorCase
-    # this test and the code should be fixed
     config = tmp_path / "config.py"
     config.write_text(
         """
