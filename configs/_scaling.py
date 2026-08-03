@@ -36,7 +36,7 @@ def _logical_cpus_by_physical_core() -> list[list[int]]:
     )
 
 
-def get_n_cores_list(*, max_n_cores: int | None = None, growth_factor: int = 2) -> list[int]:
+def get_n_cores_list(*, max_n_cores: int | None = None) -> list[int]:
     max_n_cores = max_n_cores or joblib.cpu_count(only_physical_cores=True)
     counts = []
     thread_count = 1

@@ -18,7 +18,6 @@ class PipelineRun(Section):
     array_api_namespace: str = "numpy"
     device: str = "cpu"
     joblib_backend: str = "loky"
-    capture_errors: bool = True
     n_iter: int = 30
     cv_n_splits: int = 3
     cv_test_size: float = 0.2
