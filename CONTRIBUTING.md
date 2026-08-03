@@ -24,7 +24,7 @@ The project uses Pixi environments. Common environments are:
 - `skl-cpu`: Array API CPU benchmark runs
 - `skl-intel`: Intel Array API benchmark runs
 - `skl-nvidia`: NVIDIA Array API benchmark runs
-- `intel`: scikit-learn-intelex CPU benchmark runs
+- `intel`: scikit-learn-intelex CPU and GPU benchmark runs
 - `reporting`: dashboard generation and reporting utilities
 
 ## Architecture
@@ -111,8 +111,9 @@ unchanged. For example, to reproduce the CPU benchmark set:
 ./run.sh intel --config configs/all_models_test.py
 ```
 
-Add Intel GPU benchmarks (Array API only; sklearnex GPU benchmarks are not
-generated currently):
+Add Intel GPU benchmarks via Array API (`./run.sh intel` above already covers
+sklearnex GPU, filtered to the Ridge/LogisticRegression cases that support
+it):
 
 ```bash
 ./run.sh skl-intel --config configs/all_models_test.py

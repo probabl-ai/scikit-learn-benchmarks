@@ -57,7 +57,7 @@ def get_estimator_params_variants(n_samples: int, n_estimators: int | None = Non
 
 
 def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
-    bench = {"n_runs": 5, "time_limit": 2 + scale}
+    bench = {"n_runs": 5, "time_limit": 2 + scale * 2}
 
     base_data = [
         {"n_samples": 10000 * scale, "n_features": 1, "n_informative": 1},

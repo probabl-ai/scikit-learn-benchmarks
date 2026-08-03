@@ -67,10 +67,8 @@ SKLEARNEX_CPU_IMPLEMENTATION = {
         "allow_sklearn_after_onedal": False,
     },
 }
-SKLEARNEX_CPU_IMPLEMENTATIONS = [SKLEARNEX_CPU_IMPLEMENTATION]
 
 
-# Unused for now:
 SKLEARNEX_GPU_IMPLEMENTATION = {
     "library": "sklearnex",
     "device": "gpu",
@@ -93,7 +91,7 @@ PIXI_TO_IMPLEMENTATIONS = {
     "skl-cpu": ARRAY_API_CPU_IMPLEMENTATIONS,
     "skl-intel": ARRAY_API_INTEL_IMPLEMENTATIONS,
     "skl-nvidia": ARRAY_API_NVIDIA_IMPLEMENTATIONS,
-    "intel": SKLEARNEX_CPU_IMPLEMENTATIONS,
+    "intel": [SKLEARNEX_CPU_IMPLEMENTATION, SKLEARNEX_GPU_IMPLEMENTATION],
 }
 
 
