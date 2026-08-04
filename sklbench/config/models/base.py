@@ -17,6 +17,7 @@ class Bench(Section):
     time_limit: float = 600
     taskset: str | int | None = None
     py_spy_profiling: bool = True
+    py_spy_native: bool = True
     flush_cache: bool = False
     gc_collect: bool = False
     cpu_profile: bool = False

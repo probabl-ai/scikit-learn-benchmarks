@@ -83,10 +83,11 @@ def generate_runner_command(
     ]
 
     if py_spy_output is not None:
+        native_flag = ["--native"] if bench_case.bench.py_spy_native else []
         return command_prefix + [
             "py-spy",
             "record",
-            "--native",
+            *native_flag,
             "--rate",
             str(py_spy_rate(bench_case)),
             "--format",
