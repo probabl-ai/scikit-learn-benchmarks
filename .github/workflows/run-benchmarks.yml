@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: benchmark-${{ inputs.runner }}
@@ -93,24 +94,31 @@ jobs:
           pixi-version: v0.75.0
           environments: ${{ steps.resolve.outputs.envs }}
           locked: true
-          cache: true
+          # This runner is a persistent self-hosted box, not an ephemeral
+          # GitHub-hosted VM: the .pixi env already lives on local disk
+          # between runs, so the GH Actions remote cache would just add
+          # needless network I/O and consume shared cache quota for nothing.
+          cache: false
 
       - name: Run benchmarks
-        id: run_benchmarks
+        # sklbench already logs and moves on past isolated per-case
+        # failures/timeouts, so a non-zero run.sh exit here isn't
+        # necessarily a real problem; the classify step below decides
+        # pass/fail, not this step's own exit code.
+        continue-on-error: true
         env:
           TIER: ${{ inputs.tier }}
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
-          set +e
           case "$TIER" in
             test) config=configs/all_models_test.py ;;
             fast) config=configs/all_models_fast.py ;;
             normal) config=configs/all_models.py ;;
           esac
-          ./run.sh $ENVS --config "$config"
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          ./run.sh $ENVS --config "$config" 2>&1 | tee "$RUNNER_TEMP/bench.log"
 
       - name: Commit and push results
+        id: commit
         if: always() && inputs.tier != 'test'
         env:
           BENCH_RUNNER: ${{ inputs.runner }}
@@ -125,10 +133,33 @@ jobs:
                 -c user.email="github-actions[bot]@users.noreply.github.com" \
                 commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${BENCH_RUNNER})"
             git push origin "$branch"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
           else
             echo "No result changes to commit."
           fi
 
-      - name: Fail if any environment failed
-        if: steps.run_benchmarks.outputs.exit_code != '0'
-        run: exit 1
+      - name: Open PR with results
+        if: always() && steps.commit.outputs.branch != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+          ENVS: ${{ steps.resolve.outputs.envs }}
+          BENCH_RUNNER: ${{ inputs.runner }}
+          TIER: ${{ inputs.tier }}
+        run: |
+          first_env="${ENVS%% *}"
+          pixi run -e "$first_env" python scripts/open_bench_pr.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title "Benchmark results: ${ENVS} (${BENCH_RUNNER})" \
+            --summary "Benchmark results for \`${ENVS}\` (tier=${TIER}, runner=${BENCH_RUNNER})." \
+            --log "$RUNNER_TEMP/bench.log"
+
+      - name: Classify benchmark results
+        if: always()
+        env:
+          ENVS: ${{ steps.resolve.outputs.envs }}
+        run: |
+          first_env="${ENVS%% *}"
+          pixi run -e "$first_env" python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"

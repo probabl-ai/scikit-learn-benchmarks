@@ -4,12 +4,11 @@ import json
 import logging
 import re
 import shlex
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-from tqdm import tqdm
 
 from ..config import Case, EstimatorCase, PipelineCase
 from .commands import run_runner_from_case
@@ -49,6 +48,10 @@ def _truncate_log(log: str) -> str:
     if len(log) <= _MAX_LOG_CHARS:
         return log
     return f"... truncated ...\n{log[-_MAX_LOG_CHARS:]}"
+
+
+def _print_progress_line(index: int, total: int, case_name: str) -> None:
+    print(f"[sklbench] {index}/{total} {case_name}", file=sys.stderr)
 
 
 def _gzip_file(source: Path, destination: Path) -> None:
@@ -148,18 +151,18 @@ def load_datasets_only(bench_cases: list[Case], args) -> int:
     )
 
     return_code = 0
-    bench_cases_with_pbar = tqdm(bench_cases)
-    for bench_case in bench_cases_with_pbar:
-        bench_cases_with_pbar.set_description(bench_case.name(shortened=True))
+    n_cases = len(bench_cases)
+    for index, bench_case in enumerate(bench_cases, start=1):
+        case_name = bench_case.name(shortened=True)
         try:
             _load_case_dataset(bench_case)
         except Exception as exc:
             return_code = -1
-            logger.warning(
-                f"Failed to load dataset for {bench_case.name(shortened=True)!r}: {exc!r}"
-            )
+            logger.warning(f"Failed to load dataset for {case_name!r}: {exc!r}")
             if args.exit_on_error:
                 break
+        finally:
+            _print_progress_line(index, n_cases, case_name)
     return return_code
 
 
@@ -187,13 +190,13 @@ def orchestrate_benchmarks(
     records_dir = results_root / "records"
     profiles_dir = results_root / "profiles"
 
-    bench_cases_with_pbar = tqdm(bench_cases)
-    for bench_case in bench_cases_with_pbar:
+    n_cases = len(bench_cases)
+    for index, bench_case in enumerate(bench_cases, start=1):
         basename = _case_basename(bench_case)
         record_path = records_dir / f"{basename}.json"
         profile_path = profiles_dir / f"{basename}.raw.gz"
         record_saved = False
-        bench_cases_with_pbar.set_description(bench_case.name(shortened=True))
+        case_name = bench_case.name(shortened=True)
         try:
             bench_return_code, rows, failed_case = run_runner_from_case(bench_case)
             save_benchmark_record(
@@ -288,4 +291,6 @@ def orchestrate_benchmarks(
             )
             if args.exit_on_error:
                 break
+        finally:
+            _print_progress_line(index, n_cases, case_name)
     return return_code
