@@ -93,7 +93,11 @@ jobs:
           pixi-version: v0.75.0
           environments: ${{ steps.resolve.outputs.envs }}
           locked: true
-          cache: true
+          # This runner is a persistent self-hosted box, not an ephemeral
+          # GitHub-hosted VM: the .pixi env already lives on local disk
+          # between runs, so the GH Actions remote cache would just add
+          # needless network I/O and consume shared cache quota for nothing.
+          cache: false
 
       - name: Run benchmarks
         id: run_benchmarks
