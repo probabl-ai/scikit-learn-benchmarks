@@ -83,7 +83,17 @@ def _linear_cases_for(implem: dict, benchs: list[dict], data_variants: list[dict
             # iteration, so they don't scale to wide feature spaces - times out
             # regardless of implementation rather than measuring anything useful.
             continue
-        yield _build_case(bench, algorithm, generation_kwargs, implem)
+
+        case = _build_case(bench, algorithm, generation_kwargs, implem)
+        if (
+            implem.get("device") == "xpu"
+            and case["data"]["dtype"] == "float64"
+            and generation_kwargs["n_samples"] > 10_000_000
+        ):
+            # XPU (torch) is broken for float64 once n_samples goes past ~10M -
+            # crashes rather than measuring anything useful.
+            continue
+        yield case
 
 
 def _test_linear_cases(implem: dict) -> Iterable[dict]:

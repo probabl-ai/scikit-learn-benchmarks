@@ -45,16 +45,16 @@ def exclude_estimators(cases: Iterable[dict], estimators: set[str]) -> list[dict
 
 
 def disable_profiling_for_array_api_gpu_cases(cases: Iterable[dict]) -> None:
-    """py-spy is consistently unreliable on array-API + GPU cases on this
-    (very low-tier) GPU: order="F" input forces an expensive contiguous-copy
-    / fresh GPU memory allocation before solvers like dpnp's SVD can run
-    (same root cause as
+    """py-spy is consistently unreliable on array-API + non-CPU (gpu/xpu/cuda)
+    cases on this (very low-tier) GPU: order="F" input forces an expensive
+    contiguous-copy / fresh GPU memory allocation before solvers like dpnp's
+    SVD can run (same root cause as
     https://github.com/uxlfoundation/scikit-learn-intelex/issues/3235, but
     hit here via dpnp's own array-API path rather than oneDAL), and that
     allocation is already borderline slow untraced - attaching py-spy at all
     (even without --native) is enough to make it fall pathologically behind.
     Rather than special-casing order="F", disable profiling for every
-    array-API + GPU case, since py-spy errors keep showing up there more
+    array-API + non-CPU case, since py-spy errors keep showing up there more
     broadly on this hardware.
 
     Replaces `bench` on matching cases with a new dict rather than mutating
@@ -65,5 +65,5 @@ def disable_profiling_for_array_api_gpu_cases(cases: Iterable[dict]) -> None:
     for case in cases:
         impl = case["implementation"]
         context = {**(impl.get("sklearn_context") or {}), **(impl.get("sklearnex_context") or {})}
-        if impl.get("device") == "gpu" and context.get("array_api_dispatch", False):
+        if impl.get("device", "cpu") != "cpu" and context.get("array_api_dispatch", False):
             case["bench"] = {**case.get("bench", {}), "py_spy_profiling": False}
