@@ -59,7 +59,13 @@ def _build_case(
                 **generation_kwargs, **extra_generation_kwargs},
         },
     }
-    # TODO: only F/only C? only 32/64?
+    # order="F" is known to be extremely slow (sometimes timing out) for
+    # sklearnex GPU Ridge/LinearRegression/LogisticRegression - see
+    # https://github.com/uxlfoundation/scikit-learn-intelex/issues/3235.
+    # Already fixed upstream in oneDAL (uxlfoundation/oneDAL#3665, merged
+    # 2026-07-10) but not yet in a scikit-learn-intelex release (latest is
+    # 2026.1.0, from 2026-06-10) - leaving order in the mix as-is for now,
+    # remove this comment once a release with the fix is picked up.
     case['data']['order'] = deterministic_random_choice(case, ['C', 'F'])
     case['data']['dtype'] = deterministic_random_choice(case, ['float32', 'float64'])
     case["implementation"] = implem
