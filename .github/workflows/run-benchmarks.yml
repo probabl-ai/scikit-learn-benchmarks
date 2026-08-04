@@ -39,8 +39,9 @@ concurrency:
 jobs:
   benchmark:
     # Maps the friendly `runner` input to the actual self-hosted runner
-    # label registered for this machine.
-    runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["arthur-fw-isolated"]' || '[]') }}
+    # labels registered org-wide (same physical box array-api-intel.yml
+    # targets as its float64-gpu runner_labels).
+    runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '[]') }}
     steps:
       - name: Check out repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -51,15 +52,15 @@ jobs:
         id: resolve
         env:
           ENV_INPUT: ${{ inputs.env }}
-          RUNNER_NAME: ${{ inputs.runner }}
+          BENCH_RUNNER: ${{ inputs.runner }}
         run: |
           set -euo pipefail
-          case "$RUNNER_NAME" in
+          case "$BENCH_RUNNER" in
             intel-laptop)
               all_envs="sklearn skl-intel intel skl-cpu"
               ;;
             *)
-              echo "::error::no [all] mapping defined for runner '$RUNNER_NAME'"
+              echo "::error::no [all] mapping defined for runner '$BENCH_RUNNER'"
               exit 1
               ;;
           esac
@@ -112,17 +113,17 @@ jobs:
       - name: Commit and push results
         if: always() && inputs.tier != 'test'
         env:
-          RUNNER_NAME: ${{ inputs.runner }}
+          BENCH_RUNNER: ${{ inputs.runner }}
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
           set -euo pipefail
           if [ -n "$(git status --porcelain results/)" ]; then
-            branch="bench-results/${RUNNER_NAME}-${{ github.run_id }}"
+            branch="bench-results/${BENCH_RUNNER}-${{ github.run_id }}"
             git switch -c "$branch"
             git add results/
             git -c user.name="github-actions[bot]" \
                 -c user.email="github-actions[bot]@users.noreply.github.com" \
-                commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${RUNNER_NAME})"
+                commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${BENCH_RUNNER})"
             git push origin "$branch"
           else
             echo "No result changes to commit."
