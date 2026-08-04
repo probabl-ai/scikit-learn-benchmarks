@@ -68,8 +68,10 @@ def real_case_dataset(dataset, task, tier):
                     "preprocessing_kind",
                     DEFAULT_PREPROCESSING_KIND[entry["estimator"]],
                 )
+                entry_bench = entry.pop("bench", None)
+                case_bench = {**bench, **entry_bench} if entry_bench else bench
                 yield {
-                    "bench": bench,
+                    "bench": case_bench,
                     "implementation": implem,
                     "metadata": {"task": task, "tier": entry_tier},
                     "algorithm": {**entry},
@@ -277,7 +279,9 @@ def year_prediction_msd(implem: dict):
         "estimator_params": {"alpha": 1.0},
     }
     # RandomForestRegressor, no preprocessing: test R2 0.242, ~75s/fit
-    # (kept small - 100 trees/depth 16 took 441s for barely better R2)
+    # (kept small - 100 trees/depth 16 took 441s for barely better R2).
+    # time_limit bumped to 600s: at the default (300s), only 2/7 n_runs
+    # repeats were completing before timing out.
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
@@ -287,6 +291,7 @@ def year_prediction_msd(implem: dict):
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
+        "bench": {"time_limit": 600},
     }
 
 
