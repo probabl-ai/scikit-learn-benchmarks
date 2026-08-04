@@ -65,6 +65,7 @@ def generate_runner_command(
     n_runs: int,
     output_jsonl: Path,
     py_spy_output: Path | None = None,
+    cprofile_output: Path | None = None,
 ) -> list[str]:
     command_prefix: list[str] = []
     if bench_case.bench.taskset is not None:
@@ -81,6 +82,9 @@ def generate_runner_command(
         "--output-jsonl",
         str(output_jsonl),
     ]
+
+    if cprofile_output is not None:
+        runner_command += ["--cprofile-output", str(cprofile_output)]
 
     if py_spy_output is not None:
         native_flag = ["--native"] if bench_case.bench.py_spy_native else []
@@ -115,6 +119,7 @@ def parse_runner_jsonl(output_jsonl: Path) -> list[dict]:
 def run_runner_from_case(
     bench_case: Case,
     py_spy_output: Path | None = None,
+    cprofile_output: Path | None = None,
     n_runs_override: int | None = None,
 ) -> tuple[int, list[dict], dict | None]:
     bench_case_dict = bench_case.json_dict()
@@ -133,6 +138,7 @@ def run_runner_from_case(
             n_runs,
             output_jsonl,
             py_spy_output,
+            cprofile_output,
         )
         try:
             result = sp.run(
