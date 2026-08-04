@@ -31,6 +31,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: benchmark-${{ inputs.runner }}
@@ -117,6 +118,7 @@ jobs:
           ./run.sh $ENVS --config "$config" 2>&1 | tee "$RUNNER_TEMP/bench.log"
 
       - name: Commit and push results
+        id: commit
         if: always() && inputs.tier != 'test'
         env:
           BENCH_RUNNER: ${{ inputs.runner }}
@@ -131,9 +133,28 @@ jobs:
                 -c user.email="github-actions[bot]@users.noreply.github.com" \
                 commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${BENCH_RUNNER})"
             git push origin "$branch"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
           else
             echo "No result changes to commit."
           fi
+
+      - name: Open PR with results
+        if: always() && steps.commit.outputs.branch != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+          ENVS: ${{ steps.resolve.outputs.envs }}
+          BENCH_RUNNER: ${{ inputs.runner }}
+          TIER: ${{ inputs.tier }}
+        run: |
+          first_env="${ENVS%% *}"
+          pixi run -e "$first_env" python scripts/open_bench_pr.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title "Benchmark results: ${ENVS} (${BENCH_RUNNER})" \
+            --summary "Benchmark results for \`${ENVS}\` (tier=${TIER}, runner=${BENCH_RUNNER})." \
+            --log "$RUNNER_TEMP/bench.log"
 
       - name: Classify benchmark results
         if: always()
