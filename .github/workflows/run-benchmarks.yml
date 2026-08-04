@@ -111,7 +111,7 @@ jobs:
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push results
-        if: always()
+        if: always() && inputs.tier != 'test'
         env:
           RUNNER_NAME: ${{ inputs.runner }}
           ENVS: ${{ steps.resolve.outputs.envs }}
