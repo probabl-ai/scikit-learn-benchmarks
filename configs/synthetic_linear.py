@@ -71,6 +71,12 @@ def _linear_cases_for(implem: dict, benchs: list[dict], data_variants: list[dict
     for algorithm, (bench, generation_kwargs) in product(
         ALGORITHM_VARIANTS, zip(benchs, data_variants)
     ):
+        solver = algorithm.get("estimator_params", {}).get("solver")
+        if solver in ("newton-cholesky", "newton-cg") and generation_kwargs["n_features"] >= 1000:
+            # Newton solvers factorize the (n_features, n_features) Hessian each
+            # iteration, so they don't scale to wide feature spaces - times out
+            # regardless of implementation rather than measuring anything useful.
+            continue
         yield _build_case(bench, algorithm, generation_kwargs, implem)
 
 
