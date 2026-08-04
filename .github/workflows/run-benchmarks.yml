@@ -1,0 +1,134 @@
+name: Run Benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: >
+          Space/comma-separated Pixi environments to benchmark, e.g. "sklearn
+          skl-intel". Special tokens: [all] = runner-default env set,
+          [builds] = sklearn-conda/openblas-pthreads/openblas-openmp/mkl.
+          Combinable, e.g. "[all] [builds]".
+        required: true
+        default: "[all]"
+        type: string
+      runner:
+        description: Self-hosted runner to benchmark on
+        required: true
+        default: intel-laptop
+        type: choice
+        options:
+          - intel-laptop
+      tier:
+        description: Benchmark config tier
+        required: true
+        default: normal
+        type: choice
+        options:
+          - test
+          - fast
+          - normal
+
+permissions:
+  contents: write
+
+concurrency:
+  group: benchmark-${{ inputs.runner }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    # Maps the friendly `runner` input to the actual self-hosted runner
+    # labels registered org-wide (same physical box array-api-intel.yml
+    # targets as its float64-gpu runner_labels).
+    runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '[]') }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          lfs: true
+
+      - name: Resolve environments
+        id: resolve
+        env:
+          ENV_INPUT: ${{ inputs.env }}
+          RUNNER_NAME: ${{ inputs.runner }}
+        run: |
+          set -euo pipefail
+          case "$RUNNER_NAME" in
+            intel-laptop)
+              all_envs="sklearn skl-intel intel skl-cpu"
+              ;;
+            *)
+              echo "::error::no [all] mapping defined for runner '$RUNNER_NAME'"
+              exit 1
+              ;;
+          esac
+          build_envs="sklearn-conda sklearn-openblas-pthreads sklearn-openblas-openmp sklearn-mkl"
+
+          resolved=()
+          for token in $(echo "$ENV_INPUT" | tr ',' ' '); do
+            case "$token" in
+              "[all]") resolved+=($all_envs) ;;
+              "[builds]") resolved+=($build_envs) ;;
+              *) resolved+=("$token") ;;
+            esac
+          done
+
+          deduped=()
+          for e in "${resolved[@]}"; do
+            already=0
+            for seen in "${deduped[@]:-}"; do
+              [ "$seen" = "$e" ] && already=1 && break
+            done
+            [ "$already" -eq 0 ] && deduped+=("$e")
+          done
+
+          echo "envs=${deduped[*]}" >> "$GITHUB_OUTPUT"
+          echo "Resolved environments: ${deduped[*]}"
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: ${{ steps.resolve.outputs.envs }}
+          locked: true
+          cache: true
+
+      - name: Run benchmarks
+        id: run_benchmarks
+        env:
+          TIER: ${{ inputs.tier }}
+          ENVS: ${{ steps.resolve.outputs.envs }}
+        run: |
+          set +e
+          case "$TIER" in
+            test) config=configs/all_models_test.py ;;
+            fast) config=configs/all_models_fast.py ;;
+            normal) config=configs/all_models.py ;;
+          esac
+          ./run.sh $ENVS --config "$config"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push results
+        if: always()
+        env:
+          RUNNER_NAME: ${{ inputs.runner }}
+          ENVS: ${{ steps.resolve.outputs.envs }}
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain results/)" ]; then
+            branch="bench-results/${RUNNER_NAME}-${{ github.run_id }}"
+            git switch -c "$branch"
+            git add results/
+            git -c user.name="github-actions[bot]" \
+                -c user.email="github-actions[bot]@users.noreply.github.com" \
+                commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${RUNNER_NAME})"
+            git push origin "$branch"
+          else
+            echo "No result changes to commit."
+          fi
+
+      - name: Fail if any environment failed
+        if: steps.run_benchmarks.outputs.exit_code != '0'
+        run: exit 1
