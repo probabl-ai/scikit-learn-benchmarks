@@ -39,9 +39,8 @@ concurrency:
 jobs:
   benchmark:
     # Maps the friendly `runner` input to the actual self-hosted runner
-    # labels registered org-wide (same physical box array-api-intel.yml
-    # targets as its float64-gpu runner_labels).
-    runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '[]') }}
+    # label registered for this machine.
+    runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["arthur-fw-isolated"]' || '[]') }}
     steps:
       - name: Check out repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
