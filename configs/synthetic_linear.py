@@ -93,17 +93,25 @@ def _test_linear_cases(implem: dict) -> Iterable[dict]:
     yield from _linear_cases_for(implem, [bench], data_variants)
 
 
-def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
-    """`_linear_data_shapes` scaled up/down - scale=10 matches the "fast" tier,
-    so "normal"'s first rung sits at roughly the same magnitude as "fast",
-    then grows from there - mirroring `synthetic_trees.py`'s scale ladder.
+def linear_data_shapes(scale: int) -> list[dict]:
+    """Base (n_samples, n_features, n_informative) shapes at a given scale.
+
+    Shared with `all_models_scaling.py`'s thread-count scaling study so both
+    configs stay in sync on what "scale N" means. scale=10 matches the
+    "fast" tier, so "normal"'s first rung sits at roughly the same magnitude
+    as "fast", then grows from there - mirroring `synthetic_trees.py`'s
+    scale ladder.
     """
-    data_shapes = [
+    return [
         {"n_samples": 500000 * scale, "n_features": 2, "n_informative": 2},
         {"n_samples": 50000 * scale, "n_features": 20, "n_informative": 5},
         {"n_samples": 5000 * scale, "n_features": 200, "n_informative": 40},
         {"n_samples": 500 * scale, "n_features": 2000, "n_informative": 100},
     ]
+
+
+def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
+    data_shapes = linear_data_shapes(scale)
 
     benchs = [{"time_limit": 2 + scale * 2} for _ in data_shapes]
     if implem['library'] == 'sklearn':
