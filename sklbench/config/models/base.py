@@ -18,6 +18,7 @@ class Bench(Section):
     taskset: str | int | None = None
     py_spy_profiling: bool = True
     py_spy_native: bool = True
+    cprofile_profiling: bool = False
     flush_cache: bool = False
     gc_collect: bool = False
     cpu_profile: bool = False
