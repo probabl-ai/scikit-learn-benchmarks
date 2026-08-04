@@ -100,19 +100,21 @@ jobs:
           cache: false
 
       - name: Run benchmarks
-        id: run_benchmarks
+        # sklbench already logs and moves on past isolated per-case
+        # failures/timeouts, so a non-zero run.sh exit here isn't
+        # necessarily a real problem; the classify step below decides
+        # pass/fail, not this step's own exit code.
+        continue-on-error: true
         env:
           TIER: ${{ inputs.tier }}
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
-          set +e
           case "$TIER" in
             test) config=configs/all_models_test.py ;;
             fast) config=configs/all_models_fast.py ;;
             normal) config=configs/all_models.py ;;
           esac
-          ./run.sh $ENVS --config "$config"
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          ./run.sh $ENVS --config "$config" 2>&1 | tee "$RUNNER_TEMP/bench.log"
 
       - name: Commit and push results
         if: always() && inputs.tier != 'test'
@@ -133,6 +135,10 @@ jobs:
             echo "No result changes to commit."
           fi
 
-      - name: Fail if any environment failed
-        if: steps.run_benchmarks.outputs.exit_code != '0'
-        run: exit 1
+      - name: Classify benchmark results
+        if: always()
+        env:
+          ENVS: ${{ steps.resolve.outputs.envs }}
+        run: |
+          first_env="${ENVS%% *}"
+          pixi run -e "$first_env" python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
