@@ -1,4 +1,5 @@
 import argparse
+import cProfile
 import gc
 import inspect
 import json
@@ -245,6 +246,7 @@ def main() -> int:
     parser.add_argument("--case-file", required=True, type=Path)
     parser.add_argument("--n-runs", required=True, type=int)
     parser.add_argument("--output-jsonl", required=True, type=Path)
+    parser.add_argument("--cprofile-output", type=Path, default=None)
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.WARNING,
@@ -252,7 +254,17 @@ def main() -> int:
     )
     with args.case_file.open("r", encoding="utf-8") as fp:
         bench_case = EstimatorCase.model_validate(json.load(fp))
-    run_case_to_jsonl(bench_case, args.n_runs, args.output_jsonl)
+
+    if args.cprofile_output is not None:
+        profiler = cProfile.Profile()
+        profiler.enable()
+        try:
+            run_case_to_jsonl(bench_case, args.n_runs, args.output_jsonl)
+        finally:
+            profiler.disable()
+            profiler.dump_stats(str(args.cprofile_output))
+    else:
+        run_case_to_jsonl(bench_case, args.n_runs, args.output_jsonl)
     return 0
 
 

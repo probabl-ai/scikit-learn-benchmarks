@@ -55,7 +55,9 @@ def disable_profiling_for_array_api_gpu_cases(cases: Iterable[dict]) -> None:
     (even without --native) is enough to make it fall pathologically behind.
     Rather than special-casing order="F", disable profiling for every
     array-API + non-CPU case, since py-spy errors keep showing up there more
-    broadly on this hardware.
+    broadly on this hardware. Uses cProfile instead - it's in-process (no
+    ptrace, no scheduler-churn feedback loop), so none of py-spy's failure
+    modes here apply to it.
 
     Replaces `bench` on matching cases with a new dict rather than mutating
     it in place - config generators like `real_datasets.py` reuse the same
@@ -66,4 +68,8 @@ def disable_profiling_for_array_api_gpu_cases(cases: Iterable[dict]) -> None:
         impl = case["implementation"]
         context = {**(impl.get("sklearn_context") or {}), **(impl.get("sklearnex_context") or {})}
         if impl.get("device", "cpu") != "cpu" and context.get("array_api_dispatch", False):
-            case["bench"] = {**case.get("bench", {}), "py_spy_profiling": False}
+            case["bench"] = {
+                **case.get("bench", {}),
+                "py_spy_profiling": False,
+                "cprofile_profiling": True,
+            }

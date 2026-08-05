@@ -60,6 +60,29 @@ def _gzip_file(source: Path, destination: Path) -> None:
     )
 
 
+def _run_cprofile_pass(
+    bench_case: Case, basename: str, profiles_dir: Path
+) -> tuple[int, dict | None]:
+    """One reduced-n_runs cProfile pass, gzipped to `results/profiles/`.
+
+    Shares the n_runs reduction with the py-spy pass so both profilers are
+    measuring a comparable slice of the case.
+    """
+    profiles_dir.mkdir(parents=True, exist_ok=True)
+    cprofile_path = profiles_dir / f"{basename}.prof.gz"
+    cprofile_n_runs = max(1, bench_case.bench.n_runs // 3)
+    with tempfile.TemporaryDirectory(prefix="sklbench-cprofile-") as cprofile_tmp_dir:
+        raw_cprofile_path = Path(cprofile_tmp_dir) / f"{basename}.prof"
+        cprofile_return_code, _, cprofile_failed_case = run_runner_from_case(
+            bench_case,
+            cprofile_output=raw_cprofile_path,
+            n_runs_override=cprofile_n_runs,
+        )
+        if cprofile_return_code == 0:
+            _gzip_file(raw_cprofile_path, cprofile_path)
+    return cprofile_return_code, cprofile_failed_case
+
+
 def _log_failed_case(
     bench_case: Case,
     failed_case: dict | None,
@@ -196,6 +219,7 @@ def orchestrate_benchmarks(
         record_path = records_dir / f"{basename}.json"
         profile_path = profiles_dir / f"{basename}.raw.gz"
         record_saved = False
+        cprofile_already_run = False
         case_name = bench_case.name(shortened=True)
         try:
             bench_return_code, rows, failed_case = run_runner_from_case(bench_case)
@@ -232,6 +256,22 @@ def orchestrate_benchmarks(
                     )
                     if profile_return_code == 0:
                         _gzip_file(raw_profile_path, profile_path)
+
+                if profile_return_code == -9 and not bench_case.bench.cprofile_profiling:
+                    # py-spy timed out - cProfile doesn't share its ptrace/
+                    # scheduler-churn failure modes, so fall back to it for
+                    # this case instead of losing the profile entirely.
+                    _log_failed_case(
+                        bench_case,
+                        profile_failed_case,
+                        stage="Profiling benchmark (py-spy timed out, falling back to cProfile)",
+                        return_code=profile_return_code,
+                    )
+                    profile_return_code, profile_failed_case = _run_cprofile_pass(
+                        bench_case, basename, profiles_dir
+                    )
+                    cprofile_already_run = True
+
                 if profile_return_code != 0:
                     return_code = profile_return_code
                     _log_failed_case(
@@ -239,6 +279,24 @@ def orchestrate_benchmarks(
                         profile_failed_case,
                         stage="Profiling benchmark",
                         return_code=profile_return_code,
+                    )
+                    if args.exit_on_error:
+                        break
+            if (
+                bench_return_code == 0
+                and bench_case.bench.cprofile_profiling
+                and not cprofile_already_run
+            ):
+                cprofile_return_code, cprofile_failed_case = _run_cprofile_pass(
+                    bench_case, basename, profiles_dir
+                )
+                if cprofile_return_code != 0:
+                    return_code = cprofile_return_code
+                    _log_failed_case(
+                        bench_case,
+                        cprofile_failed_case,
+                        stage="cProfile profiling benchmark",
+                        return_code=cprofile_return_code,
                     )
                     if args.exit_on_error:
                         break
