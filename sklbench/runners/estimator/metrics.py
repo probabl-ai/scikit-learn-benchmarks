@@ -28,19 +28,16 @@ def get_subset_metrics_of_estimator(
         if not hasattr(estimator_instance, "predict_proba"):
             raise NotImplementedError()
         y_pred_proba = convert_to_numpy(estimator_instance.predict_proba(x))
+        binary_proba = y_pred_proba[:, 1] if y_pred_proba.shape[1] == 2 else y_pred_proba
         roc_auc = roc_auc_score(
             y_compat,
-            (
-                y_pred_proba
-                if y_pred_proba.shape[1] > 2
-                else y_pred_proba[:, 1]
-            ),
+            binary_proba,
             multi_class="ovr",
         )
         metrics.update(
             {
                 "ROC AUC": float(roc_auc),
-                "Brier score": float(brier_score_loss((y_compat, y_pred_proba))),
+                "Brier score": float(brier_score_loss(y_compat, binary_proba)),
                 "logloss": float(log_loss(y_compat, y_pred_proba)),
             }
         )
