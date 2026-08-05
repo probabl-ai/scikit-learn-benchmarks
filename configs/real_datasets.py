@@ -111,23 +111,18 @@ def ames_housing(implem: dict):
 
 @real_case_dataset("kddcup09_churn", "classification", "normal")
 def kddcup(implem: dict):
-    # Severe imbalance (7.3% churn) makes the best-by-ROC-AUC model for
-    # both estimators collapse to predicting the majority class
-    # (balanced accuracy ~0.50, i.e. useless for churn detection), so
-    # class_weight="balanced"/"balanced_subsample" is used instead - a
-    # small ROC AUC trade for a model that actually discriminates churn.
+    # Severe imbalance (7.3% churn).
     solver = select_logistic_regression_solver(implem, ["newton-cholesky", "lbfgs"])
-    # LogisticRegression, linear/no-nystroem: test acc 0.681, bal.acc 0.640, ROC AUC 0.698
+    # LogisticRegression, linear/no-nystroem: ROC AUC 0.698
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
             "C": 5.5,
-            "class_weight": "balanced",
             "solver": solver,
             "max_iter": 1000,
         },
     }
-    # RandomForestClassifier, trees/ordinal: test acc 0.909, bal.acc 0.558, ROC AUC 0.713
+    # RandomForestClassifier, trees/ordinal: ROC AUC 0.713
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
@@ -135,7 +130,6 @@ def kddcup(implem: dict):
             "max_depth": 20,
             "max_features": 0.3,
             "min_samples_leaf": 10,
-            "class_weight": "balanced_subsample",
             "n_jobs": N_JOBS,
         },
     }
@@ -143,17 +137,16 @@ def kddcup(implem: dict):
 
 @real_case_dataset("amazon_employee_access", "classification", "fast")
 def amazon_employee_access(implem: dict):
-    # LogisticRegression, linear/no-nystroem: test acc 0.826, bal.acc 0.794, ROC AUC 0.843
+    # LogisticRegression, linear/no-nystroem: ROC AUC 0.843
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
             "C": 1,
-            "class_weight": "balanced",
             "solver": "lbfgs",
             "max_iter": 1000,
         },
     }
-    # RandomForestClassifier, trees/ordinal: test acc 0.950, bal.acc 0.606, ROC AUC 0.855
+    # RandomForestClassifier, trees/ordinal: ROC AUC 0.855
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
@@ -167,19 +160,17 @@ def amazon_employee_access(implem: dict):
 
 @real_case_dataset("kick", "classification", "fast")
 def kick(implem: dict):
-    # LogisticRegression w/ Nystroem (poly deg-2, 300 components):
-    # test acc 0.737, bal.acc 0.697, ROC AUC 0.768 - close to the
+    # LogisticRegression w/ Nystroem (poly deg-2, 300 components): ROC AUC 0.763
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
             "solver": "lbfgs",
             "max_iter": 2000,
             "C": 24.0,
-            "class_weight": "balanced",
         },
         "preprocessing_kwargs": {"nystroem": {}},
     }
-    # ExtraTreesClassifier, trees/ordinal: test acc 0.809, bal.acc 0.684, ROC AUC 0.760
+    # ExtraTreesClassifier, trees/ordinal: ROC AUC 0.760
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
@@ -187,7 +178,6 @@ def kick(implem: dict):
             "max_depth": 30,
             "max_features": "sqrt",
             "min_samples_leaf": 10,
-            "class_weight": "balanced_subsample",
             "n_jobs": N_JOBS,
         },
     }
@@ -201,23 +191,20 @@ def covtype(implem: dict):
     # reconstructed by `undo_one_hot` from their one-hot-encoded source
     # columns, so this exercises real categorical preprocessing rather
     # than scaling 44 already-binary columns. 7-class classification,
-    # severely imbalanced (smallest class is 0.47% of rows), so
-    # class_weight="balanced" is used for the linear case; RandomForest
-    # handles the imbalance fine on its own.
+    # severely imbalanced (smallest class is 0.47% of rows).
 
-    # LogisticRegression, linear/poly-nystroem (100 components): test acc
-    # 0.629, bal.acc 0.752, ~48s/fit
+    # LogisticRegression, linear/poly-nystroem (100 components): ROC AUC
+    # (OVR, weighted) 0.881, ~48s/fit
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
             "C": 10.0,
-            "class_weight": "balanced",
             "solver": "lbfgs",
             "max_iter": 1000,
         },
         "preprocessing_kwargs": {"nystroem": {"n_components": 100}},
     }
-    # RandomForestClassifier, trees/ordinal: test acc 0.963, bal.acc 0.921
+    # RandomForestClassifier, trees/ordinal: ROC AUC (OVR, weighted) 0.997
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
@@ -233,7 +220,7 @@ def susy(implem: dict):
     # (means ~0/1, stds all in [0.2, 1.0]), so no scaling/preprocessing
     # is needed for the linear case either.
     solver = select_logistic_regression_solver(implem, ["newton-cholesky", "lbfgs"])
-    # LogisticRegression, no preprocessing: test acc 0.789, bal.acc 0.780, ROC AUC 0.859
+    # LogisticRegression, no preprocessing: ROC AUC 0.859
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
@@ -242,9 +229,9 @@ def susy(implem: dict):
         },
         "preprocessing_kind": None,
     }
-    # ExtraTreesClassifier, no preprocessing: test acc 0.798, bal.acc 0.790,
-    # ROC AUC 0.869. ~20-30s/fit at 4.5M rows (RandomForest doesn't scale as
-    # gracefully as histogram-based boosting).
+    # ExtraTreesClassifier, no preprocessing: ROC AUC 0.869. ~20-30s/fit at
+    # 4.5M rows (RandomForest doesn't scale as gracefully as
+    # histogram-based boosting).
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
@@ -292,29 +279,25 @@ def year_prediction_msd(implem: dict):
 def fraud(implem: dict):
     # Finance/fraud vertical. 284807 x 30 (PCA-anonymized transaction
     # features), all numeric. Extreme imbalance (0.17% fraud) - much
-    # more severe than kddcup09_churn's 7.3%, so class_weight="balanced"
-    # matters even more here. The loader flags its V1-V28 PCA columns as
-    # linear-preprocessing passthrough (already well-conditioned, not
-    # spline-expanded) and spline-encodes Time_of_day/Amount with 20
-    # knots instead of the default 10 - see `load_fraud`'s docstring and
-    # `data_desc["preprocessing_defaults"]`.
+    # more severe than kddcup09_churn's 7.3%. The loader flags its V1-V28
+    # PCA columns as linear-preprocessing passthrough (already
+    # well-conditioned, not spline-expanded) and spline-encodes
+    # Time_of_day/Amount with 20 knots instead of the default 10 - see
+    # `load_fraud`'s docstring and `data_desc["preprocessing_defaults"]`.
     solver = select_logistic_regression_solver(implem, ["newton-cholesky", "lbfgs"])
-    # LogisticRegression, linear/no-nystroem: test acc 0.946, bal.acc 0.939, ROC AUC 0.984
+    # LogisticRegression, linear/no-nystroem: ROC AUC 0.984
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
-            "class_weight": "balanced",
             "max_iter": 1000,
             "solver": solver,
         },
     }
-    # RandomForestClassifier, no preprocessing: test acc 1.000 (rounded),
-    # bal.acc 0.860, ROC AUC 0.969
+    # RandomForestClassifier, no preprocessing: ROC AUC 0.949
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
             "n_estimators": max(200, N_JOBS * 4),
-            "class_weight": "balanced",
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
@@ -352,17 +335,16 @@ def bank_marketing(implem: dict):
     # cardinality categoricals (2-12 categories) + numeric. Moderate
     # imbalance (~11.7% positive).
 
-    # LogisticRegression, linear/no-nystroem: test acc 0.838, bal.acc 0.843, ROC AUC 0.913
+    # LogisticRegression, linear/no-nystroem: ROC AUC 0.913
     yield {
         "estimator": "LogisticRegression",
         "estimator_params": {
             "C": 1.57,
-            "class_weight": "balanced",
             "solver": "lbfgs",
             "max_iter": 1000,
         },
     }
-    # RandomForestClassifier, trees/ordinal: test acc 0.900, bal.acc 0.776, ROC AUC 0.924
+    # RandomForestClassifier, trees/ordinal: ROC AUC 0.924
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
@@ -370,7 +352,6 @@ def bank_marketing(implem: dict):
             "max_depth": 20,
             "max_features": 0.3,
             "min_samples_leaf": 2,
-            "class_weight": "balanced_subsample",
             "n_jobs": N_JOBS,
         },
     }
