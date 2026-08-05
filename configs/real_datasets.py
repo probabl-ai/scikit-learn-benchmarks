@@ -15,9 +15,9 @@ path (`kick`'s second LogisticRegression case below), which opts in via
 
 The clustering cases (`sift`, `nytimes_256`, `fashion_mnist_784`) are dense
 embedding datasets from ann-benchmarks.com and only get a single KMeans
-case each, run at library-default hyperparameters aside from `n_clusters`
-and `random_state`: unlike the linear/tree cases above, the interesting
-axis here is n_samples/n_clusters, not per-model hyperparameter tuning.
+case each, run at library-default hyperparameters aside from `n_clusters`:
+unlike the linear/tree cases above, the interesting axis here is
+n_samples/n_clusters, not per-model hyperparameter tuning.
 """
 from typing import Callable, Iterable
 from math import floor
@@ -104,7 +104,6 @@ def ames_housing(implem: dict):
             "max_depth": 20,
             "max_features": 0.5,
             "min_samples_leaf": 1,
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -137,7 +136,6 @@ def kddcup(implem: dict):
             "max_features": 0.3,
             "min_samples_leaf": 10,
             "class_weight": "balanced_subsample",
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -162,7 +160,6 @@ def amazon_employee_access(implem: dict):
             "n_estimators": max(200, N_JOBS * 4),
             "max_features": 0.3,
             "min_samples_leaf": 2,
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -191,7 +188,6 @@ def kick(implem: dict):
             "max_features": "sqrt",
             "min_samples_leaf": 10,
             "class_weight": "balanced_subsample",
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -226,7 +222,6 @@ def covtype(implem: dict):
         "estimator": "RandomForestClassifier",
         "estimator_params": {
             "n_estimators": max(100, N_JOBS * 3),
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -256,7 +251,6 @@ def susy(implem: dict):
             "n_estimators": max(50, N_JOBS * 2),
             "min_impurity_decrease": 3e-6,
             "max_depth": 16,
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
@@ -287,7 +281,6 @@ def year_prediction_msd(implem: dict):
         "estimator_params": {
             "n_estimators": max(30, N_JOBS * 2),
             "max_depth": 10,
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
@@ -322,7 +315,6 @@ def fraud(implem: dict):
         "estimator_params": {
             "n_estimators": max(200, N_JOBS * 4),
             "class_weight": "balanced",
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
         "preprocessing_kind": None,
@@ -348,7 +340,6 @@ def medical_charges_nominal(implem: dict):
             "n_estimators": max(300, N_JOBS * 6),
             "max_depth": 20,
             "max_features": 0.5,
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -380,7 +371,6 @@ def bank_marketing(implem: dict):
             "max_features": 0.3,
             "min_samples_leaf": 2,
             "class_weight": "balanced_subsample",
-            "random_state": 0,
             "n_jobs": N_JOBS,
         },
     }
@@ -395,18 +385,18 @@ def sift(implem: dict):
     # KMeans, full dataset, few clusters: ~3s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10, "random_state": 0},
+        "estimator_params": {"n_clusters": 10},
         "tier": "fast",
     }
     # KMeans, full dataset, many clusters: ~29s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100, "random_state": 0},
+        "estimator_params": {"n_clusters": 100},
     }
     # n_samples/n_clusters ~= 100 (10000/100).
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 1000, "random_state": 0},
+        "estimator_params": {"n_clusters": 1000},
         "split_kwargs": {"train_size": 100000, "test_size": 1000},
     }
 
@@ -421,19 +411,19 @@ def nytimes_256(implem: dict):
     # KMeans, full dataset, few clusters: ~2s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10, "random_state": 0},
+        "estimator_params": {"n_clusters": 10},
     }
     # KMeans, full dataset, many clusters: ~15s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100, "random_state": 0},
+        "estimator_params": {"n_clusters": 100},
         "tier": "normal",
     }
     # Small subsample via split_kwargs: a near-instant sanity-check case for
     # validating the config wiring, not a realistic workload.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 5, "random_state": 0},
+        "estimator_params": {"n_clusters": 5},
         "split_kwargs": {"train_size": 2000, "test_size": 200},
         "tier": "test",
     }
@@ -446,7 +436,7 @@ def fashion_mnist_784(implem: dict):
     # default. KMeans, full dataset, many clusters: ~7.5s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100, "random_state": 0},
+        "estimator_params": {"n_clusters": 100},
     }
 
 
@@ -461,12 +451,12 @@ def road_network_points(implem: dict):
     # KMeans, full dataset, few clusters: ~0.2s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10, "random_state": 0},
+        "estimator_params": {"n_clusters": 10},
     }
     # KMeans, full dataset, many clusters: ~14s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 1000, "random_state": 0},
+        "estimator_params": {"n_clusters": 1000},
         "tier": "normal",
     }
 
