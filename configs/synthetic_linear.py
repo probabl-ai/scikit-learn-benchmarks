@@ -1,23 +1,9 @@
-from copy import deepcopy
 from itertools import chain, product
 from math import ceil
 from typing import Iterable
 
 #TODO: in utils or in _common? wierd overlap
 from _common import deterministic_random_choice
-
-
-def _stable_seed(case: dict) -> dict:
-    """Strip `case["implementation"]` before hashing so the one-third
-    subsample in `generate_cases` picks the same cases regardless of which
-    implementation (sklearn/sklearnex/array-API) generated them. Without
-    this, each implementation independently samples a different subset of
-    the matrix, breaking the sklearn-vs-sklearnex/array-API comparison for
-    most cases (see the same fix in synthetic_trees.py's `_stable_seed`).
-    """
-    seed = deepcopy(case)
-    seed.pop("implementation", None)
-    return seed
 
 
 ALGORITHM_VARIANTS = [
@@ -92,6 +78,7 @@ def _linear_cases_for(implem: dict, benchs: list[dict], data_variants: list[dict
         ):
             # XPU (torch) is broken for float64 once n_samples goes past ~10M -
             # crashes rather than measuring anything useful.
+            # https://github.com/intel/torch-xpu-ops/issues/4805
             continue
         yield case
 
@@ -134,36 +121,25 @@ def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
         # 2 features is very slow in sklearn
         benchs[0]["time_limit"] *= 2
 
-    yield from _linear_cases_for(implem, benchs, data_shapes)
+    return list(_linear_cases_for(implem, benchs, data_shapes))
 
 
 def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dict]:
     if implem is None:
         implem = {"library": "sklearn"}
 
-    if tier == "fast":
-        return list(_scaled_linear_cases(implem, scale=10))
     if tier == "test":
         return list(_test_linear_cases(implem))
 
-    cases = list(chain(
-        _scaled_linear_cases(implem, scale=10),
-        _scaled_linear_cases(implem, scale=20),
-        _scaled_linear_cases(implem, scale=50),
-        _scaled_linear_cases(implem, scale=100),
-    ))
+    scales = {
+        "fast": [10],
+        "normal": [10, 100],
+        "slow": [10, 100, 1000],
+    }
 
-    if tier == "slow":
-        cases += list(chain(
-            _scaled_linear_cases(implem, scale=200),
-            _scaled_linear_cases(implem, scale=500),
-            _scaled_linear_cases(implem, scale=1000),
-        ))
-
-    # sub-sample one third of the matrix
-    cases = [
-        case for case in cases
-        if deterministic_random_choice(_stable_seed(case), [0, 0, 1])
-    ]
+    cases = list(chain(*[
+        _scaled_linear_cases(implem, scale=scale)
+        for scale in scales[tier]
+    ]))
 
     return cases

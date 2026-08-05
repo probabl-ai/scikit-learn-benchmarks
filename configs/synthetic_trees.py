@@ -115,6 +115,7 @@ def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
         ),
     )
 
+    cases = []
     for estimator, generation_kwargs in entries:
         n_samples = generation_kwargs["n_samples"]
         source = (
@@ -140,7 +141,9 @@ def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
                 and deterministic_random_choice(_stable_seed(case), [True, False])
             ):
                 case["algorithm"]["estimator_params"]["max_bins"] = n_samples
-            yield case
+            cases.append(case)
+
+    return cases
 
 
 def _test_tree_cases(implem: dict) -> Iterable[dict]:
@@ -163,27 +166,15 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
     if tier == "test":
         return list(_test_tree_cases(implem))
 
-    if tier == "fast":
-        return list(_synthetic_tree_cases(implem, scale=10))
+    scales = {
+        "fast": [10],
+        "normal": [10, 100],
+        "slow": [10, 100, 1000],
+    }
 
-    cases = list(chain(
-        _synthetic_tree_cases(implem, scale=10),
-        _synthetic_tree_cases(implem, scale=20),
-        _synthetic_tree_cases(implem, scale=50),
-        _synthetic_tree_cases(implem, scale=100),
-    ))
-
-    if tier == "slow":
-        cases += list(chain(
-            _synthetic_tree_cases(implem, scale=200),
-            _synthetic_tree_cases(implem, scale=500),
-            _synthetic_tree_cases(implem, scale=1000),
-        ))
-
-    # sub-sample one third of the matrix
-    cases = [
-        case for case in cases
-        if deterministic_random_choice(_stable_seed(case), [0, 0, 1])
-    ]
+    cases = list(chain(*[
+        _synthetic_tree_cases(implem, scale=scale)
+        for scale in scales[tier]
+    ]))
 
     return cases
