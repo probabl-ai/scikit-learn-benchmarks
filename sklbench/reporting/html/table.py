@@ -154,9 +154,9 @@ def _add_result_method(
     rows: dict[str, dict],
     *,
     result: MethodResult,
-    base_result: MethodResult,
     variant: str,
     comparison_key: str,
+    base_result: MethodResult | None = None,
 ):
     key = _row_key(result, variant)
     row = rows.setdefault(key, _new_row(result, variant, comparison_key))
@@ -165,7 +165,9 @@ def _add_result_method(
         row["n_samples"] = result.data_desc.get("samples")
         row["n_features"] = result.data_desc.get("features")
     row[f"{method}_time"] = median(result.times)
-    row[f"{method}_speedup"] = _speedup(base_result, result)
+    row[f"{method}_speedup"] = (
+        _speedup(base_result, result) if base_result is not None else None
+    )
 
 
 def _column(
@@ -208,6 +210,8 @@ def detailed_results_table_html(
     variant_label: Callable[[MethodResult], str],
     comparison_key: Callable[[MethodResult], str] = _default_comparison_key,
     failed_records: list[tuple[BenchmarkRecord, str]] = (),
+    unmatched_base_results: list[MethodResult] = (),
+    unmatched_candidate_results: list[MethodResult] = (),
 ) -> str:
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set()
@@ -238,6 +242,29 @@ def detailed_results_table_html(
         key = _failed_row_key(record, variant)
         rows_by_key[key] = _new_failed_row(
             record, variant, comparison_key(record)
+        )
+
+    # Results whose counterpart failed never appear in `matches_by_method`
+    # (find_matches only pairs up results that both succeeded) - add them here so
+    # they still show up next to the failed row they'd otherwise have matched.
+    # No speedup is computable for either side, since there's no successful
+    # counterpart to compare against.
+    for result in unmatched_base_results:
+        hyperparam_names.update(_result_params(result.case))
+        _add_result_method(
+            rows_by_key,
+            result=result,
+            variant=baseline_label,
+            comparison_key=comparison_key(result),
+        )
+
+    for result in unmatched_candidate_results:
+        hyperparam_names.update(_result_params(result.case))
+        _add_result_method(
+            rows_by_key,
+            result=result,
+            variant=variant_label(result),
+            comparison_key=comparison_key(result),
         )
 
     if not rows_by_key:

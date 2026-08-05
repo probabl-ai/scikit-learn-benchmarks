@@ -4,7 +4,9 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dashboards.output import dashboard_output_path
-from sklbench.reporting.utils import partition_iterable, groupby
+from sklbench.reporting.utils import (
+    partition_iterable, groupby, stable_json, without_keys,
+)
 
 from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
@@ -41,6 +43,12 @@ def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
         result.implementation.short_name == BASE_IMPLEMENTATION
         and not is_vanilla_sklearn(result.software_hash)
     )
+
+
+def _case_key(case: dict) -> str:
+    """Case identity ignoring implementation/max_bins - shared by a base result
+    and the candidate(s) it would be compared against (or vice versa)."""
+    return stable_json(without_keys(case, excluded_names={"implementation", "max_bins"}))
 
 
 def result_matches(
@@ -115,6 +123,30 @@ def render_hardware_page(
             "plot": speedup_plot_html(matches, variant_colors=variant_colors)
         })
     failed_by_category = groupby(failed_records, lambda record: record.category)
+
+    # A failed record means find_matches never sees a pair for that case, so the
+    # side that *did* succeed - the base when a candidate failed, or any
+    # candidate when the base itself failed - would otherwise silently vanish
+    # from the table too. Look those up by case identity so they still show up
+    # (with no speedup, since there's nothing successful to compare against).
+    base_by_case_key: dict[str, list[MethodResult]] = {}
+    for base in base_results:
+        base_by_case_key.setdefault(_case_key(base.case), []).append(base)
+    other_by_case_key: dict[str, list[MethodResult]] = {}
+    for other in other_results:
+        other_by_case_key.setdefault(_case_key(other.case), []).append(other)
+
+    unmatched_base_by_category: dict[str, list[MethodResult]] = {}
+    unmatched_candidate_by_category: dict[str, list[MethodResult]] = {}
+    for record in failed_records:
+        key = _case_key(record.case)
+        if record.implementation.short_name == BASE_IMPLEMENTATION:
+            for candidate in other_by_case_key.get(key, []):
+                unmatched_candidate_by_category.setdefault(candidate.category, []).append(candidate)
+        else:
+            for base in base_by_case_key.get(key, []):
+                unmatched_base_by_category.setdefault(base.category, []).append(base)
+
     details_by_category = {
         category: detailed_results_table_html(
             category,
@@ -125,8 +157,13 @@ def render_hardware_page(
                 (record, record.implementation.short_name)
                 for record in failed_by_category.get(category, [])
             ],
+            unmatched_base_results=unmatched_base_by_category.get(category, []),
+            unmatched_candidate_results=unmatched_candidate_by_category.get(category, []),
         )
-        for category in set(matches_by_category) | set(failed_by_category)
+        for category in (
+            set(matches_by_category) | set(failed_by_category)
+            | set(unmatched_base_by_category) | set(unmatched_candidate_by_category)
+        )
     }
 
     hardware_hash, = hardwares_set
