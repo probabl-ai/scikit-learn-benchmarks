@@ -121,10 +121,13 @@ def run_runner_from_case(
     py_spy_output: Path | None = None,
     cprofile_output: Path | None = None,
     n_runs_override: int | None = None,
+    timeout_override: float | None = None,
 ) -> tuple[int, list[dict], dict | None]:
     bench_case_dict = bench_case.json_dict()
     n_runs = n_runs_override if n_runs_override is not None else bench_case.bench.n_runs
-    bench_time_limit = bench_case.bench.time_limit
+    bench_time_limit = (
+        timeout_override if timeout_override is not None else bench_case.bench.time_limit
+    )
     with tempfile.TemporaryDirectory(prefix="sklbench-run-") as tmp_dir:
         tmp_path = Path(tmp_dir)
         case_file = tmp_path / "case.json"
@@ -155,7 +158,7 @@ def run_runner_from_case(
             return_code = -9
             stdout = (exc.stdout or "").strip()
             stderr = (exc.stderr or "").strip()
-            timeout_message = f"Runner exceeded time limit ({bench_time_limit} seconds)."
+            timeout_message = f"Runner exceeded time limit ({bench_time_limit:.1f} seconds)."
             stderr = f"{stderr}\n{timeout_message}".strip()
 
         if py_spy_output is not None:

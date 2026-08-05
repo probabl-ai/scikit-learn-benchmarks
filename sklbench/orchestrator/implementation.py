@@ -2,10 +2,12 @@ import gzip
 import hashlib
 import json
 import logging
+import math
 import re
 import shlex
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -58,6 +60,22 @@ def _gzip_file(source: Path, destination: Path) -> None:
     destination.write_bytes(
         gzip.compress(source.read_bytes(), compresslevel=9, mtime=0)
     )
+
+
+def _py_spy_timeout(normal_run_duration: float, n_runs: int) -> float:
+    """Time budget for the py-spy pass, sized off how long the un-profiled
+    run actually took rather than the case's full `time_limit`.
+
+    py-spy's ptrace-based sampling can occasionally make a run pathologically
+    slow (see `py_spy_rate`'s docstring); reusing the full `time_limit` as
+    the timeout let those cases run nearly as long as the untimed benchmark
+    even though the py-spy pass itself only repeats ~n_runs/3 times. Scaling
+    off the observed `normal_run_duration` keeps the timeout tied to reality,
+    with a `1/sqrt(n_runs)` margin that shrinks as more repeats make that
+    duration a more stable estimate, plus a flat 2s floor for interpreter/
+    import startup on very fast cases.
+    """
+    return 2 + normal_run_duration * (1 + 1 / math.sqrt(n_runs))
 
 
 def _run_cprofile_pass(
@@ -222,7 +240,9 @@ def orchestrate_benchmarks(
         cprofile_already_run = False
         case_name = bench_case.name(shortened=True)
         try:
+            normal_run_start = time.monotonic()
             bench_return_code, rows, failed_case = run_runner_from_case(bench_case)
+            normal_run_duration = time.monotonic() - normal_run_start
             save_benchmark_record(
                 record_path,
                 bench_case,
@@ -253,6 +273,9 @@ def orchestrate_benchmarks(
                         bench_case,
                         py_spy_output=raw_profile_path,
                         n_runs_override=profile_n_runs,
+                        timeout_override=_py_spy_timeout(
+                            normal_run_duration, bench_case.bench.n_runs
+                        ),
                     )
                     if profile_return_code == 0:
                         _gzip_file(raw_profile_path, profile_path)
