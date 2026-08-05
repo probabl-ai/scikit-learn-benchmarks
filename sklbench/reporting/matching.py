@@ -238,7 +238,9 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
         if not profile_path.exists():
             profile_path = profiles_root / f"{result_path.stem}.svg"
             if not profile_path.exists():
-                profile_path = None
+                profile_path = profiles_root / f"{result_path.stem}.prof.gz"
+                if not profile_path.exists():
+                    profile_path = None
 
         records.append(
             BenchmarkRecord(
