@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.metrics import (
-    accuracy_score,
-    balanced_accuracy_score,
+    brier_score_loss,
     completeness_score,
     davies_bouldin_score,
     homogeneity_score,
@@ -26,34 +25,25 @@ def get_subset_metrics_of_estimator(
     x_compat = convert_to_numpy(x)
     y_compat = convert_to_numpy(y)
     if task == "classification":
-        y_pred = convert_to_numpy(estimator_instance.predict(x))
+        if not hasattr(estimator_instance, "predict_proba"):
+            raise NotImplementedError()
+        y_pred_proba = convert_to_numpy(estimator_instance.predict_proba(x))
+        roc_auc = roc_auc_score(
+            y_compat,
+            (
+                y_pred_proba
+                if y_pred_proba.shape[1] > 2
+                else y_pred_proba[:, 1]
+            ),
+            multi_class="ovr",
+        )
         metrics.update(
             {
-                "accuracy": float(accuracy_score(y_compat, y_pred)),
-                "balanced accuracy": float(balanced_accuracy_score(y_compat, y_pred)),
+                "ROC AUC": float(roc_auc),
+                "Brier score": float(brier_score_loss((y_compat, y_pred_proba))),
+                "logloss": float(log_loss(y_compat, y_pred_proba)),
             }
         )
-        if hasattr(estimator_instance, "predict_proba") and not (
-            hasattr(estimator_instance, "probability")
-            and getattr(estimator_instance, "probability") == False
-        ):
-            y_pred_proba = convert_to_numpy(estimator_instance.predict_proba(x))
-            metrics.update(
-                {
-                    "ROC AUC": float(
-                        roc_auc_score(
-                            y_compat,
-                            (
-                                y_pred_proba
-                                if y_pred_proba.shape[1] > 2
-                                else y_pred_proba[:, 1]
-                            ),
-                            multi_class="ovr",
-                        )
-                    ),
-                    "logloss": float(log_loss(y_compat, y_pred_proba)),
-                }
-            )
     elif task == "regression":
         y_pred = convert_to_numpy(estimator_instance.predict(x))
         metrics.update(
@@ -101,33 +91,6 @@ def get_subset_metrics_of_estimator(
                     "completeness": float(completeness_score(y_compat, y_pred)),
                 }
             )
-        if "DBSCAN" in str(estimator_instance) and stage == "training":
-            labels = convert_to_numpy(estimator_instance.labels_)
-            clusters = len(np.unique(labels[labels != -1]))
-            metrics.update({"clusters": clusters})
-            if clusters > 1:
-                metrics.update(
-                    {
-                        "Davies-Bouldin score": float(
-                            davies_bouldin_score(x_compat, labels)
-                        )
-                    }
-                )
-            if len(np.unique(y_compat)) < 128:
-                metrics.update(
-                    {
-                        "homogeneity": (
-                            float(homogeneity_score(y_compat, labels))
-                            if clusters > 1
-                            else 0
-                        ),
-                        "completeness": (
-                            float(completeness_score(y_compat, labels))
-                            if clusters > 1
-                            else 0
-                        ),
-                    }
-                )
     elif task == "manifold":
         if hasattr(estimator_instance, "kl_divergence_") and stage == "training":
             metrics.update(
