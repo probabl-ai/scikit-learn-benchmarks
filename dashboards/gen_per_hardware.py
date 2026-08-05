@@ -8,11 +8,13 @@ from sklbench.reporting.utils import partition_iterable, groupby
 
 from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
-    find_matches, date_range, Match, MatchWarning, MethodResult,
-    append_cpu_fallback_warning,
+    read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
+    MatchWarning, MethodResult, append_cpu_fallback_warning,
 )
 
-from sklbench.reporting.envs import read_env, summarize_software_env, summarize_hardware_env
+from sklbench.reporting.envs import (
+    is_vanilla_sklearn, read_env, summarize_software_env, summarize_hardware_env,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -28,11 +30,17 @@ from sklbench.reporting.html import (
 
 
 HARDWARE_NAMES = {
-    "0f5327": "AMD 48 CPU cores",
-    "4cb66b": "AMD CPU with Nvidia L4 GPU",
-    "268063": "Intel laptop with B390 GPU",
+    "534824": "Intel GNR 172 CPU cores",
+    "3b5e61": "Intel laptop with B390 GPU",
 }
 BASE_IMPLEMENTATION = "sklearn"
+
+
+def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
+    return (
+        result.implementation.short_name == BASE_IMPLEMENTATION
+        and not is_vanilla_sklearn(result.software_hash)
+    )
 
 
 def result_matches(
@@ -65,8 +73,17 @@ def result_matches(
     )
 
 
-def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str:
+def render_hardware_page(
+    results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
+    hardware_hash: str,
+) -> str:
     results = [res for res in results if res.hardware_hash == hardware_hash]
+    results = [res for res in results if not is_alt_sklearn_build(res)]
+    failed_records = [
+        record for record in failed_records
+        if record.hardware_hash == hardware_hash and not is_alt_sklearn_build(record)
+    ]
     if not results:
         return '<section class="empty">No benchmark results for this hardware.</section>'
     hardwares_set = {res.hardware_hash for res in results}
@@ -97,14 +114,19 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
             "point_count": len(matches),
             "plot": speedup_plot_html(matches, variant_colors=variant_colors)
         })
+    failed_by_category = groupby(failed_records, lambda record: record.category)
     details_by_category = {
         category: detailed_results_table_html(
             category,
-            method_matches,
+            matches_by_category.get(category, {}),
             baseline_label=BASE_IMPLEMENTATION,
             variant_label=lambda result: result.implementation.short_name,
+            failed_records=[
+                (record, record.implementation.short_name)
+                for record in failed_by_category.get(category, [])
+            ],
         )
-        for category, method_matches in matches_by_category.items()
+        for category in set(matches_by_category) | set(failed_by_category)
     }
 
     hardware_hash, = hardwares_set
@@ -150,8 +172,9 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
 
 if __name__ == "__main__":
     results = read_all_results()
+    failed_records = read_failed_records()
     hardware_pages = [
-        (hardware_name, render_hardware_page(results, hardware_hash))
+        (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
         for hardware_hash, hardware_name in HARDWARE_NAMES.items()
     ]
 

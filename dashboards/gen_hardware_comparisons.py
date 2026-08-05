@@ -14,6 +14,7 @@ from sklbench.reporting.html import (
     speedup_plot_html,
     variant_color_map,
 )
+from sklbench.reporting.envs import is_vanilla_sklearn
 from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
     append_iterations_warning,
@@ -44,6 +45,13 @@ CATEGORIES = ["linear", "tree-based", "clustering"]
 METHODS = ["fit", "predict"]
 GPU_HARDWARE_ORDER = ["B390", "L4"]
 CPU_HARDWARE_ORDER = ["laptop", "AMD8", "AMD48"]
+
+
+def is_alt_sklearn_build(result: MethodResult) -> bool:
+    return (
+        result.implementation.short_name == BASE_IMPLEMENTATION
+        and not is_vanilla_sklearn(result.software_hash)
+    )
 
 
 def _hardware_match_key(result: MethodResult) -> str:
@@ -427,7 +435,9 @@ def render_cpu_comparison(all_results: list[MethodResult]) -> str:
 
 
 if __name__ == "__main__":
-    all_results = read_all_results()
+    all_results = [
+        result for result in read_all_results() if not is_alt_sklearn_build(result)
+    ]
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
         rows=[

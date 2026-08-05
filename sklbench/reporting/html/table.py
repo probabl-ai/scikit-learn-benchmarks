@@ -7,7 +7,7 @@ from statistics import median
 from typing import Callable
 
 from ..envs import json_viewer_url, profile_viewer_url
-from ..matching import Match, MethodResult
+from ..matching import BenchmarkRecord, Match, MethodResult
 from ..utils import stable_json, without_keys
 
 
@@ -28,8 +28,8 @@ def _format_value(value):
     return str(value)
 
 
-def _dataset_name(result: MethodResult) -> str:
-    data = result.case.get("data", {})
+def _dataset_name(case: dict) -> str:
+    data = case.get("data", {})
     return data.get("dataset") or data.get("source") or "unknown"
 
 
@@ -64,8 +64,8 @@ def _profile_url(result: MethodResult) -> str | None:
     return profile_viewer_url(record.profile_path)
 
 
-def _result_params(result: MethodResult) -> dict:
-    return result.case.get("algorithm", {}).get("estimator_params", {}) or {}
+def _result_params(case: dict) -> dict:
+    return case.get("algorithm", {}).get("estimator_params", {}) or {}
 
 
 def _default_comparison_key(result: MethodResult) -> str:
@@ -83,7 +83,7 @@ def _new_row(
     row = {
         "comparison_key": comparison_key,
         "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
-        "dataset": _dataset_name(result),
+        "dataset": _dataset_name(result.case),
         "variant": variant,
         "n_samples": data_desc.get("samples"),
         "n_features": data_desc.get("features"),
@@ -93,9 +93,54 @@ def _new_row(
         "predict_speedup": None,
         "py_spy_url": _profile_url(result),
         "json_url": _record_json_url(result),
-        "hyperparams": _result_params(result),
+        "hyperparams": _result_params(result.case),
+        "status": "ok",
     }
     return row
+
+
+def _failed_status(failed_case: dict) -> str:
+    return "timed out" if failed_case.get("return_code") == -9 else "failed"
+
+
+def _failed_row_key(record: BenchmarkRecord, variant: str) -> str:
+    if record.record_path is not None:
+        return f"{variant}:{record.record_path.as_posix()}"
+    case = without_keys(record.case, excluded_names={"method"})
+    return stable_json(
+        {
+            "variant": variant,
+            "case": case,
+            "hardware": record.hardware_hash,
+            "software": record.software_hash,
+            "timestamp": record.timestamp_recorded.isoformat(),
+        }
+    )
+
+
+def _new_failed_row(
+    record: BenchmarkRecord,
+    variant: str,
+    comparison_key: str,
+) -> dict:
+    generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {})
+    failed_case = record.failed_case or {}
+    return {
+        "comparison_key": comparison_key,
+        "estimator": record.case.get("algorithm", {}).get("estimator", "unknown"),
+        "dataset": _dataset_name(record.case),
+        "variant": variant,
+        "n_samples": generation_kwargs.get("n_samples"),
+        "n_features": generation_kwargs.get("n_features"),
+        "fit_time": None,
+        "fit_speedup": None,
+        "predict_time": None,
+        "predict_speedup": None,
+        "py_spy_url": None,
+        "json_url": json_viewer_url(record.record_path) if record.record_path else None,
+        "hyperparams": _result_params(record.case),
+        "status": _failed_status(failed_case),
+    }
 
 
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
@@ -162,6 +207,7 @@ def detailed_results_table_html(
     baseline_label: str,
     variant_label: Callable[[MethodResult], str],
     comparison_key: Callable[[MethodResult], str] = _default_comparison_key,
+    failed_records: list[tuple[BenchmarkRecord, str]] = (),
 ) -> str:
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set()
@@ -170,8 +216,8 @@ def detailed_results_table_html(
         for match in matches:
             base = match.base_result
             result = match.matched_result
-            hyperparam_names.update(_result_params(base))
-            hyperparam_names.update(_result_params(result))
+            hyperparam_names.update(_result_params(base.case))
+            hyperparam_names.update(_result_params(result.case))
             _add_result_method(
                 rows_by_key,
                 result=base,
@@ -186,6 +232,13 @@ def detailed_results_table_html(
                 variant=variant_label(result),
                 comparison_key=comparison_key(result),
             )
+
+    for record, variant in failed_records:
+        hyperparam_names.update(_result_params(record.case))
+        key = _failed_row_key(record, variant)
+        rows_by_key[key] = _new_failed_row(
+            record, variant, comparison_key(record)
+        )
 
     if not rows_by_key:
         return ""
@@ -238,6 +291,7 @@ def detailed_results_table_html(
     )
     columns.extend(
         [
+            _column("Status", "status", header_filter=True, sorter="string"),
             _column("fit time", "fit_time", sorter="number", formatter_name="duration"),
             _column(
                 "fit speed up",

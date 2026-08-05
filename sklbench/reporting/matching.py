@@ -37,6 +37,16 @@ class Implementation:
         return f"{self.library}-{self.device}"
 
 
+def _category_of(case: dict) -> str:
+    algo = case["algorithm"]["estimator"]
+    if "Forest" in algo or "Tree" in algo:
+        return "tree-based"
+    elif algo == "KMeans" or algo == "DBSCAN":
+        return "clustering"
+    else:
+        return "linear"
+
+
 @dataclass
 class BenchmarkRecord:
     hardware_hash: str
@@ -46,6 +56,7 @@ class BenchmarkRecord:
     runs: list[dict]
     record_path: Path | None = None
     profile_path: Path | None = None
+    failed_case: dict | None = None
 
     @property
     def implementation(self) -> Implementation:
@@ -55,6 +66,10 @@ class BenchmarkRecord:
             device=implementation.get("device"),
             data_library=implementation.get("data_library"),
         )
+
+    @property
+    def category(self) -> str:
+        return _category_of(self.case)
 
 
 @dataclass
@@ -85,13 +100,7 @@ class MethodResult:
 
     @property
     def category(self) -> str:
-        algo = self.case["algorithm"]["estimator"]
-        if "Forest" in algo or "Tree" in algo:
-            return "tree-based"
-        elif algo == "KMeans" or algo == "DBSCAN":
-            return "clustering"
-        else:
-            return "linear"
+        return _category_of(self.case)
 
     @property
     def is_sklearnex_tree(self) -> bool:
@@ -240,10 +249,25 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 runs=result_file.get("results", []),
                 record_path=result_path,
                 profile_path=profile_path,
+                failed_case=result_file.get("failed_case"),
             )
         )
 
     return records
+
+
+def read_failed_records(path=None) -> list[BenchmarkRecord]:
+    """
+    Records where the benchmark case failed (crashed or timed out) before
+    producing any timing data. Cases that partially completed before failing
+    still produce `MethodResult`s via `read_all_results` (from whichever runs
+    did complete) and are not included here.
+    """
+    return [
+        record
+        for record in read_benchmark_records(path)
+        if record.failed_case is not None and not record.runs
+    ]
 
 
 def method_results_from_records(records: list[BenchmarkRecord]) -> list[MethodResult]:

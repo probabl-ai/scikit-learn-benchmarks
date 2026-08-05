@@ -1,4 +1,5 @@
 
+from functools import lru_cache
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,18 @@ def read_env(kind: str, hash: str):
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
     with open(path, "r") as f:
         return json.load(f)
+
+
+# Several pixi envs build sklearn differently (pip, conda, MKL, OpenBLAS...);
+# results from all of them report implementation.short_name == "sklearn".
+# Dashboards that compare implementations against a single sklearn baseline
+# should restrict to this one to avoid ambiguous matches.
+VANILLA_SKLEARN_PIXI_ENV = "sklearn"
+
+
+@lru_cache(maxsize=None)
+def is_vanilla_sklearn(software_hash: str) -> bool:
+    return read_env("software", software_hash)["pixi_environment_name"] == VANILLA_SKLEARN_PIXI_ENV
 
 
 DEFAULT_SOURCE = {
