@@ -118,6 +118,11 @@ jobs:
           # between runs, so the GH Actions remote cache would just add
           # needless network I/O and consume shared cache quota for nothing.
           cache: false
+          # setup-pixi defaults post-cleanup to true, which deletes the
+          # installed environments and the rattler package cache at the end
+          # of every job - defeating clean: false above and forcing a full
+          # reinstall/re-download each run on this persistent runner.
+          post-cleanup: false
 
       - name: Clear preprocessed dataset cache
         # Unlike the raw/loaded dataset cache, the post-split/preprocessed
