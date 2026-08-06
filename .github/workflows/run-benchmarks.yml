@@ -46,8 +46,27 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        # We only ever add new files under results/ and push them; we never
+        # read existing LFS content, so skip the `git lfs pull` checkout
+        # would otherwise do (git-lfs still needs to be installed on the
+        # runner for the push-side clean filter to work, per CONTRIBUTING.md).
+        #
+        # clean defaults to true, which runs `git clean -ffdx` before
+        # checkout - on this persistent self-hosted runner that wipes
+        # .pixi/ (installed envs) and data_cache/ (sklbench's dataset
+        # cache) every run, forcing a full reinstall/re-download each
+        # time. Keep them across runs.
         with:
-          lfs: true
+          lfs: false
+          clean: false
+
+      - name: Clean up results from previous runs
+        # checkout's `clean: false` (above) intentionally keeps .pixi/,
+        # data_cache/, and .bench/ across runs, but any untracked results/
+        # left over from an earlier run (e.g. a tier=test run, which never
+        # commits) shouldn't leak into this one. Only untracked files under
+        # results/ are removed; anything already committed on main is safe.
+        run: git clean -ffdx results/
 
       - name: Resolve environments
         id: resolve
@@ -99,6 +118,15 @@ jobs:
           # between runs, so the GH Actions remote cache would just add
           # needless network I/O and consume shared cache quota for nothing.
           cache: false
+
+      - name: Clear preprocessed dataset cache
+        # Unlike the raw/loaded dataset cache, the post-split/preprocessed
+        # subset cache (sklbench/runners/datasets/loading.py) is keyed only
+        # on split/preprocessing params, not on the preprocessing code
+        # itself - a code change in preprocessing.py can silently keep
+        # serving stale subsets. It's cheap to rebuild from the
+        # already-cached raw data, so just clear it every run.
+        run: rm -rf "${SKLBENCH_DATA_CACHE:-data_cache}/preprocessed"
 
       - name: Run benchmarks
         # sklbench already logs and moves on past isolated per-case
