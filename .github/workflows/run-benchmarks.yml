@@ -117,8 +117,29 @@ jobs:
           esac
           ./run.sh $ENVS --config "$config" 2>&1 | tee "$RUNNER_TEMP/bench.log"
 
-      - name: Build PR body
+      - name: Commit and push results
+        id: commit
         if: always() && inputs.tier != 'test'
+        env:
+          BENCH_RUNNER: ${{ inputs.runner }}
+          ENVS: ${{ steps.resolve.outputs.envs }}
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain results/)" ]; then
+            branch="bench-results/${BENCH_RUNNER}-${{ github.run_id }}"
+            git switch -c "$branch"
+            git add results/
+            git -c user.name="github-actions[bot]" \
+                -c user.email="github-actions[bot]@users.noreply.github.com" \
+                commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${BENCH_RUNNER})"
+            git push origin "$branch"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          else
+            echo "No result changes to commit."
+          fi
+
+      - name: Build PR body
+        if: always() && steps.commit.outputs.branch != ''
         env:
           ENVS: ${{ steps.resolve.outputs.envs }}
           BENCH_RUNNER: ${{ inputs.runner }}
@@ -131,15 +152,20 @@ jobs:
             --out "$RUNNER_TEMP/pr_body.md"
 
       - name: Open PR with results
-        if: always() && inputs.tier != 'test'
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        with:
-          add-paths: results/
-          branch: bench-results/${{ inputs.runner }}-${{ github.run_id }}
-          base: main
-          commit-message: "Benchmark results: ${{ steps.resolve.outputs.envs }} (tier=${{ inputs.tier }}, runner=${{ inputs.runner }})"
-          title: "Benchmark results: ${{ steps.resolve.outputs.envs }} (${{ inputs.runner }})"
-          body-path: ${{ runner.temp }}/pr_body.md
+        if: always() && steps.commit.outputs.branch != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+          ENVS: ${{ steps.resolve.outputs.envs }}
+          BENCH_RUNNER: ${{ inputs.runner }}
+        run: |
+          first_env="${ENVS%% *}"
+          pixi run -e "$first_env" python scripts/create_pr.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title "Benchmark results: ${ENVS} (${BENCH_RUNNER})" \
+            --body-file "$RUNNER_TEMP/pr_body.md"
 
       - name: Classify benchmark results
         if: always()
