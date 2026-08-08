@@ -15,6 +15,21 @@ RUNNER_MODULES = {
 PY_SPY_NO_CHILD_PROCESS_ERROR = "Error: No child process (os error 10)"
 
 
+def runner_env(bench_case: Case) -> dict[str, str]:
+    """Subprocess environment for running `bench_case`.
+
+    Merges `bench.env` on top of the ambient environment - e.g. capping
+    OMP_NUM_THREADS for KMeans cases on many-core machines, where letting
+    OpenMP spin up as many threads as there are cores has been observed to
+    crash (segfault / heap corruption) during joblib/OpenMP nested
+    parallelism. Must be set before the runner subprocess's Python
+    interpreter (and the native libraries it loads) starts.
+    """
+    if not bench_case.bench.env:
+        return os.environ.copy()
+    return {**os.environ, **bench_case.bench.env}
+
+
 def _n_jobs(bench_case: Case) -> int:
     """Effective thread/process parallelism the benchmarked run will use.
 
@@ -150,6 +165,7 @@ def run_runner_from_case(
                 stderr=sp.PIPE,
                 encoding="utf-8",
                 timeout=bench_time_limit,
+                env=runner_env(bench_case),
             )
             return_code = result.returncode
             stdout = result.stdout.strip()

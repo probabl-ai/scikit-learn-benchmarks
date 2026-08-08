@@ -1,8 +1,9 @@
+import os
 import sys
 from pathlib import Path
 
 from sklbench.config import Bench, PipelineCase
-from sklbench.orchestrator.commands import generate_runner_command
+from sklbench.orchestrator.commands import generate_runner_command, runner_env
 
 
 def test_generate_runner_command_enables_native_py_spy_profiling():
@@ -35,3 +36,18 @@ def test_generate_runner_command_enables_native_py_spy_profiling():
         "--output-jsonl",
         "results.jsonl",
     ]
+
+
+def test_runner_env_defaults_to_ambient_environment():
+    env = runner_env(PipelineCase(bench=Bench()))
+
+    assert env == os.environ
+
+
+def test_runner_env_merges_bench_env_on_top_of_ambient_environment(monkeypatch):
+    monkeypatch.setenv("OMP_NUM_THREADS", "344")
+
+    env = runner_env(PipelineCase(bench=Bench(env={"OMP_NUM_THREADS": "128"})))
+
+    assert env["OMP_NUM_THREADS"] == "128"
+    assert env["PATH"] == os.environ["PATH"]

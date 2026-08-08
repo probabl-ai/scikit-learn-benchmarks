@@ -16,6 +16,7 @@ class Bench(Section):
     n_runs: int = 10
     time_limit: float = 600
     taskset: str | int | None = None
+    env: dict[str, str] | None = None
     py_spy_profiling: bool = True
     py_spy_native: bool = True
     cprofile_profiling: bool = False
