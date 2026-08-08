@@ -447,6 +447,10 @@ def generate_cases(implem: dict | None = None, max_tier: str = "normal") -> list
     cases = []
     for case_func in REAL_DATASET_CASE_FUNCS:
         for case in case_func(implem):
-            if TIERS.index(case["metadata"]["tier"]) <= max_tier_index:
-                cases.append(case)
+            tier = case["metadata"]["tier"]
+            if tier == "test" and max_tier != "test":
+                continue
+            if TIERS.index(tier) > max_tier_index:
+                continue
+            cases.append(case)
     return cases
