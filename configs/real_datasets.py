@@ -32,7 +32,10 @@ BENCH = {"n_runs": 1, "py_spy_profiling": False}
 # machines when OpenMP spins up as many threads as there are cores, during
 # joblib/OpenMP nested parallelism - see
 # https://github.com/OpenMathLib/OpenBLAS/issues/5958. Cap it below that.
-KMEANS_BENCH = {"env": {"OMP_NUM_THREADS": "128"}}
+KMEANS_BENCH = {"env": 
+    {"OMP_NUM_THREADS": "128"} if cpu_count(only_physical_cores=True) > 128
+    else {}
+}
 
 N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
 # RF/ET n_estimators below are `max(<tuned floor>, N_JOBS * 3)`: use at least
