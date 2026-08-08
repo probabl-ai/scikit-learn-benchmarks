@@ -75,6 +75,16 @@ def test_estimator_case_routes_to_estimator_runner():
 
 
 def test_shipped_configs_generate_valid_cases(monkeypatch):
+    # This checks that each config *can* produce cases for every Pixi
+    # environment it supports, including GPU-only ones (skl-intel,
+    # skl-nvidia) - independent of whether the machine actually running the
+    # test has that GPU hardware. `filter_gpu_cases_if_unavailable` (see
+    # test_filter_gpu_cases_if_unavailable_*) is what makes that hardware
+    # check environment-dependent for real runs; pretend a GPU is always
+    # present here so this test keeps validating config *structure*.
+    monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
+    monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
+
     config_paths = sorted(
         path for path in Path("configs").glob("*.py") if not path.name.startswith("_")
     )
@@ -147,3 +157,51 @@ def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
     kept = list(filter_array_api_supported_cases_if_needed(cases))
 
     assert [case.algorithm.estimator for case in kept] == ["Ridge"]
+
+
+def _gpu_and_cpu_cases():
+    return [
+        {
+            "algorithm": {"estimator": "LogisticRegression"},
+            "data": {"source": "make_classification"},
+            "implementation": {"library": "sklearnex", "device": "gpu"},
+        },
+        {
+            "algorithm": {"estimator": "Ridge"},
+            "data": {"source": "make_regression"},
+            "implementation": {"library": "sklearn", "device": "cuda"},
+        },
+        {
+            "algorithm": {"estimator": "Ridge"},
+            "data": {"source": "make_regression"},
+            "implementation": {"library": "sklearnex", "device": "cpu"},
+        },
+        {
+            "algorithm": {"estimator": "Ridge"},
+            "data": {"source": "make_regression"},
+            "implementation": {"library": "sklearn"},
+        },
+    ]
+
+
+def test_filter_gpu_cases_drops_gpu_cases_without_matching_hardware(monkeypatch):
+    from sklbench.config.utils import filter_gpu_cases_if_unavailable
+
+    monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: False)
+    monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: False)
+
+    kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
+
+    assert [case["implementation"]["device"] for case in kept if "device" in case["implementation"]] == ["cpu"]
+    assert len(kept) == 2
+
+
+def test_filter_gpu_cases_keeps_gpu_cases_with_matching_hardware(monkeypatch):
+    from sklbench.config.utils import filter_gpu_cases_if_unavailable
+
+    monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
+    monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: False)
+
+    kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
+
+    assert [case["implementation"].get("device") for case in kept] == ["gpu", "cpu", None]

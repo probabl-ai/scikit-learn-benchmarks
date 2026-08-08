@@ -5,7 +5,10 @@ from synthetic_trees import generate_cases as generate_tree_cases
 from synthetic_linear import generate_cases as generate_linear_cases
 from real_datasets import generate_cases as generate_real_cases
 
-from sklbench.config.utils import filter_array_api_supported_cases_if_needed
+from sklbench.config.utils import (
+    filter_array_api_supported_cases_if_needed,
+    filter_gpu_cases_if_unavailable,
+)
 
 
 def get_basic_kmeans_case(implem):
@@ -38,6 +41,7 @@ def generate_cases() -> list[dict]:
         case['bench'].setdefault('time_limit', 4)
     disable_profiling_for_array_api_gpu_cases(cases)
 
+    cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_array_api_supported_cases_if_needed(cases))
 
     return cases

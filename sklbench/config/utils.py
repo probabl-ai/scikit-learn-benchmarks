@@ -1,6 +1,7 @@
 import hashlib
 import json
 import random
+from functools import lru_cache
 
 import sklearn
 
@@ -84,4 +85,71 @@ def filter_array_api_supported_cases_if_needed(cases):
         else:
             continue
 
+        yield case
+
+
+# implementation.device values that require a GPU backend, mapped to the
+# detector below that can tell whether that backend actually has a device.
+_GPU_DEVICE_BACKENDS = {
+    "gpu": "oneapi",
+    "xpu": "oneapi",
+    "cuda": "nvidia",
+}
+
+
+@lru_cache
+def _oneapi_gpu_available() -> bool:
+    try:
+        import dpctl
+    except (ImportError, ModuleNotFoundError):
+        return False
+    return any(
+        str(device.device_type).split(".")[-1] == "gpu"
+        for device in dpctl.get_devices()
+    )
+
+
+@lru_cache
+def _nvidia_gpu_available() -> bool:
+    try:
+        import pynvml
+    except (ImportError, ModuleNotFoundError):
+        return False
+    try:
+        pynvml.nvmlInit()
+        return pynvml.nvmlDeviceGetCount() > 0
+    except pynvml.NVMLError:
+        return False
+
+
+def _gpu_backend_available(backend: str) -> bool:
+    # Dispatches by name (rather than a dict of function refs captured at
+    # import time) so tests can monkeypatch `_oneapi_gpu_available` /
+    # `_nvidia_gpu_available` on this module and have it take effect here.
+    if backend == "oneapi":
+        return _oneapi_gpu_available()
+    if backend == "nvidia":
+        return _nvidia_gpu_available()
+    raise NotImplementedError(backend)
+
+
+def filter_gpu_cases_if_unavailable(cases):
+    """Drop cases whose `implementation.device` targets a GPU backend
+    (oneAPI `gpu`/`xpu`, or NVIDIA `cuda`) that isn't actually present on
+    this machine.
+
+    Implementation selection (`configs/_implementations.py`) is keyed off
+    `PIXI_ENVIRONMENT_NAME` alone, not detected hardware, so e.g. running the
+    `intel` Pixi environment on a CPU-only host still generates
+    `SKLEARNEX_GPU_IMPLEMENTATION` cases. Those fail at runtime with
+    `dpctl._sycl_device.SyclDeviceCreationError` (or the NVIDIA equivalent)
+    instead of a clean skip - drop them here instead, the same way
+    `filter_array_api_supported_cases_if_needed` drops cases an
+    implementation doesn't actually support.
+    """
+    for case in cases:
+        device = case["implementation"].get("device")
+        backend = _GPU_DEVICE_BACKENDS.get(device)
+        if backend is not None and not _gpu_backend_available(backend):
+            continue
         yield case
