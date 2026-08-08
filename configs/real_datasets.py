@@ -28,6 +28,12 @@ from sklbench.config.utils import select_logistic_regression_solver
 
 BENCH = {"n_runs": 1, "py_spy_profiling": False}
 
+# KMeans crashes (segfault / heap corruption) on this repo's many-core
+# machines when OpenMP spins up as many threads as there are cores, during
+# joblib/OpenMP nested parallelism - see
+# https://github.com/OpenMathLib/OpenBLAS/issues/5958. Cap it below that.
+KMEANS_BENCH = {"env": {"OMP_NUM_THREADS": "128"}}
+
 N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
 # RF/ET n_estimators below are `max(<tuned floor>, N_JOBS * 3)`: use at least
 # as many trees as were tuned on a typical dev machine, but scale up on
@@ -368,17 +374,20 @@ def sift(implem: dict):
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 10},
         "tier": "fast",
+        "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~29s/fit.
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 100},
+        "bench": KMEANS_BENCH,
     }
     # n_samples/n_clusters ~= 100 (10000/100).
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 1000},
         "split_kwargs": {"train_size": 100000, "test_size": 1000},
+        "bench": KMEANS_BENCH,
     }
 
 
@@ -393,12 +402,14 @@ def nytimes_256(implem: dict):
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 10},
+        "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~15s/fit.
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 100},
         "tier": "normal",
+        "bench": KMEANS_BENCH,
     }
     # Small subsample via split_kwargs: a near-instant sanity-check case for
     # validating the config wiring, not a realistic workload.
@@ -407,6 +418,7 @@ def nytimes_256(implem: dict):
         "estimator_params": {"n_clusters": 5},
         "split_kwargs": {"train_size": 2000, "test_size": 200},
         "tier": "test",
+        "bench": KMEANS_BENCH,
     }
 
 
@@ -418,6 +430,7 @@ def fashion_mnist_784(implem: dict):
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 100},
+        "bench": KMEANS_BENCH,
     }
 
 
@@ -433,12 +446,14 @@ def road_network_points(implem: dict):
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 10},
+        "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~14s/fit.
     yield {
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 1000},
         "tier": "normal",
+        "bench": KMEANS_BENCH,
     }
 
 
