@@ -12,6 +12,7 @@ from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
+    current_base_software_hash,
 )
 
 from sklbench.reporting.envs import (
@@ -104,6 +105,23 @@ def render_hardware_page(
     )
     if not base_results:
         return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+
+    current_base_hash = current_base_software_hash(base_results)
+    stale_base_hashes = {
+        res.software_hash for res in base_results if res.software_hash != current_base_hash
+    }
+    if stale_base_hashes:
+        print(
+            f"Ignoring superseded {BASE_IMPLEMENTATION} baseline env(s) "
+            f"{sorted(stale_base_hashes)} for hardware {hardware_hash}; "
+            f"using {current_base_hash}"
+        )
+        base_results = [res for res in base_results if res.software_hash == current_base_hash]
+        failed_records = [
+            record for record in failed_records
+            if record.implementation.short_name != BASE_IMPLEMENTATION
+            or record.software_hash == current_base_hash
+        ]
 
     variant_colors = variant_color_map(
         sorted({res.implementation.short_name for res in other_results})
