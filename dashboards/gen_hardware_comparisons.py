@@ -19,6 +19,7 @@ from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
     append_iterations_warning,
     append_max_bins_warning,
+    current_base_software_hash,
     find_matches,
     read_all_results,
     date_range,
@@ -29,22 +30,19 @@ from sklbench.reporting.utils import stable_json, without_keys
 
 GPU_HARDWARES = {
     "4cb66b": {"name": "NVIDIA L4", "short_name": "L4"},
-    "268063": {"name": "Intel Arc B390", "short_name": "B390"},
+    "3b5e61": {"name": "Intel Arc B390", "short_name": "B390"},
 }
 CPU_HARDWARES = {
-    "268063": {"name": "Intel laptop", "short_name": "laptop"},
-    "4cb66b": {"name": "AMD 8 cores", "short_name": "AMD8"},
-    "0f5327": {"name": "AMD 48 cores", "short_name": "AMD48"},
+    "3b5e61": {"name": "Intel laptop", "short_name": "laptop"},
+    "534824": {"name": "Intel GNR 172 CPU cores", "short_name": "GNR"},
 }
-SERVER_GPU_HARDWARE_HASH = "4cb66b"
-SERVER_CPU_HARDWARE_HASH = "0f5327"
-CPU_BASELINE_HARDWARE_HASH = "268063"
+CPU_BASELINE_HARDWARE_HASH = "3b5e61"
 BASELINE_LABEL = "vanilla sklearn"
 BASE_IMPLEMENTATION = "sklearn"
 CATEGORIES = ["linear", "tree-based", "clustering"]
 METHODS = ["fit", "predict"]
 GPU_HARDWARE_ORDER = ["B390", "L4"]
-CPU_HARDWARE_ORDER = ["laptop", "AMD8", "AMD48"]
+CPU_HARDWARE_ORDER = ["laptop", "GNR"]
 
 
 def is_alt_sklearn_build(result: MethodResult) -> bool:
@@ -52,6 +50,40 @@ def is_alt_sklearn_build(result: MethodResult) -> bool:
         result.implementation.short_name == BASE_IMPLEMENTATION
         and not is_vanilla_sklearn(result.software_hash)
     )
+
+
+def _is_baseline_hardware_result(result: MethodResult) -> bool:
+    return (
+        result.hardware_hash == CPU_BASELINE_HARDWARE_HASH
+        and result.implementation.short_name == BASE_IMPLEMENTATION
+    )
+
+
+def drop_superseded_baseline_results(
+    results: list[MethodResult],
+) -> list[MethodResult]:
+    """Every comparison in this module baselines against sklearn on
+    CPU_BASELINE_HARDWARE_HASH. If that env got rebuilt (e.g. a numpy/scipy
+    bump), old and new baseline runs can both be in results/ under different
+    software hashes, and a single case would then match more than one
+    baseline in find_matches. Keep only the most recently benchmarked one."""
+    baseline_results = [result for result in results if _is_baseline_hardware_result(result)]
+    current_hash = current_base_software_hash(baseline_results)
+    stale_hashes = {
+        result.software_hash
+        for result in baseline_results
+        if result.software_hash != current_hash
+    }
+    if stale_hashes:
+        print(
+            f"Ignoring superseded {BASE_IMPLEMENTATION} baseline env(s) "
+            f"{sorted(stale_hashes)} for hardware {CPU_BASELINE_HARDWARE_HASH!r}; "
+            f"using {current_hash!r}"
+        )
+    return [
+        result for result in results
+        if not _is_baseline_hardware_result(result) or result.software_hash == current_hash
+    ]
 
 
 def _hardware_match_key(result: MethodResult) -> str:
@@ -92,17 +124,6 @@ def is_linear_baseline_result(result: MethodResult) -> bool:
 
 def is_gpu_candidate_result(result: MethodResult) -> bool:
     return _is_gpu_result(result, hardware_hashes=set(GPU_HARDWARES))
-
-
-def is_server_candidate_result(result: MethodResult) -> bool:
-    is_server_cpu = (
-        result.hardware_hash in {SERVER_CPU_HARDWARE_HASH, SERVER_GPU_HARDWARE_HASH}
-        and result.implementation.short_name in {BASE_IMPLEMENTATION, "sklearnex-cpu"}
-    )
-    is_server_gpu = _is_gpu_result(
-        result, hardware_hashes={SERVER_GPU_HARDWARE_HASH}
-    )
-    return is_server_cpu or is_server_gpu
 
 
 def gpu_trace_label(result: MethodResult) -> str:
@@ -274,86 +295,6 @@ def render_linear_comparison(
     )
 
 
-def render_server_comparison(all_results: list[MethodResult]) -> str:
-    baseline_results = [
-        result for result in all_results if is_cpu_baseline_result(result)
-    ]
-    candidate_results = [
-        result for result in all_results if is_server_candidate_result(result)
-    ]
-    trace_colors = variant_color_map(
-        sorted(
-            {linear_trace_label(result) for result in candidate_results},
-            key=linear_trace_sort_key,
-        )
-    )
-
-    plots = []
-    matches_by_category = {}
-    for category in CATEGORIES:
-        for method in METHODS:
-            matches = find_matches(
-                [
-                    result
-                    for result in baseline_results
-                    if result.category == category and result.method == method
-                ],
-                [
-                    result
-                    for result in candidate_results
-                    if result.category == category and result.method == method
-                ],
-                linear_result_matches,
-                match_key=_hardware_match_key,
-            )
-            matches_by_category.setdefault(category, {})[method] = matches
-            plots.append(
-                {
-                    "category": category,
-                    "method": method,
-                    "point_count": len(matches),
-                    "plot": speedup_plot_html(
-                        matches,
-                        variant_colors=trace_colors,
-                        trace_variant=linear_match_trace_label,
-                        x_variant=linear_match_trace_label,
-                        variant_sort_key=linear_trace_sort_key,
-                    ),
-                }
-            )
-
-    return _comparison_page(
-        [
-            DATE_RANGE_TEMPLATE.render(
-                date_range(baseline_results + candidate_results)
-            ),
-            render_software_hardware_tabs(
-                baseline_results,
-                candidate_results,
-                baseline_label=BASELINE_LABEL,
-                comparison_label=linear_trace_label,
-                comparison_sort_key=linear_trace_sort_key,
-                variant_colors=trace_colors,
-            ),
-            assemble_plots_in_grid(
-                plots,
-                rows={"category": CATEGORIES},
-                columns={"method": METHODS},
-                details_by_row={
-                    category: detailed_results_table_html(
-                        category,
-                        matches_by_method,
-                        baseline_label=BASELINE_LABEL,
-                        variant_label=linear_trace_label,
-                        comparison_key=_hardware_table_comparison_key,
-                    )
-                    for category, matches_by_method in matches_by_category.items()
-                },
-            ),
-        ]
-    )
-
-
 def render_cpu_comparison(all_results: list[MethodResult]) -> str:
     baseline_results = [
         result for result in all_results if is_cpu_baseline_result(result)
@@ -438,15 +379,12 @@ if __name__ == "__main__":
     all_results = [
         result for result in read_all_results() if not is_alt_sklearn_build(result)
     ]
+    all_results = drop_superseded_baseline_results(all_results)
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
         rows=[
             render_hardware_tabs(
                 [
-                    (
-                        "Compare servers",
-                        render_server_comparison(all_results),
-                    ),
                     (
                         "Compare GPUs",
                         render_linear_comparison(
