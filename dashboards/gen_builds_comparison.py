@@ -15,7 +15,8 @@ from sklbench.reporting.matching import (
 )
 
 from sklbench.reporting.envs import (
-    is_vanilla_sklearn, read_env, summarize_software_env, summarize_hardware_env,
+    is_vanilla_sklearn, read_env, software_build_name, summarize_software_env,
+    summarize_hardware_env,
 )
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -38,11 +39,21 @@ HARDWARE_NAMES = {
 BASE_IMPLEMENTATION = "sklearn"
 
 
-def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
-    return (
-        result.implementation.short_name == BASE_IMPLEMENTATION
-        and not is_vanilla_sklearn(result.software_hash)
-    )
+def is_other_library_build(result: MethodResult | BenchmarkRecord) -> bool:
+    return result.implementation.library != BASE_IMPLEMENTATION
+
+
+def build_variant(result: MethodResult | BenchmarkRecord) -> str:
+    """Label results/records by their sklearn build (pixi env), since every
+    result compared on this dashboard has implementation.short_name ==
+    'sklearn' regardless of build."""
+    if is_vanilla_sklearn(result.software_hash):
+        return BASE_IMPLEMENTATION
+    return software_build_name(result.software_hash)
+
+
+def match_build_variant(match: Match) -> str:
+    return build_variant(match.matched_result)
 
 
 def _case_key(case: dict) -> str:
@@ -57,19 +68,17 @@ def result_matches(
     """
     Assumptions:
     - hardware matches
-    - candidate implementation is not sklearn
-    - base_res implementation is sklearn
+    - base_res is a vanilla sklearn build, candidate is a non-vanilla sklearn build
 
     returns:
     - True/False
     - warnings
     """
     assert base_res.hardware_hash == candidate.hardware_hash
-    assert base_res.implementation.short_name == BASE_IMPLEMENTATION
-    assert candidate.implementation.short_name != BASE_IMPLEMENTATION
+    assert base_res.implementation.library == BASE_IMPLEMENTATION
+    assert candidate.implementation.library == BASE_IMPLEMENTATION
 
     warnings = []
-
     if candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
@@ -87,10 +96,10 @@ def render_hardware_page(
     hardware_hash: str,
 ) -> str:
     results = [res for res in results if res.hardware_hash == hardware_hash]
-    results = [res for res in results if not is_alt_sklearn_build(res)]
+    results = [res for res in results if not is_other_library_build(res)]
     failed_records = [
         record for record in failed_records
-        if record.hardware_hash == hardware_hash and not is_alt_sklearn_build(record)
+        if record.hardware_hash == hardware_hash and not is_other_library_build(record)
     ]
     if not results:
         return '<section class="empty">No benchmark results for this hardware.</section>'
@@ -100,13 +109,13 @@ def render_hardware_page(
 
     base_results, other_results = partition_iterable(
         results,
-        predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
+        predicate=lambda res: is_vanilla_sklearn(res.software_hash)
     )
     if not base_results:
-        return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+        return f'<section class="empty">No vanilla {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
 
     variant_colors = variant_color_map(
-        sorted({res.implementation.short_name for res in other_results})
+        sorted({build_variant(res) for res in other_results})
     )
     grouped_results = groupby(base_results, lambda res: (res.category, res.method))
 
@@ -120,7 +129,12 @@ def render_hardware_page(
             "category": category,
             "method": method,
             "point_count": len(matches),
-            "plot": speedup_plot_html(matches, variant_colors=variant_colors)
+            "plot": speedup_plot_html(
+                matches,
+                variant_colors=variant_colors,
+                trace_variant=match_build_variant,
+                x_variant=match_build_variant,
+            )
         })
     failed_by_category = groupby(failed_records, lambda record: record.category)
 
@@ -140,7 +154,7 @@ def render_hardware_page(
     unmatched_candidate_by_category: dict[str, list[MethodResult]] = {}
     for record in failed_records:
         key = _case_key(record.case)
-        if record.implementation.short_name == BASE_IMPLEMENTATION:
+        if is_vanilla_sklearn(record.software_hash):
             for candidate in other_by_case_key.get(key, []):
                 unmatched_candidate_by_category.setdefault(candidate.category, []).append(candidate)
         else:
@@ -152,9 +166,9 @@ def render_hardware_page(
             category,
             matches_by_category.get(category, {}),
             baseline_label=BASE_IMPLEMENTATION,
-            variant_label=lambda result: result.implementation.short_name,
+            variant_label=build_variant,
             failed_records=[
-                (record, record.implementation.short_name)
+                (record, build_variant(record))
                 for record in failed_by_category.get(category, [])
             ],
             unmatched_base_results=unmatched_base_by_category.get(category, []),
@@ -179,16 +193,16 @@ def render_hardware_page(
             software_hash=base_results[0].software_hash,
         )
     ]
-    for implem_name, implem_results in groupby(other_results, lambda res: res.implementation.short_name).items():
+    for build_name, implem_results in groupby(other_results, build_variant).items():
         res = implem_results[0]
         env = read_env("software", res.software_hash)
-        softwares.append(
-            summarize_software_env(
-                env,
-                res.implementation,
-                software_hash=res.software_hash,
-            )
+        summary = summarize_software_env(
+            env,
+            res.implementation,
+            software_hash=res.software_hash,
         )
+        summary["name"] = build_name
+        softwares.append(summary)
 
     rows = [
         DATE_RANGE_TEMPLATE.render(date_range(results)),
@@ -215,10 +229,13 @@ if __name__ == "__main__":
         for hardware_hash, hardware_name in HARDWARE_NAMES.items()
     ]
 
-    html = BASE_TEMPLATE.render(rows=[
-        render_hardware_tabs(hardware_pages),
-    ])
+    html = BASE_TEMPLATE.render(
+        title="sklbench builds comparison dashboard",
+        rows=[
+            render_hardware_tabs(hardware_pages),
+        ],
+    )
 
-    output = dashboard_output_path("per_hardware.html")
+    output = dashboard_output_path("builds_comparison.html")
     output.write_text(html)
     print(f"Dashboard written to {output}")

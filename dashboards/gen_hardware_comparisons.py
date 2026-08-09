@@ -19,7 +19,6 @@ from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
     append_iterations_warning,
     append_max_bins_warning,
-    current_base_software_hash,
     find_matches,
     read_all_results,
     date_range,
@@ -50,40 +49,6 @@ def is_alt_sklearn_build(result: MethodResult) -> bool:
         result.implementation.short_name == BASE_IMPLEMENTATION
         and not is_vanilla_sklearn(result.software_hash)
     )
-
-
-def _is_baseline_hardware_result(result: MethodResult) -> bool:
-    return (
-        result.hardware_hash == CPU_BASELINE_HARDWARE_HASH
-        and result.implementation.short_name == BASE_IMPLEMENTATION
-    )
-
-
-def drop_superseded_baseline_results(
-    results: list[MethodResult],
-) -> list[MethodResult]:
-    """Every comparison in this module baselines against sklearn on
-    CPU_BASELINE_HARDWARE_HASH. If that env got rebuilt (e.g. a numpy/scipy
-    bump), old and new baseline runs can both be in results/ under different
-    software hashes, and a single case would then match more than one
-    baseline in find_matches. Keep only the most recently benchmarked one."""
-    baseline_results = [result for result in results if _is_baseline_hardware_result(result)]
-    current_hash = current_base_software_hash(baseline_results)
-    stale_hashes = {
-        result.software_hash
-        for result in baseline_results
-        if result.software_hash != current_hash
-    }
-    if stale_hashes:
-        print(
-            f"Ignoring superseded {BASE_IMPLEMENTATION} baseline env(s) "
-            f"{sorted(stale_hashes)} for hardware {CPU_BASELINE_HARDWARE_HASH!r}; "
-            f"using {current_hash!r}"
-        )
-    return [
-        result for result in results
-        if not _is_baseline_hardware_result(result) or result.software_hash == current_hash
-    ]
 
 
 def _hardware_match_key(result: MethodResult) -> str:
@@ -379,7 +344,6 @@ if __name__ == "__main__":
     all_results = [
         result for result in read_all_results() if not is_alt_sklearn_build(result)
     ]
-    all_results = drop_superseded_baseline_results(all_results)
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
         rows=[

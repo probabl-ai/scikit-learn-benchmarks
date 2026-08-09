@@ -10,6 +10,7 @@ from sklbench.reporting.html import BASE_TEMPLATE
 DASHBOARDS = [
     ("Hardware comparison", "hardware_comparisons.html"),
     ("Software/implementations comparison", "per_hardware.html"),
+    ("Builds comparison", "builds_comparison.html"),
 ]
 
 
