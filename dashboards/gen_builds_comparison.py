@@ -43,6 +43,10 @@ def is_other_library_build(result: MethodResult | BenchmarkRecord) -> bool:
     return result.implementation.library != BASE_IMPLEMENTATION
 
 
+def is_array_api_variant(result: MethodResult | BenchmarkRecord) -> bool:
+    return result.implementation.data_library is not None
+
+
 def build_variant(result: MethodResult | BenchmarkRecord) -> str:
     """Label results/records by their sklearn build (pixi env), since every
     result compared on this dashboard has implementation.short_name ==
@@ -96,10 +100,15 @@ def render_hardware_page(
     hardware_hash: str,
 ) -> str:
     results = [res for res in results if res.hardware_hash == hardware_hash]
-    results = [res for res in results if not is_other_library_build(res)]
+    results = [
+        res for res in results
+        if not is_other_library_build(res) and not is_array_api_variant(res)
+    ]
     failed_records = [
         record for record in failed_records
-        if record.hardware_hash == hardware_hash and not is_other_library_build(record)
+        if record.hardware_hash == hardware_hash
+        and not is_other_library_build(record)
+        and not is_array_api_variant(record)
     ]
     if not results:
         return '<section class="empty">No benchmark results for this hardware.</section>'
