@@ -222,6 +222,15 @@ def get_software_info() -> dict:
         text=True,
     )
     pixi_packages = json.loads(pixi_list)
+    for pkg in pixi_packages:
+        # For editable/local installs (this repo installs itself as
+        # `scikit_learn_benchmarks` with source "."), pixi reports the size
+        # of the live source checkout rather than a fixed artifact size. That
+        # drifts with unrelated on-disk state (results/, data_cache/, ...),
+        # so leaving it in would make get_software_hash() mint a new hash on
+        # almost every run regardless of whether the software actually
+        # changed.
+        pkg.pop("size_bytes", None)
     result["pixi_packages"] = {pkg.pop("name"): pkg for pkg in pixi_packages}
     return result
 
