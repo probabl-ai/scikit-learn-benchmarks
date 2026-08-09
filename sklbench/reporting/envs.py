@@ -30,6 +30,11 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
     return read_env("software", software_hash)["pixi_environment_name"] == VANILLA_SKLEARN_PIXI_ENV
 
 
+@lru_cache(maxsize=None)
+def software_build_name(software_hash: str) -> str:
+    return read_env("software", software_hash)["pixi_environment_name"]
+
+
 DEFAULT_SOURCE = {
     "conda": "https://conda.anaconda.org/conda-forge",
     "pypi": "https://pypi.org/simple",

@@ -315,26 +315,6 @@ def read_all_results(path=None) -> list[MethodResult]:
     return list(latest_by_key.values())
 
 
-def current_base_software_hash(base_results: list[MethodResult]) -> str | None:
-    """Pick the most recently benchmarked software env among `base_results`
-    (expected to already be scoped to a single hardware).
-
-    A dependency bump (e.g. a numpy/scipy upgrade) can leave both the old and
-    new baseline runs in results/ for a while, under different software
-    hashes. Since `full_match_key` includes the software hash, read_all_results
-    doesn't dedupe those away, and two base results would otherwise share a
-    `minimal_match_key` and both match the same candidate in find_matches.
-    """
-    latest_by_hash: dict[str, datetime] = {}
-    for res in base_results:
-        current = latest_by_hash.get(res.software_hash)
-        if current is None or res.timestamp_recorded > current:
-            latest_by_hash[res.software_hash] = res.timestamp_recorded
-    if not latest_by_hash:
-        return None
-    return max(latest_by_hash, key=latest_by_hash.get)
-
-
 @dataclass(frozen=True)
 class MatchWarning:
     icon: str
@@ -551,6 +531,16 @@ def find_matches(
     base_by_minimal_key: dict[str, list[MethodResult]] = {}
     for base_result in base_results:
         base_by_minimal_key.setdefault(match_key(base_result), []).append(base_result)
+
+    # A software env rebuild (e.g. a dependency bump, or re-running only part
+    # of the case matrix under a fresh env) can leave two baseline runs for
+    # the exact same case under different software hashes. Comparing a
+    # candidate against both would be ambiguous, so per case, keep only the
+    # most recently benchmarked baseline - never drop a whole software env's
+    # results wholesale, since other cases may only have been re-run there.
+    for key, candidates in base_by_minimal_key.items():
+        if len(candidates) > 1:
+            base_by_minimal_key[key] = [max(candidates, key=lambda r: r.timestamp_recorded)]
 
     matches: list[Match] = []
     for result in results_to_match:
