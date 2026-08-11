@@ -77,7 +77,7 @@ code {
 }
 .software-details {
   display: grid;
-  grid-template-columns: max-content max-content max-content max-content;
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
   gap: 12px 28px;
   align-items: start;
 }
@@ -120,15 +120,21 @@ code {
   grid-column: 1 / -1;
   min-width: 0;
 }
+.phase-breakdown {
+  gap: 24px;
+}
+.phase-breakdown .plot-cell {
+  padding: 16px;
+}
 .phase-breakdown .plotly-graph-div {
-  height: 280px;
+  height: 320px;
 }
 .phase-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   color: var(--muted);
   font-size: 0.9em;
 }

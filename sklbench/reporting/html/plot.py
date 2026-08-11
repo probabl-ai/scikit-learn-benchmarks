@@ -317,7 +317,7 @@ def phase_breakdown_plot_html(
         barmode="stack",
         xaxis={"type": "category", "title": x_title},
         yaxis={"title": "time (ms)", "rangemode": "tozero"},
-        margin={"l": 55, "r": 10, "t": 10, "b": 40},
+        margin={"l": 60, "r": 15, "t": 15, "b": 44},
         showlegend=False,
         template="none",
     )
@@ -326,7 +326,7 @@ def phase_breakdown_plot_html(
         include_plotlyjs=False,
         config={"responsive": True},
         default_width="100%",
-        default_height="280px",
+        default_height="320px",
         div_id=chart_id,
     )
 

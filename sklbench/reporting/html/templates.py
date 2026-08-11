@@ -202,6 +202,16 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
     {% endfor %}
     </ul>
   </div>
+  {% if openmp %}
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    {% for line in openmp %}
+      <li>{{ line }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
   <div>
     <h3>Full environment</h3>
     <p><a href="{{ software_env_json_url }}">view pixi env JSON</a></p>

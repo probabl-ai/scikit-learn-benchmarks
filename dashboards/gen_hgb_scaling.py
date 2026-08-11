@@ -40,37 +40,43 @@ from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchm
 
 
 HARDWARE_NAMES = {
-    "534824": "Intel GNR 172 CPU cores",
-    "3b5e61": "Intel laptop with B390 GPU",
+    "534824": "Intel GNR",  # TODO: re-rerun
+    "3b5e61": "Laptop",
 }
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
 # cost first, so their band stays a constant height and the phases that
 # actually shrink as threads increase are easy to read off the top.
+# `other` absorbs grower_init/make_predictor (both small, per-tree/once-per-fit
+# bookkeeping, not worth their own segment) plus any unmeasured residual;
+# binning splits into its two sub-timers - computing the bin thresholds
+# (fit) vs. applying them to the training data (transform) - since those are
+# the two steps that could plausibly parallelize differently.
 PHASE_ORDER = [
-    "binning_time",
+    "bin_fit_time",
+    "bin_transform_time",
     "other",
-    "make_predictor_time",
-    "grower_init_time",
     "apply_split_time",
     "find_split_time",
     "hist_time",
 ]
 PHASE_LABELS = {
-    "binning_time": "binning",
+    "bin_fit_time": "bin fit",
+    "bin_transform_time": "bin transform",
     "other": "other / unmeasured",
-    "make_predictor_time": "make predictor",
-    "grower_init_time": "grower init",
     "apply_split_time": "apply split",
     "find_split_time": "find split",
     "hist_time": "compute hist",
 }
 PHASE_COLORS = dict(zip(PHASE_ORDER, PLOTLY_DEFAULT_COLORS))
 
-# Raw attribute names (seconds) summed from grow_time's sub-phases plus the
-# outer fit-time residual - see instrumented_hgb.py for what each measures.
+# Raw attribute names (seconds) summed from grow_time's/binning_time's
+# sub-phases plus the outer fit-time residual - see instrumented_hgb.py for
+# what each measures.
 _SECONDS_ATTRIBUTES = [
     "binning_time",
+    "bin_fit_time",
+    "bin_transform_time",
     "grower_init_time",
     "grow_time",
     "make_predictor_time",
@@ -97,12 +103,38 @@ def _thread_count(record: BenchmarkRecord) -> int | None:
     return None
 
 
+def _fit_within_budget(values: dict[str, float], budget: float) -> tuple[dict[str, float], float]:
+    """Scale `values` down (never up) so they sum to at most `budget`,
+    preserving their relative proportions, and return the leftover
+    (`budget - sum`, clamped to >= 0). Guarantees `sum(scaled) + leftover ==
+    budget` exactly either way - used so a stack of measured sub-phases
+    always sums to the wall-clock time of the phase they're part of, even
+    when the sub-timers overcount it (see `_phase_breakdown_ms`)."""
+    total = sum(values.values())
+    if total > budget and total > 0:
+        scale = budget / total
+        return {name: value * scale for name, value in values.items()}, 0.0
+    return values, max(budget - total, 0.0)
+
+
 def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
     """Mean phase timings (ms) across a record's repeats, additive to the
-    mean fit time. `grow_time` isn't itself a segment - it's split into its
-    own measured sub-phases (hist/find_split/apply_split) plus whatever grow()
-    overhead those don't cover; `other` catches fit-time not explained by any
-    instrumented phase (estimator setup/validation outside the timed block)."""
+    mean fit time.
+
+    `hist_time`/`find_split_time`/`apply_split_time` come from sklearn's own
+    per-node timers (`TreeGrower.total_compute_hist_time` & co in
+    grower.py), which start accumulating in `TreeGrower.__init__` itself (the
+    root node's histogram/split, in `_initialize_root`) - a wall-clock window
+    our wrapper already counts separately as `grower_init_time` - and keep
+    accumulating through `grow()`. So they're sub-phases of
+    `grower_init_time + grow_time` combined, not of `grow_time` alone;
+    comparing them to `grow_time` alone double-counts the root node and can
+    make them sum to more than `grow_time` by itself. `binning_time` is
+    likewise split into its own measured sub-phases (bin_fit/bin_transform).
+    `other` collects whatever's left of each budget, the small
+    make_predictor_time phase, and any fit-time left unexplained by every
+    instrumented phase (estimator setup/validation outside the timed
+    block)."""
     runs = [run for run in record.runs if "binning_time" in (run.get("attributes") or {})]
     if not runs:
         return None
@@ -112,20 +144,34 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
         for name in _SECONDS_ATTRIBUTES
     }
     ms = {name: value * 1000 for name, value in seconds.items()}
-    grow_other_ms = max(
-        ms["grow_time"] - ms["hist_time"] - ms["find_split_time"] - ms["apply_split_time"],
-        0.0,
+
+    tree_budget_ms = ms["grower_init_time"] + ms["grow_time"]
+    grow_parts, grow_other_ms = _fit_within_budget(
+        {
+            "hist_time": ms["hist_time"],
+            "find_split_time": ms["find_split_time"],
+            "apply_split_time": ms["apply_split_time"],
+        },
+        tree_budget_ms,
     )
-    measured_ms = ms["binning_time"] + ms["grower_init_time"] + ms["grow_time"] + ms["make_predictor_time"]
-    other_ms = max(fit_ms - measured_ms, 0.0) + grow_other_ms
+    binning_parts, binning_other_ms = _fit_within_budget(
+        {"bin_fit_time": ms["bin_fit_time"], "bin_transform_time": ms["bin_transform_time"]},
+        ms["binning_time"],
+    )
+    measured_ms = ms["binning_time"] + tree_budget_ms + ms["make_predictor_time"]
+    other_ms = (
+        max(fit_ms - measured_ms, 0.0)
+        + binning_other_ms
+        + grow_other_ms
+        + ms["make_predictor_time"]
+    )
     return {
-        "binning_time": ms["binning_time"],
+        "bin_fit_time": binning_parts["bin_fit_time"],
+        "bin_transform_time": binning_parts["bin_transform_time"],
         "other": other_ms,
-        "make_predictor_time": ms["make_predictor_time"],
-        "grower_init_time": ms["grower_init_time"],
-        "apply_split_time": ms["apply_split_time"],
-        "find_split_time": ms["find_split_time"],
-        "hist_time": ms["hist_time"],
+        "apply_split_time": grow_parts["apply_split_time"],
+        "find_split_time": grow_parts["find_split_time"],
+        "hist_time": grow_parts["hist_time"],
         "total_ms": fit_ms,
     }
 
@@ -152,7 +198,7 @@ def _legend_html() -> str:
     return f'<div class="phase-legend">{items}</div>'
 
 
-def _env_summary_html(records: list[BenchmarkRecord]) -> str:
+def _env_summary_rows(records: list[BenchmarkRecord]) -> list[str]:
     hardware_hash = records[0].hardware_hash
     software_hash = records[0].software_hash
     hardware_summary = summarize_hardware_env(read_env("hardware", hardware_hash))
@@ -161,7 +207,10 @@ def _env_summary_html(records: list[BenchmarkRecord]) -> str:
         records[0].implementation,
         software_hash=software_hash,
     )
-    return HARDWARE_TEMPLATE.render(hardware_summary) + SOFTWARE_TEMPLATE.render(**software_summary)
+    return [
+        HARDWARE_TEMPLATE.render(hardware_summary),
+        SOFTWARE_TEMPLATE.render(**software_summary),
+    ]
 
 
 def render_env_page(records: list[BenchmarkRecord]) -> str:
@@ -194,12 +243,16 @@ def render_env_page(records: list[BenchmarkRecord]) -> str:
 
     grid = (
         '<section class="plot-grid phase-breakdown" '
-        'style="grid-template-columns: repeat(3, minmax(0, 1fr));">'
+        'style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));">'
         + "".join(cells)
         + "</section>"
     )
-    header = DATE_RANGE_TEMPLATE.render(**date_range(records)) + _env_summary_html(records)
-    return header + _legend_html() + grid
+    rows = [
+        DATE_RANGE_TEMPLATE.render(**date_range(records)),
+        *_env_summary_rows(records),
+        _legend_html() + grid,
+    ]
+    return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
 def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:

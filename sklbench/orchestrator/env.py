@@ -20,6 +20,17 @@ def get_threadpool_info():
         logger.warning('Unable to get threadpool info with "threadpoolctl" module')
         return []
 
+    # threadpoolctl only reports libraries already loaded into *this*
+    # process. A bare `import sklearn` doesn't reliably pull in its
+    # OpenMP-linked Cython extensions - `get_openmp_runtime_info()` below
+    # has to import this same submodule explicitly, in a subprocess, for the
+    # same reason. Without this, OpenBLAS would show up (loaded as a side
+    # effect of `import pandas` above) but OpenMP never would.
+    try:
+        from sklearn.utils._openmp_helpers import _openmp_parallelism_enabled  # noqa: F401
+    except Exception:
+        pass
+
     threadpools = threadpool_info()
     for threadpool in threadpools:
         threadpool.pop("filepath", None)
