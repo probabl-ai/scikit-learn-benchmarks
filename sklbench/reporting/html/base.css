@@ -120,6 +120,26 @@ code {
   grid-column: 1 / -1;
   min-width: 0;
 }
+.phase-breakdown .plotly-graph-div {
+  height: 280px;
+}
+.phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.phase-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
 .detailed-results {
   border: 1px solid var(--line);
   border-radius: 8px;

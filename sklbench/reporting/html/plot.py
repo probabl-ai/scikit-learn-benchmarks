@@ -275,6 +275,66 @@ def variant_color_map(variants: list[str]) -> dict[str, str]:
     }
 
 
+def phase_breakdown_plot_html(
+    points: list[dict],
+    *,
+    phase_order: list[str],
+    phase_colors: dict[str, str],
+    phase_labels: dict[str, str] | None = None,
+    x_title: str = "threads",
+) -> str:
+    """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
+    count), one bar per `points` entry. Each point is
+    `{"x": ..., "phases": {phase_name: ms}, "total_ms": ...}`. Legend is
+    disabled on every trace - callers render one shared legend across a grid
+    of these (see dashboards/gen_hgb_scaling.py) rather than repeating it per
+    small multiple."""
+    if phase_labels is None:
+        phase_labels = {phase: phase for phase in phase_order}
+    chart_id = f"phase-breakdown-{next(chart_ids)}"
+    points = sorted(points, key=lambda point: point["x"])
+    x_values = [str(point["x"]) for point in points]
+
+    fig = go.Figure()
+    for phase in phase_order:
+        y_values = [point["phases"].get(phase, 0.0) for point in points]
+        totals = [point["total_ms"] for point in points]
+        fig.add_trace(
+            go.Bar(
+                name=phase_labels[phase],
+                x=x_values,
+                y=y_values,
+                marker={"color": phase_colors[phase]},
+                showlegend=False,
+                customdata=[_phase_share(y, total) for y, total in zip(y_values, totals)],
+                hovertemplate=(
+                    f"{phase_labels[phase]}: "
+                    "%{y:.3g}ms (%{customdata:.0%})<extra></extra>"
+                ),
+            )
+        )
+    fig.update_layout(
+        barmode="stack",
+        xaxis={"type": "category", "title": x_title},
+        yaxis={"title": "time (ms)", "rangemode": "tozero"},
+        margin={"l": 55, "r": 10, "t": 10, "b": 40},
+        showlegend=False,
+        template="none",
+    )
+    return fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height="280px",
+        div_id=chart_id,
+    )
+
+
+def _phase_share(value: float, total: float) -> float:
+    return value / total if total else 0.0
+
+
 def _metrics_match(match: Match) -> bool:
     return match.metrics_match
 

@@ -4,7 +4,12 @@ from .blocks import (
     render_software_hardware_tabs,
     render_software_tabs,
 )
-from .plot import speedup_plot_html, variant_color_map
+from .plot import (
+    PLOTLY_DEFAULT_COLORS,
+    phase_breakdown_plot_html,
+    speedup_plot_html,
+    variant_color_map,
+)
 from .table import detailed_results_table_html
 from .templates import (
     BASE_TEMPLATE,
@@ -18,7 +23,9 @@ __all__ = [
     "DATE_RANGE_TEMPLATE",
     "HARDWARE_TEMPLATE",
     "SOFTWARE_TEMPLATE",
+    "PLOTLY_DEFAULT_COLORS",
     "assemble_plots_in_grid",
+    "phase_breakdown_plot_html",
     "render_hardware_tabs",
     "render_software_hardware_tabs",
     "render_software_tabs",
