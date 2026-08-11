@@ -582,6 +582,13 @@ def find_matches(
                 does_match, warnings = match_result
             else:
                 does_match, warnings = bool(match_result), []
+            if result.is_sklearnex_fallback:
+                # These warnings (histogram-based splits, iteration counts...)
+                # explain discrepancies caused by oneDAL's implementation
+                # choices. When sklearnex fell back to stock scikit-learn,
+                # none of that applies - it's running the same code as the
+                # baseline, so the warnings would be misleading noise.
+                warnings = []
             if does_match:
                 candidate_matches.append(Match(base_result, result, list(warnings)))
 
