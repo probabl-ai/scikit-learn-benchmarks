@@ -21,10 +21,12 @@ from sklbench.reporting.matching import (
     append_max_bins_warning,
     find_matches,
     read_all_results,
+    read_failed_records,
     date_range,
+    BenchmarkRecord,
     MethodResult,
 )
-from sklbench.reporting.utils import stable_json, without_keys
+from sklbench.reporting.utils import groupby, stable_json, without_keys
 
 
 GPU_HARDWARES = {
@@ -44,7 +46,7 @@ GPU_HARDWARE_ORDER = ["B390", "L4"]
 CPU_HARDWARE_ORDER = ["laptop", "GNR"]
 
 
-def is_alt_sklearn_build(result: MethodResult) -> bool:
+def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
     return (
         result.implementation.short_name == BASE_IMPLEMENTATION
         and not is_vanilla_sklearn(result.software_hash)
@@ -69,7 +71,7 @@ def _hardware_table_comparison_key(result: MethodResult) -> str:
     )
 
 
-def _is_gpu_result(result: MethodResult, *, hardware_hashes: set[str]) -> bool:
+def _is_gpu_result(result: MethodResult | BenchmarkRecord, *, hardware_hashes: set[str]) -> bool:
     implementation = result.implementation
     return (
         result.hardware_hash in hardware_hashes
@@ -79,7 +81,7 @@ def _is_gpu_result(result: MethodResult, *, hardware_hashes: set[str]) -> bool:
     )
 
 
-def is_linear_baseline_result(result: MethodResult) -> bool:
+def is_linear_baseline_result(result: MethodResult | BenchmarkRecord) -> bool:
     return (
         result.hardware_hash == CPU_BASELINE_HARDWARE_HASH
         and result.category == "linear"
@@ -87,7 +89,7 @@ def is_linear_baseline_result(result: MethodResult) -> bool:
     )
 
 
-def is_gpu_candidate_result(result: MethodResult) -> bool:
+def is_gpu_candidate_result(result: MethodResult | BenchmarkRecord) -> bool:
     return _is_gpu_result(result, hardware_hashes=set(GPU_HARDWARES))
 
 
@@ -131,14 +133,14 @@ def linear_match_trace_label(match) -> str:
     return linear_trace_label(match.matched_result)
 
 
-def is_cpu_baseline_result(result: MethodResult) -> bool:
+def is_cpu_baseline_result(result: MethodResult | BenchmarkRecord) -> bool:
     return (
         result.hardware_hash == CPU_BASELINE_HARDWARE_HASH
         and result.implementation.short_name == BASE_IMPLEMENTATION
     )
 
 
-def is_cpu_candidate_result(result: MethodResult) -> bool:
+def is_cpu_candidate_result(result: MethodResult | BenchmarkRecord) -> bool:
     return (
         result.hardware_hash in CPU_HARDWARES
         and not (
@@ -188,6 +190,7 @@ def _comparison_page(rows: list[str]) -> str:
 
 def render_linear_comparison(
     all_results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
     *,
     is_candidate_result,
 ) -> str:
@@ -196,6 +199,12 @@ def render_linear_comparison(
     ]
     candidate_results = [
         result for result in all_results if is_candidate_result(result)
+    ]
+    # Non-baseline (candidate) failures: shown on the plots too, at the bottom
+    # of their model-variant column. A failed record carries no fit/predict
+    # method info, so it's shown on both method plots.
+    candidate_failed_records = [
+        record for record in failed_records if is_candidate_result(record)
     ]
     trace_colors = variant_color_map(
         sorted(
@@ -225,6 +234,7 @@ def render_linear_comparison(
                     trace_variant=linear_match_trace_label,
                     x_variant=linear_match_trace_label,
                     variant_sort_key=linear_trace_sort_key,
+                    failed_records=candidate_failed_records,
                 ),
             }
         )
@@ -260,13 +270,22 @@ def render_linear_comparison(
     )
 
 
-def render_cpu_comparison(all_results: list[MethodResult]) -> str:
+def render_cpu_comparison(
+    all_results: list[MethodResult], failed_records: list[BenchmarkRecord]
+) -> str:
     baseline_results = [
         result for result in all_results if is_cpu_baseline_result(result)
     ]
     candidate_results = [
         result for result in all_results if is_cpu_candidate_result(result)
     ]
+    # Non-baseline (candidate) failures: shown on the plots too, at the bottom
+    # of their model-variant column. A failed record carries no fit/predict
+    # method info, so it's shown on both method plots.
+    candidate_failed_by_category = groupby(
+        [record for record in failed_records if is_cpu_candidate_result(record)],
+        lambda record: record.category,
+    )
     trace_colors = variant_color_map(
         sorted(
             {cpu_trace_label(result) for result in candidate_results},
@@ -304,6 +323,7 @@ def render_cpu_comparison(all_results: list[MethodResult]) -> str:
                         trace_variant=cpu_match_trace_label,
                         x_variant=cpu_match_trace_label,
                         variant_sort_key=cpu_trace_sort_key,
+                        failed_records=candidate_failed_by_category.get(category, []),
                     ),
                 }
             )
@@ -344,6 +364,9 @@ if __name__ == "__main__":
     all_results = [
         result for result in read_all_results() if not is_alt_sklearn_build(result)
     ]
+    failed_records = [
+        record for record in read_failed_records() if not is_alt_sklearn_build(record)
+    ]
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
         rows=[
@@ -353,10 +376,14 @@ if __name__ == "__main__":
                         "Compare GPUs",
                         render_linear_comparison(
                             all_results,
+                            failed_records,
                             is_candidate_result=is_gpu_candidate_result,
                         ),
                     ),
-                    ("Compare CPUs", render_cpu_comparison(all_results)),
+                    (
+                        "Compare CPUs",
+                        render_cpu_comparison(all_results, failed_records),
+                    ),
                 ]
             ),
         ],

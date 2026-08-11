@@ -67,7 +67,9 @@ BASE_TEMPLATE = Template("""<!doctype html>
       if (!value) {
         return "N/A";
       }
-      const label = formatterParams.label || "open";
+      const field = cell.getColumn().getField();
+      const rowLabel = cell.getData()[`${field}_label`];
+      const label = rowLabel || formatterParams.label || "open";
       return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
     }
 
@@ -288,6 +290,18 @@ PLOT_NOTES_TEMPLATE = Template("""<div class="plot-notes">
   <div class="plot-note">
     <span class="plot-marker plot-marker-diamond">◇</span>
     <span>Metrics differ from the baseline ({{ metric_mismatch_label }})</span>
+  </div>
+  {% endif %}
+  {% if fallback_count %}
+  <div class="plot-note">
+    <span class="plot-marker plot-marker-circle" style="color: #9e9e9e;">●</span>
+    <span>Ran via sklearnex but fell back to stock scikit-learn, no oneDAL acceleration ({{ fallback_label }})</span>
+  </div>
+  {% endif %}
+  {% if failed_count %}
+  <div class="plot-note">
+    <span class="plot-marker plot-marker-x">✕</span>
+    <span>Benchmark run failed, shown at the bottom of its column ({{ failed_label }})</span>
   </div>
   {% endif %}
 </div>""")

@@ -199,6 +199,10 @@ code {
 .plot-marker-diamond {
   font-size: 16px;
 }
+.plot-marker-x {
+  font-size: 16px;
+  color: var(--muted);
+}
 .warning-note {
   display: grid;
   grid-template-columns: 1.8em minmax(0, 1fr);

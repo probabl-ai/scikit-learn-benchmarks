@@ -110,6 +110,17 @@ def render_hardware_page(
     )
     grouped_results = groupby(base_results, lambda res: (res.category, res.method))
 
+    # Non-baseline (candidate) failures: shown on the plots too, at the bottom
+    # of their model-variant column, since we don't know from a failed record
+    # whether fit or predict is what failed.
+    candidate_failed_records = [
+        record for record in failed_records
+        if record.implementation.short_name != BASE_IMPLEMENTATION
+    ]
+    candidate_failed_by_category = groupby(
+        candidate_failed_records, lambda record: record.category
+    )
+
     plots = []
     matches_by_category = {}
     for (category, method), group_base_results in grouped_results.items():
@@ -120,7 +131,11 @@ def render_hardware_page(
             "category": category,
             "method": method,
             "point_count": len(matches),
-            "plot": speedup_plot_html(matches, variant_colors=variant_colors)
+            "plot": speedup_plot_html(
+                matches,
+                variant_colors=variant_colors,
+                failed_records=candidate_failed_by_category.get(category, []),
+            )
         })
     failed_by_category = groupby(failed_records, lambda record: record.category)
 

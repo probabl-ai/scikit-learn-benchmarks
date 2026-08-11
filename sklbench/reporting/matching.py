@@ -110,6 +110,16 @@ class MethodResult:
         )
 
     @property
+    def is_sklearnex_fallback(self) -> bool:
+        """Whether sklearnex silently fell back to stock scikit-learn for this
+        result (no oneDAL acceleration), per `has_onedal_estimator` recorded in
+        `sklbench/runners/estimator/__main__.py`."""
+        if self.implementation.library != "sklearnex":
+            return False
+        values = self.attributes.get("has_onedal_estimator")
+        return bool(values) and not all(values)
+
+    @property
     def minimal_match_key(self) -> str:
         """
         If two results don't share the same minimal_match_key, it will
@@ -323,6 +333,14 @@ class MatchWarning:
 
 
 @dataclass(frozen=True)
+class MetricDifference:
+    method: str
+    metric_name: str
+    base_repr: str
+    target_repr: str
+
+
+@dataclass(frozen=True)
 class Match:
     base_result: MethodResult
     matched_result: MethodResult
@@ -348,14 +366,13 @@ class Match:
         metric_name: str,
         base_values: list[Any],
         matched_values: list[Any],
-    ) -> str | None:
+    ) -> MetricDifference | None:
         numeric_base = _numeric_values(base_values)
         numeric_matched = _numeric_values(matched_values)
         if numeric_base is None or numeric_matched is None:
             if base_values != matched_values:
-                return (
-                    f"{method}.{metric_name}: "
-                    f"base={base_values}, target={matched_values}"
+                return MetricDifference(
+                    method, metric_name, str(base_values), str(matched_values)
                 )
             return None
 
@@ -363,16 +380,16 @@ class Match:
         matched_mean = mean(numeric_matched)
         tolerance = _metric_tolerance(numeric_base)
         if abs(matched_mean - base_mean) > tolerance:
-            return (
-                f"{method}.{metric_name}: "
-                f"base_mean={_short_metric_value(base_mean)}, "
-                f"target_mean={_short_metric_value(matched_mean)}, "
-                f"tolerance={_short_metric_value(tolerance)}"
+            return MetricDifference(
+                method,
+                metric_name,
+                _short_metric_value(base_mean),
+                _short_metric_value(matched_mean),
             )
         return None
 
     @property
-    def metrics_differences(self) -> list[str]:
+    def metrics_differences(self) -> list[MetricDifference]:
         if self.base_result.method != "fit":
             return []
 
@@ -382,10 +399,10 @@ class Match:
 
         for method in sorted(set(base_metrics) | set(matched_metrics)):
             if method not in base_metrics:
-                differences.append(f"{method}: missing in base")
+                differences.append(MetricDifference(method, "*", "(missing)", "(present)"))
                 continue
             if method not in matched_metrics:
-                differences.append(f"{method}: missing in target")
+                differences.append(MetricDifference(method, "*", "(present)", "(missing)"))
                 continue
 
             base_method_metrics = base_metrics[method]
@@ -394,10 +411,24 @@ class Match:
                 set(base_method_metrics) | set(matched_method_metrics)
             ):
                 if metric_name not in base_method_metrics:
-                    differences.append(f"{method}.{metric_name}: missing in base")
+                    differences.append(
+                        MetricDifference(
+                            method,
+                            metric_name,
+                            "(missing)",
+                            str(matched_method_metrics[metric_name]),
+                        )
+                    )
                     continue
                 if metric_name not in matched_method_metrics:
-                    differences.append(f"{method}.{metric_name}: missing in target")
+                    differences.append(
+                        MetricDifference(
+                            method,
+                            metric_name,
+                            str(base_method_metrics[metric_name]),
+                            "(missing)",
+                        )
+                    )
                     continue
 
                 difference = self._metric_difference(

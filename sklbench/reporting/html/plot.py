@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dataclasses import dataclass, field
 from html import escape
 import itertools
 import json
@@ -7,7 +8,7 @@ from statistics import median
 
 from plotly import graph_objects as go
 
-from ..matching import Match
+from ..matching import BenchmarkRecord, Match
 from .templates import PLOT_NOTES_TEMPLATE
 
 
@@ -23,6 +24,20 @@ PLOTLY_DEFAULT_COLORS = [
     "#FF97FF",
     "#FECB52",
 ]
+
+FALLBACK_COLOR = "#9e9e9e"
+FAILED_MARKER_GAP = 0.4  # log2(speed-up) units below the slowest point of a column
+
+
+@dataclass(frozen=True)
+class _FailedMatch:
+    """Adapts a failed `BenchmarkRecord` to the `Match`-shaped interface that
+    `trace_variant`/`x_variant` callbacks expect (they only ever read
+    `.matched_result` and `.warnings`), so failed non-baseline runs can reuse
+    the exact same column-placement logic as real matches."""
+
+    matched_result: BenchmarkRecord
+    warnings: list = field(default_factory=list)
 
 
 chart_ids = itertools.count()
@@ -46,13 +61,34 @@ def _hover_value(value):
     return str(value)
 
 
+GENERATION_KWARGS_HOVER_KEYS = ["n_samples", "n_features", "columns"]
+
+
+def _generation_kwargs_hover_lines(value, prefix):
+    lines = []
+    for key in GENERATION_KWARGS_HOVER_KEYS:
+        if key not in value:
+            continue
+        nested_value = value[key]
+        if isinstance(nested_value, list):
+            lines.append(f"{prefix}{key}: {json.dumps(nested_value, default=str)}")
+        else:
+            lines.append(f"{prefix}{key}: {_hover_value(nested_value)}")
+    return lines
+
+
 def _hover_lines(value, prefix=""):
     if isinstance(value, dict):
         if not value:
             return [f"{prefix}{{}}"]
         lines = []
         for key, nested_value in sorted(value.items()):
-            if isinstance(nested_value, dict):
+            if key == "generation_kwargs" and isinstance(nested_value, dict):
+                lines.append(f"{prefix}{key}:")
+                lines.extend(
+                    _generation_kwargs_hover_lines(nested_value, f"{prefix}  ")
+                )
+            elif isinstance(nested_value, dict):
                 lines.append(f"{prefix}{key}:")
                 lines.extend(_hover_lines(nested_value, prefix=f"{prefix}  "))
             elif isinstance(nested_value, list):
@@ -100,8 +136,11 @@ def _format_estimator_counts(estimator_counts: dict[str, int]) -> str:
     return ", ".join(parts)
 
 
-def _marker_notes_html(matches: list[Match]) -> str:
+def _marker_notes_html(matches: list[Match], failed_count: int = 0) -> str:
     metric_mismatch_count = sum(not match.metrics_match for match in matches)
+    fallback_count = sum(
+        match.matched_result.is_sklearnex_fallback for match in matches
+    )
     warning_counts = {}
     warning_order = []
 
@@ -132,8 +171,45 @@ def _marker_notes_html(matches: list[Match]) -> str:
     return PLOT_NOTES_TEMPLATE.render(
         metric_mismatch_count=metric_mismatch_count,
         metric_mismatch_label=_format_point_count(metric_mismatch_count),
+        fallback_count=fallback_count,
+        fallback_label=_format_point_count(fallback_count),
+        failed_count=failed_count,
+        failed_label=_format_point_count(failed_count),
         warnings=warnings,
     )
+
+
+def _format_metric_difference(difference) -> str:
+    return (
+        f"{difference.metric_name}: {difference.base_repr} (base) "
+        f"vs {difference.target_repr} (variant)"
+    )
+
+
+def _metrics_differ_lines(match: Match) -> list[str]:
+    """Render metric mismatches, prioritizing predict over fit: predict
+    differences (if any) are shown in full, and fit differences are only
+    detailed when predict metrics otherwise match - else they're collapsed
+    into a one-line note, since predict.metrics_differences is the one users
+    read first per match."""
+    differences = match.metrics_differences
+    if not differences:
+        return []
+
+    fit_differences = [d for d in differences if d.method == "fit"]
+    other_differences = [d for d in differences if d.method != "fit"]
+
+    if other_differences:
+        method = other_differences[0].method
+        lines = [f"<b>{escape(method)} metrics differ:</b>"]
+        lines.extend(escape(_format_metric_difference(d)) for d in other_differences)
+        if fit_differences:
+            lines.append("<i>fit metrics also mismatch</i>")
+        return lines
+
+    lines = ["<b>fit metrics differ:</b>"]
+    lines.extend(escape(_format_metric_difference(d)) for d in fit_differences)
+    return lines
 
 
 def _hover_text(match: Match) -> str:
@@ -146,10 +222,9 @@ def _hover_text(match: Match) -> str:
         f"<b>speed-up: {match.speedup:.2g}x</b> "
         f"({_custom_format(median(base.times))} vs {_custom_format(median(result.times))})",
     ]
-    metric_differences = match.metrics_differences
-    if metric_differences:
-        lines.append("<b>metrics differ</b>")
-        lines.extend(escape(difference) for difference in metric_differences)
+    lines.extend(_metrics_differ_lines(match))
+    if result.is_sklearnex_fallback:
+        lines.append("<i>fell back to scikit-learn</i>")
     if warning_lines:
         lines.extend(escape(line) for line in warning_lines)
     estimator_params = "<br>".join(
@@ -165,6 +240,24 @@ def _hover_text(match: Match) -> str:
         ]
     )
     return "<br>".join(lines)
+
+
+def _failed_hover_text(record: BenchmarkRecord) -> str:
+    algorithm = record.case.get("algorithm", {})
+    data = record.case.get("data", {})
+    estimator_params = "<br>".join(
+        escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
+    )
+    data_params = "<br>".join(escape(line) for line in _hover_lines(data))
+    return "<br>".join(
+        [
+            "<b>benchmark run failed</b>",
+            "<br><b>estimator params</b>",
+            estimator_params,
+            "<br><b>data params</b>",
+            data_params,
+        ]
+    )
 
 
 def _variant_offsets(variants: list[str]) -> dict[str, float]:
@@ -192,6 +285,12 @@ def _marker_symbol(match: Match) -> str:
     if match.warnings:
         return "square"
     return "circle"
+
+
+def _marker_color(match: Match, variant_color: str | None) -> str | None:
+    if match.matched_result.is_sklearnex_fallback:
+        return FALLBACK_COLOR
+    return variant_color
 
 
 def _trace_sort_key(match: Match) -> tuple[bool, str]:
@@ -226,8 +325,9 @@ def speedup_plot_html(
     trace_variant=None,
     x_variant=None,
     variant_sort_key=None,
+    failed_records: list[BenchmarkRecord] = (),
 ):
-    if not matches:
+    if not matches and not failed_records:
         return '<div class="empty">No matches for this group.</div>'
 
     chart_id = f"chart-{next(chart_ids)}"
@@ -237,69 +337,130 @@ def speedup_plot_html(
         x_variant = _x_variant
     if variant_sort_key is None:
         variant_sort_key = lambda variant: variant
-    if variant_colors is None:
-        variant_colors = variant_color_map(
-            sorted({trace_variant(match) for match in matches}, key=variant_sort_key)
-        )
+    failed_matches = [_FailedMatch(record) for record in failed_records]
+
     estimators = sorted(
-        {
-            match.matched_result.case.get("algorithm", {}).get("estimator", "unknown")
-            for match in matches
-        }
+        {_estimator_name(match) for match in matches}
+        | {_estimator_name(failed) for failed in failed_matches}
     )
     estimator_positions = {
         estimator: index for index, estimator in enumerate(estimators)
     }
-    x_variants = sorted({x_variant(match) for match in matches}, key=variant_sort_key)
+    x_variants = sorted(
+        {x_variant(match) for match in matches}
+        | {x_variant(failed) for failed in failed_matches},
+        key=variant_sort_key,
+    )
     offsets = _variant_offsets(x_variants)
+
     grouped: dict[str, list[Match]] = {}
     for match in matches:
         grouped.setdefault(trace_variant(match), []).append(match)
+    failed_grouped: dict[str, list[_FailedMatch]] = {}
+    for failed in failed_matches:
+        failed_grouped.setdefault(trace_variant(failed), []).append(failed)
+
+    if variant_colors is None:
+        variant_colors = variant_color_map(
+            sorted(set(grouped) | set(failed_grouped), key=variant_sort_key)
+        )
+
+    # Column (estimator, x_variant) -> slowest (smallest) y among real matches,
+    # so failed runs can be plotted just below the column they belong to.
+    column_min_y: dict[tuple[str, str], float] = {}
+    for match in matches:
+        column = (_estimator_name(match), x_variant(match))
+        y = math.log2(match.speedup)
+        column_min_y[column] = min(column_min_y.get(column, y), y)
+
+    all_values = [math.log2(match.speedup) for match in matches]
+    fallback_min_y = min(all_values) if all_values else 0.0
 
     fig = go.Figure()
-    for variant, variant_matches in sorted(
-        grouped.items(), key=lambda item: variant_sort_key(item[0])
-    ):
-        variant_matches = sorted(
-            variant_matches,
-            key=_trace_sort_key,
-        )
-        marker_symbols = []
-        for match in variant_matches:
-            marker_symbols.append(_marker_symbol(match))
-        marker = {
-            "size": 10,
-            "symbol": marker_symbols,
-        }
+    for variant in sorted(set(grouped) | set(failed_grouped), key=variant_sort_key):
         color = variant_colors.get(variant)
-        if color is not None:
-            marker["color"] = color
+        # A single dummy point per variant drives the legend swatch, so it always
+        # shows the variant's real color/symbol regardless of the per-point
+        # grey-out (sklearnex fallback) or "x" (failed run) styling below.
         fig.add_trace(
             go.Scatter(
                 mode="markers",
                 name=variant,
+                legendgroup=variant,
                 showlegend=True,
-                x=[
-                    estimator_positions[
-                        match.matched_result.case.get("algorithm", {}).get(
-                            "estimator", "unknown"
-                        )
-                    ]
-                    + offsets[x_variant(match)]
-                    for match in variant_matches
-                ],
-                y=[math.log2(match.speedup) for match in variant_matches],
-                text=[_hover_text(match) for match in variant_matches],
-                hovertemplate="%{text}<extra></extra>",
-                marker=marker,
+                hoverinfo="skip",
+                x=[None],
+                y=[None],
+                marker={"size": 10, "symbol": "circle", "color": color},
             )
         )
 
-    values = [math.log2(match.speedup) for match in matches]
-    min_tick = math.floor(min(min(values), 0))
-    max_tick = math.ceil(max(max(values), 0))
+        variant_matches = sorted(grouped.get(variant, []), key=_trace_sort_key)
+        if variant_matches:
+            marker = {
+                "size": 10,
+                "symbol": [_marker_symbol(match) for match in variant_matches],
+                "color": [
+                    _marker_color(match, color) for match in variant_matches
+                ],
+            }
+            fig.add_trace(
+                go.Scatter(
+                    mode="markers",
+                    name=variant,
+                    legendgroup=variant,
+                    showlegend=False,
+                    x=[
+                        estimator_positions[_estimator_name(match)]
+                        + offsets[x_variant(match)]
+                        for match in variant_matches
+                    ],
+                    y=[math.log2(match.speedup) for match in variant_matches],
+                    text=[_hover_text(match) for match in variant_matches],
+                    hovertemplate="%{text}<extra></extra>",
+                    marker=marker,
+                )
+            )
+
+        variant_failed = failed_grouped.get(variant, [])
+        if variant_failed:
+            fig.add_trace(
+                go.Scatter(
+                    mode="markers",
+                    name=variant,
+                    legendgroup=variant,
+                    showlegend=False,
+                    x=[
+                        estimator_positions[_estimator_name(failed)]
+                        + offsets[x_variant(failed)]
+                        for failed in variant_failed
+                    ],
+                    y=[
+                        column_min_y.get(
+                            (_estimator_name(failed), x_variant(failed)),
+                            fallback_min_y,
+                        )
+                        - FAILED_MARKER_GAP
+                        for failed in variant_failed
+                    ],
+                    text=[
+                        _failed_hover_text(failed.matched_result)
+                        for failed in variant_failed
+                    ],
+                    hovertemplate="%{text}<extra></extra>",
+                    marker={"size": 10, "symbol": "x", "color": color},
+                )
+            )
+
+    values = all_values + [
+        column_min_y.get((_estimator_name(failed), x_variant(failed)), fallback_min_y)
+        - FAILED_MARKER_GAP
+        for failed in failed_matches
+    ]
+    min_tick = math.floor(min(min(values, default=0.0), 0))
+    max_tick = math.ceil(max(max(values, default=0.0), 0))
     tick_values = list(range(min_tick, max_tick + 1))
-    marker_notes = _marker_notes_html(matches)
+    marker_notes = _marker_notes_html(matches, failed_count=len(failed_matches))
     fig.update_layout(
         xaxis={
             "tickmode": "array",

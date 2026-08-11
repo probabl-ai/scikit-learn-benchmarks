@@ -64,6 +64,16 @@ def _profile_url(result: MethodResult) -> str | None:
     return profile_viewer_url(record.profile_path)
 
 
+def _profile_label(record: BenchmarkRecord | None) -> str | None:
+    if record is None or record.profile_path is None:
+        return None
+    # `.prof.gz` comes from the cProfile pass (`_run_cprofile_pass` in
+    # sklbench/orchestrator/implementation.py); `.raw.gz`/`.svg` come from py-spy.
+    if record.profile_path.name.endswith(".prof.gz"):
+        return "cProfile"
+    return "py-spy"
+
+
 def _result_params(case: dict) -> dict:
     return case.get("algorithm", {}).get("estimator_params", {}) or {}
 
@@ -92,6 +102,7 @@ def _new_row(
         "predict_time": None,
         "predict_speedup": None,
         "profile_url": _profile_url(result),
+        "profile_url_label": _profile_label(result.record),
         "json_url": _record_json_url(result),
         "hyperparams": _result_params(result.case),
         "status": "ok",
