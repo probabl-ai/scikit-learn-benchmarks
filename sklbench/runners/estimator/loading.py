@@ -155,6 +155,14 @@ wrapped_estimators = {
         "sklearn",
         "HistGradientBoostingRegressor",
     ): "instrumented_hgb.HistGradientBoostingRegressor",
+    (
+        "sklearn",
+        "RandomForestClassifier",
+    ): "instrumented_rf.RandomForestClassifier",
+    (
+        "sklearn",
+        "RandomForestRegressor",
+    ): "instrumented_rf.RandomForestRegressor",
 }
 
 
