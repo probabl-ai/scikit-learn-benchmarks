@@ -100,7 +100,7 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
     return {
         "bench": {
             "n_runs": 3,
-            "env": {"OPENMP_NUM_THREADS": str(thread_count)},
+            "env": {"OMP_NUM_THREADS": str(thread_count)},
             "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
             "py_spy_profiling": False,
         },
