@@ -99,8 +99,10 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
 
     return {
         "bench": {
-            "n_runs": 2,
-            "taskset": taskset_for_physical_cores(thread_count, with_siblings=False),
+            "n_runs": 3,
+            "env": {"OPENMP_NUM_THREADS": str(thread_count)},
+            "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
+            "py_spy_profiling": False,
         },
         "implementation": {
             "library": "sklearn",
@@ -135,5 +137,5 @@ def generate_cases() -> list[dict]:
         for workload in WORKLOADS
         for task in TASKS
         for columns_kind in COLUMNS_KINDS
-        for thread_count in get_n_cores_list()
+        for thread_count in get_n_cores_list(max_n_cores=128)
     ]
