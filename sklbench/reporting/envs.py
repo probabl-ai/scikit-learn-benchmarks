@@ -50,6 +50,7 @@ FLAMEGRAPH_VIEWER_BASE_URL = (
 )
 
 
+@lru_cache(maxsize=None)
 def _current_results_ref() -> str:
     explicit_ref = os.environ.get("SKLBENCH_RESULTS_REF")
     if explicit_ref:

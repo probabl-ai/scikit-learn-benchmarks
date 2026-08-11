@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import importlib
 import inspect
 import logging
@@ -8,6 +9,54 @@ from sklearn.base import BaseEstimator
 from ...config import Implementation
 
 logger = logging.getLogger(__name__)
+
+# Emitted by sklearnex's own dispatcher (`sklearnex._utils.PatchingConditionsChain
+# .write_log`, via `sklearnex._device_offload.dispatch`) on every patched method
+# call. This is the only reliable oneDAL-vs-fallback signal for estimators whose
+# accelerated path never sets a detectable attribute on the estimator instance -
+# e.g. LogisticRegression on CPU, which routes through daal4py's
+# `logistic_regression_path` monkeypatch and never touches `_onedal_estimator`.
+_SKLEARNEX_ONEDAL_LOG_MARKER = "running accelerated version on"
+_SKLEARNEX_FALLBACK_LOG_MARKER = "fallback to original Scikit-learn"
+
+
+class _ListLogHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.messages: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.messages.append(record.getMessage())
+
+
+@contextmanager
+def capture_sklearnex_dispatch_log():
+    """Capture sklearnex's dispatch decision log lines for the duration of the
+    `with` block. Yields the (live-appended) list of captured messages."""
+    sklearnex_logger = logging.getLogger("sklearnex")
+    handler = _ListLogHandler()
+    previous_level = sklearnex_logger.level
+    previous_propagate = sklearnex_logger.propagate
+    sklearnex_logger.addHandler(handler)
+    sklearnex_logger.setLevel(logging.INFO)
+    sklearnex_logger.propagate = False
+    try:
+        yield handler.messages
+    finally:
+        sklearnex_logger.removeHandler(handler)
+        sklearnex_logger.setLevel(previous_level)
+        sklearnex_logger.propagate = previous_propagate
+
+
+def sklearnex_used_onedal(messages: list[str]) -> bool | None:
+    """Whether sklearnex actually dispatched to oneDAL, based on captured
+    dispatch log lines. `None` when no dispatch decision was captured at all
+    (unexpected - e.g. logging got reconfigured elsewhere)."""
+    if not messages:
+        return None
+    if any(_SKLEARNEX_FALLBACK_LOG_MARKER in message for message in messages):
+        return False
+    return any(_SKLEARNEX_ONEDAL_LOG_MARKER in message for message in messages)
 
 ModuleContentMap = dict[str, list[Any]]
 

@@ -1,5 +1,6 @@
 import argparse
 import cProfile
+from contextlib import nullcontext
 import gc
 import inspect
 import json
@@ -15,7 +16,13 @@ import numpy as np
 from ...config import EstimatorCase
 from .._measurement import measure_perf
 from ..datasets import load_data
-from .loading import estimator_to_task, get_context, get_estimator
+from .loading import (
+    capture_sklearnex_dispatch_log,
+    estimator_to_task,
+    get_context,
+    get_estimator,
+    sklearnex_used_onedal,
+)
 from .metrics import get_subset_metrics_of_estimator
 
 logger = logging.getLogger(__name__)
@@ -147,31 +154,37 @@ def run_case_once(
 ) -> dict:
     task = estimator_to_task(bench_case.algorithm.estimator)
     X_train, X_test, y_train, y_test = data
+    is_sklearnex = bench_case.implementation.library == "sklearnex"
 
     times = {}
     profiling_metrics = {}
 
-    times["fit"], profiling_metrics["fit"] = measure_perf(
-        estimator.fit,
-        X_train,
-        y_train,
-        bench_params=bench_case.bench,
-    )
+    with (
+        capture_sklearnex_dispatch_log()
+        if is_sklearnex
+        else nullcontext([])
+    ) as dispatch_log:
+        times["fit"], profiling_metrics["fit"] = measure_perf(
+            estimator.fit,
+            X_train,
+            y_train,
+            bench_params=bench_case.bench,
+        )
 
-    times["predict"], profiling_metrics["predict"] = measure_perf(
-        estimator.predict,
-        X_test,
-        bench_params=bench_case.bench,
-    )
+        times["predict"], profiling_metrics["predict"] = measure_perf(
+            estimator.predict,
+            X_test,
+            bench_params=bench_case.bench,
+        )
 
-    quality_metrics = {
-        "fit": get_subset_metrics_of_estimator(
-            task, "training", estimator, (X_train, y_train)
-        ),
-        "predict": get_subset_metrics_of_estimator(
-            task, "inference", estimator, (X_test, y_test)
-        ),
-    }
+        quality_metrics = {
+            "fit": get_subset_metrics_of_estimator(
+                task, "training", estimator, (X_train, y_train)
+            ),
+            "predict": get_subset_metrics_of_estimator(
+                task, "inference", estimator, (X_test, y_test)
+            ),
+        }
 
     data_desc = {
         "fit": dict(data_description["x_train"]),
@@ -182,12 +195,18 @@ def run_case_once(
         data_desc["predict"].update({"n_classes": data_description["n_classes"]})
 
     attributes = _collect_model_attributes(estimator)
-    if bench_case.implementation.library == "sklearnex":
+    if is_sklearnex:
         # sklearnex silently falls back to stock sklearn per-estimator when
         # oneDAL doesn't support the given params/data (e.g. RandomForestClassifier
         # with class_weight="balanced_subsample"), so a "sklearnex" record isn't
-        # necessarily measuring oneDAL acceleration.
-        attributes["has_onedal_estimator"] = hasattr(estimator, "_onedal_estimator")
+        # necessarily measuring oneDAL acceleration. `_onedal_estimator` is set by
+        # most estimators' accelerated path but not all - e.g. LogisticRegression
+        # on CPU routes through daal4py and never sets it - so prefer sklearnex's
+        # own dispatch log when available and fall back to the attribute check.
+        used_onedal = sklearnex_used_onedal(dispatch_log)
+        if used_onedal is None:
+            used_onedal = hasattr(estimator, "_onedal_estimator")
+        attributes["has_onedal_estimator"] = used_onedal
 
     return {
         "data_desc": data_desc,
