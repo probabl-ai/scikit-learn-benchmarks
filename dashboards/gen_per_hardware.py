@@ -12,6 +12,7 @@ from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
+    is_scaling_benchmark,
 )
 
 from sklbench.reporting.envs import (
@@ -223,8 +224,10 @@ def render_hardware_page(
 
 
 if __name__ == "__main__":
-    results = read_all_results()
-    failed_records = read_failed_records()
+    results = [res for res in read_all_results() if not is_scaling_benchmark(res)]
+    failed_records = [
+        record for record in read_failed_records() if not is_scaling_benchmark(record)
+    ]
     hardware_pages = [
         (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
         for hardware_hash, hardware_name in HARDWARE_NAMES.items()

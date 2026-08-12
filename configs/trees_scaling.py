@@ -79,6 +79,7 @@ def _synthetic_case(workload: dict, thread_count: int) -> dict:
         "bench": _bench(thread_count),
         "implementation": {"library": "sklearn"},
         "metadata": {
+            "benchmark_type": "scaling",
             "task": "classification",
             "name": workload["name"],
             "kind": "synthetic",
@@ -101,6 +102,7 @@ def _real_case(workload: dict, thread_count: int) -> dict:
         "bench": _bench(thread_count),
         "implementation": {"library": "sklearn"},
         "metadata": {
+            "benchmark_type": "scaling",
             "task": "classification",
             "name": workload["name"],
             "kind": "real",

@@ -39,12 +39,19 @@ class Implementation:
 
 def _category_of(case: dict) -> str:
     algo = case["algorithm"]["estimator"]
-    if "Forest" in algo or "Tree" in algo:
+    if "Forest" in algo or "Tree" in algo or "Boosting" in algo:
         return "tree-based"
     elif algo == "KMeans" or algo == "DBSCAN":
         return "clustering"
     else:
         return "linear"
+
+
+def is_scaling_benchmark(result: "MethodResult | BenchmarkRecord") -> bool:
+    """Results from a config meant for its own thread/size scaling dashboard
+    (e.g. `configs/hgb_scaling.py`) rather than for the general per-hardware,
+    build, or hardware comparison dashboards."""
+    return result.benchmark_type == "scaling"
 
 
 @dataclass
@@ -70,6 +77,10 @@ class BenchmarkRecord:
     @property
     def category(self) -> str:
         return _category_of(self.case)
+
+    @property
+    def benchmark_type(self) -> str | None:
+        return self.case.get("metadata", {}).get("benchmark_type")
 
 
 @dataclass
@@ -101,6 +112,10 @@ class MethodResult:
     @property
     def category(self) -> str:
         return _category_of(self.case)
+
+    @property
+    def benchmark_type(self) -> str | None:
+        return self.case.get("metadata", {}).get("benchmark_type")
 
     @property
     def is_sklearnex_tree(self) -> bool:

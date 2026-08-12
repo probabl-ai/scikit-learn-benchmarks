@@ -23,6 +23,7 @@ from sklbench.reporting.matching import (
     read_all_results,
     read_failed_records,
     date_range,
+    is_scaling_benchmark,
     BenchmarkRecord,
     MethodResult,
 )
@@ -362,10 +363,12 @@ def render_cpu_comparison(
 
 if __name__ == "__main__":
     all_results = [
-        result for result in read_all_results() if not is_alt_sklearn_build(result)
+        result for result in read_all_results()
+        if not is_alt_sklearn_build(result) and not is_scaling_benchmark(result)
     ]
     failed_records = [
-        record for record in read_failed_records() if not is_alt_sklearn_build(record)
+        record for record in read_failed_records()
+        if not is_alt_sklearn_build(record) and not is_scaling_benchmark(record)
     ]
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",

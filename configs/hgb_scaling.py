@@ -108,6 +108,7 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
             "library": "sklearn",
         },
         "metadata": {
+            "benchmark_type": "scaling",
             "task": task,
             "name": workload["name"],
             "columns_kind": columns_kind,
