@@ -122,7 +122,7 @@ def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
         summary = {
             "name": name,
             "version": package.get("version", "?"),
-            "kind": "pip" if kind == "pypi" else kind,
+            "kind": "conda-forge" if kind == "conda" else kind,
         }
 
         default_source = DEFAULT_SOURCE.get(kind)
