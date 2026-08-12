@@ -331,6 +331,53 @@ def phase_breakdown_plot_html(
     )
 
 
+def scaling_line_plot_html(
+    series: dict[str, list[tuple[float, float]]],
+    *,
+    colors: dict[str, str] | None = None,
+    x_title: str = "threads",
+    y_title: str = "fit time (ms)",
+) -> str:
+    """Simple line plot of `y_title` vs `x_title`, one line per series key
+    (e.g. software build). `series` maps a label to a list of (x, y) points.
+    Lighter-weight alternative to `phase_breakdown_plot_html` for comparing
+    overall scaling behavior across builds, rather than a per-build phase
+    breakdown."""
+    chart_id = f"scaling-line-{next(chart_ids)}"
+    fig = go.Figure()
+    for label, points in sorted(series.items()):
+        points = sorted(points)
+        x_values = [x for x, _ in points]
+        y_values = [y for _, y in points]
+        color = (colors or {}).get(label)
+        fig.add_trace(
+            go.Scatter(
+                name=label,
+                x=x_values,
+                y=y_values,
+                mode="lines+markers",
+                line={"color": color} if color else {},
+                marker={"color": color} if color else {},
+                hovertemplate=f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}ms<extra></extra>",
+            )
+        )
+    fig.update_layout(
+        xaxis={"title": x_title},
+        yaxis={"title": y_title, "rangemode": "tozero"},
+        margin={"l": 60, "r": 15, "t": 15, "b": 44},
+        legend={"orientation": "h", "y": -0.25},
+        template="none",
+    )
+    return fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height="340px",
+        div_id=chart_id,
+    )
+
+
 def _phase_share(value: float, total: float) -> float:
     return value / total if total else 0.0
 

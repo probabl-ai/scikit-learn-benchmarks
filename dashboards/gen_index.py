@@ -12,6 +12,7 @@ DASHBOARDS = [
     ("Software/implementations comparison", "per_hardware.html"),
     ("Builds comparison", "builds_comparison.html"),
     ("HGB thread-scaling breakdown", "hgb_scaling.html"),
+    ("HGB build scaling comparison", "hgb_build_scaling.html"),
 ]
 
 

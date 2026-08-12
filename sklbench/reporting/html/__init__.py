@@ -7,6 +7,7 @@ from .blocks import (
 from .plot import (
     PLOTLY_DEFAULT_COLORS,
     phase_breakdown_plot_html,
+    scaling_line_plot_html,
     speedup_plot_html,
     variant_color_map,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "render_hardware_tabs",
     "render_software_hardware_tabs",
     "render_software_tabs",
+    "scaling_line_plot_html",
     "speedup_plot_html",
     "detailed_results_table_html",
     "variant_color_map",

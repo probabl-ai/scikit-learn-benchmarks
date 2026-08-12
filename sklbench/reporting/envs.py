@@ -30,9 +30,20 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
     return read_env("software", software_hash)["pixi_environment_name"] == VANILLA_SKLEARN_PIXI_ENV
 
 
+# One-off sklearn-conda run with GOMP_SPINCOUNT manually raised to
+# 10_000_000 (vs. libgomp's 300_000 default), to probe busy-wait tuning.
+# The pixi env name alone can't distinguish it from the regular
+# sklearn-conda run, and no more of these are planned, so it's special-cased
+# by hash here instead of adding a generic env-variant concept.
+_SPINCOUNT_VARIANT_SOFTWARE_HASH = "a2680a"
+
+
 @lru_cache(maxsize=None)
 def software_build_name(software_hash: str) -> str:
-    return read_env("software", software_hash)["pixi_environment_name"]
+    name = read_env("software", software_hash)["pixi_environment_name"]
+    if software_hash == _SPINCOUNT_VARIANT_SOFTWARE_HASH:
+        return f"{name}-10M-spincount"
+    return name
 
 
 DEFAULT_SOURCE = {
