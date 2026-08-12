@@ -64,8 +64,17 @@ def get_openmp_runtime_info() -> dict:
     """Collect resolved OpenMP runtime settings from a fresh Python process."""
     env = os.environ.copy()
     env["OMP_DISPLAY_ENV"] = "VERBOSE"
+    # `OMP_DISPLAY_ENV` is only guaranteed to be dumped once the OpenMP
+    # runtime actually initializes. GNU libgomp (the wheel-vendored build)
+    # initializes eagerly on load, but the LLVM/Intel `libomp` runtime that
+    # MKL builds use (via conda-forge's `_openmp_mutex=*_kmp_llvm`) only
+    # initializes lazily, on the first real OpenMP call - a bare import
+    # never triggers it. Calling `_openmp_effective_n_threads()`, which
+    # calls `omp_get_max_threads()`, forces that initialization for every
+    # build.
     import_script = (
-        "from sklearn.utils._openmp_helpers import _openmp_parallelism_enabled"
+        "from sklearn.utils._openmp_helpers import _openmp_effective_n_threads; "
+        "_openmp_effective_n_threads()"
     )
 
     try:
