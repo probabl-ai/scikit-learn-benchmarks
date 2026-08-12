@@ -152,6 +152,7 @@ def render_hardware_page(
             "point_count": len(matches),
             "plot": speedup_plot_html(
                 matches,
+                baseline_label=BASE_IMPLEMENTATION,
                 variant_colors=variant_colors,
                 trace_variant=match_build_variant,
                 x_variant=match_build_variant,

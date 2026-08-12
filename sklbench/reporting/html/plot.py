@@ -428,6 +428,7 @@ def _x_variant(match: Match) -> str:
 def speedup_plot_html(
     matches: list[Match],
     *,
+    baseline_label: str,
     variant_colors: dict[str, str] | None = None,
     trace_variant=None,
     x_variant=None,
@@ -576,7 +577,7 @@ def speedup_plot_html(
             "range": [-0.5, len(estimators) - 0.5],
         },
         yaxis={
-            "title": "speed-up",
+            "title": f"speed-up vs {baseline_label}",
             "tickmode": "array",
             "tickvals": tick_values,
             "ticktext": [_format_speedup_tick(2**tick) for tick in tick_values],

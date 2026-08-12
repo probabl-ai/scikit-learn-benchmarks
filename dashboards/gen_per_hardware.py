@@ -134,6 +134,7 @@ def render_hardware_page(
             "point_count": len(matches),
             "plot": speedup_plot_html(
                 matches,
+                baseline_label=BASE_IMPLEMENTATION,
                 variant_colors=variant_colors,
                 failed_records=candidate_failed_by_category.get(category, []),
             )

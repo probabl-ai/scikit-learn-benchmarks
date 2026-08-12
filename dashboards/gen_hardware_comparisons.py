@@ -231,6 +231,7 @@ def render_linear_comparison(
                 "point_count": len(matches),
                 "plot": speedup_plot_html(
                     matches,
+                    baseline_label=BASELINE_LABEL,
                     variant_colors=trace_colors,
                     trace_variant=linear_match_trace_label,
                     x_variant=linear_match_trace_label,
@@ -320,6 +321,7 @@ def render_cpu_comparison(
                     "point_count": len(matches),
                     "plot": speedup_plot_html(
                         matches,
+                        baseline_label=BASELINE_LABEL,
                         variant_colors=trace_colors,
                         trace_variant=cpu_match_trace_label,
                         x_variant=cpu_match_trace_label,
