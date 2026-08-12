@@ -30,6 +30,7 @@ openml = ">=0.15.1"
 dpctl = "*"
 nvidia-ml-py = "*"
 py-spy = "*"
+loky = { git = "https://github.com/cakedev0/loky.git", branch = "cpu_affinity_physical" }
 
 [feature.sklearn.pypi-dependencies]
 scikit-learn = "==1.9.*"
