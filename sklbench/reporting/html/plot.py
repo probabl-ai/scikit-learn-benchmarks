@@ -186,6 +186,13 @@ def _format_metric_difference(difference) -> str:
     )
 
 
+_METHOD_LABELS = {"fit": "train", "predict": "test"}
+
+
+def _method_label(method: str) -> str:
+    return _METHOD_LABELS.get(method, method)
+
+
 def _metrics_differ_lines(match: Match) -> list[str]:
     """Render metric mismatches, prioritizing predict over fit: predict
     differences (if any) are shown in full, and fit differences are only
@@ -201,13 +208,13 @@ def _metrics_differ_lines(match: Match) -> list[str]:
 
     if other_differences:
         method = other_differences[0].method
-        lines = [f"<b>{escape(method)} metrics differ:</b>"]
+        lines = [f"<b>{escape(_method_label(method))} metrics differ:</b>"]
         lines.extend(escape(_format_metric_difference(d)) for d in other_differences)
         if fit_differences:
-            lines.append("<i>fit metrics also mismatch</i>")
+            lines.append(f"<i>{escape(_method_label('fit'))} metrics also mismatch</i>")
         return lines
 
-    lines = ["<b>fit metrics differ:</b>"]
+    lines = [f"<b>{escape(_method_label('fit'))} metrics differ:</b>"]
     lines.extend(escape(_format_metric_difference(d)) for d in fit_differences)
     return lines
 
