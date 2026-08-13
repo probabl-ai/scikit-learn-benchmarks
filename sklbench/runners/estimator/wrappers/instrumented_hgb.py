@@ -20,6 +20,7 @@ __all__ = [
 
 @_dataclass
 class _HGBTTimings:
+    preprocess_x: float = 0.0
     binning_train: float = 0.0
     binning_validation: float = 0.0
     bin_fit: float = 0.0
@@ -35,8 +36,16 @@ class _HGBTTimings:
 @_contextlib.contextmanager
 def _instrument_hgbt(estimator):
     timings = _HGBTTimings()
+    original_preprocess_x = estimator._preprocess_X
     original_bin_data = estimator._bin_data
     original_tree_grower = _hgbt_module.TreeGrower
+
+    def timed_preprocess_x(*args, **kwargs):
+        t0 = _time.perf_counter()
+        try:
+            return original_preprocess_x(*args, **kwargs)
+        finally:
+            timings.preprocess_x += _time.perf_counter() - t0
 
     def timed_bin_data(X, sample_weight, is_training_data):
         bin_mapper = estimator._bin_mapper
@@ -97,11 +106,13 @@ def _instrument_hgbt(estimator):
             finally:
                 timings.make_predictor += _time.perf_counter() - t0
 
+    estimator._preprocess_X = timed_preprocess_x
     estimator._bin_data = timed_bin_data
     _hgbt_module.TreeGrower = TimedTreeGrower
     try:
         yield timings
     finally:
+        estimator._preprocess_X = original_preprocess_x
         estimator._bin_data = original_bin_data
         _hgbt_module.TreeGrower = original_tree_grower
 
@@ -116,7 +127,10 @@ class _InstrumentedHistGradientBoostingMixin:
         tree = timings.grower_init + timings.grow + timings.make_predictor
 
         self.total_time_ = total
-        self.other_time_ = total - binning - tree + timings.make_predictor
+        self.other_time_ = (
+            total - binning - tree + timings.make_predictor - timings.preprocess_x
+        )
+        self.preprocess_time_ = timings.preprocess_x
         self.binning_time_ = binning
         self.binning_train_time_ = timings.binning_train
         self.binning_validation_time_ = timings.binning_validation

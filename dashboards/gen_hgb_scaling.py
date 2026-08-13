@@ -178,15 +178,29 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
 
 def _workload_name(record: BenchmarkRecord) -> str:
     data = record.case.get("data", {})
-    return data.get("id") or record.case.get("metadata", {}).get("name", "unknown")
+    return (
+        data.get("id")
+        or data.get("dataset")
+        or record.case.get("metadata", {}).get("name")
+        or "unknown"
+    )
 
 
 def _workload_size(record: BenchmarkRecord) -> tuple[int, int]:
-    generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {})
-    return (
-        generation_kwargs.get("n_samples", 0),
-        generation_kwargs.get("n_features", 0),
-    )
+    generation_kwargs = record.case.get("data", {}).get("generation_kwargs")
+    if generation_kwargs:
+        return (
+            generation_kwargs.get("n_samples", 0),
+            generation_kwargs.get("n_features", 0),
+        )
+    # Real datasets (`data.dataset` instead of `generation_kwargs`) don't
+    # carry their shape in the case - read it from a run's recorded
+    # `data_desc` instead.
+    for run in record.runs:
+        shape = (run.get("data_desc") or {}).get("fit", {}).get("shape")
+        if shape:
+            return (shape[0], shape[1])
+    return (0, 0)
 
 
 def _legend_html() -> str:

@@ -1,6 +1,7 @@
 from math import sqrt
 
 from _scaling import get_n_cores_list, taskset_for_physical_cores
+from real_datasets import generate_cases as generate_real_dataset_cases
 
 
 DFT_MAX_ITER = 100
@@ -97,13 +98,7 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
     if is_classifier:
         generation_kwargs.update({"n_classes": 2, "n_redundant": 0})
 
-    return {
-        "bench": {
-            "n_runs": 3,
-            "env": {"OMP_NUM_THREADS": str(thread_count)},
-            "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
-            "py_spy_profiling": False,
-        },
+    return _with_thread_count({
         "implementation": {
             "library": "sklearn",
         },
@@ -129,7 +124,65 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
             "generation_kwargs": generation_kwargs,
             "order": "C",
         },
+    }, thread_count)
+
+
+def _with_thread_count(case: dict, thread_count: int) -> dict:
+    """Apply the same thread-scaling bench overrides as `_case` above to a
+    case that already carries its own algorithm/data (e.g. from
+    `real_datasets.py`), without touching those sections."""
+    return {
+        **case,
+        "bench": {
+            "n_runs": 3,
+            "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
+            "py_spy_profiling": False,
+        },
     }
+
+
+# 5 of `real_datasets.py`'s HGB-tuned datasets, picked to span its size range
+# (~26K to 4.5M train rows: small-medium/small-medium/medium-big/medium-big/
+# biggest) while also varying whether the data has categorical columns at
+# all:
+# - amazon_employee_access (26K x 9, all-categorical) and kddcup09_churn
+#   (40K x 207, mostly categorical/messy with heavy missingness) are both
+#   categorical but stress different things (low-dim/high-cardinality vs.
+#   high-dim/NaN-heavy).
+# - year_prediction_msd (464K x 90, all-numeric) and covtype (465K x 12, 10
+#   numeric + 2 categorical, multiclass) are near-identical in size, so they
+#   isolate the effect of categorical columns at the same scale.
+# - susy (4.5M x 18, all-numeric) is by far the biggest, an order of
+#   magnitude past the medium-big pair.
+REAL_SCALING_DATASETS = {
+    "ames_housing",
+    "amazon_employee_access",
+    "kddcup09_churn",
+    "year_prediction_msd",
+    "covtype",
+    "susy",
+}
+
+
+def _real_dataset_cases() -> list[dict]:
+    """Reuse a subset of `real_datasets.py`'s tuned HistGradientBoosting*
+    cases (real data, realistic hyperparameters) as extra scaling workloads,
+    instead of duplicating dataset/hyperparameter choices here.
+    `early_stopping=False` is fixed on every one of those cases specifically
+    so they have a fixed iteration count, same as the synthetic workloads
+    above - needed for a scaling sweep, where a variable iteration count per
+    thread count would confound the measurement."""
+    hgb_cases = [
+        case
+        for case in generate_real_dataset_cases()
+        if case["algorithm"]["estimator"].startswith("HistGradientBoosting")
+        and case["data"]["dataset"] in REAL_SCALING_DATASETS
+    ]
+    return [
+        _with_thread_count(case, thread_count)
+        for case in hgb_cases
+        for thread_count in get_n_cores_list(max_n_cores=128)
+    ]
 
 
 def generate_cases() -> list[dict]:
@@ -139,4 +192,4 @@ def generate_cases() -> list[dict]:
         for task in TASKS
         for columns_kind in COLUMNS_KINDS
         for thread_count in get_n_cores_list(max_n_cores=128)
-    ]
+    ] + _real_dataset_cases()
