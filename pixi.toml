@@ -32,7 +32,7 @@ nvidia-ml-py = "*"
 py-spy = "*"
 loky = { git = "https://github.com/cakedev0/loky.git", branch = "cpu_affinity_physical" }
 
-[feature.sklearn.pypi-dependencies]
+[feature.sklearn-pypi.pypi-dependencies]
 scikit-learn = "==1.9.*"
 
 [feature.sklearn-conda.dependencies]
@@ -69,6 +69,22 @@ pkg-config = "*"
 threadpoolctl = "*"
 c-compiler = "*"
 cxx-compiler = "*"
+
+[feature.sklearn-dev.pypi-dependencies]
+# Points at the checkout scripts/setup_sklearn_ref.sh manages. Run that
+# script before installing this environment; it reuses this path across
+# refs via `git checkout --detach`, so pixi keeps resolving this editable
+# source instead of a versioned wheel and won't clobber it back on later
+# `pixi run` invocations (unlike the transitive scikit-learn pulled in
+# elsewhere via openml).
+scikit-learn = { path = "sklearn-src", editable = true }
+
+[feature.sklearn-dev.pypi-options]
+# Build scikit-learn against this environment's own cython/meson-python/ninja
+# instead of a throwaway build-isolation venv: meson-python's editable loader
+# reruns ninja on every import, and it keeps pointing at the isolated venv's
+# (since-deleted) toolchain if the build isn't isolated to begin with.
+no-build-isolation = ["scikit-learn"]
 
 [feature.intel.dependencies]
 scikit-learn = "1.8.*"
@@ -124,14 +140,16 @@ plotly = "*"
 Jinja2 = "*"
 
 [environments]
-sklearn = ["sklearn"]
-sklearn-conda = ["sklearn-conda"]
-sklearn-openblas-pthreads = ["sklearn-openblas-pthreads"]
-sklearn-openblas-openmp = ["sklearn-openblas-openmp"]
-sklearn-mkl = ["sklearn-mkl"]
+sklearn-pypi = ["sklearn-pypi"]
+sklearn-cf-default = ["sklearn-conda"]
+# ^ this environement is the exact same than "sklearn-openblas-libgomp" in practice
+# so we never use it:
+sklearn-cf-libgomp-openblas = ["sklearn-openblas-pthreads"]
+sklearn-cf-libomp-openblas-omp = ["sklearn-openblas-openmp"]
+sklearn-cf-mkl = ["sklearn-mkl"]
 sklearn-dev = ["sklearn-dev"]
-skl-cpu = ["sklearn", "skl-cpu"]
-skl-intel = ["sklearn", "skl-intel"]
-skl-nvidia = ["sklearn", "skl-nvidia"]
+skl-cpu = ["sklearn-pypi", "skl-cpu"]
+skl-intel = ["sklearn-pypi", "skl-intel"]
+skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
 intel = ["intel"]
 reporting = ["reporting"]

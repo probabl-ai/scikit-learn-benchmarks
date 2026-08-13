@@ -6,28 +6,26 @@ usage() {
 Usage:
   scripts/setup_sklearn_ref.sh --ref REF [options]
 
-Fetch a scikit-learn git ref into this repo's managed cache, create a detached
-worktree, and install that checkout editable into a Pixi environment.
+Clone (or reuse) a scikit-learn checkout at ./sklearn-src, check out the
+requested ref, and install it editable into a Pixi environment. If --remote
+points somewhere other than the checkout's current origin, the checkout is
+recreated from scratch instead of reusing it.
 
 Options:
   --ref REF             Commit, branch, tag, or remote ref to benchmark. This
                         is fetched from --remote and resolved via FETCH_HEAD.
   --remote URL          scikit-learn git remote URL or local repository path.
                         Default: https://github.com/scikit-learn/scikit-learn.git
-  --label LABEL         Stable local name for the managed worktree.
-                        Defaults to a sanitized REF.
   --env NAME            Pixi environment to use. Default: sklearn-dev.
-  --repo-cache PATH     Managed bare git cache. Default: .bench/scikit-learn.git
-  --recreate            Recreate the managed worktree if it already exists.
+  --recreate            Recreate the checkout even if the remote is unchanged.
   -h, --help            Show this help.
 
 Examples:
-  scripts/setup_sklearn_ref.sh --ref main --label main
+  scripts/setup_sklearn_ref.sh --ref main
 
   scripts/setup_sklearn_ref.sh \
       --remote https://github.com/some-user/scikit-learn.git \
-      --ref my-perf-branch \
-      --label pr
+      --ref my-perf-branch
 EOF
 }
 
@@ -38,9 +36,8 @@ die() {
 
 ref=""
 remote="https://github.com/scikit-learn/scikit-learn.git"
-label=""
 pixi_env="sklearn-dev"
-repo_cache=".bench/scikit-learn.git"
+checkout="sklearn-src"
 recreate=0
 
 while [ "$#" -gt 0 ]; do
@@ -53,16 +50,8 @@ while [ "$#" -gt 0 ]; do
             remote="${2:-}"
             shift 2
             ;;
-        --label)
-            label="${2:-}"
-            shift 2
-            ;;
         --env)
             pixi_env="${2:-}"
-            shift 2
-            ;;
-        --repo-cache)
-            repo_cache="${2:-}"
             shift 2
             ;;
         --recreate)
@@ -81,44 +70,28 @@ done
 
 [ -n "$ref" ] || die "missing --ref"
 [ -n "$remote" ] || die "missing --remote"
-[ -n "$repo_cache" ] || die "missing --repo-cache"
 
-if [ ! -d "$repo_cache/objects" ]; then
-    mkdir -p "$(dirname "$repo_cache")"
-    git init --bare "$repo_cache"
-fi
+if [ -e "$checkout" ]; then
+    git -C "$checkout" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+        || die "managed path exists but is not a git checkout: $checkout"
 
-git -C "$repo_cache" fetch --tags "$remote" "$ref"
-commit="$(git -C "$repo_cache" rev-parse --verify "FETCH_HEAD^{commit}")"
-if [ -z "$label" ]; then
-    label="$(printf '%s' "$ref" | tr -c 'A-Za-z0-9._-' '_')"
-fi
-
-worktree_root=".bench/sklearn-worktrees"
-worktree="$worktree_root/$label"
-mkdir -p "$worktree_root"
-
-if [ -e "$worktree" ]; then
-    if [ "$recreate" -eq 1 ]; then
-        if git -C "$worktree" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            git -C "$repo_cache" worktree remove --force "$worktree"
-        else
-            die "refusing to recreate non-worktree path: $worktree"
-        fi
-    elif ! git -C "$worktree" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        die "managed path exists but is not a git worktree: $worktree"
-    elif [ -n "$(git -C "$worktree" status --porcelain --untracked-files=no)" ]; then
-        die "managed worktree is dirty: $worktree; commit changes or pass --recreate"
-    else
-        git -C "$worktree" checkout --detach "$commit"
+    current_remote="$(git -C "$checkout" remote get-url origin 2>/dev/null || true)"
+    if [ "$recreate" -eq 1 ] || [ "$current_remote" != "$remote" ]; then
+        rm -rf "$checkout"
+    elif [ -n "$(git -C "$checkout" status --porcelain --untracked-files=no)" ]; then
+        die "managed checkout is dirty: $checkout; commit changes or pass --recreate"
     fi
 fi
 
-if [ ! -e "$worktree" ]; then
-    git -C "$repo_cache" worktree add --detach "$worktree" "$commit"
+if [ ! -e "$checkout" ]; then
+    git clone --origin origin "$remote" "$checkout"
 fi
 
-pixi run -e "$pixi_env" python -m pip install --no-build-isolation --editable "$worktree"
+git -C "$checkout" fetch --tags origin "$ref"
+commit="$(git -C "$checkout" rev-parse --verify "FETCH_HEAD^{commit}")"
+git -C "$checkout" checkout --detach "$commit"
+
+pixi run -e "$pixi_env" python -m pip install --no-build-isolation --editable "$checkout"
 pixi run -e "$pixi_env" python -c \
     'import sklearn; print(f"imported sklearn {sklearn.__version__} from {sklearn.__file__}")'
 
@@ -128,7 +101,7 @@ scikit-learn setup complete
   remote:   $remote
   ref:      $ref
   commit:   $commit
-  worktree: $worktree
+  checkout: $checkout
   pixi env: $pixi_env
 
 Run benchmarks with:

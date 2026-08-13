@@ -34,8 +34,8 @@ fi
 
 status=0
 for env in "${envs[@]}"; do
-    echo "=== pixi run -e $env python -m sklbench ${args[*]} ===" >&2
-    if ! pixi run -e "$env" python -m sklbench "${args[@]}"; then
+    echo "=== pixi run --frozen -e $env python -m sklbench ${args[*]} ===" >&2
+    if ! pixi run --frozen -e "$env" python -m sklbench "${args[@]}"; then
         status=1
     fi
 done

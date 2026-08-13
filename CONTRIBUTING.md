@@ -8,6 +8,17 @@ and reporting scripts for the published scikit-learn benchmark dashboards.
 Install the Pixi environments from the repository root. The local `sklbench`
 package is installed editable by Pixi.
 
+Set `PIXI_FROZEN=true` in your shell (e.g. `export PIXI_FROZEN=true` in your
+profile) before running any `pixi` command in this repo. The `sklearn-dev`
+environment (see "Running Against scikit-learn Branches" below) depends on a
+local path (`sklearn-src/`) that usually doesn't exist yet on a fresh clone;
+without `PIXI_FROZEN=true`, pixi's default lockfile-freshness check
+canonicalizes that path for *every* `pixi run` regardless of `-e`, so any
+environment fails until `scripts/setup_sklearn_ref.sh` has been run at least
+once. `PIXI_FROZEN=true` skips that check and trusts `pixi.lock` as-is - which
+also means a `pixi.toml` dependency change won't take effect until you
+explicitly run `pixi lock` or `pixi install`.
+
 Install Git LFS before checking out or adding benchmark results. On
 Ubuntu/Debian:
 
@@ -143,32 +154,37 @@ one representative case can replace a broader matrix.
 ## Running Against scikit-learn Branches
 
 For local performance PR checks, use the development Pixi environment and the
-scikit-learn setup helper. It fetches the requested scikit-learn ref into this
-repo's managed git cache under `.bench/`, creates a detached worktree, and
-installs that checkout editable into `sklearn-dev`.
+scikit-learn setup helper. It maintains a single scikit-learn checkout under
+`sklearn-src/`, checks out the requested ref there, and installs that checkout
+editable into `sklearn-dev`. `pixi.toml` points `sklearn-dev` at this exact
+path.
 
 ```bash
-scripts/setup_sklearn_ref.sh \
-  --ref main \
-  --label main
+scripts/setup_sklearn_ref.sh --ref main
 
 pixi run -e sklearn-dev python -m sklbench --config configs/all_models_test.py
 ```
 
 Run the same config against a branch from a fork by changing only the remote and
-ref:
+ref. Since the remote differs from the checkout's current origin, this recreates
+the checkout (a fresh clone) rather than reusing it:
 
 ```bash
 scripts/setup_sklearn_ref.sh \
   --remote https://github.com/some-user/scikit-learn.git \
-  --ref my-perf-branch \
-  --label pr
+  --ref my-perf-branch
 
 pixi run -e sklearn-dev python -m sklbench --config configs/all_models_test.py
 ```
 
 Pass orchestrator arguments directly to `sklbench` in the second command, for
 example `--results-dir /tmp/sklbench-results` or `--exit-on-error`.
+
+Only one scikit-learn ref is checked out at a time. Switching back to a
+previous remote (e.g. back to upstream `main` after benchmarking a fork) also
+recreates the checkout, so comparing two refs means re-running the setup
+script between benchmark runs rather than keeping both checked out side by
+side.
 
 For local scikit-learn edits, make a temporary commit in the scikit-learn
 checkout and use that checkout as the remote. Benchmark results are meant to be
@@ -184,8 +200,7 @@ git commit -m "WIP benchmark change"
 cd -
 scripts/setup_sklearn_ref.sh \
   --remote ~/src/scikit-learn \
-  --ref bench/my-change \
-  --label wip
+  --ref bench/my-change
 ```
 
 The software environment JSON records runtime import metadata for packages such

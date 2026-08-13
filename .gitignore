@@ -9,8 +9,11 @@ __pycache__/
 .venv/
 *.egg-info/
 
-# Local benchmark worktrees and scratch files
+# Local scratch files
 .bench/
+
+# scikit-learn checkout used to benchmark against a from-source build
+sklearn-src/
 
 # Dataset cache produced by sklbench
 data_cache/

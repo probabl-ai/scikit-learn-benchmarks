@@ -65,10 +65,11 @@ jobs:
 
       - name: Clean up results from previous runs
         # checkout's `clean: false` (above) intentionally keeps .pixi/,
-        # data_cache/, and .bench/ across runs, but any untracked results/
-        # left over from an earlier run (e.g. a tier=test run, which never
-        # commits) shouldn't leak into this one. Only untracked files under
-        # results/ are removed; anything already committed on main is safe.
+        # data_cache/, and sklearn-src/ across runs, but any untracked
+        # results/ left over from an earlier run (e.g. a tier=test run, which
+        # never commits) shouldn't leak into this one. Only untracked files
+        # under results/ are removed; anything already committed on main is
+        # safe.
         run: git clean -ffdx results/
 
       - name: Resolve environments
@@ -115,7 +116,14 @@ jobs:
         with:
           pixi-version: v0.75.0
           environments: ${{ steps.resolve.outputs.envs }}
-          locked: true
+          # `locked` (`pixi install --locked`) makes pixi verify the whole
+          # workspace lock is fresh, which canonicalizes every environment's
+          # path dependencies - including sklearn-dev's local scikit-learn
+          # checkout, which may not exist here if this run doesn't select
+          # sklearn-dev. `frozen` trusts the lock as-is and skips that
+          # cross-environment check.
+          locked: false
+          frozen: true
           # This runner is a persistent self-hosted box, not an ephemeral
           # GitHub-hosted VM: the .pixi env already lives on local disk
           # between runs, so the GH Actions remote cache would just add

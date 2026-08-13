@@ -30,7 +30,13 @@ jobs:
         with:
           pixi-version: v0.75.0
           environments: reporting
-          locked: true
+          # `locked` (`pixi install --locked`) makes pixi verify the whole
+          # workspace lock is fresh, which canonicalizes every environment's
+          # path dependencies - including sklearn-dev's local scikit-learn
+          # checkout, which never exists on this runner. `frozen` trusts the
+          # lock as-is and skips that cross-environment check.
+          locked: false
+          frozen: true
           cache: true
 
       - name: Generate dashboards

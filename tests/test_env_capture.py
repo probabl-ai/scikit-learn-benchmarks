@@ -81,7 +81,7 @@ def test_git_info_for_path_ignores_benchmark_repo_root(tmp_path, monkeypatch):
 
 def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
     benchmark_root = tmp_path / "scikit-learn-benchmarks"
-    sklearn_root = benchmark_root / ".bench/sklearn-worktrees/pr"
+    sklearn_root = benchmark_root / "sklearn-src"
     module_file = sklearn_root / "sklearn/__init__.py"
 
     monkeypatch.setattr(env, "_benchmark_repo_git_root", lambda: benchmark_root)
