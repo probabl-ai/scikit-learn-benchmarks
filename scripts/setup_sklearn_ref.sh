@@ -90,6 +90,11 @@ fi
 git -C "$checkout" fetch --tags origin "$ref"
 commit="$(git -C "$checkout" rev-parse --verify "FETCH_HEAD^{commit}")"
 git -C "$checkout" checkout --detach "$commit"
+# The checkout is always left detached (see usage note above), so the requested
+# ref name isn't recoverable from git state afterwards. Record it in a sidecar
+# file that env.py reads, so dashboards can label builds by ref instead of
+# commit. Untracked, so it doesn't affect the checkout's dirty check.
+echo "$ref" > "$checkout/.bench-ref"
 
 pixi run -e "$pixi_env" python -m pip install --no-build-isolation --editable "$checkout"
 pixi run -e "$pixi_env" python -c \

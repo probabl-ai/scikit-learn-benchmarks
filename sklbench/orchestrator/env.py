@@ -170,6 +170,16 @@ def _git_info_for_path(path: Path) -> dict | None:
     remote = _check_output(["git", "remote", "get-url", "origin"], cwd=git_root)
     if remote:
         info["remote"] = remote
+
+    # `scripts/setup_sklearn_ref.sh` always leaves its checkout in a detached
+    # HEAD (see that script), so `branch` above is normally absent. It records
+    # the ref it was asked to check out in this sidecar file instead, since
+    # that's otherwise unrecoverable from git state alone.
+    ref_file = git_root / ".bench-ref"
+    if ref_file.is_file():
+        requested_ref = ref_file.read_text().strip()
+        if requested_ref:
+            info["ref"] = requested_ref
     return info
 
 

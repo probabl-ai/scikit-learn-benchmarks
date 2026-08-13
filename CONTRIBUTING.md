@@ -202,10 +202,13 @@ benchmarks the fork's branch, then re-checks-out and benchmarks upstream
 `main`, both under the `sklearn-dev` Pixi environment. Reporting code tells
 the two runs apart even though they share a Pixi environment name:
 `sklbench.reporting.envs.software_build_name` labels a `sklearn-dev` build as
-`sklearn-dev@<owner>:<short-commit>` whenever the environment is backed by a
-separate scikit-learn git checkout, using the git commit metadata described
-below (the checkout is always left in a detached-HEAD state, so the label
-uses the commit rather than the branch name). That keeps
+`sklearn-dev@<owner>:<ref>` whenever the environment is backed by a separate
+scikit-learn git checkout, using the git commit metadata described below. The
+checkout is always left in a detached-HEAD state, so `setup_sklearn_ref.sh`
+records the requested ref in a `.bench-ref` sidecar file for the label to use
+instead of a branch name; the full commit is still recorded separately, so
+re-running the same ref after it has moved (e.g. `main` a day later) is not
+distinguished by this label alone. That keeps
 `sklearn-dev@cakedev0:hgb/use_threads_if` and `sklearn-dev@scikit-learn:main`
 as distinct build variants in dashboards rather than merging them into one
 `sklearn-dev` series.

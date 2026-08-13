@@ -35,9 +35,14 @@ def generate_cases() -> list[dict]:
         cases += generate_linear_cases(implem, tier='test')
         cases += generate_real_cases(implem, max_tier='test')
 
-    for case in cases:
+    benchs = [
+        {'n_runs': 1, 'py_spy_profiling': True},
+        {'n_runs': 1, 'py_spy_profiling': True, 'py_spy_native': False},
+        {'n_runs': 1, 'py_spy_profiling': False, 'cprofile_profiling': True},
+    ] + [{'n_runs': 1, 'py_spy_profiling': False}] * len(cases)
+    for case, bench in zip(cases, benchs):
         case.setdefault('bench', {})
-        case['bench'] |= {'n_runs': 1, 'py_spy_profiling': True}
+        case['bench'] |= bench
         case['bench'].setdefault('time_limit', 4)
     disable_profiling_for_array_api_gpu_cases(cases)
 

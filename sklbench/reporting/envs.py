@@ -35,11 +35,14 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
 
 
 def _git_ref_label(git_info: dict) -> str | None:
-    """Label a scikit-learn source checkout by owner:ref, e.g. 'cakedev0:a1b2c3d'.
+    """Label a scikit-learn source checkout by owner:ref, e.g. 'cakedev0:my-branch'.
     `scripts/setup_sklearn_ref.sh` always leaves the checkout in a detached-HEAD
-    state (results are meant to be identified by a commit, not a branch name),
-    so `branch` is normally absent here and this falls back to a short commit."""
-    ref = git_info.get("branch") or git_info.get("commit", "")[:7]
+    state, so `branch` is normally absent; it records the ref it was asked to
+    check out as `ref` instead. This intentionally labels by ref name rather
+    than commit, so re-running the same ref after it moves reuses the same
+    label - the full commit is still in `git_info["commit"]` for callers that
+    need to tell such re-runs apart."""
+    ref = git_info.get("ref") or git_info.get("branch") or git_info.get("commit", "")[:7]
     if not ref:
         return None
     owner_match = re.search(r"[:/]([^/:]+)/[^/]+?(?:\.git)?$", git_info.get("remote", ""))
