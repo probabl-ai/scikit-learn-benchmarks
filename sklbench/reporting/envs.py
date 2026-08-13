@@ -22,12 +22,15 @@ def read_env(kind: str, hash: str):
 # results from all of them report implementation.short_name == "sklearn".
 # Dashboards that compare implementations against a single sklearn baseline
 # should restrict to this one to avoid ambiguous matches.
-VANILLA_SKLEARN_PIXI_ENV = "sklearn"
+# "sklearn" was the pixi environment's name before the 2026-08-13 pixi.toml
+# rename to "sklearn-pypi"; results captured before that rename still record
+# the old name, so both must match.
+VANILLA_SKLEARN_PIXI_ENVS = {"sklearn", "sklearn-pypi"}
 
 
 @lru_cache(maxsize=None)
 def is_vanilla_sklearn(software_hash: str) -> bool:
-    return read_env("software", software_hash)["pixi_environment_name"] == VANILLA_SKLEARN_PIXI_ENV
+    return read_env("software", software_hash)["pixi_environment_name"] in VANILLA_SKLEARN_PIXI_ENVS
 
 
 # One-off sklearn-conda run with GOMP_SPINCOUNT manually raised to
