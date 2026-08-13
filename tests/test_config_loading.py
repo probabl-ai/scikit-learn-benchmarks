@@ -6,11 +6,12 @@ from sklbench.config import EstimatorCase, PipelineCase, load_cases_from_script
 
 
 SKLEARN_ENVS = [
-    "sklearn",
-    "sklearn-conda",
-    "sklearn-openblas-pthreads",
-    "sklearn-openblas-openmp",
-    "sklearn-mkl",
+    "sklearn-pypi",
+    "sklearn-cf-default",
+    "sklearn-cf-libgomp-openblas",
+    "sklearn-cf-libomp-openblas",
+    "sklearn-cf-libomp-openblas-omp",
+    "sklearn-cf-mkl",
     "sklearn-dev",
 ]
 GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]

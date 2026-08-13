@@ -5,9 +5,9 @@ on:
     inputs:
       env:
         description: >
-          Space/comma-separated Pixi environments to benchmark, e.g. "sklearn
-          skl-intel". Special tokens: [all] = runner-default env set,
-          [builds] = sklearn-conda/openblas-pthreads/openblas-openmp/mkl.
+          Space/comma-separated Pixi environments to benchmark, e.g.
+          "sklearn-pypi skl-intel". Special tokens: [all] = runner-default env
+          set, [builds] = sklearn-cf-default/libgomp-openblas/libomp-openblas-omp/mkl.
           Combinable, e.g. "[all] [builds]".
         required: true
         default: "[all]"
@@ -81,14 +81,14 @@ jobs:
           set -euo pipefail
           case "$BENCH_RUNNER" in
             intel-laptop)
-              all_envs="sklearn skl-intel intel skl-cpu"
+              all_envs="sklearn-pypi skl-intel intel skl-cpu"
               ;;
             *)
               echo "::error::no [all] mapping defined for runner '$BENCH_RUNNER'"
               exit 1
               ;;
           esac
-          build_envs="sklearn-conda sklearn-openblas-pthreads sklearn-openblas-openmp sklearn-mkl"
+          build_envs="sklearn-cf-default sklearn-cf-libgomp-openblas sklearn-cf-libomp-openblas-omp sklearn-cf-mkl"
 
           resolved=()
           for token in $(echo "$ENV_INPUT" | tr ',' ' '); do

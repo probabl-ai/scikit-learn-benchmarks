@@ -6,7 +6,7 @@ usage() {
     echo "  environment given. Environments are the leading arguments, up to" >&2
     echo "  the first one starting with '-'; everything from there on is" >&2
     echo "  passed through to sklbench." >&2
-    echo "  Example: $0 sklearn intel --config configs/all_models_test.py" >&2
+    echo "  Example: $0 sklearn-pypi intel --config configs/all_models_test.py" >&2
 }
 
 if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then

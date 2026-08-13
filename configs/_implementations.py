@@ -82,11 +82,12 @@ SKLEARNEX_GPU_IMPLEMENTATION = {
 
 
 PIXI_TO_IMPLEMENTATIONS = {
-    "sklearn": SKLEARN_IMPLEMENTATIONS,
-    "sklearn-conda": SKLEARN_IMPLEMENTATIONS,
-    "sklearn-openblas-pthreads": SKLEARN_IMPLEMENTATIONS,
-    "sklearn-openblas-openmp": SKLEARN_IMPLEMENTATIONS,
-    "sklearn-mkl": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-pypi": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-default": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-libgomp-openblas": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-libomp-openblas": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-libomp-openblas-omp": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-mkl": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev": SKLEARN_IMPLEMENTATIONS,
     "skl-cpu": ARRAY_API_CPU_IMPLEMENTATIONS,
     "skl-intel": ARRAY_API_INTEL_IMPLEMENTATIONS,

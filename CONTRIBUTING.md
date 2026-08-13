@@ -31,7 +31,7 @@ git lfs pull
 
 The project uses Pixi environments. Common environments are:
 
-- `sklearn`: vanilla scikit-learn benchmark runs
+- `sklearn-pypi`: vanilla scikit-learn benchmark runs
 - `skl-cpu`: Array API CPU benchmark runs
 - `skl-intel`: Intel Array API benchmark runs
 - `skl-nvidia`: NVIDIA Array API benchmark runs
@@ -84,7 +84,7 @@ plain sklearn/sklearnex ones.
 Preview and validate a config by importing it directly:
 
 ```bash
-pixi run -e sklearn python - <<'PY'
+pixi run -e sklearn-pypi python - <<'PY'
 from sklbench.config import load_cases_from_script
 
 cases = load_cases_from_script("configs/all_models_test.py")
@@ -102,7 +102,7 @@ case can be compared to a baseline by the dashboard matching logic.
 Run the default scikit-learn configuration:
 
 ```bash
-pixi run -e sklearn python -m sklbench --config configs/all_models_test.py
+pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py
 ```
 
 `run.sh` runs the same `python -m sklbench` invocation across one or more
@@ -117,7 +117,7 @@ Pixi environments; everything from there on is passed through to `sklbench`
 unchanged. For example, to reproduce the CPU benchmark set:
 
 ```bash
-./run.sh sklearn --config configs/all_models_test.py
+./run.sh sklearn-pypi --config configs/all_models_test.py
 ./run.sh skl-cpu --config configs/all_models_test.py
 ./run.sh intel --config configs/all_models_test.py
 ```

@@ -50,6 +50,14 @@ liblapack = { version = "*", build = "*_openblas" }
 libopenblas = { version = "*", build = "*openmp*" }
 scikit-learn = "1.9.*"
 
+[feature.sklearn-openblas-pthreads-kmp-llvm.dependencies]
+# `_openmp_mutex=*_kmp_llvm` ships a `libgomp.so.1 -> libomp.so` compat
+# symlink, so sklearn's libgomp-linked OpenMP calls get transparently
+# serviced by the LLVM/Intel runtime instead - the same mechanism MKL builds
+# use (see sklbench/orchestrator/env.py) - while OpenBLAS itself stays on
+# plain pthreads threading (no OpenMP in BLAS).
+_openmp_mutex = { version = "*", build = "*_kmp_llvm" }
+
 [feature.sklearn-mkl]
 platforms = ["linux-64"]
 
@@ -145,6 +153,7 @@ sklearn-cf-default = ["sklearn-conda"]
 # ^ this environement is the exact same than "sklearn-openblas-libgomp" in practice
 # so we never use it:
 sklearn-cf-libgomp-openblas = ["sklearn-openblas-pthreads"]
+sklearn-cf-libomp-openblas = ["sklearn-openblas-pthreads", "sklearn-openblas-pthreads-kmp-llvm"]
 sklearn-cf-libomp-openblas-omp = ["sklearn-openblas-openmp"]
 sklearn-cf-mkl = ["sklearn-mkl"]
 sklearn-dev = ["sklearn-dev"]
