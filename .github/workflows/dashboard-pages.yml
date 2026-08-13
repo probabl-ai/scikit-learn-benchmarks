@@ -43,7 +43,12 @@ jobs:
         run: |
           mkdir -p _site
           for script in dashboards/gen_*.py; do
-            pixi run -e reporting python "$script" --output-dir _site
+            # --frozen: without it, `pixi run` re-verifies the whole
+            # workspace lockfile is up to date, which canonicalizes every
+            # environment's path dependencies - including sklearn-dev's
+            # local scikit-learn checkout (sklearn-src), which doesn't exist
+            # on this runner. See the setup-pixi `frozen: true` note above.
+            pixi run --frozen -e reporting python "$script" --output-dir _site
           done
 
       - name: Upload Pages artifact
