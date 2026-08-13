@@ -128,8 +128,22 @@ def software_env_json_url(software_hash: str) -> str:
     return f"{JSON_VIEWER_BASE_URL}?url={quote(raw_url, safe='')}"
 
 
+# Packages this benchmark suite can build from an arbitrary git checkout
+# (see scripts/setup_sklearn_ref.sh) - keyed by pixi package name, valued by
+# the runtime import name their git commit metadata is recorded under. A
+# checkout has no meaningful pixi package version (pixi just sees an editable
+# local path), so it's displayed as a commit digest instead.
+_GIT_SOURCE_PACKAGES = {"scikit-learn": "sklearn"}
+
+
+def _git_commit_digest(git_info: dict) -> str:
+    digest = git_info.get("describe") or git_info.get("commit", "")[:9] or "unknown commit"
+    return f"{digest}-dirty" if git_info.get("dirty") else digest
+
+
 def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
     packages = env.get("pixi_packages", {})
+    runtime_imports = env.get("runtime_imports", {})
     versions = []
     for name in names:
         # pixi keys pypi packages by their normalized (underscore) name but
@@ -138,6 +152,16 @@ def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
         # depending on whether it was installed via pip or conda.
         package = packages.get(name) or packages.get(name.replace("-", "_"))
         if package is None:
+            continue
+
+        import_name = _GIT_SOURCE_PACKAGES.get(name)
+        git_info = runtime_imports.get(import_name, {}).get("git") if import_name else None
+        if git_info:
+            versions.append({
+                "name": name,
+                "version": f"@ {_git_commit_digest(git_info)}",
+                "kind": None,
+            })
             continue
 
         kind = package.get("kind")

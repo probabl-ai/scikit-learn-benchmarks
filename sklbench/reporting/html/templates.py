@@ -190,7 +190,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
     <h3>Packages</h3>
     <ul class="package-list">
     {% for package in packages %}
-      <li><code>{{ package.name }}</code> {{ package.version }} <span class="muted">({{ package.kind }})</span></li>
+      <li><code>{{ package.name }}</code> {{ package.version }}{% if package.kind %} <span class="muted">({{ package.kind }})</span>{% endif %}</li>
     {% endfor %}
     </ul>
   </div>
