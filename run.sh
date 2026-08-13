@@ -12,7 +12,7 @@ usage() {
     echo "" >&2
     echo "  An environment may instead be given as env@owner:ref, e.g." >&2
     echo "  sklearn-dev@cakedev0:hgb/use_threads_if. Before running sklbench" >&2
-    echo "  for that environment, this checks out https://github.com/<owner>/scikit-learn.git" >&2
+    echo "  for that environment, this checks out git@github.com:<owner>/scikit-learn.git" >&2
     echo "  at <ref> via scripts/setup_sklearn_ref.sh and installs it editable" >&2
     echo "  into <env>. Use this to compare a PR branch against a base ref," >&2
     echo "  e.g.:" >&2
@@ -57,7 +57,7 @@ for env_spec in "${envs[@]}"; do
             status=1
             continue
         fi
-        remote="https://github.com/$owner/scikit-learn.git"
+        remote="git@github.com:$owner/scikit-learn.git"
 
         echo "=== scripts/setup_sklearn_ref.sh --remote $remote --ref $ref --env $env ===" >&2
         if ! "$script_dir/scripts/setup_sklearn_ref.sh" --remote "$remote" --ref "$ref" --env "$env"; then
