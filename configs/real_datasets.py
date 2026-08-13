@@ -6,6 +6,16 @@ scoring="roc_auc" for classification / "r2" for regression), not left at
 library defaults, so the cases are reasonably realistic rather than
 arbitrary.
 
+Most classification/regression datasets also get a HistGradientBoosting
+case (`preprocessing_kind="hgb"`: categorical columns are ordinal-encoded
+but kept as pandas `category` dtype, so HGB still uses its native
+categorical split rather than treating them as plain ordinals). Tuned the
+same way as the other models, with `early_stopping=False` fixed during the
+search - the goal is a realistic-but-fixed-cost HGB config, since
+`configs/hgb_scaling.py` reuses these exact cases (filtered to HGB only) for
+its thread-scaling sweep, where a variable iteration count per thread count
+would confound the scaling measurement.
+
 Linear cases don't request Nystroem kernel approximation (the default of
 `linear_preprocessor` in `sklbench/runners/datasets/preprocessing.py`): it
 was measured to hurt held-out performance on every dataset below (e.g. ROC
@@ -49,6 +59,8 @@ DEFAULT_PREPROCESSING_KIND = {
     "RandomForestClassifier": "trees",
     "ExtraTreesClassifier": "trees",
     "ExtraTreesRegressor": "trees",
+    "HistGradientBoostingClassifier": "hgb",
+    "HistGradientBoostingRegressor": "hgb",
     "KMeans": None,
 }
 
@@ -116,6 +128,19 @@ def ames_housing(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingRegressor, hgb/native-categorical: test R2 0.898
+        yield {
+            "estimator": "HistGradientBoostingRegressor",
+            "estimator_params": {
+                "learning_rate": 0.17,
+                "max_iter": 200,
+                "max_leaf_nodes": 15,
+                "min_samples_leaf": 10,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("kddcup09_churn", "classification", "normal")
@@ -142,6 +167,20 @@ def kddcup(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC 0.690
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.024,
+                "max_iter": 150,
+                "max_leaf_nodes": 15,
+                "min_samples_leaf": 50,
+                "l2_regularization": 0.3,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("amazon_employee_access", "classification", "fast")
@@ -165,6 +204,19 @@ def amazon_employee_access(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC 0.857
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.021,
+                "max_iter": 150,
+                "max_leaf_nodes": 31,
+                "min_samples_leaf": 20,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("kick", "classification", "fast")
@@ -190,6 +242,19 @@ def kick(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC 0.764
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.045,
+                "max_iter": 100,
+                "max_leaf_nodes": 15,
+                "min_samples_leaf": 5,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("covtype", "classification", "normal")
@@ -221,6 +286,21 @@ def covtype(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC
+        # (OVR, weighted) 0.992
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.070,
+                "max_iter": 200,
+                "max_leaf_nodes": 127,
+                "min_samples_leaf": 5,
+                "l2_regularization": 0.05,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("susy", "classification", "normal")
@@ -251,6 +331,22 @@ def susy(implem: dict):
         },
         "preprocessing_kind": None,
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb (no categorical columns, so
+        # this is a no-op passthrough - kept for consistency with the other
+        # cases below): ROC AUC 0.878
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.070,
+                "max_iter": 200,
+                "max_leaf_nodes": 127,
+                "min_samples_leaf": 5,
+                "l2_regularization": 0.05,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("year_prediction_msd", "regression", "normal")
@@ -282,6 +378,22 @@ def year_prediction_msd(implem: dict):
         "preprocessing_kind": None,
         "bench": {"time_limit": 600},
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingRegressor, hgb (no categorical columns): test
+        # R2 0.314 - better than both Ridge and RandomForest above, though
+        # still firmly in "inherently hard task" territory like they are.
+        yield {
+            "estimator": "HistGradientBoostingRegressor",
+            "estimator_params": {
+                "learning_rate": 0.070,
+                "max_iter": 200,
+                "max_leaf_nodes": 127,
+                "min_samples_leaf": 5,
+                "l2_regularization": 0.05,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("fraud", "classification", "normal")
@@ -311,6 +423,21 @@ def fraud(implem: dict):
         },
         "preprocessing_kind": None,
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb (no categorical columns): ROC
+        # AUC 0.982
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.024,
+                "max_iter": 150,
+                "max_leaf_nodes": 15,
+                "min_samples_leaf": 50,
+                "l2_regularization": 0.3,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("medical_charges_nominal", "regression", "normal")
@@ -335,6 +462,19 @@ def medical_charges_nominal(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingRegressor, hgb/native-categorical: test R2 0.978
+        yield {
+            "estimator": "HistGradientBoostingRegressor",
+            "estimator_params": {
+                "learning_rate": 0.057,
+                "max_iter": 100,
+                "max_leaf_nodes": 31,
+                "min_samples_leaf": 20,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("bank_marketing", "classification", "fast")
@@ -364,6 +504,19 @@ def bank_marketing(implem: dict):
             "n_jobs": N_JOBS,
         },
     }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC 0.934
+        yield {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.057,
+                "max_iter": 100,
+                "max_leaf_nodes": 31,
+                "min_samples_leaf": 20,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
 
 
 @real_case_dataset("sift", "clustering", "normal")
