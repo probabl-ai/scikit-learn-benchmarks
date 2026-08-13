@@ -186,6 +186,30 @@ recreates the checkout, so comparing two refs means re-running the setup
 script between benchmark runs rather than keeping both checked out side by
 side.
 
+`run.sh` automates this re-running for you: give it `env@owner:ref` instead of
+a plain environment name, and it runs `scripts/setup_sklearn_ref.sh` (against
+`https://github.com/<owner>/scikit-learn.git`) before invoking `sklbench` for
+that environment. This is the easiest way to compare a PR branch against a
+base ref:
+
+```bash
+./run.sh sklearn-dev@cakedev0:hgb/use_threads_if sklearn-dev@scikit-learn:main \
+    --config configs/hgb_scaling.py
+```
+
+Each `env@owner:ref` entry is set up and run in turn, so this checks out and
+benchmarks the fork's branch, then re-checks-out and benchmarks upstream
+`main`, both under the `sklearn-dev` Pixi environment. Reporting code tells
+the two runs apart even though they share a Pixi environment name:
+`sklbench.reporting.envs.software_build_name` labels a `sklearn-dev` build as
+`sklearn-dev@<owner>:<short-commit>` whenever the environment is backed by a
+separate scikit-learn git checkout, using the git commit metadata described
+below (the checkout is always left in a detached-HEAD state, so the label
+uses the commit rather than the branch name). That keeps
+`sklearn-dev@cakedev0:hgb/use_threads_if` and `sklearn-dev@scikit-learn:main`
+as distinct build variants in dashboards rather than merging them into one
+`sklearn-dev` series.
+
 For local scikit-learn edits, make a temporary commit in the scikit-learn
 checkout and use that checkout as the remote. Benchmark results are meant to be
 identified by a commit SHA; uncommitted edits are intentionally not a supported

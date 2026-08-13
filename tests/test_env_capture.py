@@ -103,6 +103,9 @@ def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
         if command == ["git", "describe", "--tags", "--always", "--dirty"]:
             assert cwd == sklearn_root
             return "abc123"
+        if command == ["git", "remote", "get-url", "origin"]:
+            assert cwd == sklearn_root
+            return "git@github.com:scikit-learn/scikit-learn.git"
         raise AssertionError(f"unexpected git command: {command}")
 
     monkeypatch.setattr(env, "_check_output", fake_check_output)
@@ -112,4 +115,5 @@ def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
         "dirty": False,
         "branch": "feature",
         "describe": "abc123",
+        "remote": "git@github.com:scikit-learn/scikit-learn.git",
     }

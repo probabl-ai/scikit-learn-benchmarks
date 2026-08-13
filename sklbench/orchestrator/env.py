@@ -167,6 +167,9 @@ def _git_info_for_path(path: Path) -> dict | None:
     )
     if describe:
         info["describe"] = describe
+    remote = _check_output(["git", "remote", "get-url", "origin"], cwd=git_root)
+    if remote:
+        info["remote"] = remote
     return info
 
 

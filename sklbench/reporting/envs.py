@@ -3,6 +3,7 @@ from functools import lru_cache
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 from urllib.parse import quote
 
@@ -33,19 +34,34 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
     return read_env("software", software_hash)["pixi_environment_name"] in VANILLA_SKLEARN_PIXI_ENVS
 
 
-# One-off sklearn-conda run with GOMP_SPINCOUNT manually raised to
-# 10_000_000 (vs. libgomp's 300_000 default), to probe busy-wait tuning.
-# The pixi env name alone can't distinguish it from the regular
-# sklearn-conda run, and no more of these are planned, so it's special-cased
-# by hash here instead of adding a generic env-variant concept.
-_SPINCOUNT_VARIANT_SOFTWARE_HASH = "a2680a"
+def _git_ref_label(git_info: dict) -> str | None:
+    """Label a scikit-learn source checkout by owner:ref, e.g. 'cakedev0:a1b2c3d'.
+    `scripts/setup_sklearn_ref.sh` always leaves the checkout in a detached-HEAD
+    state (results are meant to be identified by a commit, not a branch name),
+    so `branch` is normally absent here and this falls back to a short commit."""
+    ref = git_info.get("branch") or git_info.get("commit", "")[:7]
+    if not ref:
+        return None
+    owner_match = re.search(r"[:/]([^/:]+)/[^/]+?(?:\.git)?$", git_info.get("remote", ""))
+    if owner_match:
+        return f"{owner_match.group(1)}:{ref}"
+    return ref
 
 
 @lru_cache(maxsize=None)
 def software_build_name(software_hash: str) -> str:
-    name = read_env("software", software_hash)["pixi_environment_name"]
-    if software_hash == _SPINCOUNT_VARIANT_SOFTWARE_HASH:
-        return f"{name}-10M-spincount"
+    env = read_env("software", software_hash)
+    name = env["pixi_environment_name"]
+    # Distinguishes e.g. two `sklearn-dev` runs against different scikit-learn
+    # forks/branches (same pixi env, different sklearn-src checkout) - without
+    # this they'd share the plain "sklearn-dev" name and get conflated into one
+    # build variant by callers that group/label results by this name (e.g.
+    # gen_builds_comparison.py's `groupby(other_results, build_variant)`).
+    git_info = env.get("runtime_imports", {}).get("sklearn", {}).get("git")
+    if git_info:
+        ref_label = _git_ref_label(git_info)
+        if ref_label:
+            return f"{name}@{ref_label}"
     return name
 
 
