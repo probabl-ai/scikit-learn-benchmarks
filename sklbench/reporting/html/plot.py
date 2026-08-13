@@ -99,7 +99,7 @@ def _hover_lines(value, prefix=""):
     return [f"{prefix}{_hover_value(value)}"]
 
 
-def _custom_format(t):
+def format_duration_ms(t):
     if t < 10:
         return f"{t:.2g}ms"
     if t < 1000:
@@ -227,7 +227,7 @@ def _hover_text(match: Match) -> str:
     warning_lines = [_warning_tooltip_line(warning) for warning in match.warnings]
     lines = [
         f"<b>speed-up: {match.speedup:.2g}x</b> "
-        f"({_custom_format(median(base.times))} vs {_custom_format(median(result.times))})",
+        f"({format_duration_ms(median(base.times))} vs {format_duration_ms(median(result.times))})",
     ]
     lines.extend(_metrics_differ_lines(match))
     if result.is_sklearnex_fallback:
@@ -381,6 +381,178 @@ def scaling_line_plot_html(
         config={"responsive": True},
         default_width="100%",
         default_height="340px",
+        div_id=chart_id,
+    )
+
+
+def phase_variant_speedup_plot_html(
+    points: list[dict],
+    *,
+    phase_order: list[str],
+    phase_labels: dict[str, str] | None = None,
+    variant_colors: dict[str, str] | None = None,
+    y_title: str = "normalized speed-up",
+    secondary_axis_phase: str | None = None,
+    secondary_axis_title: str = "relative speed-up",
+) -> str:
+    """Per-phase speed-up of one or more variant builds vs a baseline, for a
+    single thread count. Each of `points` is
+    `{"phase": ..., "variant": ..., "y": ..., "hover": "<pre-rendered html>"}`
+    - many points typically share the same (phase, variant) x position (one
+    per dataset/workload), rendered on top of each other with hover
+    distinguishing them, same convention as `speedup_plot_html`.
+
+    x-axis is phase (categorical, ordered/labeled by `phase_order`/
+    `phase_labels`), with each phase column split into per-variant
+    sub-positions via `_variant_offsets` so more than a single
+    baseline-vs-one-variant comparison reads at a glance; color also encodes
+    variant. y-axis is linear with a dashed reference line at 0 (no change).
+
+    `secondary_axis_phase`, if given, is a phase key whose points are read
+    off a second y-axis on the right (titled `secondary_axis_title`, with
+    its own 1x reference line) instead of the shared left one - the caller
+    is expected to have put a different quantity in `y` for those points
+    (e.g. a plain ratio rather than the normalized share the rest of the
+    phases use), since the two axes have unrelated scales."""
+    if not points:
+        return '<div class="empty">No points for this thread count.</div>'
+    if phase_labels is None:
+        phase_labels = {phase: phase for phase in phase_order}
+    chart_id = f"phase-variant-speedup-{next(chart_ids)}"
+
+    present_phases = [phase for phase in phase_order if any(p["phase"] == phase for p in points)]
+    phase_positions = {phase: index for index, phase in enumerate(present_phases)}
+
+    variants = sorted({p["variant"] for p in points})
+    offsets = _variant_offsets(variants)
+    if variant_colors is None:
+        variant_colors = variant_color_map(variants)
+
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for point in points:
+        grouped[point["variant"]].append(point)
+
+    fig = go.Figure()
+    for variant in variants:
+        color = variant_colors.get(variant)
+        primary_points = [
+            p for p in grouped[variant] if p["phase"] != secondary_axis_phase
+        ]
+        secondary_points = [
+            p for p in grouped[variant] if p["phase"] == secondary_axis_phase
+        ]
+        fig.add_trace(
+            go.Scatter(
+                mode="markers",
+                name=variant,
+                legendgroup=variant,
+                x=[
+                    phase_positions[p["phase"]] + offsets[variant]
+                    for p in primary_points
+                ],
+                y=[p["y"] for p in primary_points],
+                text=[p["hover"] for p in primary_points],
+                hovertemplate="%{text}<extra></extra>",
+                marker={"size": 9, "color": color},
+            )
+        )
+        if secondary_points:
+            fig.add_trace(
+                go.Scatter(
+                    mode="markers",
+                    name=variant,
+                    legendgroup=variant,
+                    showlegend=False,
+                    yaxis="y2",
+                    x=[
+                        phase_positions[p["phase"]] + offsets[variant]
+                        for p in secondary_points
+                    ],
+                    y=[p["y"] for p in secondary_points],
+                    text=[p["hover"] for p in secondary_points],
+                    hovertemplate="%{text}<extra></extra>",
+                    marker={"size": 9, "color": color, "symbol": "diamond"},
+                )
+            )
+
+    shapes = [
+        {
+            "type": "line",
+            "xref": "paper",
+            "x0": 0,
+            "x1": 1,
+            "yref": "y",
+            "y0": 0,
+            "y1": 0,
+            "line": {"color": "#666", "width": 1, "dash": "dash"},
+        }
+    ]
+    layout_yaxis = {"title": y_title, "zeroline": True}
+    layout_yaxis2 = {}
+    if secondary_axis_phase in phase_positions:
+        secondary_x = phase_positions[secondary_axis_phase]
+        shapes.append(
+            {
+                "type": "line",
+                "xref": "x",
+                "x0": secondary_x - 0.5,
+                "x1": secondary_x + 0.5,
+                "yref": "y2",
+                "y0": 1,
+                "y1": 1,
+                "line": {"color": "#666", "width": 1, "dash": "dash"},
+            }
+        )
+        # Both axes are forced symmetric around their own "no change" value
+        # (0 here, 1 on the secondary axis below) with the same padding
+        # factor, so those two reference points land at the exact same
+        # height - left uncoordinated, Plotly autoranges each axis from its
+        # own data and the two dashed reference lines end up at unrelated
+        # heights, which reads as broken rather than as two views of the
+        # same "no change" baseline.
+        primary_span = max(
+            (abs(p["y"]) for p in points if p["phase"] != secondary_axis_phase),
+            default=0.0,
+        ) * 1.15 or 1.0
+        secondary_span = max(
+            (abs(p["y"] - 1) for p in points if p["phase"] == secondary_axis_phase),
+            default=0.0,
+        ) * 1.15 or 0.1
+        layout_yaxis["range"] = [-primary_span, primary_span]
+        layout_yaxis2 = {
+            "yaxis2": {
+                "title": {"text": secondary_axis_title, "standoff": 15},
+                "overlaying": "y",
+                "side": "right",
+                "range": [1 - secondary_span, 1 + secondary_span],
+            }
+        }
+
+    # The secondary axis's title sits further out than its tick labels -
+    # the default 20px right margin is enough for tick labels alone but
+    # clips/overlaps the rotated title text once a second axis is added.
+    right_margin = 70 if layout_yaxis2 else 20
+
+    fig.update_layout(
+        xaxis={
+            "tickmode": "array",
+            "tickvals": list(range(len(present_phases))),
+            "ticktext": [phase_labels[phase] for phase in present_phases],
+            "range": [-0.5, len(present_phases) - 0.5],
+        },
+        yaxis=layout_yaxis,
+        **layout_yaxis2,
+        shapes=shapes,
+        margin={"l": 70, "r": right_margin, "t": 20, "b": 90},
+        legend={"orientation": "h", "y": -0.2},
+        template="none",
+    )
+    return fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height="480px",
         div_id=chart_id,
     )
 

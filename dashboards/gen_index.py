@@ -13,6 +13,7 @@ DASHBOARDS = [
     ("Builds comparison", "builds_comparison.html"),
     ("HGB thread-scaling breakdown", "hgb_scaling.html"),
     ("HGB build scaling comparison", "hgb_build_scaling.html"),
+    ("HGB speed-up breakdown", "hgb_speedup_breakdown.html"),
 ]
 
 
