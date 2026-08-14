@@ -313,10 +313,16 @@ def phase_breakdown_plot_html(
                 y=y_values,
                 marker={"color": phase_colors[phase]},
                 showlegend=False,
-                customdata=[_phase_share(y, total) for y, total in zip(y_values, totals)],
+                # Duration is pre-formatted in Python (hovertemplate's own
+                # %{y:.3g} can't apply format_duration_ms's ms/s unit
+                # switch), so it rides along in customdata next to the share.
+                customdata=[
+                    (format_duration_ms(y), _phase_share(y, total))
+                    for y, total in zip(y_values, totals)
+                ],
                 hovertemplate=(
                     f"{phase_labels[phase]}: "
-                    "%{y:.3g}ms (%{customdata:.0%})<extra></extra>"
+                    "%{customdata[0]} (%{customdata[1]:.0%})<extra></extra>"
                 ),
             )
         )

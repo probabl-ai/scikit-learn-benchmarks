@@ -16,7 +16,7 @@ which reflects the taskset-restricted affinity the run actually saw.
 """
 from html import escape
 from pathlib import Path
-from statistics import mean
+from statistics import median
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -119,8 +119,11 @@ def _fit_within_budget(values: dict[str, float], budget: float) -> tuple[dict[st
 
 
 def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
-    """Mean phase timings (ms) across a record's repeats, additive to the
-    mean fit time.
+    """Median phase timings (ms) across a record's repeats, additive to the
+    median fit time. Median (not mean) so a single stalled repeat - this
+    hardware occasionally sees one repeat balloon 100-1000x, e.g. from
+    thermal/scheduler noise on the host, not the code under test - doesn't
+    dominate the aggregate.
 
     `hist_time`/`find_split_time`/`apply_split_time` come from sklearn's own
     per-node timers (`TreeGrower.total_compute_hist_time` & co in
@@ -139,9 +142,9 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
     runs = [run for run in record.runs if "binning_time" in (run.get("attributes") or {})]
     if not runs:
         return None
-    fit_ms = mean(run["time_ms"]["fit"] for run in runs)
+    fit_ms = median(run["time_ms"]["fit"] for run in runs)
     seconds = {
-        name: mean(run["attributes"][name] for run in runs)
+        name: median(run["attributes"][name] for run in runs)
         for name in _SECONDS_ATTRIBUTES
     }
     ms = {name: value * 1000 for name, value in seconds.items()}

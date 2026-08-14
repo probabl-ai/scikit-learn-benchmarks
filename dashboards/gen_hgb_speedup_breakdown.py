@@ -1,5 +1,5 @@
 """Per-phase HistGradientBoosting speed-up, comparing one or more sklearn
-builds against a baseline build on the same machine.
+branches against `main` on the same machine.
 
 Reuses the instrumented HGB records, thread-count/dedup logic and phase
 breakdown from gen_hgb_scaling.py (see that module's docstring for why raw
@@ -15,15 +15,17 @@ that variant's overall (baseline_total - variant_total) / variant_total.
 Multiple points can land on the same (phase, variant) column - one per
 dataset/workload - same convention as gen_per_hardware.py's speedup_plot_html.
 
-Intended for "main vs branch" sklearn comparisons (see CONTRIBUTING.md's
+Restricted to "sklearn-dev" builds - see CONTRIBUTING.md's
 `setup_sklearn_ref.sh` / `run.sh env@owner:ref` workflow, which makes
 `software_build_name` return e.g. `sklearn-dev@scikit-learn:main` vs
-`sklearn-dev@cakedev0:my-branch`). No results are labelled that way yet, so
-BASE_BUILD below is the plain "sklearn-pypi" build instead - every other
-build present for a given hardware (e.g. `sklearn-mkl`, `sklearn-openblas-
-openmp`, which isolate BLAS/OpenMP runtime choices) is plotted against it as
-a variant. Once real `...@owner:main`/`...@owner:branch` results exist,
-either add that build name here or point BASE_BUILD at the `...:main` one.
+`sklearn-dev@cakedev0:my-branch`. This is a branch-vs-branch comparison, not
+a build-variant one (unlike gen_builds_comparison.py, which compares e.g.
+`sklearn-mkl`/`sklearn-openblas-openmp` against plain `sklearn`), so builds
+outside `sklearn-dev` (different BLAS/OpenMP runtime, not different sklearn
+source) are excluded rather than folded in as more variants. The baseline is
+picked dynamically as whichever `sklearn-dev` build's ref is `main` (the
+`<owner>` half varies depending on which fork/remote the comparison run
+used), rather than a fixed constant.
 """
 from collections import defaultdict
 from html import escape
@@ -64,7 +66,7 @@ from sklbench.reporting.html import (
 from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
 
 
-BASE_BUILD = "sklearn"
+SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 
 # `_phase_breakdown_ms()` already carries the wall-clock fit time as
 # "total_ms" alongside the real phases - reusing that dict key as one more
@@ -73,6 +75,20 @@ BASE_BUILD = "sklearn"
 TOTAL_PHASE_KEY = "total_ms"
 PLOT_PHASE_ORDER = [*PHASE_ORDER, TOTAL_PHASE_KEY]
 PLOT_PHASE_LABELS = {**PHASE_LABELS, TOTAL_PHASE_KEY: "overall"}
+
+
+def _is_sklearn_dev_build(build_name: str) -> bool:
+    return build_name == SKLEARN_DEV_PIXI_ENV or build_name.startswith(
+        f"{SKLEARN_DEV_PIXI_ENV}@"
+    )
+
+
+def _base_build(builds) -> str | None:
+    """The `sklearn-dev@<owner>:main` build among `builds`, if any. Picked
+    dynamically rather than a fixed constant since `<owner>` varies with
+    whichever fork/remote a branch comparison was run against (see
+    CONTRIBUTING.md's `env@owner:ref` workflow)."""
+    return next((build for build in builds if build.rsplit(":", 1)[-1] == "main"), None)
 
 
 def _workload_data(
@@ -211,22 +227,26 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
 
     by_build: dict[str, list[BenchmarkRecord]] = defaultdict(list)
     for record in records:
-        by_build[software_build_name(record.software_hash)].append(record)
+        build = software_build_name(record.software_hash)
+        if _is_sklearn_dev_build(build):
+            by_build[build].append(record)
 
-    if BASE_BUILD not in by_build:
+    base_build = _base_build(by_build)
+    if base_build is None:
         available = ", ".join(sorted(by_build)) or "none"
         return (
-            f'<section class="empty">No {BASE_BUILD!r} baseline results for '
-            f"this hardware (available builds: {available}).</section>"
+            f'<section class="empty">No {SKLEARN_DEV_PIXI_ENV}@...:main baseline '
+            f"results for this hardware (available sklearn-dev builds: "
+            f"{available}).</section>"
         )
-    variant_builds = sorted(build for build in by_build if build != BASE_BUILD)
+    variant_builds = sorted(build for build in by_build if build != base_build)
     if not variant_builds:
         return (
-            f'<section class="empty">Only the baseline build ({BASE_BUILD}) '
+            f'<section class="empty">Only the baseline build ({base_build}) '
             "has results for this hardware - nothing to compare it against.</section>"
         )
 
-    baseline_data = _workload_data(by_build[BASE_BUILD])
+    baseline_data = _workload_data(by_build[base_build])
     points = [
         point
         for variant_build in variant_builds
@@ -264,7 +284,7 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
 
     software_tabs = render_software_tabs(
         [
-            SOFTWARE_TEMPLATE.render(**_software_summary(BASE_BUILD, by_build[BASE_BUILD][0])),
+            SOFTWARE_TEMPLATE.render(**_software_summary(base_build, by_build[base_build][0])),
             *(
                 SOFTWARE_TEMPLATE.render(**_software_summary(build, by_build[build][0]))
                 for build in variant_builds
@@ -296,7 +316,7 @@ if __name__ == "__main__":
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB speed-up breakdown (build comparison)",
+        title="HGB speed-up breakdown (branch comparison)",
         rows=[render_hardware_tabs(pages)],
     )
     output = dashboard_output_path("hgb_speedup_breakdown.html")
