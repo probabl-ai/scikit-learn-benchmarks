@@ -156,7 +156,10 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
         **case,
         "bench": {
             "n_runs": 3,
-            "env": {"OMP_NUM_THREADS": str(thread_count)},
+            "env": {
+                "OMP_NUM_THREADS": str(thread_count),
+                "GOMP_SPINCOUNT": 300000,
+            },
             "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
             "py_spy_profiling": False,
         },
