@@ -19,6 +19,7 @@ on:
         type: choice
         options:
           - intel-laptop
+          - intel-gnr
       config:
         description: >
           Path to a benchmark config script, e.g. configs/all_models.py.
@@ -38,9 +39,13 @@ concurrency:
 jobs:
   benchmark:
     # Maps the friendly `runner` input to the actual self-hosted runner
-    # labels registered org-wide (same physical box array-api-intel.yml
-    # targets as its float64-gpu runner_labels).
-    runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '[]') }}
+    # labels. intel-laptop is registered org-wide (same physical box
+    # array-api-intel.yml targets as its float64-gpu runner_labels).
+    # intel-gnr is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
+    runs-on: ${{ fromJSON(
+      inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
+      inputs.runner == 'intel-gnr' && '["Linux","X64","intel-gnr"]' ||
+      '[]') }}
     # Default job timeout is 360 min (6h), too short for a full run of
     # configs/all_models.py across all envs on this self-hosted runner.
     timeout-minutes: 1440
@@ -78,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$BENCH_RUNNER" in
-            intel-laptop)
+            intel-laptop|intel-gnr)
               all_envs="sklearn-pypi skl-intel intel skl-cpu"
               ;;
             *)
