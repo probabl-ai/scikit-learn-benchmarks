@@ -146,11 +146,27 @@ jobs:
           done
           echo "pixi_envs=${deduped_bare[*]}" >> "$GITHUB_OUTPUT"
 
+          # sklearn-dev needs sklearn-src/ to already be a real checkout
+          # before pixi can install it (see CONTRIBUTING.md's "Setup" note).
+          # run.sh's own per-env loop produces that by running
+          # setup_sklearn_ref.sh right before benchmarking each
+          # sklearn-dev@owner:ref entry - but only once it actually runs,
+          # which is after `Set up pixi` (below). Excluding sklearn-dev from
+          # that step's eager pre-install avoids the chicken-and-egg: pixi
+          # binary/other envs still get set up there, and sklearn-dev
+          # installs lazily, correctly, when run.sh's `pixi run -e
+          # sklearn-dev` actually executes.
+          setup_pixi_envs=()
+          for e in "${deduped_bare[@]}"; do
+            [ "$e" = "sklearn-dev" ] || setup_pixi_envs+=("$e")
+          done
+          echo "setup_pixi_envs=${setup_pixi_envs[*]}" >> "$GITHUB_OUTPUT"
+
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
         with:
           pixi-version: v0.75.0
-          environments: ${{ steps.resolve.outputs.pixi_envs }}
+          environments: ${{ steps.resolve.outputs.setup_pixi_envs }}
           # `locked` (`pixi install --locked`) makes pixi verify the whole
           # workspace lock is fresh, which canonicalizes every environment's
           # path dependencies - including sklearn-dev's local scikit-learn
