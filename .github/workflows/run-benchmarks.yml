@@ -20,6 +20,7 @@ on:
         options:
           - intel-laptop
           - intel-gnr
+          - both
       config:
         description: >
           Path to a benchmark config script, e.g. configs/all_models.py.
@@ -32,19 +33,25 @@ permissions:
   contents: write
   pull-requests: write
 
-concurrency:
-  group: benchmark-${{ inputs.runner }}
-  cancel-in-progress: false
-
 jobs:
   benchmark:
-    # Maps the friendly `runner` input to the actual self-hosted runner
-    # labels. intel-laptop is registered org-wide (same physical box
+    strategy:
+      # "both" fans out to one job per physical runner; a single named
+      # runner just runs as a one-element matrix. fail-fast: false so one
+      # runner's failure doesn't cancel the other's in-progress run.
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(inputs.runner == 'both' && '["intel-laptop","intel-gnr"]' || format('["{0}"]', inputs.runner)) }}
+    concurrency:
+      group: benchmark-${{ matrix.runner }}
+      cancel-in-progress: false
+    # Maps the friendly `runner` matrix value to the actual self-hosted
+    # runner labels. intel-laptop is registered org-wide (same physical box
     # array-api-intel.yml targets as its float64-gpu runner_labels).
     # intel-gnr is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
     runs-on: ${{ fromJSON(
-      inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-      inputs.runner == 'intel-gnr' && '["Linux","X64","intel-gnr"]' ||
+      matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
+      matrix.runner == 'intel-gnr' && '["Linux","X64","intel-gnr"]' ||
       '[]') }}
     # Default job timeout is 360 min (6h), too short for a full run of
     # configs/all_models.py across all envs on this self-hosted runner.
@@ -79,7 +86,7 @@ jobs:
         id: resolve
         env:
           ENV_INPUT: ${{ inputs.env }}
-          BENCH_RUNNER: ${{ inputs.runner }}
+          BENCH_RUNNER: ${{ matrix.runner }}
         run: |
           set -euo pipefail
           case "$BENCH_RUNNER" in
@@ -169,7 +176,7 @@ jobs:
         id: commit
         if: always() && !contains(inputs.config, 'test')
         env:
-          BENCH_RUNNER: ${{ inputs.runner }}
+          BENCH_RUNNER: ${{ matrix.runner }}
           ENVS: ${{ steps.resolve.outputs.envs }}
           CONFIG: ${{ inputs.config }}
         run: |
@@ -191,7 +198,7 @@ jobs:
         if: always() && steps.commit.outputs.branch != ''
         env:
           ENVS: ${{ steps.resolve.outputs.envs }}
-          BENCH_RUNNER: ${{ inputs.runner }}
+          BENCH_RUNNER: ${{ matrix.runner }}
           CONFIG: ${{ inputs.config }}
         run: |
           first_env="${ENVS%% *}"
@@ -210,7 +217,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.commit.outputs.branch }}
           ENVS: ${{ steps.resolve.outputs.envs }}
-          BENCH_RUNNER: ${{ inputs.runner }}
+          BENCH_RUNNER: ${{ matrix.runner }}
         run: |
           first_env="${ENVS%% *}"
           pixi run --frozen -e "$first_env" python scripts/create_pr.py \
