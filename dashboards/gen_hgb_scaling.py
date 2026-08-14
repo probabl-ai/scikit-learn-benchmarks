@@ -197,9 +197,10 @@ def _workload_size(record: BenchmarkRecord) -> tuple[int, int]:
     # carry their shape in the case - read it from a run's recorded
     # `data_desc` instead.
     for run in record.runs:
-        shape = (run.get("data_desc") or {}).get("fit", {}).get("shape")
-        if shape:
-            return (shape[0], shape[1])
+        fit_desc = (run.get("data_desc") or {}).get("fit", {})
+        samples, features = fit_desc.get("samples"), fit_desc.get("features")
+        if samples and features:
+            return (samples, features)
     return (0, 0)
 
 
