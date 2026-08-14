@@ -23,7 +23,7 @@ import argparse
 import re
 import sys
 
-ENV_HEADER_RE = re.compile(r"^=== pixi run -e (\S+) .* ===\s*$")
+ENV_HEADER_RE = re.compile(r"^=== pixi run(?: --\S+)* -e (\S+) .* ===\s*$")
 PROGRESS_RE = re.compile(r"^\[sklbench\] (\d+)/(\d+) ")
 FAILURE_RE = re.compile(
     r"WARNING - sklbench\.orchestrator\.implementation - "
