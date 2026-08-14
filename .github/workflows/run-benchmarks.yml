@@ -121,11 +121,29 @@ jobs:
           echo "envs=${deduped[*]}" >> "$GITHUB_OUTPUT"
           echo "Resolved environments: ${deduped[*]}"
 
+          # run.sh accepts "env@owner:ref" specs (see its usage text) and
+          # strips the "@owner:ref" suffix itself before calling pixi. Steps
+          # here that talk to pixi directly (setup-pixi, `pixi run -e`) need
+          # the same bare env name - pixi doesn't understand the suffix.
+          bare=()
+          for e in "${deduped[@]}"; do
+            bare+=("${e%%@*}")
+          done
+          deduped_bare=()
+          for e in "${bare[@]}"; do
+            already=0
+            for seen in "${deduped_bare[@]:-}"; do
+              [ "$seen" = "$e" ] && already=1 && break
+            done
+            [ "$already" -eq 0 ] && deduped_bare+=("$e")
+          done
+          echo "pixi_envs=${deduped_bare[*]}" >> "$GITHUB_OUTPUT"
+
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
         with:
           pixi-version: v0.75.0
-          environments: ${{ steps.resolve.outputs.envs }}
+          environments: ${{ steps.resolve.outputs.pixi_envs }}
           # `locked` (`pixi install --locked`) makes pixi verify the whole
           # workspace lock is fresh, which canonicalizes every environment's
           # path dependencies - including sklearn-dev's local scikit-learn
@@ -202,6 +220,7 @@ jobs:
           CONFIG: ${{ inputs.config }}
         run: |
           first_env="${ENVS%% *}"
+          first_env="${first_env%%@*}"
           # --frozen: skip the lock-freshness check, same reasoning as the
           # `frozen: true` on the Set up pixi step - it would otherwise try
           # to canonicalize sklearn-dev's local sklearn-src path dependency,
@@ -220,6 +239,7 @@ jobs:
           BENCH_RUNNER: ${{ matrix.runner }}
         run: |
           first_env="${ENVS%% *}"
+          first_env="${first_env%%@*}"
           pixi run --frozen -e "$first_env" python scripts/create_pr.py \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
@@ -233,4 +253,5 @@ jobs:
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
           first_env="${ENVS%% *}"
+          first_env="${first_env%%@*}"
           pixi run --frozen -e "$first_env" python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
