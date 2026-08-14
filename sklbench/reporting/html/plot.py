@@ -419,7 +419,10 @@ def phase_variant_speedup_plot_html(
     its own 1x reference line) instead of the shared left one - the caller
     is expected to have put a different quantity in `y` for those points
     (e.g. a plain ratio rather than the normalized share the rest of the
-    phases use), since the two axes have unrelated scales."""
+    phases use), since the two axes have unrelated scales. Those points may
+    also carry an `"error"` key (same units as `y`) rendered as a Plotly
+    error bar, for callers that want to surface measurement noise on the
+    secondary quantity rather than just its point estimate."""
     if not points:
         return '<div class="empty">No points for this thread count.</div>'
     if phase_labels is None:
@@ -463,6 +466,23 @@ def phase_variant_speedup_plot_html(
             )
         )
         if secondary_points:
+            # `error` is an optional per-point uncertainty (same units as
+            # `y`) - e.g. repeat-to-repeat noise on the ratio itself, as
+            # opposed to `y`'s own point estimate - rendered as a Plotly
+            # error bar rather than folded into the marker position.
+            errors = [p.get("error") for p in secondary_points]
+            error_y = (
+                {
+                    "type": "data",
+                    "array": [error or 0.0 for error in errors],
+                    "visible": True,
+                    "color": color,
+                    "thickness": 1,
+                    "width": 3,
+                }
+                if any(error for error in errors)
+                else None
+            )
             fig.add_trace(
                 go.Scatter(
                     mode="markers",
@@ -475,6 +495,7 @@ def phase_variant_speedup_plot_html(
                         for p in secondary_points
                     ],
                     y=[p["y"] for p in secondary_points],
+                    error_y=error_y,
                     text=[p["hover"] for p in secondary_points],
                     hovertemplate="%{text}<extra></extra>",
                     marker={"size": 9, "color": color, "symbol": "diamond"},
@@ -521,7 +542,11 @@ def phase_variant_speedup_plot_html(
             default=0.0,
         ) * 1.15 or 1.0
         secondary_span = max(
-            (abs(p["y"] - 1) for p in points if p["phase"] == secondary_axis_phase),
+            (
+                abs(p["y"] - 1) + (p.get("error") or 0.0)
+                for p in points
+                if p["phase"] == secondary_axis_phase
+            ),
             default=0.0,
         ) * 1.15 or 0.1
         layout_yaxis["range"] = [-primary_span, primary_span]

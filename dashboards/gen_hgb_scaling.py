@@ -8,13 +8,17 @@ stacked bar per workload, x-axis = thread count, segments = phase.
 Deliberately reads raw `read_benchmark_records()` instead of
 `read_all_results()`: `MethodResult.case`/`full_match_key` strip the `bench`
 key, so thread count (which for this config only lives in
-`bench.taskset`/`bench.env.OPENMP_NUM_THREADS`, not in `case`) isn't part of
+`bench.taskset`/`bench.env.OMP_NUM_THREADS`, not in `case`) isn't part of
 the de-dup identity - `read_all_results()` collapses every thread-count
-variant of a workload down to whichever ran last. Thread count is instead
-read from each run's `profiling_metrics.fit.n_detected_physical_cores`,
-which reflects the taskset-restricted affinity the run actually saw.
+variant of a workload down to whichever ran last. `BenchmarkRecord.case`
+strips `bench` for the same reason, so thread count is instead read straight
+from `bench.env.OMP_NUM_THREADS` in the record's raw JSON (via
+`record.record_path`) - the requested thread count, not an affinity-derived
+guess, since some configs (e.g. `hgb_scaling_laptop.py`) set
+`OMP_NUM_THREADS` without a matching `taskset`.
 """
 from html import escape
+import json
 from pathlib import Path
 from statistics import median
 import sys
@@ -95,13 +99,11 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
 
 
 def _thread_count(record: BenchmarkRecord) -> int | None:
-    for run in record.runs:
-        cores = (run.get("profiling_metrics") or {}).get("fit", {}).get(
-            "n_detected_physical_cores"
-        )
-        if cores:
-            return int(cores)
-    return None
+    if record.record_path is None:
+        return None
+    raw_case = json.loads(record.record_path.read_text()).get("case", {})
+    threads = raw_case.get("bench", {}).get("env", {}).get("OMP_NUM_THREADS")
+    return int(threads) if threads is not None else None
 
 
 def _fit_within_budget(values: dict[str, float], budget: float) -> tuple[dict[str, float], float]:
@@ -142,7 +144,8 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
     runs = [run for run in record.runs if "binning_time" in (run.get("attributes") or {})]
     if not runs:
         return None
-    fit_ms = median(run["time_ms"]["fit"] for run in runs)
+    fit_ms_repeats = [run["time_ms"]["fit"] for run in runs]
+    fit_ms = median(fit_ms_repeats)
     seconds = {
         name: median(run["attributes"][name] for run in runs)
         for name in _SECONDS_ATTRIBUTES
@@ -177,6 +180,10 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
         "find_split_time": grow_parts["find_split_time"],
         "hist_time": grow_parts["hist_time"],
         "total_ms": fit_ms,
+        # Raw per-repeat fit times (ms), for callers that need to gauge
+        # measurement noise around `total_ms` (e.g. gen_hgb_speedup_breakdown.py)
+        # rather than just the de-noised median point estimate.
+        "total_ms_repeats": fit_ms_repeats,
     }
 
 
@@ -211,8 +218,17 @@ def _workload_size(record: BenchmarkRecord) -> tuple[int, int]:
 # Shown separately (n_iter, max_leaf_nodes, categorical count) rather than
 # folded into the list below, so they're excluded here to avoid duplicating
 # them; max_bins/early_stopping are fixed across every workload in this
-# config and not informative per-plot.
-_SUBTITLE_HPARAMS_EXCLUDED = {"max_iter", "max_leaf_nodes", "max_bins", "early_stopping"}
+# config and not informative per-plot. learning_rate/l2_regularization are
+# tuning knobs that don't affect fit time, so they're noise in a time-scaling
+# breakdown.
+_SUBTITLE_HPARAMS_EXCLUDED = {
+    "max_iter",
+    "max_leaf_nodes",
+    "max_bins",
+    "early_stopping",
+    "learning_rate",
+    "l2_regularization",
+}
 
 
 def _workload_subtitle(record: BenchmarkRecord) -> str:

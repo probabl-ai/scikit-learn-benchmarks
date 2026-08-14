@@ -29,7 +29,9 @@ used), rather than a fixed constant.
 """
 from collections import defaultdict
 from html import escape
+import math
 from pathlib import Path
+from statistics import median
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -128,6 +130,29 @@ def _format_hparams(hparams: dict) -> str:
     )
 
 
+def _relative_speedup_uncertainty(
+    baseline_repeats: list[float], variant_repeats: list[float]
+) -> float:
+    """Rough absolute uncertainty on `median(baseline)/median(variant)`,
+    propagated from each side's repeat-to-repeat spread as independent
+    relative errors. Median-absolute-deviation (not stdev) to stay
+    consistent with `_phase_breakdown_ms`'s own median aggregation - both
+    are robust to the occasional stalled repeat this hardware sees, rather
+    than treating it as real signal."""
+
+    def relative_mad(values: list[float]) -> float:
+        if len(values) < 2:
+            return 0.0
+        center = median(values)
+        if center <= 0:
+            return 0.0
+        return median(abs(value - center) for value in values) / center
+
+    return math.sqrt(
+        relative_mad(baseline_repeats) ** 2 + relative_mad(variant_repeats) ** 2
+    )
+
+
 def _hover_html(
     *,
     variant_build: str,
@@ -138,19 +163,33 @@ def _hover_html(
     normalized: float,
     absolute_ms: float,
     relative: float,
+    is_overall: bool = False,
+    relative_error: float = 0.0,
 ) -> str:
     n_samples, n_features = shape
     sign = "+" if absolute_ms >= 0 else "-"
     absolute_repr = f"{sign}{format_duration_ms(abs(absolute_ms))}"
-    return "<br>".join(
-        [
-            f"<b>{escape(workload)} ({n_samples:,} x {n_features}), {threads} threads</b>",
-            escape(_format_hparams(hparams)),
-            f"normalized speed-up: {normalized:+.1%} of {escape(variant_build)}'s total fit time",
-            f"absolute speed-up: {absolute_repr}",
-            f"relative speed-up: {relative:.2f}x",
-        ]
+    # The "overall" pseudo-phase reads its ratio off its own axis (see
+    # phase_variant_speedup_plot_html's secondary_axis_phase) rather than as
+    # a share of the variant's total fit time, so the normalized-speed-up
+    # line (which is exactly that share) doesn't apply to it; repeat noise
+    # is shown instead, since it's real dataset points/measurements rather
+    # than a summed quantity.
+    lines = [
+        f"<b>{escape(workload)} ({n_samples:,} x {n_features}), {threads} threads</b>",
+        escape(_format_hparams(hparams)),
+    ]
+    if not is_overall:
+        lines.append(
+            f"normalized speed-up: {normalized:+.1%} of {escape(variant_build)}'s total fit time"
+        )
+    lines.append(f"absolute speed-up: {absolute_repr}")
+    lines.append(
+        f"relative speed-up: {relative:.2f}x (±{relative_error:.2f}x repeat noise)"
+        if is_overall
+        else f"relative speed-up: {relative:.2f}x"
     )
+    return "<br>".join(lines)
 
 
 def _collect_points(
@@ -186,13 +225,24 @@ def _collect_points(
                 # phase_variant_speedup_plot_html's secondary_axis_phase) as
                 # a plain ratio, since summed-phase normalization isn't the
                 # most legible way to read a single grand-total number.
-                y = relative if phase == TOTAL_PHASE_KEY else normalized
+                is_overall = phase == TOTAL_PHASE_KEY
+                y = relative if is_overall else normalized
+                relative_error = (
+                    relative
+                    * _relative_speedup_uncertainty(
+                        baseline_phases.get("total_ms_repeats") or [baseline_ms],
+                        variant_phases.get("total_ms_repeats") or [variant_ms],
+                    )
+                    if is_overall
+                    else 0.0
+                )
                 points.append(
                     {
                         "phase": phase,
                         "variant": variant_build,
                         "threads": threads,
                         "y": y,
+                        **({"error": relative_error} if is_overall else {}),
                         "hover": _hover_html(
                             variant_build=variant_build,
                             workload=name,
@@ -202,6 +252,8 @@ def _collect_points(
                             normalized=normalized,
                             absolute_ms=baseline_ms - variant_ms,
                             relative=relative,
+                            is_overall=is_overall,
+                            relative_error=relative_error,
                         ),
                     }
                 )
@@ -293,8 +345,9 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
         variant_colors=variant_colors,
     )
 
+    plotted_records = [record for build_records in by_build.values() for record in build_records]
     rows = [
-        DATE_RANGE_TEMPLATE.render(**date_range(records)),
+        DATE_RANGE_TEMPLATE.render(**date_range(plotted_records)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", records[0].hardware_hash))),
         software_tabs,
         grid,
