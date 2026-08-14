@@ -250,6 +250,11 @@ def get_software_info() -> dict:
             "--environment",
             pixi_environment_name,
             "--json",
+            # Skips the lock-freshness check, which otherwise tries to
+            # canonicalize sklearn-dev's local sklearn-src path dependency
+            # even when the active environment isn't sklearn-dev - failing
+            # on any checkout that doesn't already have sklearn-src/.
+            "--frozen",
         ],
         shell=False,
         text=True,
