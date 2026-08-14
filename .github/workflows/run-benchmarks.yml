@@ -19,15 +19,13 @@ on:
         type: choice
         options:
           - intel-laptop
-      tier:
-        description: Benchmark config tier
+      config:
+        description: >
+          Path to a benchmark config script, e.g. configs/all_models.py.
+          Results are not committed/PR'd if the path contains "test".
         required: true
-        default: normal
-        type: choice
-        options:
-          - test
-          - fast
-          - normal
+        default: configs/all_models.py
+        type: string
 
 permissions:
   contents: write
@@ -43,8 +41,8 @@ jobs:
     # labels registered org-wide (same physical box array-api-intel.yml
     # targets as its float64-gpu runner_labels).
     runs-on: ${{ fromJSON(inputs.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '[]') }}
-    # Default job timeout is 360 min (6h), too short for a full `normal`
-    # tier run across all envs on this self-hosted runner.
+    # Default job timeout is 360 min (6h), too short for a full run of
+    # configs/all_models.py across all envs on this self-hosted runner.
     timeout-minutes: 1440
     steps:
       - name: Check out repository
@@ -66,8 +64,8 @@ jobs:
       - name: Clean up results from previous runs
         # checkout's `clean: false` (above) intentionally keeps .pixi/,
         # data_cache/, and sklearn-src/ across runs, but any untracked
-        # results/ left over from an earlier run (e.g. a tier=test run, which
-        # never commits) shouldn't leak into this one. Only untracked files
+        # results/ left over from an earlier run (e.g. a "test" config run,
+        # which never commits) shouldn't leak into this one. Only untracked files
         # under results/ are removed; anything already committed on main is
         # safe.
         run: git clean -ffdx results/
@@ -157,22 +155,18 @@ jobs:
         # pass/fail, not this step's own exit code.
         continue-on-error: true
         env:
-          TIER: ${{ inputs.tier }}
+          CONFIG: ${{ inputs.config }}
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
-          case "$TIER" in
-            test) config=configs/all_models_test.py ;;
-            fast) config=configs/all_models_fast.py ;;
-            normal) config=configs/all_models.py ;;
-          esac
-          ./run.sh $ENVS --config "$config" 2>&1 | tee "$RUNNER_TEMP/bench.log"
+          ./run.sh $ENVS --config "$CONFIG" 2>&1 | tee "$RUNNER_TEMP/bench.log"
 
       - name: Commit and push results
         id: commit
-        if: always() && inputs.tier != 'test'
+        if: always() && !contains(inputs.config, 'test')
         env:
           BENCH_RUNNER: ${{ inputs.runner }}
           ENVS: ${{ steps.resolve.outputs.envs }}
+          CONFIG: ${{ inputs.config }}
         run: |
           set -euo pipefail
           if [ -n "$(git status --porcelain results/)" ]; then
@@ -181,7 +175,7 @@ jobs:
             git add results/
             git -c user.name="github-actions[bot]" \
                 -c user.email="github-actions[bot]@users.noreply.github.com" \
-                commit -m "Benchmark results: ${ENVS} (tier=${{ inputs.tier }}, runner=${BENCH_RUNNER})"
+                commit -m "Benchmark results: ${ENVS} (config=${CONFIG}, runner=${BENCH_RUNNER})"
             git push origin "$branch"
             echo "branch=$branch" >> "$GITHUB_OUTPUT"
           else
@@ -193,11 +187,11 @@ jobs:
         env:
           ENVS: ${{ steps.resolve.outputs.envs }}
           BENCH_RUNNER: ${{ inputs.runner }}
-          TIER: ${{ inputs.tier }}
+          CONFIG: ${{ inputs.config }}
         run: |
           first_env="${ENVS%% *}"
           pixi run -e "$first_env" python scripts/build_bench_pr_body.py \
-            --summary "Benchmark results for \`${ENVS}\` (tier=${TIER}, runner=${BENCH_RUNNER})." \
+            --summary "Benchmark results for \`${ENVS}\` (config=${CONFIG}, runner=${BENCH_RUNNER})." \
             --log "$RUNNER_TEMP/bench.log" \
             --out "$RUNNER_TEMP/pr_body.md"
 
