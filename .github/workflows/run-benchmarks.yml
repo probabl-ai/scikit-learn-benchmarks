@@ -195,7 +195,11 @@ jobs:
           CONFIG: ${{ inputs.config }}
         run: |
           first_env="${ENVS%% *}"
-          pixi run -e "$first_env" python scripts/build_bench_pr_body.py \
+          # --frozen: skip the lock-freshness check, same reasoning as the
+          # `frozen: true` on the Set up pixi step - it would otherwise try
+          # to canonicalize sklearn-dev's local sklearn-src path dependency,
+          # which doesn't exist unless sklearn-dev was in this run's envs.
+          pixi run --frozen -e "$first_env" python scripts/build_bench_pr_body.py \
             --summary "Benchmark results for \`${ENVS}\` (config=${CONFIG}, runner=${BENCH_RUNNER})." \
             --log "$RUNNER_TEMP/bench.log" \
             --out "$RUNNER_TEMP/pr_body.md"
@@ -209,7 +213,7 @@ jobs:
           BENCH_RUNNER: ${{ inputs.runner }}
         run: |
           first_env="${ENVS%% *}"
-          pixi run -e "$first_env" python scripts/create_pr.py \
+          pixi run --frozen -e "$first_env" python scripts/create_pr.py \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
             --head "$BRANCH" \
@@ -222,4 +226,4 @@ jobs:
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
           first_env="${ENVS%% *}"
-          pixi run -e "$first_env" python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
+          pixi run --frozen -e "$first_env" python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
