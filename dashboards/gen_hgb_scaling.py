@@ -14,6 +14,7 @@ variant of a workload down to whichever ran last. Thread count is instead
 read from each run's `profiling_metrics.fit.n_detected_physical_cores`,
 which reflects the taskset-restricted affinity the run actually saw.
 """
+from html import escape
 from pathlib import Path
 from statistics import mean
 import sys
@@ -204,6 +205,60 @@ def _workload_size(record: BenchmarkRecord) -> tuple[int, int]:
     return (0, 0)
 
 
+# Shown separately (n_iter, max_leaf_nodes, categorical count) rather than
+# folded into the list below, so they're excluded here to avoid duplicating
+# them; max_bins/early_stopping are fixed across every workload in this
+# config and not informative per-plot.
+_SUBTITLE_HPARAMS_EXCLUDED = {"max_iter", "max_leaf_nodes", "max_bins", "early_stopping"}
+
+
+def _workload_subtitle(record: BenchmarkRecord) -> str:
+    """One small-print line of the hyperparameters/data-shape details that
+    most affect fit time but aren't captured by the workload name/shape
+    alone - e.g. "L" vs "L-leaf255" in hgb_scaling.py's WORKLOADS only differ
+    by `max_leaf_nodes`/`max_iter`, not by name. `n_iter` is the actual
+    number of boosting iterations run (from the fitted estimator's
+    `n_iter_`), not the `max_iter` param - the two only diverge when
+    `early_stopping` is on, but reading the real value avoids being wrong in
+    that case."""
+    estimator_params = record.case.get("algorithm", {}).get("estimator_params", {})
+    parts = []
+    n_iter = next(
+        (
+            run["attributes"]["n_iter"]
+            for run in record.runs
+            if "n_iter" in (run.get("attributes") or {})
+        ),
+        None,
+    )
+    if n_iter is not None:
+        parts.append(f"n_iter={n_iter}")
+    max_leaf_nodes = estimator_params.get("max_leaf_nodes")
+    if max_leaf_nodes is not None:
+        parts.append(f"max_leaf_nodes={max_leaf_nodes}")
+    n_categorical = next(
+        (
+            run["data_desc"]["fit"]["n_categorical_features"]
+            for run in record.runs
+            if "n_categorical_features" in (run.get("data_desc") or {}).get("fit", {})
+        ),
+        None,
+    )
+    if n_categorical:
+        parts.append(f"{n_categorical} categorical")
+    parts += [
+        f"{key}={value}"
+        for key, value in sorted(estimator_params.items())
+        if key not in _SUBTITLE_HPARAMS_EXCLUDED
+    ]
+    return ", ".join(parts)
+
+
+def _subtitle_html(record: BenchmarkRecord) -> str:
+    subtitle = _workload_subtitle(record)
+    return f'<div class="plot-subtitle">{escape(subtitle)}</div>' if subtitle else ""
+
+
 def _legend_html() -> str:
     items = "".join(
         f'<span><span class="legend-swatch" style="background:{PHASE_COLORS[phase]}"></span>'
@@ -248,13 +303,16 @@ def render_env_page(records: list[BenchmarkRecord]) -> str:
             continue
         n_samples, n_features = _workload_size(by_workload[name][0])
         title = f"{name} ({n_samples:,} x {n_features})"
+        subtitle_html = _subtitle_html(by_workload[name][0])
         plot = phase_breakdown_plot_html(
             points,
             phase_order=PHASE_ORDER,
             phase_colors=PHASE_COLORS,
             phase_labels=PHASE_LABELS,
         )
-        cells.append(f'<section class="plot-cell"><h3>{title}</h3>{plot}</section>')
+        cells.append(
+            f'<section class="plot-cell"><h3>{title}</h3>{subtitle_html}{plot}</section>'
+        )
 
     grid = (
         '<section class="plot-grid phase-breakdown" '

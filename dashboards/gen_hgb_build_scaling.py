@@ -17,6 +17,7 @@ from dashboards.gen_hgb_scaling import (
     HARDWARE_NAMES,
     _dedup_latest,
     _is_instrumented_hgb,
+    _subtitle_html,
     _thread_count,
     _workload_name,
     _workload_size,
@@ -67,8 +68,11 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
             continue
         n_samples, n_features = _workload_size(by_workload[name][0])
         title = f"{name} ({n_samples:,} x {n_features})"
+        subtitle_html = _subtitle_html(by_workload[name][0])
         plot = scaling_line_plot_html(series, colors=colors)
-        cells.append(f'<section class="plot-cell"><h3>{title}</h3>{plot}</section>')
+        cells.append(
+            f'<section class="plot-cell"><h3>{title}</h3>{subtitle_html}{plot}</section>'
+        )
 
     grid = (
         '<section class="plot-grid" '

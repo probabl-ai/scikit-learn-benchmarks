@@ -169,6 +169,15 @@ def convert_subsets(
             }
             if len(converted_data.shape) == 2 and converted_data.shape[1] > 1:
                 data_description[subset_name]["features"] = converted_data.shape[1]
+            # Only meaningful when the subset is still a pandas DataFrame with
+            # `category` dtype columns intact (e.g. `preprocessing_kind="hgb"`
+            # real datasets with no format/dtype override) - a DataFrame
+            # converted to numpy/another format loses dtype information, so
+            # there's nothing to count.
+            if isinstance(converted_data, pd.DataFrame):
+                n_categorical = int((converted_data.dtypes == "category").sum())
+                if n_categorical:
+                    data_description[subset_name]["n_categorical_features"] = n_categorical
 
     return (
         tuple(data_dict[name] for name in ["x_train", "x_test", "y_train", "y_test"]),
