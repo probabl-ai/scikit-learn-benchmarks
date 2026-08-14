@@ -90,8 +90,15 @@ jobs:
         run: |
           set -euo pipefail
           case "$BENCH_RUNNER" in
-            intel-laptop|intel-gnr)
+            intel-laptop)
               all_envs="sklearn-pypi skl-intel intel skl-cpu"
+              ;;
+            intel-gnr)
+              # skl-intel pulls torch/triton-xpu (Intel GPU/XPU build), which
+              # hard-crashes with no traceback on this box since it has no
+              # Intel GPU - unlike `intel`'s scikit-learn-intelex-gpu, which
+              # falls back to CPU gracefully.
+              all_envs="sklearn-pypi intel skl-cpu"
               ;;
             *)
               echo "::error::no [all] mapping defined for runner '$BENCH_RUNNER'"
