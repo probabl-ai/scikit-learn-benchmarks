@@ -93,6 +93,16 @@ scikit-learn = { path = "sklearn-src", editable = true }
 # (since-deleted) toolchain if the build isn't isolated to begin with.
 no-build-isolation = ["scikit-learn"]
 
+[feature.sklearn-dev-libomp.dependencies]
+# Same `_openmp_mutex=*_kmp_llvm` redirect as
+# `sklearn-openblas-pthreads-kmp-llvm` above: it ships a
+# `libgomp.so.1 -> libomp.so` compat symlink, so this dev build's
+# libgomp-linked OpenMP calls (sklearn's own Cython parallel loops, compiled
+# by the `c-compiler`/`cxx-compiler` from `sklearn-dev` above) get serviced by
+# the LLVM/Intel `libomp` runtime instead - without changing which sklearn
+# source is built or which BLAS it links against.
+_openmp_mutex = { version = "*", build = "*_kmp_llvm" }
+
 [feature.intel.dependencies]
 scikit-learn = "1.8.*"
 setuptools = "<82"
@@ -156,6 +166,7 @@ sklearn-cf-libomp-openblas = ["sklearn-openblas-pthreads", "sklearn-openblas-pth
 sklearn-cf-libomp-openblas-omp = ["sklearn-openblas-openmp"]
 sklearn-cf-mkl = ["sklearn-mkl"]
 sklearn-dev = ["sklearn-dev"]
+sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp"]
 skl-cpu = ["sklearn-pypi", "skl-cpu"]
 skl-intel = ["sklearn-pypi", "skl-intel"]
 skl-nvidia = ["sklearn-pypi", "skl-nvidia"]

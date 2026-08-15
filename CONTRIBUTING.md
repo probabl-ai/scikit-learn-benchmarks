@@ -37,6 +37,12 @@ The project uses Pixi environments. Common environments are:
 - `skl-nvidia`: NVIDIA Array API benchmark runs
 - `intel`: scikit-learn-intelex CPU and GPU benchmark runs
 - `reporting`: dashboard generation and reporting utilities
+- `sklearn-dev`: scikit-learn built from a git checkout (see "Running Against
+  scikit-learn Branches" below)
+- `sklearn-dev-libomp`: same scikit-learn git checkout as `sklearn-dev`, but
+  with its libgomp-linked OpenMP calls redirected to the LLVM/Intel `libomp`
+  runtime (same `_openmp_mutex=*_kmp_llvm` mechanism as
+  `sklearn-cf-libomp-openblas`)
 
 ## Architecture
 
@@ -212,6 +218,17 @@ distinguished by this label alone. That keeps
 `sklearn-dev@cakedev0:hgb/use_threads_if` and `sklearn-dev@scikit-learn:main`
 as distinct build variants in dashboards rather than merging them into one
 `sklearn-dev` series.
+
+`sklearn-dev-libomp` installs the same `sklearn-src` checkout into a second
+Pixi environment that redirects OpenMP calls to `libomp` instead of `libgomp`
+(see `pixi.toml`'s `sklearn-dev-libomp` feature). Use it to compare OpenMP
+runtimes on the exact same scikit-learn commit, by passing both environments
+to `run.sh` with the same ref:
+
+```bash
+./run.sh sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \
+    --config configs/hgb_scaling.py
+```
 
 For local scikit-learn edits, make a temporary commit in the scikit-learn
 checkout and use that checkout as the remote. Benchmark results are meant to be
