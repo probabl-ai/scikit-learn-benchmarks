@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dashboards.output import dashboard_output_path
 from sklbench.reporting.envs import (
+    ambient_gomp_spincount,
     read_env,
     software_build_name,
     summarize_hardware_env,
@@ -98,12 +99,33 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
     return any("binning_time" in (run.get("attributes") or {}) for run in record.runs)
 
 
-def _thread_count(record: BenchmarkRecord) -> int | None:
+def _raw_bench_env(record: BenchmarkRecord) -> dict:
     if record.record_path is None:
-        return None
+        return {}
     raw_case = json.loads(record.record_path.read_text()).get("case", {})
-    threads = raw_case.get("bench", {}).get("env", {}).get("OMP_NUM_THREADS")
+    return raw_case.get("bench", {}).get("env", {}) or {}
+
+
+def _thread_count(record: BenchmarkRecord) -> int | None:
+    threads = _raw_bench_env(record).get("OMP_NUM_THREADS")
     return int(threads) if threads is not None else None
+
+
+def _has_active_wait(record: BenchmarkRecord) -> bool:
+    """Whether idle worker threads busy-spin instead of sleeping between
+    parallel regions for this record's run. A case's `GOMP_SPINCOUNT`
+    override (if any) wins; absent one, the effective value is whatever
+    libgomp resolved to on its own for that build (`ambient_gomp_spincount`)
+    - that default isn't a single constant, so a case that never sets
+    `GOMP_SPINCOUNT` isn't necessarily free of active-wait spinning. Some
+    runs of the same hardware/software combo toggle the override (e.g.
+    `hgb_scaling_laptop.py` disabling it), so this has to be part of the
+    tab/dedup identity below - otherwise a with/without-override pair for
+    the same workload and thread count would collide as if they were reruns
+    of each other."""
+    override = _raw_bench_env(record).get("GOMP_SPINCOUNT")
+    value = override if override is not None else ambient_gomp_spincount(record.software_hash)
+    return value == "300000"
 
 
 def _fit_within_budget(values: dict[str, float], budget: float) -> tuple[dict[str, float], float]:
@@ -362,6 +384,7 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
             record.software_hash,
             _workload_name(record),
             _thread_count(record),
+            _has_active_wait(record),
         )
         current = latest.get(key)
         if current is None or record.timestamp_recorded > current.timestamp_recorded:
@@ -369,30 +392,35 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
     return list(latest.values())
 
 
-def _env_key(record: BenchmarkRecord) -> tuple[str, str]:
-    return (record.hardware_hash, record.software_hash)
+def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool]:
+    return (record.hardware_hash, record.software_hash, _has_active_wait(record))
 
 
-def _env_label(hardware_hash: str, software_hash: str) -> str:
+def _env_label(hardware_hash: str, software_hash: str, active_wait: bool) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
-    return f"{hardware_label} — {software_build_name(software_hash)}"
+    label = f"{hardware_label} — {software_build_name(software_hash)}"
+    if hardware_label == "Laptop" and not active_wait:
+        label += " (no active wait)"
+    return label
 
 
 if __name__ == "__main__":
     records = _dedup_latest(
         [record for record in read_benchmark_records() if _is_instrumented_hgb(record)]
     )
-    by_env: dict[tuple[str, str], list[BenchmarkRecord]] = {}
+    by_env: dict[tuple[str, str, bool], list[BenchmarkRecord]] = {}
     for record in records:
         by_env.setdefault(_env_key(record), []).append(record)
 
-    # Tabs are one per (hardware, software build) combo - each build (e.g.
-    # different OpenMP runtime) gets its own tab rather than nesting tabs
-    # inside tabs, so the impact of a build swap is a tab click away without
-    # doubling up the hardware-tabs template's page-global JS on one page.
+    # Tabs are one per (hardware, software build, active-wait) combo - each
+    # build (e.g. different OpenMP runtime) gets its own tab rather than
+    # nesting tabs inside tabs, so the impact of a build swap is a tab click
+    # away without doubling up the hardware-tabs template's page-global JS on
+    # one page. Active-wait (GOMP_SPINCOUNT) is included too since some runs
+    # of the same build toggle it (see `_has_active_wait`).
     pages = [
-        (_env_label(hardware_hash, software_hash), render_env_page(env_records))
-        for (hardware_hash, software_hash), env_records in sorted(
+        (_env_label(hardware_hash, software_hash, active_wait), render_env_page(env_records))
+        for (hardware_hash, software_hash, active_wait), env_records in sorted(
             by_env.items(),
             key=lambda item: _env_label(*item[0]),
         )

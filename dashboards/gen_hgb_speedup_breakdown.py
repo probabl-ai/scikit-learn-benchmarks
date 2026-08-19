@@ -31,6 +31,7 @@ from collections import defaultdict
 from html import escape
 import math
 from pathlib import Path
+import re
 from statistics import median
 import sys
 
@@ -41,6 +42,7 @@ from dashboards.gen_hgb_scaling import (
     PHASE_LABELS,
     PHASE_ORDER,
     _dedup_latest,
+    _has_active_wait,
     _is_instrumented_hgb,
     _phase_breakdown_ms,
     _thread_count,
@@ -49,6 +51,7 @@ from dashboards.gen_hgb_scaling import (
 )
 from dashboards.output import dashboard_output_path
 from sklbench.reporting.envs import (
+    openmp_runtime_family,
     read_env,
     software_build_name,
     summarize_hardware_env,
@@ -70,6 +73,11 @@ from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchm
 
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 
+_OPENMP_FAMILY_SHORT = {
+    "GNU libgomp": "libgomp",
+    "Intel/LLVM OpenMP": "libomp",
+}
+
 # `_phase_breakdown_ms()` already carries the wall-clock fit time as
 # "total_ms" alongside the real phases - reusing that dict key as one more
 # entry in the phase loop below gets an "overall" column for free, appended
@@ -79,9 +87,18 @@ PLOT_PHASE_ORDER = [*PHASE_ORDER, TOTAL_PHASE_KEY]
 PLOT_PHASE_LABELS = {**PHASE_LABELS, TOTAL_PHASE_KEY: "overall"}
 
 
+# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
+# "sklearn-dev-libomp@..." (see configs/_implementations.py).
+_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
+
+
 def _is_sklearn_dev_build(build_name: str) -> bool:
-    return build_name == SKLEARN_DEV_PIXI_ENV or build_name.startswith(
-        f"{SKLEARN_DEV_PIXI_ENV}@"
+    return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
+
+
+def _has_sklearn_dev_build(records: list[BenchmarkRecord]) -> bool:
+    return any(
+        _is_sklearn_dev_build(software_build_name(record.software_hash)) for record in records
     )
 
 
@@ -355,17 +372,45 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
+def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool]:
+    return (
+        record.hardware_hash,
+        openmp_runtime_family(record.software_hash),
+        _has_active_wait(record),
+    )
+
+
+def _env_label(hardware_hash: str, openmp_family: str, active_wait: bool) -> str:
+    hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
+    family_label = _OPENMP_FAMILY_SHORT.get(openmp_family, openmp_family)
+    label = f"{hardware_label} ({family_label})"
+    if not active_wait:
+        label += " (no active wait)"
+    return label
+
+
 if __name__ == "__main__":
     records = _dedup_latest(
         [record for record in read_benchmark_records() if _is_instrumented_hgb(record)]
     )
-    by_hardware: dict[str, list[BenchmarkRecord]] = defaultdict(list)
+    # Tabs are one per (hardware, OpenMP runtime family, active-wait) combo -
+    # baseline and variants are only ever compared within the same combo (see
+    # `render_hardware_page`), since a build swap that also swaps OpenMP
+    # runtime or busy-wait behavior wouldn't isolate the sklearn-side change
+    # the branch comparison is meant to show.
+    by_env: dict[tuple[str, str, bool], list[BenchmarkRecord]] = defaultdict(list)
     for record in records:
-        by_hardware[record.hardware_hash].append(record)
+        by_env[_env_key(record)].append(record)
 
+    # Skip tabs with no sklearn-dev build at all - `render_hardware_page`'s
+    # "no baseline" message already covers a sklearn-dev build without a
+    # `main` to compare against, but an empty tab for a combo that was never
+    # a branch-comparison run in the first place (e.g. libomp/MKL-only
+    # combos) is just noise.
     pages = [
-        (HARDWARE_NAMES.get(hardware_hash, hardware_hash), render_hardware_page(hw_records))
-        for hardware_hash, hw_records in sorted(by_hardware.items())
+        (_env_label(*key), render_hardware_page(env_records))
+        for key, env_records in sorted(by_env.items(), key=lambda item: _env_label(*item[0]))
+        if _has_sklearn_dev_build(env_records)
     ]
 
     html = BASE_TEMPLATE.render(

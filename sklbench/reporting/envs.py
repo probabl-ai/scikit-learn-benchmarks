@@ -222,6 +222,16 @@ def _openmp_runtime_family(info: dict) -> str:
     return "unknown OpenMP runtime"
 
 
+@lru_cache(maxsize=None)
+def openmp_runtime_family(software_hash: str) -> str:
+    """Which OpenMP runtime a software build links against ("GNU libgomp",
+    "Intel/LLVM OpenMP", or "unknown OpenMP runtime"), from that build's
+    captured `OMP_DISPLAY_ENV` dump - see `_openmp_runtime_family` for how
+    the family is told apart."""
+    info = read_env("software", software_hash).get("openmp_runtime_info")
+    return _openmp_runtime_family(info) if info else "unknown OpenMP runtime"
+
+
 def _openmp_env_value(info: dict, var_name: str) -> str | None:
     for key, value in info.items():
         if key == var_name or key.endswith(f" {var_name}"):
@@ -232,6 +242,19 @@ def _openmp_env_value(info: dict, var_name: str) -> str | None:
             # catch.
             return value.strip("'\"") if isinstance(value, str) else value
     return None
+
+
+@lru_cache(maxsize=None)
+def ambient_gomp_spincount(software_hash: str) -> str | None:
+    """The `GOMP_SPINCOUNT` a build resolves to on its own, absent any
+    per-case override - from that build's captured `OMP_DISPLAY_ENV` dump.
+    libgomp picks its own default based on detected core topology, not a
+    single constant: observed "1" on this repo's (hybrid-core) laptop
+    runner vs "300000" on its (uniform-core) GNR server runner - so a case
+    that never sets `GOMP_SPINCOUNT` isn't necessarily free of active-wait
+    spinning, it depends on which machine it ran on."""
+    info = read_env("software", software_hash).get("openmp_runtime_info") or {}
+    return _openmp_env_value(info, "GOMP_SPINCOUNT")
 
 
 def _openmp_summary(env: dict) -> list[str]:
