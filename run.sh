@@ -18,6 +18,13 @@ usage() {
     echo "  e.g.:" >&2
     echo "  $0 sklearn-dev@cakedev0:hgb/use_threads_if sklearn-dev@scikit-learn:main \\" >&2
     echo "      --config configs/hgb_scaling.py" >&2
+    echo "" >&2
+    echo "  <env> works with any Pixi environment that path-depends on" >&2
+    echo "  sklearn-src (currently sklearn-dev and sklearn-dev-libomp), so the" >&2
+    echo "  same ref can also be compared across those environments, e.g. to" >&2
+    echo "  isolate an OpenMP-runtime effect on the exact same commit:" >&2
+    echo "  $0 sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \\" >&2
+    echo "      --config configs/hgb_scaling.py" >&2
 }
 
 if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
@@ -57,6 +64,21 @@ for env_spec in "${envs[@]}"; do
             status=1
             continue
         fi
+    fi
+
+    # Pixi environment names are lowercase letters, numbers, and dashes only.
+    # A bare (no "@") env spec that fails this is almost always an
+    # env@owner:ref spec that's missing its "@" (e.g. a colon-containing ref
+    # pasted without it) - catch that here instead of letting it reach `pixi
+    # run` as a bogus environment name, which fails late/confusingly (only
+    # surfaced downstream, e.g. by a CI "Classify benchmark results" step).
+    if [[ ! "$env" =~ ^[a-z0-9-]+$ ]]; then
+        echo "error: '$env' is not a valid pixi environment name (parsed from '$env_spec'); did you forget the '@' before the owner in an env@owner:ref spec?" >&2
+        status=1
+        continue
+    fi
+
+    if [[ "$env_spec" == *@* ]]; then
         remote="https://github.com/$owner/scikit-learn.git"
 
         echo "=== scripts/setup_sklearn_ref.sh --remote $remote --ref $ref --env $env ===" >&2
