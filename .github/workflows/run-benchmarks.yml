@@ -146,19 +146,21 @@ jobs:
           done
           echo "pixi_envs=${deduped_bare[*]}" >> "$GITHUB_OUTPUT"
 
-          # sklearn-dev needs sklearn-src/ to already be a real checkout
-          # before pixi can install it (see CONTRIBUTING.md's "Setup" note).
-          # run.sh's own per-env loop produces that by running
+          # sklearn-dev and sklearn-dev-libomp (same sklearn-src path
+          # dependency, see pixi.toml) need sklearn-src/ to already be a real
+          # checkout before pixi can install them (see CONTRIBUTING.md's
+          # "Setup" note). run.sh's own per-env loop produces that by running
           # setup_sklearn_ref.sh right before benchmarking each
-          # sklearn-dev@owner:ref entry - but only once it actually runs,
-          # which is after `Set up pixi` (below). Excluding sklearn-dev from
-          # that step's eager pre-install avoids the chicken-and-egg: pixi
-          # binary/other envs still get set up there, and sklearn-dev
-          # installs lazily, correctly, when run.sh's `pixi run -e
-          # sklearn-dev` actually executes.
+          # sklearn-dev[-libomp]@owner:ref entry - but only once it actually
+          # runs, which is after `Set up pixi` (below). Excluding these envs
+          # from that step's eager pre-install avoids the chicken-and-egg:
+          # pixi binary/other envs still get set up there, and sklearn-dev
+          # variants install lazily, correctly, when run.sh's `pixi run -e
+          # sklearn-dev[-libomp]` actually executes. Matched by prefix so any
+          # future sklearn-dev-* variant is covered without editing this again.
           setup_pixi_envs=()
           for e in "${deduped_bare[@]}"; do
-            [ "$e" = "sklearn-dev" ] || setup_pixi_envs+=("$e")
+            [[ "$e" == sklearn-dev* ]] || setup_pixi_envs+=("$e")
           done
           echo "setup_pixi_envs=${setup_pixi_envs[*]}" >> "$GITHUB_OUTPUT"
 
