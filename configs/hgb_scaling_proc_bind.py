@@ -1,4 +1,4 @@
-import hgb_scaling
+import configs.hgb_scaling_taskset as hgb_scaling_taskset
 
 
 def generate_cases() -> list[dict]:
@@ -6,13 +6,13 @@ def generate_cases() -> list[dict]:
         {
             **case,
             "bench": {
-                "n_runs": 5,
+                "n_runs": 3,
                 "env": {
-                    # "GOMP_SPINCOUNT": "300000",
+                    "OMP_PROC_BIND": True,
                     "OMP_NUM_THREADS": case["bench"]["env"]["OMP_NUM_THREADS"],
                 },
                 "py_spy_profiling": False,
             },
         }
-        for case in hgb_scaling.generate_cases()
+        for case in hgb_scaling_taskset.generate_cases()
     ]

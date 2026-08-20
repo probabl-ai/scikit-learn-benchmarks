@@ -1,4 +1,4 @@
-import hgb_scaling
+import configs.hgb_scaling_taskset as hgb_scaling_taskset
 
 
 def generate_cases() -> list[dict]:
@@ -15,5 +15,5 @@ def generate_cases() -> list[dict]:
                 "py_spy_profiling": False,
             },
         }
-        for case in hgb_scaling.generate_cases()
+        for case in hgb_scaling_taskset.generate_cases()
     ]
