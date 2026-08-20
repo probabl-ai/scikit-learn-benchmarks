@@ -102,7 +102,7 @@ if __name__ == "__main__":
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB build scaling comparison",
+        title="HGB build scalability comparison",
         rows=[render_hardware_tabs(pages)],
     )
     output = dashboard_output_path("hgb_build_scaling.html")

@@ -292,15 +292,17 @@ def phase_breakdown_plot_html(
 ) -> str:
     """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
     count), one bar per `points` entry. Each point is
-    `{"x": ..., "phases": {phase_name: ms}, "total_ms": ...}`. Legend is
-    disabled on every trace - callers render one shared legend across a grid
-    of these (see dashboards/gen_hgb_scaling.py) rather than repeating it per
-    small multiple."""
+    `{"x": ..., "phases": {phase_name: ms}, "total_ms": ...}`, with an
+    optional `"x_label"` overriding `str(x)` as the tick label (e.g. to show
+    an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
+    drives sort order. Legend is disabled on every trace - callers render one
+    shared legend across a grid of these (see dashboards/gen_hgb_scaling.py)
+    rather than repeating it per small multiple."""
     if phase_labels is None:
         phase_labels = {phase: phase for phase in phase_order}
     chart_id = f"phase-breakdown-{next(chart_ids)}"
     points = sorted(points, key=lambda point: point["x"])
-    x_values = [str(point["x"]) for point in points]
+    x_values = [str(point.get("x_label", point["x"])) for point in points]
 
     fig = go.Figure()
     for phase in phase_order:

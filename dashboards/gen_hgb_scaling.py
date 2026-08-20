@@ -112,6 +112,21 @@ def _thread_count(record: BenchmarkRecord) -> int | None:
     return int(threads) if threads is not None else None
 
 
+def _tree_n_threads(record: BenchmarkRecord) -> int | None:
+    """The actual OpenMP thread count used to grow the trees (excluding
+    binning) - see `instrumented_hgb.py`. Absent on records captured before
+    that attribute existed, or on builds without thread-count tuning, in
+    which case it's just `_thread_count(record)`."""
+    return next(
+        (
+            run["attributes"]["tree_n_threads"]
+            for run in record.runs
+            if "tree_n_threads" in (run.get("attributes") or {})
+        ),
+        None,
+    )
+
+
 def _has_active_wait(record: BenchmarkRecord) -> bool:
     """Whether idle worker threads busy-spin instead of sleeping between
     parallel regions for this record's run - see
@@ -258,9 +273,11 @@ def _workload_subtitle(record: BenchmarkRecord) -> str:
     number of boosting iterations run (from the fitted estimator's
     `n_iter_`), not the `max_iter` param - the two only diverge when
     `early_stopping` is on, but reading the real value avoids being wrong in
-    that case. `tree_n_threads` is the actual OpenMP thread count used to grow
-    the trees (excluding binning), which can be lower than `OMP_NUM_THREADS`
-    on branches that size it down for small workloads."""
+    that case. The actual tree-growing thread count (`tree_n_threads`, which
+    can be lower than `OMP_NUM_THREADS` on branches that size it down for
+    small workloads) varies per thread-count point within a workload, so
+    it's shown in the x-axis tick labels instead (see `render_env_page`),
+    not here."""
     estimator_params = record.case.get("algorithm", {}).get("estimator_params", {})
     parts = []
     n_iter = next(
@@ -273,16 +290,6 @@ def _workload_subtitle(record: BenchmarkRecord) -> str:
     )
     if n_iter is not None:
         parts.append(f"n_iter={n_iter}")
-    tree_n_threads = next(
-        (
-            run["attributes"]["tree_n_threads"]
-            for run in record.runs
-            if "tree_n_threads" in (run.get("attributes") or {})
-        ),
-        None,
-    )
-    if tree_n_threads is not None:
-        parts.append(f"tree_n_threads={tree_n_threads}")
     max_leaf_nodes = estimator_params.get("max_leaf_nodes")
     if max_leaf_nodes is not None:
         parts.append(f"max_leaf_nodes={max_leaf_nodes}")
@@ -315,7 +322,12 @@ def _legend_html() -> str:
         f"{PHASE_LABELS[phase]}</span>"
         for phase in PHASE_ORDER
     )
-    return f'<div class="phase-legend">{items}</div>'
+    axis_note = (
+        '<div class="plot-subtitle">x-axis: requested threads (OMP_NUM_THREADS)'
+        " - in parens, the actual thread count used to grow trees"
+        " (absent on records without that instrumentation)</div>"
+    )
+    return f'<div class="phase-legend">{items}</div>{axis_note}'
 
 
 def _env_summary_rows(records: list[BenchmarkRecord]) -> list[str]:
@@ -349,7 +361,16 @@ def render_env_page(records: list[BenchmarkRecord]) -> str:
             threads = _thread_count(record)
             if breakdown is None or threads is None:
                 continue
-            points.append({"x": threads, "phases": breakdown, "total_ms": breakdown["total_ms"]})
+            tree_n_threads = _tree_n_threads(record)
+            x_label = f"{threads} ({tree_n_threads})" if tree_n_threads is not None else str(threads)
+            points.append(
+                {
+                    "x": threads,
+                    "x_label": x_label,
+                    "phases": breakdown,
+                    "total_ms": breakdown["total_ms"],
+                }
+            )
         if not points:
             continue
         n_samples, n_features = _workload_size(by_workload[name][0])
@@ -437,7 +458,7 @@ if __name__ == "__main__":
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB fit-time breakdown (thread scaling)",
+        title="HGB fit-time breakdown (thread scalability)",
         rows=[render_hardware_tabs(pages)],
     )
     output = dashboard_output_path("hgb_scaling.html")
