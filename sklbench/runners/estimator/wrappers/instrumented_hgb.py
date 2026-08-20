@@ -31,6 +31,7 @@ class _HGBTTimings:
     compute_hist: float = 0.0
     find_split: float = 0.0
     apply_split: float = 0.0
+    tree_n_threads: int | None = None
 
 
 @_contextlib.contextmanager
@@ -88,6 +89,9 @@ def _instrument_hgbt(estimator):
                 super().__init__(*args, **kwargs)
             finally:
                 timings.grower_init += _time.perf_counter() - t0
+                # Set once per fit() call and reused across all boosting
+                # iterations/classes, so every TreeGrower sees the same value.
+                timings.tree_n_threads = self.n_threads
 
         def grow(self):
             t0 = _time.perf_counter()
@@ -143,6 +147,7 @@ class _InstrumentedHistGradientBoostingMixin:
         self.hist_time_ = timings.compute_hist
         self.find_split_time_ = timings.find_split
         self.apply_split_time_ = timings.apply_split
+        self.tree_n_threads_ = timings.tree_n_threads
         return result
 
 
