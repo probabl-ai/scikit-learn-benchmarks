@@ -244,20 +244,57 @@ def _openmp_env_value(info: dict, var_name: str) -> str | None:
     return None
 
 
-@lru_cache(maxsize=None)
-def ambient_gomp_spincount(software_hash: str) -> str | None:
-    """The `GOMP_SPINCOUNT` a build resolves to on its own, absent any
-    per-case override - from that build's captured `OMP_DISPLAY_ENV` dump.
-    libgomp picks its own default based on detected core topology, not a
-    single constant: observed "1" on this repo's (hybrid-core) laptop
-    runner vs "300000" on its (uniform-core) GNR server runner - so a case
-    that never sets `GOMP_SPINCOUNT` isn't necessarily free of active-wait
-    spinning, it depends on which machine it ran on."""
+def _effective_openmp_value(case_env: dict | None, info: dict, var_name: str) -> str | None:
+    """`var_name`'s effective value for a specific case: the case's own
+    `bench.env` override if it set one, else whatever the build resolved to
+    on its own (from its captured `OMP_DISPLAY_ENV` dump, `info`) - that
+    ambient default isn't a single constant (e.g. libgomp picks it based on
+    detected core topology), so a case that never overrides `var_name` isn't
+    necessarily free of active-wait spinning, it depends on which machine it
+    ran on."""
+    override = (case_env or {}).get(var_name)
+    return override if override is not None else _openmp_env_value(info, var_name)
+
+
+def effective_openmp_value(case_env: dict | None, software_hash: str, var_name: str) -> str | None:
+    """Same as `_effective_openmp_value`, reading `software_hash`'s captured
+    `OMP_DISPLAY_ENV` dump itself rather than taking it as an argument."""
     info = read_env("software", software_hash).get("openmp_runtime_info") or {}
-    return _openmp_env_value(info, "GOMP_SPINCOUNT")
+    return _effective_openmp_value(case_env, info, var_name)
 
 
-def _openmp_summary(env: dict) -> list[str]:
+# The libgomp/Intel-LLVM values that disable busy-wait spinning between
+# parallel regions - see `has_active_wait`.
+_NO_ACTIVE_WAIT_GOMP_SPINCOUNT = "1"
+_NO_ACTIVE_WAIT_KMP_BLOCKTIME = {"0", "0ms"}
+
+
+def has_active_wait(case_env: dict | None, software_hash: str) -> bool:
+    """Whether idle worker threads busy-spin instead of sleeping between
+    parallel regions, for a case running on `software_hash`. Checks
+    whichever busy-wait knob applies to that build's OpenMP runtime family
+    (`GOMP_SPINCOUNT` for GNU libgomp, `KMP_BLOCKTIME` for Intel/LLVM
+    OpenMP), using `case_env`'s (the case's `bench.env`) override when it
+    sets one, else the build's own resolved default. Unknown runtime
+    families default to True (assume active-wait), since neither knob
+    applies."""
+    family = openmp_runtime_family(software_hash)
+    if family == "GNU libgomp":
+        value = effective_openmp_value(case_env, software_hash, "GOMP_SPINCOUNT")
+        return value != _NO_ACTIVE_WAIT_GOMP_SPINCOUNT
+    if family == "Intel/LLVM OpenMP":
+        value = effective_openmp_value(case_env, software_hash, "KMP_BLOCKTIME")
+        return value not in _NO_ACTIVE_WAIT_KMP_BLOCKTIME
+    return True
+
+
+def active_wait_label_suffix(active_wait: bool) -> str:
+    """The shared tab-label suffix for whichever busy-wait knob
+    `has_active_wait` resolved for a given hardware/software combo."""
+    return "" if active_wait else " (no active wait)"
+
+
+def _openmp_summary(env: dict, case_env: dict | None = None) -> list[str]:
     info = env.get("openmp_runtime_info")
     if not info:
         return []
@@ -269,11 +306,14 @@ def _openmp_summary(env: dict) -> list[str]:
     summary = [label]
     # Busy-wait tuning knob, one or the other depending on runtime family -
     # how long idle threads spin before sleeping, a common source of
-    # thread-scaling differences between builds.
-    gomp_spincount = _openmp_env_value(info, "GOMP_SPINCOUNT")
+    # thread-scaling differences between builds. Reflects `case_env`'s
+    # override when it sets one, so the displayed value matches what
+    # `has_active_wait` actually decided for this case rather than just the
+    # build's ambient default.
+    gomp_spincount = _effective_openmp_value(case_env, info, "GOMP_SPINCOUNT")
     if gomp_spincount:
         summary.append(f"GOMP_SPINCOUNT: {gomp_spincount}")
-    kmp_blocktime = _openmp_env_value(info, "KMP_BLOCKTIME")
+    kmp_blocktime = _effective_openmp_value(case_env, info, "KMP_BLOCKTIME")
     if kmp_blocktime:
         summary.append(f"KMP_BLOCKTIME: {kmp_blocktime}")
     return summary
@@ -305,6 +345,7 @@ def summarize_software_env(
     implementation: Implementation,
     *,
     software_hash: str | None = None,
+    case_env: dict | None = None,
 ):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
@@ -322,7 +363,7 @@ def summarize_software_env(
         "python_version": python_version["version"],
         "packages": _package_versions(env, package_names),
         "threadpools": _threadpool_summary(env),
-        "openmp": _openmp_summary(env),
+        "openmp": _openmp_summary(env, case_env),
     }
     if software_hash is not None:
         out["software_env_json_url"] = software_env_json_url(software_hash)

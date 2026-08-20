@@ -27,7 +27,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dashboards.output import dashboard_output_path
 from sklbench.reporting.envs import (
-    ambient_gomp_spincount,
+    active_wait_label_suffix,
+    has_active_wait,
     read_env,
     software_build_name,
     summarize_hardware_env,
@@ -113,19 +114,15 @@ def _thread_count(record: BenchmarkRecord) -> int | None:
 
 def _has_active_wait(record: BenchmarkRecord) -> bool:
     """Whether idle worker threads busy-spin instead of sleeping between
-    parallel regions for this record's run. A case's `GOMP_SPINCOUNT`
-    override (if any) wins; absent one, the effective value is whatever
-    libgomp resolved to on its own for that build (`ambient_gomp_spincount`)
-    - that default isn't a single constant, so a case that never sets
-    `GOMP_SPINCOUNT` isn't necessarily free of active-wait spinning. Some
-    runs of the same hardware/software combo toggle the override (e.g.
+    parallel regions for this record's run - see
+    `sklbench.reporting.envs.has_active_wait` for the family-aware
+    (GOMP_SPINCOUNT/KMP_BLOCKTIME) override-or-ambient logic. Some runs of
+    the same hardware/software combo toggle the override (e.g.
     `hgb_scaling_laptop.py` disabling it), so this has to be part of the
     tab/dedup identity below - otherwise a with/without-override pair for
     the same workload and thread count would collide as if they were reruns
     of each other."""
-    override = _raw_bench_env(record).get("GOMP_SPINCOUNT")
-    value = override if override is not None else ambient_gomp_spincount(record.software_hash)
-    return value == "300000"
+    return has_active_wait(_raw_bench_env(record), record.software_hash)
 
 
 def _fit_within_budget(values: dict[str, float], budget: float) -> tuple[dict[str, float], float]:
@@ -261,7 +258,9 @@ def _workload_subtitle(record: BenchmarkRecord) -> str:
     number of boosting iterations run (from the fitted estimator's
     `n_iter_`), not the `max_iter` param - the two only diverge when
     `early_stopping` is on, but reading the real value avoids being wrong in
-    that case."""
+    that case. `tree_n_threads` is the actual OpenMP thread count used to grow
+    the trees (excluding binning), which can be lower than `OMP_NUM_THREADS`
+    on branches that size it down for small workloads."""
     estimator_params = record.case.get("algorithm", {}).get("estimator_params", {})
     parts = []
     n_iter = next(
@@ -274,6 +273,16 @@ def _workload_subtitle(record: BenchmarkRecord) -> str:
     )
     if n_iter is not None:
         parts.append(f"n_iter={n_iter}")
+    tree_n_threads = next(
+        (
+            run["attributes"]["tree_n_threads"]
+            for run in record.runs
+            if "tree_n_threads" in (run.get("attributes") or {})
+        ),
+        None,
+    )
+    if tree_n_threads is not None:
+        parts.append(f"tree_n_threads={tree_n_threads}")
     max_leaf_nodes = estimator_params.get("max_leaf_nodes")
     if max_leaf_nodes is not None:
         parts.append(f"max_leaf_nodes={max_leaf_nodes}")
@@ -317,6 +326,7 @@ def _env_summary_rows(records: list[BenchmarkRecord]) -> list[str]:
         read_env("software", software_hash),
         records[0].implementation,
         software_hash=software_hash,
+        case_env=_raw_bench_env(records[0]),
     )
     return [
         HARDWARE_TEMPLATE.render(hardware_summary),
@@ -398,10 +408,10 @@ def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool]:
 
 def _env_label(hardware_hash: str, software_hash: str, active_wait: bool) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
-    label = f"{hardware_label} — {software_build_name(software_hash)}"
-    if hardware_label == "Laptop" and not active_wait:
-        label += " (no active wait)"
-    return label
+    return (
+        f"{hardware_label} — {software_build_name(software_hash)}"
+        f"{active_wait_label_suffix(active_wait)}"
+    )
 
 
 if __name__ == "__main__":

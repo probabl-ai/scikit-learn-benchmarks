@@ -45,12 +45,14 @@ from dashboards.gen_hgb_scaling import (
     _has_active_wait,
     _is_instrumented_hgb,
     _phase_breakdown_ms,
+    _raw_bench_env,
     _thread_count,
     _workload_name,
     _workload_size,
 )
 from dashboards.output import dashboard_output_path
 from sklbench.reporting.envs import (
+    active_wait_label_suffix,
     openmp_runtime_family,
     read_env,
     software_build_name,
@@ -282,6 +284,7 @@ def _software_summary(build_name: str, record: BenchmarkRecord) -> dict:
         read_env("software", record.software_hash),
         record.implementation,
         software_hash=record.software_hash,
+        case_env=_raw_bench_env(record),
     )
     # Baseline and every variant are typically the same `implementation`
     # (e.g. plain "sklearn"), so the default name would collide across
@@ -383,10 +386,7 @@ def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool]:
 def _env_label(hardware_hash: str, openmp_family: str, active_wait: bool) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
     family_label = _OPENMP_FAMILY_SHORT.get(openmp_family, openmp_family)
-    label = f"{hardware_label} ({family_label})"
-    if not active_wait:
-        label += " (no active wait)"
-    return label
+    return f"{hardware_label} ({family_label}){active_wait_label_suffix(active_wait)}"
 
 
 if __name__ == "__main__":
