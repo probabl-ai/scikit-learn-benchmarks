@@ -2,9 +2,16 @@
 sklearn-dev build and the scikit-learn `main` sklearn-dev baseline, both
 benchmarked on the same self-hosted runner in one CI job.
 
-Unlike the other gen_*.py dashboards, `results/` here is an ephemeral,
+Deliberately named without the "gen_" prefix the other dashboards/gen_*.py
+scripts share, so it's excluded from the loops that regenerate every
+gen_*.py dashboard from the repo's full committed results/ (dashboard-pages.yml,
+dashboard-preview-build.yml, watch_dashboards.py, CONTRIBUTING.md's local
+preview instructions) - this script's `results/` is instead an ephemeral,
 CI-produced directory (see .github/workflows/pr-comparison.yml) containing
-only the two runs being compared - there's exactly one hardware_hash, one
+only the two runs being compared, and it would fail loudly if pointed at
+the real one (see below).
+
+Unlike those other dashboards, there's exactly one hardware_hash, one
 config, and exactly two sklearn-dev builds. This script assumes that shape
 rather than defending against the general multi-hardware/multi-build case
 the other dashboards handle: its only caller is that one CI job, so a shape

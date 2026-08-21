@@ -141,7 +141,7 @@ jobs:
         # The `runner` context (unlike the $RUNNER_TEMP env var it mirrors)
         # is only available within steps, not in a job-level `env:` block -
         # so RESULTS_DIR/SITE_DIR are computed here instead. Basename of
-        # RESULTS_DIR must stay literally "results": gen_pr_comparison.py's
+        # RESULTS_DIR must stay literally "results": pr_comparison_dashboard.py's
         # readers default to a `results/` directory relative to the CWD
         # it's invoked from, and the "Generate comparison dashboard" step's
         # working-directory is RESULTS_DIR's parent. Kept under
@@ -213,13 +213,13 @@ jobs:
 
       - name: Generate comparison dashboard
         # working-directory is RESULTS_DIR's parent, so its bare `results/`
-        # subdirectory is exactly what gen_pr_comparison.py's readers pick
+        # subdirectory is exactly what pr_comparison_dashboard.py's readers pick
         # up by default (see the RESULTS_DIR comment above).
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
           mkdir -p "$SITE_DIR"
           pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
-            python "$GITHUB_WORKSPACE/dashboards/gen_pr_comparison.py" --output-dir "$SITE_DIR"
+            python "$GITHUB_WORKSPACE/dashboards/pr_comparison_dashboard.py" --output-dir "$SITE_DIR"
 
       - name: Deploy to Cloudflare Pages
         id: deploy
