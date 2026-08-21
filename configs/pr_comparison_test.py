@@ -2,6 +2,9 @@
 benchmark flow (.github/workflows/pr-comparison.yml) end to end quickly -
 small enough to fit+predict in well under a second per run, not meant to
 produce representative benchmark numbers.
+
+Exercised live in https://github.com/probabl-ai/scikit-learn-benchmarks/pull/29
+and its end-to-end follow-up test PR.
 """
 
 
