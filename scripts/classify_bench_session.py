@@ -40,6 +40,14 @@ def split_by_env(log_text: str) -> dict[str, list[str]]:
     for line in log_text.splitlines():
         header = ENV_HEADER_RE.match(line)
         if header:
+            # run.sh also prints a header in this same "=== pixi run ... ==="
+            # form for its pre-flight `--validate-only` config check, which
+            # isn't a real per-environment benchmark session and never emits
+            # progress output. Treat it as a comment rather than a session
+            # boundary so it doesn't get misclassified as a crashed env.
+            if "--validate-only" in line:
+                current_env = None
+                continue
             current_env = header.group(1)
             sessions.setdefault(current_env, [])
             continue
