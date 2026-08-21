@@ -20,3 +20,6 @@ data_cache/
 
 _site/
 dashboards/*.html
+
+# Local wrangler CLI cache/config (Cloudflare Pages deploys)
+.wrangler/

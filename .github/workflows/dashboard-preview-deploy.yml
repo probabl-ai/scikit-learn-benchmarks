@@ -1,0 +1,96 @@
+name: Dashboard Preview Deploy
+
+on:
+  workflow_run:
+    workflows: ["Dashboard Preview Build"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read # needed to fetch artifacts from the triggering run
+
+concurrency:
+  group: dashboard-preview-deploy-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        # No `ref:` override - this checks out the workflow's own trusted
+        # branch (main). This job never checks out or executes the PR
+        # head; it only reads the static artifacts the build job produced.
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          lfs: false
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: reporting
+          locked: false
+          frozen: true
+          cache: true
+
+      - name: Download preview artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: "dashboard-preview-*"
+          path: ${{ runner.temp }}/preview
+
+      - name: Read metadata
+        id: meta
+        run: |
+          meta="${{ runner.temp }}/preview/dashboard-preview-meta/meta.json"
+          pr_number=$(python3 -c "import json;print(json.load(open('$meta'))['pr_number'])")
+          head_sha=$(python3 -c "import json;print(json.load(open('$meta'))['head_sha'])")
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "branch=pr-$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BRANCH: ${{ steps.meta.outputs.branch }}
+          HEAD_SHA: ${{ steps.meta.outputs.head_sha }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+        run: |
+          npx --yes wrangler@4 pages deploy "${{ runner.temp }}/preview/dashboard-preview-site" \
+            --project-name=sklbench-dashboard-preview \
+            --branch="$BRANCH" \
+            --commit-hash="$HEAD_SHA" \
+            --commit-message="PR #$PR_NUMBER preview" \
+            --commit-dirty=true
+
+      - name: Build comment body
+        env:
+          BRANCH: ${{ steps.meta.outputs.branch }}
+          HEAD_SHA: ${{ steps.meta.outputs.head_sha }}
+        run: |
+          # Cloudflare Pages branch-alias URLs are deterministic:
+          # https://<sanitized-branch>.<project>.pages.dev. "pr-<n>" is
+          # already lowercase/alnum/hyphen and well under Cloudflare's
+          # alias length limit, so no sanitization/truncation applies and
+          # there's no need to scrape wrangler's stdout for the URL.
+          url="https://${BRANCH}.sklbench-dashboard-preview.pages.dev"
+          printf 'Dashboard preview: %s\n\nBuilt from `%s` at commit `%s`.\n' \
+            "$url" "$BRANCH" "$HEAD_SHA" > "${{ runner.temp }}/comment.md"
+
+      - name: Comment on PR
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+        run: |
+          pixi run --frozen -e reporting python scripts/comment_pr.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --pr-number "$PR_NUMBER" \
+            --marker "<!-- dashboard-preview-bot -->" \
+            --body-file "${{ runner.temp }}/comment.md"

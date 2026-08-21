@@ -1,0 +1,85 @@
+name: Dashboard Preview Build
+
+on:
+  pull_request:
+    paths:
+      - "dashboards/**"
+      - "sklbench/reporting/**"
+      - "results/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-preview-build-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          lfs: false
+          # This checks out and runs untrusted PR code (may be from a
+          # fork). No secrets are available to this job, but don't leave a
+          # git-credential token around for it to find either.
+          persist-credentials: false
+
+      - name: Cache Git LFS objects
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('results/records/**', 'results/hardware-envs/**', 'results/software-envs/**') }}
+          restore-keys: |
+            lfs-
+
+      - name: Pull needed LFS objects
+        run: |
+          git lfs pull --include "results/records/**,results/hardware-envs/**,results/software-envs/**"
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: reporting
+          locked: false
+          frozen: true
+          cache: true
+
+      - name: Generate dashboards
+        run: |
+          mkdir -p _site
+          for script in dashboards/gen_*.py; do
+            pixi run --frozen -e reporting python "$script" --output-dir _site
+          done
+
+      - name: Write preview metadata
+        # PR number and head SHA only, read from the trusted event payload
+        # (not PR title/body free text) via env: rather than inlined into
+        # the script - this step runs after dashboard generation so
+        # nothing from the untrusted checkout can tamper with it.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir -p _preview-meta
+          printf '{"pr_number": %s, "head_sha": "%s"}\n' "$PR_NUMBER" "$HEAD_SHA" \
+            > _preview-meta/meta.json
+          cat _preview-meta/meta.json
+
+      - name: Upload dashboard site artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dashboard-preview-site
+          path: _site
+          retention-days: 7
+
+      - name: Upload preview metadata artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dashboard-preview-meta
+          path: _preview-meta
+          retention-days: 7
