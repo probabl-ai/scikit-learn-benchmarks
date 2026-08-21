@@ -223,6 +223,7 @@ def detailed_results_table_html(
     failed_records: list[tuple[BenchmarkRecord, str]] = (),
     unmatched_base_results: list[MethodResult] = (),
     unmatched_candidate_results: list[MethodResult] = (),
+    open: bool = False,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set()
@@ -368,23 +369,31 @@ def detailed_results_table_html(
 
     table_id = f"detailed-results-{next(table_ids)}"
     reset_button_id = f"{table_id}-reset"
-    return f"""<details class="detailed-results">
+    init_call = (
+        f'sklbenchInitTable("{table_id}", {_safe_json(rows)}, '
+        f'{_safe_json(columns)}, "{reset_button_id}");'
+    )
+    # `<details open>` alone doesn't fire a "toggle" event on page load, so
+    # an eagerly-visible table needs the init call to run unconditionally
+    # instead of waiting on that event - a real code-path difference, not
+    # just a markup attribute.
+    script = (
+        f"<script>{init_call}</script>"
+        if open
+        else f"""<script>
+    document.currentScript.closest("details").addEventListener("toggle", (event) => {{
+      if (!event.target.open) {{
+        return;
+      }}
+      {init_call}
+    }}, {{once: true}});
+  </script>"""
+    )
+    return f"""<details class="detailed-results"{" open" if open else ""}>
   <summary>Detailed results</summary>
   <div class="detailed-results-toolbar" hidden>
     <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row filter" aria-label="Clear row filter">x</button>
   </div>
   <div id="{table_id}" class="detailed-results-table"></div>
-  <script>
-    document.currentScript.closest("details").addEventListener("toggle", (event) => {{
-      if (!event.target.open) {{
-        return;
-      }}
-      sklbenchInitTable(
-        "{table_id}",
-        {_safe_json(rows)},
-        {_safe_json(columns)},
-        "{reset_button_id}"
-      );
-    }}, {{once: true}});
-  </script>
+  {script}
 </details>"""
