@@ -253,7 +253,11 @@ jobs:
         run: |
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ "$DEPLOY_OUTCOME" = "success" ] && [ -f "$SITE_DIR/pr_comparison.html" ]; then
-            url="https://pr-${PR_NUMBER}-compare-${{ matrix.runner }}.sklbench-pr-comparison.pages.dev"
+            # The site has no index.html (only pr_comparison.html), so the
+            # bare domain 404s - link straight to the page. Cloudflare
+            # Pages' clean-URL rewriting would redirect .html to this same
+            # extension-less path anyway.
+            url="https://pr-${PR_NUMBER}-compare-${{ matrix.runner }}.sklbench-pr-comparison.pages.dev/pr_comparison"
             {
               echo "**${{ matrix.runner }}**: scikit-learn PR #$SKLEARN_PR vs \`main\`, config \`$CONFIG\`"
               echo
