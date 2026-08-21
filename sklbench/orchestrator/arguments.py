@@ -34,6 +34,17 @@ def add_orchestrator_arguments(
             "pre-filling the dataset cache and for validating configs."
         ),
     )
+    parser.add_argument(
+        "--validate-only",
+        default=False,
+        action="store_true",
+        help=(
+            "Load and validate every case from the given config(s), then "
+            "exit without loading datasets or running benchmarks. Fast "
+            "sanity check for config changes (schema errors, bad env "
+            "values, generate_cases() exceptions)."
+        ),
+    )
     return parser
 
 

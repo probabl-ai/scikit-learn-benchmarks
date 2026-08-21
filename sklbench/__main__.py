@@ -34,6 +34,13 @@ def main():
         case for config in args.config for case in load_cases_from_script(config)
     ]
 
+    if args.validate_only:
+        print(
+            f"OK: {len(bench_cases)} case(s) loaded and validated from "
+            f"{len(args.config)} config(s): {', '.join(args.config)}"
+        )
+        return 0
+
     if args.load_datasets_only:
         return load_datasets_only(bench_cases, args)
 

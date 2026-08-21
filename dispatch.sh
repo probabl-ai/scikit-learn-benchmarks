@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/scripts/pixi_env_check.sh"
+
 usage() {
     echo "Usage: $0 env1 [env2 ...] --config PATH [--runner RUNNER] [--ref REF]" >&2
     echo "  Triggers the 'Run Benchmarks' workflow (.github/workflows/run-benchmarks.yml)" >&2
@@ -69,7 +72,32 @@ if [ -z "$config" ]; then
     exit 2
 fi
 
+echo "=== pixi run --frozen -e default python -m sklbench --config $config --validate-only ===" >&2
+if ! pixi run --frozen -e default python -m sklbench --config "$config" --validate-only; then
+    echo "error: config validation failed, aborting before dispatching the workflow" >&2
+    exit 1
+fi
+
 env_input="${envs[*]}"
+
+status=0
+for env_spec in $env_input; do
+    # "[all]" / "[builds]" are special tokens resolved server-side, per
+    # runner, by run-benchmarks.yml - nothing to check locally.
+    if [[ "$env_spec" == \[*\] ]]; then
+        continue
+    fi
+
+    env="${env_spec%%@*}"
+    if ! pixi_env_exists "$env"; then
+        echo "error: '$env' is not a pixi environment defined in pixi.toml (parsed from '$env_spec')" >&2
+        status=1
+    fi
+done
+
+if [ "$status" -ne 0 ]; then
+    exit 1
+fi
 
 if [ -z "$ref" ]; then
     ref="$(git rev-parse --abbrev-ref HEAD)"
