@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  gate-and-resolve:
+  gate_and_resolve:
     # Only PRs from people who already have workflow_dispatch access to
     # run-benchmarks.yml (with equally arbitrary env@owner:ref/config
     # inputs) can trigger a self-hosted benchmark run this way - no new
@@ -112,12 +112,12 @@ jobs:
         run: exit 1
 
   benchmark-and-publish:
-    needs: gate-and-resolve
-    if: needs.gate-and-resolve.outputs.parse_ok == 'true' && needs.gate-and-resolve.outputs.resolve_ok == 'true'
+    needs: gate_and_resolve
+    if: needs.gate_and_resolve.outputs.parse_ok == 'true' && needs.gate_and_resolve.outputs.resolve_ok == 'true'
     strategy:
       fail-fast: false
       matrix:
-        runner: ${{ fromJSON(needs.gate-and-resolve.outputs.runners) }}
+        runner: ${{ fromJSON(needs.gate_and_resolve.outputs.runners) }}
     # Deliberately the SAME group name run-benchmarks.yml uses for a given
     # runner, not a PR-scoped one: both workflows mutate the single shared
     # sklearn-src/ checkout on that physical box via setup_sklearn_ref.sh
@@ -141,14 +141,14 @@ jobs:
       RESULTS_DIR: ${{ runner.temp }}/pr-compare/results
       SITE_DIR: ${{ runner.temp }}/pr-compare/site
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      CONFIG: ${{ needs.gate-and-resolve.outputs.config }}
-      SKLEARN_PR: ${{ needs.gate-and-resolve.outputs.sklearn_pr_number }}
-      SKLEARN_CLONE_URL: ${{ needs.gate-and-resolve.outputs.sklearn_clone_url }}
-      SKLEARN_HEAD_REF: ${{ needs.gate-and-resolve.outputs.sklearn_head_ref }}
+      CONFIG: ${{ needs.gate_and_resolve.outputs.config }}
+      SKLEARN_PR: ${{ needs.gate_and_resolve.outputs.sklearn_pr_number }}
+      SKLEARN_CLONE_URL: ${{ needs.gate_and_resolve.outputs.sklearn_clone_url }}
+      SKLEARN_HEAD_REF: ${{ needs.gate_and_resolve.outputs.sklearn_head_ref }}
     steps:
       - name: Check out repository
         # Default pull_request checkout (merge of PR head into base) is
-        # intentional here, unlike gate-and-resolve's base-pinned checkout:
+        # intentional here, unlike gate_and_resolve's base-pinned checkout:
         # `config:` may point at a config file this very PR adds. Same
         # trust level workflow_dispatch on run-benchmarks.yml already
         # assumes for a collaborator's branch.
@@ -196,12 +196,12 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/bench-main.log"
 
       - name: Classify PR-branch run
-        id: classify-pr
+        id: classify_pr
         continue-on-error: true
         run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench-pr.log"
 
       - name: Classify main run
-        id: classify-main
+        id: classify_main
         continue-on-error: true
         run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench-main.log"
 
@@ -231,8 +231,8 @@ jobs:
       - name: Build and post comment
         if: always()
         env:
-          CLASSIFY_PR: ${{ steps.classify-pr.outcome }}
-          CLASSIFY_MAIN: ${{ steps.classify-main.outcome }}
+          CLASSIFY_PR: ${{ steps.classify_pr.outcome }}
+          CLASSIFY_MAIN: ${{ steps.classify_main.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
