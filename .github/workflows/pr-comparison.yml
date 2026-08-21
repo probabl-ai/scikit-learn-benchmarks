@@ -1,0 +1,262 @@
+name: PR Comparison
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  gate-and-resolve:
+    # Only PRs from people who already have workflow_dispatch access to
+    # run-benchmarks.yml (with equally arbitrary env@owner:ref/config
+    # inputs) can trigger a self-hosted benchmark run this way - no new
+    # risk class versus what's already accepted in this repo.
+    if: contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    outputs:
+      parse_ok: ${{ steps.parse.outputs.ok }}
+      resolve_ok: ${{ steps.resolve.outputs.ok }}
+      config: ${{ steps.parse.outputs.config }}
+      runners: ${{ steps.parse.outputs.runners }}
+      sklearn_pr_number: ${{ steps.parse.outputs.sklearn_pr_number }}
+      sklearn_clone_url: ${{ steps.resolve.outputs.clone_url }}
+      sklearn_head_ref: ${{ steps.resolve.outputs.head_ref }}
+    steps:
+      - name: Check out repository (base, trusted)
+        # Pinned to the base sha, not the PR head, so parsing/resolving
+        # always runs the trusted version of these scripts - this job never
+        # executes PR-supplied code.
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: reporting
+          locked: false
+          frozen: true
+          cache: true
+
+      - name: Save PR body
+        # Never interpolate the PR body directly into a `run:` script
+        # string (Actions would template it into the script text before
+        # the shell even runs - a script-injection vector). Passing it via
+        # env: and letting the shell substitute the variable is safe.
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr_body.md"
+
+      - name: Parse sklbench-compare directive
+        id: parse
+        run: |
+          pixi run --frozen -e reporting python scripts/parse_compare_directive.py \
+            --body-file "$RUNNER_TEMP/pr_body.md" --github-output "$GITHUB_OUTPUT"
+
+      - name: Reject fork PRs once a directive is present
+        # pull_request runs withhold secrets and a write-scoped GITHUB_TOKEN
+        # whenever the PR's head repo differs from the base repo,
+        # regardless of author_association - so a directive on a fork PR
+        # could benchmark but could never comment or deploy. Fail loudly via
+        # the only channel available (a check annotation) instead of
+        # silently doing nothing.
+        if: steps.parse.outputs.directive_present == 'true' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "::error::sklbench-compare requires a branch pushed directly to this repo, not a personal fork - GitHub withholds secrets/write-token from fork PRs regardless of permissions, so no comment or dashboard could be posted. Push your branch to scikit-learn-benchmarks directly instead." >&2
+          exit 1
+
+      - name: Resolve scikit-learn PR
+        id: resolve
+        if: steps.parse.outputs.ok == 'true'
+        run: |
+          pixi run --frozen -e reporting python scripts/resolve_sklearn_pr.py \
+            --pr-number "${{ steps.parse.outputs.sklearn_pr_number }}" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Build and post status comment
+        if: steps.parse.outputs.directive_present == 'true'
+        env:
+          PARSE_OK: ${{ steps.parse.outputs.ok }}
+          PARSE_ERROR: ${{ steps.parse.outputs.error }}
+          RESOLVE_OK: ${{ steps.resolve.outputs.ok }}
+          RESOLVE_ERROR: ${{ steps.resolve.outputs.error }}
+          CONFIG: ${{ steps.parse.outputs.config }}
+          RUNNERS: ${{ steps.parse.outputs.runners }}
+          SKLEARN_PR: ${{ steps.parse.outputs.sklearn_pr_number }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          {
+            if [ "$PARSE_OK" != "true" ]; then
+              echo "**sklbench-compare directive is malformed:**"; echo; echo "$PARSE_ERROR"
+            elif [ "$RESOLVE_OK" != "true" ]; then
+              echo "**Could not resolve scikit-learn PR #$SKLEARN_PR:**"; echo; echo "$RESOLVE_ERROR"
+            else
+              echo "Comparing scikit-learn PR #$SKLEARN_PR against \`main\` using \`$CONFIG\` on: $RUNNERS."
+              echo "Results post as separate comments below as each runner finishes."
+            fi
+          } > "$RUNNER_TEMP/status.md"
+          pixi run --frozen -e reporting python scripts/comment_pr.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --pr-number "${{ github.event.pull_request.number }}" \
+            --marker "<!-- bench-comparison-bot -->" \
+            --body-file "$RUNNER_TEMP/status.md"
+
+      - name: Fail if directive invalid
+        if: steps.parse.outputs.directive_present == 'true' && (steps.parse.outputs.ok != 'true' || steps.resolve.outputs.ok != 'true')
+        run: exit 1
+
+  benchmark-and-publish:
+    needs: gate-and-resolve
+    if: needs.gate-and-resolve.outputs.parse_ok == 'true' && needs.gate-and-resolve.outputs.resolve_ok == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.gate-and-resolve.outputs.runners) }}
+    # Deliberately the SAME group name run-benchmarks.yml uses for a given
+    # runner, not a PR-scoped one: both workflows mutate the single shared
+    # sklearn-src/ checkout on that physical box via setup_sklearn_ref.sh
+    # and must serialize against each other, not just against themselves.
+    concurrency:
+      group: benchmark-${{ matrix.runner }}
+      cancel-in-progress: false
+    runs-on: ${{ fromJSON(
+      matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
+      matrix.runner == 'intel-gnr' && '["Linux","X64","intel-gnr"]' ||
+      '[]') }}
+    timeout-minutes: 1440
+    env:
+      # gen_pr_comparison.py's readers default to a `results/` directory
+      # relative to the CWD it's invoked from - SCRATCH_DIR's basename must
+      # stay literally "results" so the "Generate comparison dashboard"
+      # step's working-directory (SCRATCH_DIR's parent) resolves it. Kept
+      # under runner.temp, well outside the git checkout, so it's immune to
+      # this job's own `git clean -ffdx results/` step and never collides
+      # with the repo's real (committed, unused-by-this-job) results/.
+      RESULTS_DIR: ${{ runner.temp }}/pr-compare/results
+      SITE_DIR: ${{ runner.temp }}/pr-compare/site
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      CONFIG: ${{ needs.gate-and-resolve.outputs.config }}
+      SKLEARN_PR: ${{ needs.gate-and-resolve.outputs.sklearn_pr_number }}
+      SKLEARN_CLONE_URL: ${{ needs.gate-and-resolve.outputs.sklearn_clone_url }}
+      SKLEARN_HEAD_REF: ${{ needs.gate-and-resolve.outputs.sklearn_head_ref }}
+    steps:
+      - name: Check out repository
+        # Default pull_request checkout (merge of PR head into base) is
+        # intentional here, unlike gate-and-resolve's base-pinned checkout:
+        # `config:` may point at a config file this very PR adds. Same
+        # trust level workflow_dispatch on run-benchmarks.yml already
+        # assumes for a collaborator's branch.
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          lfs: false
+          clean: false
+
+      - name: Clean up results from previous runs
+        run: git clean -ffdx results/
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: reporting
+          locked: false
+          frozen: true
+          cache: false
+          post-cleanup: false
+          pixi-bin-path: ${{ runner.temp }}/bin/pixi
+
+      - name: Clear preprocessed dataset cache
+        run: rm -rf "${SKLBENCH_DATA_CACHE:-data_cache}/preprocessed"
+
+      - name: Validate config
+        run: pixi run --frozen -e reporting python -m sklbench --config "$CONFIG" --validate-only
+
+      - name: Set up scikit-learn PR branch
+        run: ./scripts/setup_sklearn_ref.sh --remote "$SKLEARN_CLONE_URL" --ref "$SKLEARN_HEAD_REF" --env sklearn-dev
+
+      - name: Run benchmark (PR branch)
+        continue-on-error: true
+        run: |
+          pixi run --frozen -e sklearn-dev python -m sklbench --config "$CONFIG" --results-dir "$RESULTS_DIR" \
+            2>&1 | tee "$RUNNER_TEMP/bench-pr.log"
+
+      - name: Set up scikit-learn main
+        run: ./scripts/setup_sklearn_ref.sh --remote https://github.com/scikit-learn/scikit-learn.git --ref main --env sklearn-dev
+
+      - name: Run benchmark (main)
+        continue-on-error: true
+        run: |
+          pixi run --frozen -e sklearn-dev python -m sklbench --config "$CONFIG" --results-dir "$RESULTS_DIR" \
+            2>&1 | tee "$RUNNER_TEMP/bench-main.log"
+
+      - name: Classify PR-branch run
+        id: classify-pr
+        continue-on-error: true
+        run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench-pr.log"
+
+      - name: Classify main run
+        id: classify-main
+        continue-on-error: true
+        run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench-main.log"
+
+      - name: Generate comparison dashboard
+        # working-directory is RESULTS_DIR's parent, so its bare `results/`
+        # subdirectory is exactly what gen_pr_comparison.py's readers pick
+        # up by default (see the RESULTS_DIR comment above).
+        working-directory: ${{ runner.temp }}/pr-compare
+        run: |
+          mkdir -p "$SITE_DIR"
+          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
+            python "$GITHUB_WORKSPACE/dashboards/gen_pr_comparison.py" --output-dir "$SITE_DIR"
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          branch="pr-${PR_NUMBER}-compare-${{ matrix.runner }}"
+          npx --yes wrangler@4 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
+            --commit-hash="${{ github.event.pull_request.head.sha }}" \
+            --commit-message="PR #$PR_NUMBER vs scikit-learn PR #$SKLEARN_PR (${{ matrix.runner }})" \
+            --commit-dirty=true
+
+      - name: Build and post comment
+        if: always()
+        env:
+          CLASSIFY_PR: ${{ steps.classify-pr.outcome }}
+          CLASSIFY_MAIN: ${{ steps.classify-main.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ "$DEPLOY_OUTCOME" = "success" ] && [ -f "$SITE_DIR/pr_comparison.html" ]; then
+            url="https://pr-${PR_NUMBER}-compare-${{ matrix.runner }}.sklbench-pr-comparison.pages.dev"
+            {
+              echo "**${{ matrix.runner }}**: scikit-learn PR #$SKLEARN_PR vs \`main\`, config \`$CONFIG\`"
+              echo
+              echo "Dashboard: $url"
+              [ "$CLASSIFY_PR" != "success" ] && echo "- Caveat: PR-branch run session did not complete cleanly."
+              [ "$CLASSIFY_MAIN" != "success" ] && echo "- Caveat: main run session did not complete cleanly."
+              echo
+              echo "Full run: $run_url"
+            } > "$RUNNER_TEMP/comment.md"
+          else
+            {
+              echo "**${{ matrix.runner }}**: comparison run for scikit-learn PR #$SKLEARN_PR failed before a dashboard could be published."
+              echo
+              echo "See the full run: $run_url"
+            } > "$RUNNER_TEMP/comment.md"
+          fi
+          pixi run --frozen -e reporting python scripts/comment_pr.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --pr-number "$PR_NUMBER" \
+            --marker "<!-- bench-comparison-bot:${{ matrix.runner }} -->" \
+            --body-file "$RUNNER_TEMP/comment.md"
