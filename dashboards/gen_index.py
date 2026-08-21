@@ -8,6 +8,10 @@ from sklbench.reporting.html import BASE_TEMPLATE
 
 
 DASHBOARDS = [
+    ("Hardware comparison", "hardware_comparisons.html"),
+    ("Software/implementations comparison", "per_hardware.html"),
+    ("Builds comparison", "builds_comparison.html"),
+    ("sklearn-dev builds comparison (1.9 vs main)", "sklearn_dev_comparison.html"),
     ("HGB thread-scalability breakdown", "hgb_scaling.html"),
     ("HGB build scalability comparison", "hgb_build_scaling.html"),
     ("HGB speed-up breakdown", "hgb_speedup_breakdown.html"),
