@@ -8,7 +8,7 @@ def generate_cases() -> list[dict]:
             "bench": {
                 "n_runs": 3,
                 "env": {
-                    "OMP_PROC_BIND": True,
+                    "OMP_PROC_BIND": "true",
                     "OMP_NUM_THREADS": case["bench"]["env"]["OMP_NUM_THREADS"],
                 },
                 "py_spy_profiling": False,
