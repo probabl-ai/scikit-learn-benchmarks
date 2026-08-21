@@ -97,7 +97,11 @@ jobs:
             elif [ "$RESOLVE_OK" != "true" ]; then
               echo "**Could not resolve scikit-learn PR #$SKLEARN_PR:**"; echo; echo "$RESOLVE_ERROR"
             else
-              echo "Comparing scikit-learn PR #$SKLEARN_PR against \`main\` using \`$CONFIG\` on: $RUNNERS."
+              # RUNNERS is the JSON array string parse_compare_directive.py
+              # writes (e.g. ["intel-laptop"]) - render it as a plain
+              # comma-separated list instead.
+              runners_display=$(python3 -c "import json,sys; print(', '.join(json.loads(sys.argv[1])))" "$RUNNERS")
+              echo "Comparing scikit-learn PR #$SKLEARN_PR against \`main\` using \`$CONFIG\` on: $runners_display."
               echo "Results post as separate comments below as each runner finishes."
             fi
           } > "$RUNNER_TEMP/status.md"
@@ -229,7 +233,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           branch="pr-${PR_NUMBER}-compare-${{ matrix.runner }}"
-          npx --yes wrangler@4 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
+          # wrangler@4 requires Node >=22; this step runs on persistent
+          # self-hosted runners (unlike dashboard-preview-deploy.yml's
+          # GitHub-hosted ubuntu-latest, which does have a modern enough
+          # Node) whose Node version isn't managed by this repo - confirmed
+          # live on intel-laptop (Node 18.19.1). wrangler@3 needs only
+          # Node >=16.17.0 and has the identical `pages deploy` flags used
+          # here.
+          npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
             --commit-hash="${{ github.event.pull_request.head.sha }}" \
             --commit-message="PR #$PR_NUMBER vs scikit-learn PR #$SKLEARN_PR (${{ matrix.runner }})" \
             --commit-dirty=true
