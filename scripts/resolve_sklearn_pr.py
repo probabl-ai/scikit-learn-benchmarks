@@ -1,14 +1,15 @@
 """
-Resolve a scikit-learn PR number to its source fork's clone URL and branch,
-via the GitHub REST API directly (urllib, stdlib only) - same rationale as
+Resolve a scikit-learn PR number to its source fork's owner and branch, via
+the GitHub REST API directly (urllib, stdlib only) - same rationale as
 scripts/create_pr.py: this org restricts workflows to an allowlist of
 GitHub Actions, so there's no dedicated action for this either.
 
-Returns the fork's own clone_url verbatim rather than reconstructing one
-from its owner login, since run.sh's `env@owner:ref` shorthand assumes the
-fork repo is named "scikit-learn", which isn't guaranteed for an arbitrary
-PR's fork - callers should use scripts/setup_sklearn_ref.sh directly with
-this clone_url instead of going through run.sh's shorthand.
+Outputs just `owner`, matching run.sh's `env@owner:ref` shorthand, which
+hardcodes the fork's repo name as "scikit-learn" and reconstructs the
+remote as `https://github.com/<owner>/scikit-learn.git` itself. Since a
+PR's fork isn't guaranteed to be named "scikit-learn", this explicitly
+checks the fork's repo name and fails clearly (ok=false) rather than
+silently handing run.sh an owner whose repo it can't actually find.
 """
 
 import argparse
@@ -69,8 +70,20 @@ def main() -> int:
         )
         return 0
 
+    if fork_repo["name"] != "scikit-learn":
+        write_output(args.github_output, "ok", "false")
+        write_output(
+            args.github_output,
+            "error",
+            f"the source fork for {args.repo} PR #{args.pr_number} is named "
+            f"{fork_repo['name']!r}, not 'scikit-learn' - not supported, since "
+            "this flow runs the comparison via run.sh's env@owner:ref "
+            "shorthand, which assumes the fork repo is named scikit-learn",
+        )
+        return 0
+
     write_output(args.github_output, "ok", "true")
-    write_output(args.github_output, "clone_url", fork_repo["clone_url"])
+    write_output(args.github_output, "owner", fork_repo["owner"]["login"])
     write_output(args.github_output, "head_ref", head["ref"])
     return 0
 

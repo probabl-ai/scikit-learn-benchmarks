@@ -22,7 +22,7 @@ jobs:
       config: ${{ steps.parse.outputs.config }}
       runners: ${{ steps.parse.outputs.runners }}
       sklearn_pr_number: ${{ steps.parse.outputs.sklearn_pr_number }}
-      sklearn_clone_url: ${{ steps.resolve.outputs.clone_url }}
+      sklearn_owner: ${{ steps.resolve.outputs.owner }}
       sklearn_head_ref: ${{ steps.resolve.outputs.head_ref }}
     steps:
       - name: Check out repository (base, trusted)
@@ -138,7 +138,7 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       CONFIG: ${{ needs.gate_and_resolve.outputs.config }}
       SKLEARN_PR: ${{ needs.gate_and_resolve.outputs.sklearn_pr_number }}
-      SKLEARN_CLONE_URL: ${{ needs.gate_and_resolve.outputs.sklearn_clone_url }}
+      SKLEARN_OWNER: ${{ needs.gate_and_resolve.outputs.sklearn_owner }}
       SKLEARN_HEAD_REF: ${{ needs.gate_and_resolve.outputs.sklearn_head_ref }}
     steps:
       - name: Set scratch directories
@@ -174,7 +174,10 @@ jobs:
         uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
         with:
           pixi-version: v0.75.0
-          environments: reporting
+          # sklearn-pypi (lightweight, always installable, no sklearn-src/
+          # path dependency) is used to validate the config below before
+          # committing to the much slower sklearn-dev clone+build.
+          environments: reporting sklearn-pypi
           locked: false
           frozen: true
           cache: false
@@ -185,35 +188,31 @@ jobs:
         run: rm -rf "${SKLBENCH_DATA_CACHE:-data_cache}/preprocessed"
 
       - name: Validate config
-        run: pixi run --frozen -e reporting python -m sklbench --config "$CONFIG" --validate-only
+        # A prior version of this check lived in run.sh itself, using
+        # `-e default` - broken for any config calling
+        # implementations_for_pixi_env() (e.g. all_models.py and anything
+        # derived from it), since "default" isn't an accepted
+        # PIXI_ENVIRONMENT_NAME. Removed there; kept here, scoped to this
+        # workflow, using a real accepted env instead - catching a typo'd
+        # config path/estimator name before a many-minutes sklearn-dev
+        # clone+build is still worth it.
+        run: pixi run --frozen -e sklearn-pypi python -m sklbench --config "$CONFIG" --validate-only
 
-      - name: Set up scikit-learn PR branch
-        run: ./scripts/setup_sklearn_ref.sh --remote "$SKLEARN_CLONE_URL" --ref "$SKLEARN_HEAD_REF" --env sklearn-dev
-
-      - name: Run benchmark (PR branch)
+      - name: Run comparison benchmark
+        # Reuses run.sh exactly as CONTRIBUTING.md's "Running Against
+        # scikit-learn Branches" documents for a PR-vs-base comparison:
+        # sequential setup_sklearn_ref.sh + sklbench run per env@owner:ref
+        # entry, one shared sklearn-src/ checkout re-pointed between them.
         continue-on-error: true
         run: |
-          pixi run --frozen -e sklearn-dev python -m sklbench --config "$CONFIG" --results-dir "$RESULTS_DIR" \
-            2>&1 | tee "$RUNNER_TEMP/bench-pr.log"
+          ./run.sh "sklearn-dev@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}" sklearn-dev@scikit-learn:main \
+            --config "$CONFIG" --results-dir "$RESULTS_DIR" \
+            2>&1 | tee "$RUNNER_TEMP/bench.log"
 
-      - name: Set up scikit-learn main
-        run: ./scripts/setup_sklearn_ref.sh --remote https://github.com/scikit-learn/scikit-learn.git --ref main --env sklearn-dev
-
-      - name: Run benchmark (main)
+      - name: Classify benchmark session
+        id: classify
         continue-on-error: true
-        run: |
-          pixi run --frozen -e sklearn-dev python -m sklbench --config "$CONFIG" --results-dir "$RESULTS_DIR" \
-            2>&1 | tee "$RUNNER_TEMP/bench-main.log"
-
-      - name: Classify PR-branch run
-        id: classify_pr
-        continue-on-error: true
-        run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench-pr.log"
-
-      - name: Classify main run
-        id: classify_main
-        continue-on-error: true
-        run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench-main.log"
+        run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
 
       - name: Generate comparison dashboard
         # working-directory is RESULTS_DIR's parent, so its bare `results/`
@@ -248,8 +247,7 @@ jobs:
       - name: Build and post comment
         if: always()
         env:
-          CLASSIFY_PR: ${{ steps.classify_pr.outcome }}
-          CLASSIFY_MAIN: ${{ steps.classify_main.outcome }}
+          CLASSIFY_OUTCOME: ${{ steps.classify.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -260,8 +258,7 @@ jobs:
               echo "**${{ matrix.runner }}**: scikit-learn PR #$SKLEARN_PR vs \`main\`, config \`$CONFIG\`"
               echo
               echo "Dashboard: $url"
-              [ "$CLASSIFY_PR" != "success" ] && echo "- Caveat: PR-branch run session did not complete cleanly."
-              [ "$CLASSIFY_MAIN" != "success" ] && echo "- Caveat: main run session did not complete cleanly."
+              [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."
               echo
               echo "Full run: $run_url"
             } > "$RUNNER_TEMP/comment.md"

@@ -3,27 +3,6 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/scripts/pixi_env_check.sh"
 
-# Collects --config/-c values from a sklbench arg list into the array named
-# by $1 (argparse nargs='+' semantics: consume tokens up to the next
-# '-'-prefixed flag).
-extract_configs() {
-    local -n out_ref="$1"
-    shift
-    local i=0
-    local rest=("$@")
-    while [ "$i" -lt "${#rest[@]}" ]; do
-        if [ "${rest[$i]}" = "--config" ] || [ "${rest[$i]}" = "-c" ]; then
-            i=$((i + 1))
-            while [ "$i" -lt "${#rest[@]}" ] && [[ "${rest[$i]}" != -* ]]; do
-                out_ref+=("${rest[$i]}")
-                i=$((i + 1))
-            done
-        else
-            i=$((i + 1))
-        fi
-    done
-}
-
 usage() {
     echo "Usage: $0 env1 [env2 ...] [sklbench args...]" >&2
     echo "  Runs 'pixi run -e <env> python -m sklbench <args...>' for each" >&2
@@ -70,16 +49,6 @@ done
 if [ "${#envs[@]}" -eq 0 ]; then
     usage
     exit 2
-fi
-
-configs=()
-extract_configs configs "${args[@]}"
-if [ "${#configs[@]}" -gt 0 ]; then
-    echo "=== pixi run --frozen -e default python -m sklbench --config ${configs[*]} --validate-only ===" >&2
-    if ! pixi run --frozen -e default python -m sklbench --config "${configs[@]}" --validate-only; then
-        echo "error: config validation failed, aborting before running any environment" >&2
-        exit 1
-    fi
 fi
 
 status=0
