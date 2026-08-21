@@ -131,21 +131,27 @@ jobs:
       '[]') }}
     timeout-minutes: 1440
     env:
-      # gen_pr_comparison.py's readers default to a `results/` directory
-      # relative to the CWD it's invoked from - SCRATCH_DIR's basename must
-      # stay literally "results" so the "Generate comparison dashboard"
-      # step's working-directory (SCRATCH_DIR's parent) resolves it. Kept
-      # under runner.temp, well outside the git checkout, so it's immune to
-      # this job's own `git clean -ffdx results/` step and never collides
-      # with the repo's real (committed, unused-by-this-job) results/.
-      RESULTS_DIR: ${{ runner.temp }}/pr-compare/results
-      SITE_DIR: ${{ runner.temp }}/pr-compare/site
       PR_NUMBER: ${{ github.event.pull_request.number }}
       CONFIG: ${{ needs.gate_and_resolve.outputs.config }}
       SKLEARN_PR: ${{ needs.gate_and_resolve.outputs.sklearn_pr_number }}
       SKLEARN_CLONE_URL: ${{ needs.gate_and_resolve.outputs.sklearn_clone_url }}
       SKLEARN_HEAD_REF: ${{ needs.gate_and_resolve.outputs.sklearn_head_ref }}
     steps:
+      - name: Set scratch directories
+        # The `runner` context (unlike the $RUNNER_TEMP env var it mirrors)
+        # is only available within steps, not in a job-level `env:` block -
+        # so RESULTS_DIR/SITE_DIR are computed here instead. Basename of
+        # RESULTS_DIR must stay literally "results": gen_pr_comparison.py's
+        # readers default to a `results/` directory relative to the CWD
+        # it's invoked from, and the "Generate comparison dashboard" step's
+        # working-directory is RESULTS_DIR's parent. Kept under
+        # $RUNNER_TEMP, well outside the git checkout, so it's immune to
+        # this job's own `git clean -ffdx results/` step and never collides
+        # with the repo's real (committed, unused-by-this-job) results/.
+        run: |
+          echo "RESULTS_DIR=$RUNNER_TEMP/pr-compare/results" >> "$GITHUB_ENV"
+          echo "SITE_DIR=$RUNNER_TEMP/pr-compare/site" >> "$GITHUB_ENV"
+
       - name: Check out repository
         # Default pull_request checkout (merge of PR head into base) is
         # intentional here, unlike gate_and_resolve's base-pinned checkout:
