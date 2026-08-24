@@ -373,6 +373,24 @@ def load_bank_marketing(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
+def load_california_housing(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    California Housing dataset (StatLib, from the 1990 US census).
+
+    20640 samples, 8 features, all numeric (median income, house age, mean
+    rooms/bedrooms per household, population, mean household occupancy,
+    latitude/longitude), no missing values.
+
+    Regression task: predict the median house value (in units of $100,000)
+    for the census block group.
+    """
+    x, y = fetch_california_housing(
+        return_X_y=True, as_frame=True, data_home=raw_data_cache
+    )
+    data_desc = {"default_split": {"test_size": 0.1, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
 def load_mnist_template(
     openml_id: int,
     raw_data_cache: str,
@@ -836,14 +854,6 @@ def load_abalone(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
-def load_california_housing(raw_data_cache: str) -> tuple[dict, dict]:
-    x, y = fetch_california_housing(
-        return_X_y=True, as_frame=False, data_home=raw_data_cache
-    )
-    data_desc = {"default_split": {"test_size": 0.1, "random_state": 42}}
-    return {"x": x, "y": y}, data_desc
-
-
 def load_fried(raw_data_cache: str) -> tuple[dict, dict]:
     x, y = load_openml(564, raw_data_cache)
     data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
@@ -1029,6 +1039,7 @@ dataset_loading_functions = {
     "fraud": load_fraud,
     "medical_charges_nominal": load_medical_charges_nominal,
     "bank_marketing": load_bank_marketing,
+    "california_housing": load_california_housing,
     "mnist": load_mnist,
     # classification
     "airline_depdelay": load_airline_depdelay,
@@ -1053,7 +1064,6 @@ dataset_loading_functions = {
     "szilard_10m": load_szilard_10m,
     # regression
     "abalone": load_abalone,
-    "california_housing": load_california_housing,
     "fried": load_fried,
     "twodplanes": load_twodplanes,
     "yolanda": load_yolanda,
