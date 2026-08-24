@@ -519,6 +519,67 @@ def bank_marketing(implem: dict):
         }
 
 
+@real_case_dataset("california_housing", "regression", "fast")
+def california_housing(implem: dict):
+    # 1990 US census vertical (distinct from `ames_housing`'s per-sale-listing
+    # angle: this is aggregated per census block group). 20640 x 8, all
+    # numeric, no missing values - a clean, small counterpart to the
+    # higher-dimensional/messier regression datasets above.
+
+    # Ridge(alpha=0.3), linear/no-nystroem: test R2 0.658
+    yield {
+        "estimator": "Ridge",
+        "estimator_params": {"alpha": 0.3},
+    }
+    # RandomForestRegressor, no preprocessing (all-numeric): test R2 0.817
+    yield {
+        "estimator": "RandomForestRegressor",
+        "estimator_params": {
+            "n_estimators": max(300, N_JOBS * 6),
+            "max_features": 0.3,
+            "min_samples_leaf": 1,
+            "n_jobs": N_JOBS,
+        },
+        "preprocessing_kind": None,
+    }
+    if implem["library"] == "sklearn":
+        # HistGradientBoostingRegressor, hgb (no categorical columns): test
+        # R2 0.852
+        yield {
+            "estimator": "HistGradientBoostingRegressor",
+            "estimator_params": {
+                "learning_rate": 0.1,
+                "max_iter": 150,
+                "max_leaf_nodes": 63,
+                "min_samples_leaf": 20,
+                "max_bins": 255,
+                "early_stopping": False,
+            },
+        }
+
+
+@real_case_dataset("susy", "regression", "normal")
+def susy_regression(implem: dict):
+    # Reuses `susy`'s classification data (see the `susy` case above) but
+    # regresses on the 0/1 signal/background label directly instead of
+    # classifying it - meaningful here specifically because susy's target is
+    # close to balanced (45.7% positive), unlike the other classification
+    # datasets in this file. Only Ridge is included: RandomForestRegressor/
+    # HistGradientBoostingRegressor on the same label wouldn't add anything
+    # over the tree-based classification cases already covering this
+    # dataset above.
+
+    # Ridge(alpha=10.0), no preprocessing (already standardized): test R2
+    # 0.276 - unsurprisingly low compared to the classification case's ROC
+    # AUC 0.859, since Ridge is fitting a linear regressor to a hard
+    # nonlinear boundary encoded as a 0/1 target.
+    yield {
+        "estimator": "Ridge",
+        "estimator_params": {"alpha": 10.0},
+        "preprocessing_kind": None,
+    }
+
+
 @real_case_dataset("sift", "clustering", "normal")
 def sift(implem: dict):
     # ANN-benchmarks vertical: SIFT image descriptors, 128-dim, Euclidean

@@ -1,5 +1,5 @@
 from itertools import chain, product
-from math import ceil
+from math import ceil, sqrt
 from typing import Iterable
 
 #TODO: in utils or in _common? wierd overlap
@@ -8,9 +8,7 @@ from _common import deterministic_random_choice
 
 ALGORITHM_VARIANTS = [
     {"estimator": "Ridge"},
-    # {"estimator": "RidgeClassifier"},
-    # ^ not really interesting on synthetic dataset for benchmarks (just Ridge under the hoods)
-    {"estimator": "LinearRegression"},  # TODO: remove?
+    {"estimator": "LinearRegression"},
     # TODO: in dashboards: take the best & fastest of the 3 solvers:
     {"estimator": "LogisticRegression", "estimator_params": {"solver": "lbfgs"}},
     {"estimator": "LogisticRegression", "estimator_params": {"solver": "newton-cholesky"}},
@@ -106,10 +104,14 @@ def linear_data_shapes(scale: int) -> list[dict]:
     scale ladder.
     """
     return [
-        {"n_samples": 500000 * scale, "n_features": 2, "n_informative": 2},
         {"n_samples": 50000 * scale, "n_features": 20, "n_informative": 5},
-        {"n_samples": 5000 * scale, "n_features": 200, "n_informative": 40},
-        {"n_samples": 500 * scale, "n_features": 2000, "n_informative": 100},
+        {"n_samples": 5000 * scale, "n_features": 100, "n_informative": 20},
+        {"n_samples": 500 * scale, "n_features": 1000, "n_informative": 100},
+        {
+            "n_samples": 500 * sqrt(scale),
+            "n_features": 2000 * sqrt(scale),
+            "n_informative": 500
+        },
     ]
 
 
@@ -117,9 +119,6 @@ def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
     data_shapes = linear_data_shapes(scale)
 
     benchs = [{"time_limit": 2 + scale * 2} for _ in data_shapes]
-    if implem['library'] == 'sklearn':
-        # 2 features is very slow in sklearn
-        benchs[0]["time_limit"] *= 2
 
     return list(_linear_cases_for(implem, benchs, data_shapes))
 
