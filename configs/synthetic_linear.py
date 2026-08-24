@@ -108,8 +108,8 @@ def linear_data_shapes(scale: int) -> list[dict]:
         {"n_samples": 5000 * scale, "n_features": 100, "n_informative": 20},
         {"n_samples": 500 * scale, "n_features": 1000, "n_informative": 100},
         {
-            "n_samples": 500 * sqrt(scale),
-            "n_features": 2000 * sqrt(scale),
+            "n_samples": round(500 * sqrt(scale), -2),
+            "n_features": round(2000 * sqrt(scale), -2),
             "n_informative": 500
         },
     ]
