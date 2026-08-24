@@ -219,6 +219,34 @@ def _metrics_differ_lines(match: Match) -> list[str]:
     return lines
 
 
+def _real_dataset_dimensions_line(data: dict, data_desc: dict | None) -> str | None:
+    """Real datasets don't carry n_samples/n_features in the case (those are
+    only in `generation_kwargs`, which synthetic datasets have), so surface
+    the shape recorded in `data_desc` instead."""
+    if data.get("generation_kwargs") or not data_desc:
+        return None
+    samples, features = data_desc.get("samples"), data_desc.get("features")
+    if samples is None or features is None:
+        return None
+    return f"dimensions: {samples:,} x {features}"
+
+
+def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
+    for run in record.runs:
+        fit_desc = (run.get("data_desc") or {}).get("fit")
+        if fit_desc:
+            return fit_desc
+    return None
+
+
+def _data_hover_lines(data: dict, data_desc: dict | None) -> list[str]:
+    lines = _hover_lines(data)
+    dimensions_line = _real_dataset_dimensions_line(data, data_desc)
+    if dimensions_line:
+        lines.append(dimensions_line)
+    return lines
+
+
 def _hover_text(match: Match) -> str:
     result = match.matched_result
     base = match.base_result
@@ -237,7 +265,9 @@ def _hover_text(match: Match) -> str:
     estimator_params = "<br>".join(
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
-    data_params = "<br>".join(escape(line) for line in _hover_lines(data))
+    data_params = "<br>".join(
+        escape(line) for line in _data_hover_lines(data, result.data_desc)
+    )
     lines.extend(
         [
             "<br><b>estimator params</b>",
@@ -255,7 +285,10 @@ def _failed_hover_text(record: BenchmarkRecord) -> str:
     estimator_params = "<br>".join(
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
-    data_params = "<br>".join(escape(line) for line in _hover_lines(data))
+    data_params = "<br>".join(
+        escape(line)
+        for line in _data_hover_lines(data, _record_fit_data_desc(record))
+    )
     return "<br>".join(
         [
             "<b>benchmark run failed</b>",
