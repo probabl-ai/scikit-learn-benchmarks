@@ -90,7 +90,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
       });
     }
 
-    function sklbenchInitTable(tableId, rows, columns, resetButtonId) {
+    function sklbenchInitTable(tableId, rows, columns, resetButtonId, defaultHeaderFilters) {
       if (window.sklbenchTables[tableId]) {
         window.sklbenchTables[tableId].redraw(true);
         return;
@@ -111,7 +111,13 @@ BASE_TEMPLATE = Template("""<!doctype html>
           {column: "dataset", dir: "asc"},
           {column: "variant", dir: "asc"},
         ],
+        initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
+          ([field, value]) => ({field, value})
+        ),
       });
+      if (resetToolbar && defaultHeaderFilters && Object.keys(defaultHeaderFilters).length) {
+        resetToolbar.hidden = false;
+      }
       table.on("rowClick", (event, row) => {
         if (event.target.closest("a, button")) {
           return;
@@ -127,7 +133,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
       });
       if (resetButton) {
         resetButton.addEventListener("click", () => {
-          table.clearFilter();
+          table.clearFilter(true);
           if (resetToolbar) {
             resetToolbar.hidden = true;
           }
