@@ -5,12 +5,20 @@ PR-comparison benchmark workflow (.github/workflows/pr-comparison.yml).
 Looks for a fenced code block:
 
     ```sklbench-compare
-    sklearn_pr: https://github.com/scikit-learn/scikit-learn/pull/12345
+    sklearn_ref: cakedev0:ridge/optim_cholesky
     config: configs/hgb_scaling.py
     runners: intel-laptop, intel-gnr
     ```
 
-and validates its `key: value` lines. Writes outcomes to $GITHUB_OUTPUT
+`sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
+spec takes (see CONTRIBUTING.md) - the fork owner and the branch/ref to
+benchmark on it, taken straight from the PR author instead of resolved from
+a scikit-learn PR number via the GitHub API. That's a no-op simplification
+trust-wise, not a new risk class: this directive already only runs for
+OWNER/MEMBER/COLLABORATOR authors, who already have workflow_dispatch
+access to run-benchmarks.yml with equally arbitrary env@owner:ref input.
+
+Validates its `key: value` lines and writes outcomes to $GITHUB_OUTPUT
 rather than communicating via exit code, so the calling workflow can branch
 on step outputs (directive_present, ok, and either the parsed fields or an
 error message) without needing `continue-on-error`.
@@ -26,12 +34,13 @@ FENCE_RE = re.compile(
     r"^```sklbench-compare[ \t]*\r?\n(.*?)\r?\n```[ \t]*$",
     re.MULTILINE | re.DOTALL,
 )
-SKLEARN_PR_RE = re.compile(
-    r"^(?:https?://github\.com/scikit-learn/scikit-learn/pull/)?(\d+)/?$"
-)
+# Mirrors GitHub's own username rules (alnum and single hyphens, no
+# leading/trailing hyphen, max 39 chars) - not a security boundary (see
+# module docstring), just catches typos with a clear error early.
+GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
 VALID_RUNNERS = {"intel-laptop", "intel-gnr"}
-REQUIRED_KEYS = {"sklearn_pr", "config"}
+REQUIRED_KEYS = {"sklearn_ref", "config"}
 KNOWN_KEYS = REQUIRED_KEYS | {"runners"}
 
 
@@ -60,13 +69,18 @@ def parse_fields(block: str) -> dict:
     if missing:
         raise Malformed(f"missing required key(s): {sorted(missing)}")
 
-    sklearn_pr_match = SKLEARN_PR_RE.match(fields["sklearn_pr"])
-    if sklearn_pr_match is None:
+    sklearn_ref = fields["sklearn_ref"]
+    if ":" not in sklearn_ref:
+        raise Malformed(f"sklearn_ref {sklearn_ref!r} must look like 'owner:ref'")
+    sklearn_owner, sklearn_head_ref = sklearn_ref.split(":", 1)
+    if not sklearn_owner or not sklearn_head_ref:
+        raise Malformed(f"sklearn_ref {sklearn_ref!r} must look like 'owner:ref'")
+    if not GITHUB_OWNER_RE.match(sklearn_owner):
         raise Malformed(
-            f"sklearn_pr {fields['sklearn_pr']!r} is not a "
-            "scikit-learn/scikit-learn PR URL or number"
+            f"sklearn_ref owner {sklearn_owner!r} is not a valid GitHub username"
         )
-    sklearn_pr_number = sklearn_pr_match.group(1)
+    if sklearn_head_ref.startswith("-") or any(c.isspace() for c in sklearn_head_ref):
+        raise Malformed(f"sklearn_ref ref {sklearn_head_ref!r} is not a valid git ref")
 
     if not CONFIG_RE.match(fields["config"]) or ".." in fields["config"].split("/"):
         raise Malformed(f"config {fields['config']!r} must look like 'configs/<name>.py'")
@@ -93,7 +107,8 @@ def parse_fields(block: str) -> dict:
                     runners.append(name)
 
     return {
-        "sklearn_pr_number": sklearn_pr_number,
+        "sklearn_owner": sklearn_owner,
+        "sklearn_head_ref": sklearn_head_ref,
         "config": fields["config"],
         "runners": runners,
     }
@@ -132,7 +147,8 @@ def main() -> int:
         return 0
 
     write_output(args.github_output, "ok", "true")
-    write_output(args.github_output, "sklearn_pr_number", parsed["sklearn_pr_number"])
+    write_output(args.github_output, "sklearn_owner", parsed["sklearn_owner"])
+    write_output(args.github_output, "sklearn_head_ref", parsed["sklearn_head_ref"])
     write_output(args.github_output, "config", parsed["config"])
     write_output(args.github_output, "runners", json.dumps(parsed["runners"]))
     return 0

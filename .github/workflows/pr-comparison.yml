@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  gate_and_resolve:
+  gate_and_parse:
     # Only PRs from people who already have workflow_dispatch access to
     # run-benchmarks.yml (with equally arbitrary env@owner:ref/config
     # inputs) can trigger a self-hosted benchmark run this way - no new
@@ -18,17 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       parse_ok: ${{ steps.parse.outputs.ok }}
-      resolve_ok: ${{ steps.resolve.outputs.ok }}
       config: ${{ steps.parse.outputs.config }}
       runners: ${{ steps.parse.outputs.runners }}
-      sklearn_pr_number: ${{ steps.parse.outputs.sklearn_pr_number }}
-      sklearn_owner: ${{ steps.resolve.outputs.owner }}
-      sklearn_head_ref: ${{ steps.resolve.outputs.head_ref }}
+      sklearn_owner: ${{ steps.parse.outputs.sklearn_owner }}
+      sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
     steps:
       - name: Check out repository (base, trusted)
-        # Pinned to the base sha, not the PR head, so parsing/resolving
-        # always runs the trusted version of these scripts - this job never
-        # executes PR-supplied code.
+        # Pinned to the base sha, not the PR head, so parsing always runs
+        # the trusted version of this script - this job never executes
+        # PR-supplied code.
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -71,37 +69,26 @@ jobs:
           echo "::error::sklbench-compare requires a branch pushed directly to this repo, not a personal fork - GitHub withholds secrets/write-token from fork PRs regardless of permissions, so no comment or dashboard could be posted. Push your branch to scikit-learn-benchmarks directly instead." >&2
           exit 1
 
-      - name: Resolve scikit-learn PR
-        id: resolve
-        if: steps.parse.outputs.ok == 'true'
-        run: |
-          pixi run --frozen -e reporting python scripts/resolve_sklearn_pr.py \
-            --pr-number "${{ steps.parse.outputs.sklearn_pr_number }}" \
-            --github-output "$GITHUB_OUTPUT"
-
       - name: Build and post status comment
         if: steps.parse.outputs.directive_present == 'true'
         env:
           PARSE_OK: ${{ steps.parse.outputs.ok }}
           PARSE_ERROR: ${{ steps.parse.outputs.error }}
-          RESOLVE_OK: ${{ steps.resolve.outputs.ok }}
-          RESOLVE_ERROR: ${{ steps.resolve.outputs.error }}
           CONFIG: ${{ steps.parse.outputs.config }}
           RUNNERS: ${{ steps.parse.outputs.runners }}
-          SKLEARN_PR: ${{ steps.parse.outputs.sklearn_pr_number }}
+          SKLEARN_OWNER: ${{ steps.parse.outputs.sklearn_owner }}
+          SKLEARN_HEAD_REF: ${{ steps.parse.outputs.sklearn_head_ref }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           {
             if [ "$PARSE_OK" != "true" ]; then
               echo "**sklbench-compare directive is malformed:**"; echo; echo "$PARSE_ERROR"
-            elif [ "$RESOLVE_OK" != "true" ]; then
-              echo "**Could not resolve scikit-learn PR #$SKLEARN_PR:**"; echo; echo "$RESOLVE_ERROR"
             else
               # RUNNERS is the JSON array string parse_compare_directive.py
               # writes (e.g. ["intel-laptop"]) - render it as a plain
               # comma-separated list instead.
               runners_display=$(python3 -c "import json,sys; print(', '.join(json.loads(sys.argv[1])))" "$RUNNERS")
-              echo "Comparing scikit-learn PR #$SKLEARN_PR against \`main\` using \`$CONFIG\` on: $runners_display."
+              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against scikit-learn \`main\` using \`$CONFIG\` on: $runners_display."
               echo "Results post as separate comments below as each runner finishes."
             fi
           } > "$RUNNER_TEMP/status.md"
@@ -112,16 +99,16 @@ jobs:
             --body-file "$RUNNER_TEMP/status.md"
 
       - name: Fail if directive invalid
-        if: steps.parse.outputs.directive_present == 'true' && (steps.parse.outputs.ok != 'true' || steps.resolve.outputs.ok != 'true')
+        if: steps.parse.outputs.directive_present == 'true' && steps.parse.outputs.ok != 'true'
         run: exit 1
 
   benchmark-and-publish:
-    needs: gate_and_resolve
-    if: needs.gate_and_resolve.outputs.parse_ok == 'true' && needs.gate_and_resolve.outputs.resolve_ok == 'true'
+    needs: gate_and_parse
+    if: needs.gate_and_parse.outputs.parse_ok == 'true'
     strategy:
       fail-fast: false
       matrix:
-        runner: ${{ fromJSON(needs.gate_and_resolve.outputs.runners) }}
+        runner: ${{ fromJSON(needs.gate_and_parse.outputs.runners) }}
     # Deliberately the SAME group name run-benchmarks.yml uses for a given
     # runner, not a PR-scoped one: both workflows mutate the single shared
     # sklearn-src/ checkout on that physical box via setup_sklearn_ref.sh
@@ -136,10 +123,9 @@ jobs:
     timeout-minutes: 1440
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      CONFIG: ${{ needs.gate_and_resolve.outputs.config }}
-      SKLEARN_PR: ${{ needs.gate_and_resolve.outputs.sklearn_pr_number }}
-      SKLEARN_OWNER: ${{ needs.gate_and_resolve.outputs.sklearn_owner }}
-      SKLEARN_HEAD_REF: ${{ needs.gate_and_resolve.outputs.sklearn_head_ref }}
+      CONFIG: ${{ needs.gate_and_parse.outputs.config }}
+      SKLEARN_OWNER: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
+      SKLEARN_HEAD_REF: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
       # Deterministic from PR number + runner, so it's known before the
       # "Deploy to Cloudflare Pages" step actually publishes there - shared
       # by that step, the dashboard-generation step (to link JSON/profile
@@ -165,7 +151,7 @@ jobs:
 
       - name: Check out repository
         # Default pull_request checkout (merge of PR head into base) is
-        # intentional here, unlike gate_and_resolve's base-pinned checkout:
+        # intentional here, unlike gate_and_parse's base-pinned checkout:
         # `config:` may point at a config file this very PR adds. Same
         # trust level workflow_dispatch on run-benchmarks.yml already
         # assumes for a collaborator's branch.
@@ -254,7 +240,7 @@ jobs:
           # here.
           npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
             --commit-hash="${{ github.event.pull_request.head.sha }}" \
-            --commit-message="PR #$PR_NUMBER vs scikit-learn PR #$SKLEARN_PR (${{ matrix.runner }})" \
+            --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }})" \
             --commit-dirty=true
 
       - name: Build and post comment
@@ -272,7 +258,7 @@ jobs:
             # extension-less path anyway.
             url="https://${PAGES_BRANCH}.sklbench-pr-comparison.pages.dev/pr_comparison"
             {
-              echo "**${{ matrix.runner }}**: scikit-learn PR #$SKLEARN_PR vs \`main\`, config \`$CONFIG\`"
+              echo "**${{ matrix.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`main\`, config \`$CONFIG\`"
               echo
               echo "Dashboard: $url"
               [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."
@@ -281,7 +267,7 @@ jobs:
             } > "$RUNNER_TEMP/comment.md"
           else
             {
-              echo "**${{ matrix.runner }}**: comparison run for scikit-learn PR #$SKLEARN_PR failed before a dashboard could be published."
+              echo "**${{ matrix.runner }}**: comparison run for scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` failed before a dashboard could be published."
               echo
               echo "See the full run: $run_url"
             } > "$RUNNER_TEMP/comment.md"

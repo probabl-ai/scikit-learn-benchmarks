@@ -259,12 +259,15 @@ back on the PR. To trigger it, put a fenced `sklbench-compare` block
 somewhere in the PR description:
 
 ```sklbench-compare
-sklearn_pr: https://github.com/scikit-learn/scikit-learn/pull/12345
+sklearn_ref: cakedev0:ridge/optim_cholesky
 config: configs/hgb_scaling.py
 runners: intel-laptop, intel-gnr
 ```
 
-- `sklearn_pr` (required): a `scikit-learn/scikit-learn` PR URL or bare number.
+- `sklearn_ref` (required): the scikit-learn fork owner and branch/ref to
+  compare against `main`, as `owner:ref` - the same shorthand `run.sh`'s
+  `env@owner:ref` spec takes (see "Running Against scikit-learn Branches"
+  above).
 - `config` (required): a single `configs/<name>.py` path (one config per run;
   not yet supported: multiple configs in one directive).
 - `runners` (optional, default both): `intel-laptop`, `intel-gnr`, or `both`.
