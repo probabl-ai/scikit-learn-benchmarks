@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import json
 import math
+from pathlib import Path
 from statistics import median
 from typing import Callable
 
@@ -50,18 +51,22 @@ def _row_key(result: MethodResult, variant: str) -> str:
     )
 
 
-def _record_json_url(result: MethodResult) -> str | None:
+def _record_json_url(
+    result: MethodResult, json_url_fn: Callable[[Path], str | None]
+) -> str | None:
     record = result.record
     if record is None or record.record_path is None:
         return None
-    return json_viewer_url(record.record_path)
+    return json_url_fn(record.record_path)
 
 
-def _profile_url(result: MethodResult) -> str | None:
+def _profile_url(
+    result: MethodResult, profile_url_fn: Callable[[Path], str | None]
+) -> str | None:
     record = result.record
     if record is None or record.profile_path is None:
         return None
-    return profile_viewer_url(record.profile_path)
+    return profile_url_fn(record.profile_path)
 
 
 def _profile_label(record: BenchmarkRecord | None) -> str | None:
@@ -88,6 +93,8 @@ def _new_row(
     result: MethodResult,
     variant: str,
     comparison_key: str,
+    json_url_fn: Callable[[Path], str | None],
+    profile_url_fn: Callable[[Path], str | None],
 ) -> dict:
     data_desc = result.data_desc or {}
     row = {
@@ -101,9 +108,9 @@ def _new_row(
         "fit_speedup": None,
         "predict_time": None,
         "predict_speedup": None,
-        "profile_url": _profile_url(result),
+        "profile_url": _profile_url(result, profile_url_fn),
         "profile_url_label": _profile_label(result.record),
-        "json_url": _record_json_url(result),
+        "json_url": _record_json_url(result, json_url_fn),
         "hyperparams": _result_params(result.case),
         "status": "ok",
     }
@@ -133,6 +140,7 @@ def _new_failed_row(
     record: BenchmarkRecord,
     variant: str,
     comparison_key: str,
+    json_url_fn: Callable[[Path], str | None],
 ) -> dict:
     generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {})
     failed_case = record.failed_case or {}
@@ -148,7 +156,7 @@ def _new_failed_row(
         "predict_time": None,
         "predict_speedup": None,
         "profile_url": None,
-        "json_url": json_viewer_url(record.record_path) if record.record_path else None,
+        "json_url": json_url_fn(record.record_path) if record.record_path else None,
         "hyperparams": _result_params(record.case),
         "status": _failed_status(failed_case),
     }
@@ -167,10 +175,14 @@ def _add_result_method(
     result: MethodResult,
     variant: str,
     comparison_key: str,
+    json_url_fn: Callable[[Path], str | None],
+    profile_url_fn: Callable[[Path], str | None],
     base_result: MethodResult | None = None,
 ):
     key = _row_key(result, variant)
-    row = rows.setdefault(key, _new_row(result, variant, comparison_key))
+    row = rows.setdefault(
+        key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
+    )
     method = result.method
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
@@ -226,6 +238,8 @@ def detailed_results_table_html(
     open: bool = False,
     variant_column_title: str = "Variant name",
     default_variant_filter: str | None = None,
+    json_url_fn: Callable[[Path], str | None] = json_viewer_url,
+    profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set()
@@ -242,6 +256,8 @@ def detailed_results_table_html(
                 base_result=base,
                 variant=baseline_label,
                 comparison_key=comparison_key(base),
+                json_url_fn=json_url_fn,
+                profile_url_fn=profile_url_fn,
             )
             _add_result_method(
                 rows_by_key,
@@ -249,13 +265,15 @@ def detailed_results_table_html(
                 base_result=base,
                 variant=variant_label(result),
                 comparison_key=comparison_key(result),
+                json_url_fn=json_url_fn,
+                profile_url_fn=profile_url_fn,
             )
 
     for record, variant in failed_records:
         hyperparam_names.update(_result_params(record.case))
         key = _failed_row_key(record, variant)
         rows_by_key[key] = _new_failed_row(
-            record, variant, comparison_key(record)
+            record, variant, comparison_key(record), json_url_fn
         )
 
     # Results whose counterpart failed never appear in `matches_by_method`
@@ -270,6 +288,8 @@ def detailed_results_table_html(
             result=result,
             variant=baseline_label,
             comparison_key=comparison_key(result),
+            json_url_fn=json_url_fn,
+            profile_url_fn=profile_url_fn,
         )
 
     for result in unmatched_candidate_results:
@@ -279,6 +299,8 @@ def detailed_results_table_html(
             result=result,
             variant=variant_label(result),
             comparison_key=comparison_key(result),
+            json_url_fn=json_url_fn,
+            profile_url_fn=profile_url_fn,
         )
 
     if not rows_by_key:

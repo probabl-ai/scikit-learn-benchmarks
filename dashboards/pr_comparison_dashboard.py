@@ -18,13 +18,16 @@ the other dashboards handle: its only caller is that one CI job, so a shape
 mismatch here means the pipeline itself is broken, not "no data yet".
 """
 
+import os
 from pathlib import Path
 import re
+import shutil
 import sys
+from typing import Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dashboards.output import dashboard_output_path
+from dashboards.output import dashboard_output_dir
 from sklbench.reporting.utils import groupby, stable_json, without_keys
 from sklbench.reporting.matching import (
     append_iterations_warning,
@@ -37,6 +40,11 @@ from sklbench.reporting.matching import (
     MethodResult,
 )
 from sklbench.reporting.envs import (
+    FLAMEGRAPH_VIEWER_BASE_URL,
+    JSON_VIEWER_BASE_URL,
+    external_viewer_url,
+    json_viewer_url,
+    profile_viewer_url,
     read_env,
     software_build_name,
     summarize_hardware_env,
@@ -107,6 +115,37 @@ def _software_summary(build_name: str, software_hash: str, implementation) -> di
     return summary
 
 
+def _hosted_url_fn(
+    viewer_base_url: str,
+    fallback: Callable[[Path], str],
+    site_base_url: str | None,
+    output_dir: Path,
+):
+    """Build a `json_url_fn`/`profile_url_fn` for `detailed_results_table_html`.
+
+    PR-comparison results are ephemeral (never committed to `results/`, see
+    .github/workflows/pr-comparison.yml), so `json_viewer_url`/
+    `profile_viewer_url`'s GitHub-raw-URL links 404 - the underlying file
+    doesn't exist at any repo ref. When the CI job tells us where this run's
+    site will be deployed (`SKLBENCH_PR_COMPARE_SITE_URL`), copy each
+    referenced record/profile file into the site output directory instead
+    and link the viewer at that to-be-deployed copy. Without a known site URL
+    (e.g. a local ephemeral results/ dir), fall back to the normal
+    GitHub-raw-URL link rather than fail outright.
+    """
+
+    def build(record_path: Path) -> str | None:
+        if site_base_url is None:
+            return fallback(record_path)
+        dest = output_dir / record_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(record_path, dest)
+        hosted_url = f"{site_base_url}/{record_path.as_posix()}"
+        return external_viewer_url(viewer_base_url, hosted_url)
+
+    return build
+
+
 def _first_source(results: list[MethodResult], failed: list[BenchmarkRecord]):
     """A (software_hash, implementation) pair to source a build's
     software-env summary from - handles the (unlikely but possible) case
@@ -175,6 +214,13 @@ if __name__ == "__main__":
         r for record in variant_failed for r in base_by_case_key.get(_case_key(record.case), [])
     ]
 
+    output_dir = dashboard_output_dir()
+    # Set by .github/workflows/pr-comparison.yml's "Generate comparison
+    # dashboard" step to the Cloudflare Pages URL this run's "Deploy to
+    # Cloudflare Pages" step will publish to next - known ahead of the deploy
+    # itself since the branch name is deterministic from PR number + runner.
+    site_base_url = os.environ.get("SKLBENCH_PR_COMPARE_SITE_URL", "").rstrip("/") or None
+
     table_html = detailed_results_table_html(
         "all",
         matches_by_method,
@@ -189,6 +235,12 @@ if __name__ == "__main__":
         open=True,
         variant_column_title="Branch name",
         default_variant_filter=_branch_label(variant_build),
+        json_url_fn=_hosted_url_fn(
+            JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir
+        ),
+        profile_url_fn=_hosted_url_fn(
+            FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url, output_dir
+        ),
     )
 
     variant_colors = variant_color_map([base_build, variant_build])
@@ -217,6 +269,6 @@ if __name__ == "__main__":
         rows=[f'<div class="page-row">{row}</div>' for row in rows],
     )
 
-    output = dashboard_output_path("pr_comparison.html")
+    output = output_dir / "pr_comparison.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

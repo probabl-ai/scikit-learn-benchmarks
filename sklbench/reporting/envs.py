@@ -115,12 +115,22 @@ def github_raw_url(path: Path | str) -> str:
     )
 
 
+def external_viewer_url(viewer_base_url: str, target_url: str) -> str:
+    """Wrap `target_url` for one of the `*_VIEWER_BASE_URL` viewer apps.
+    Exposed (not just used internally by `json_viewer_url`/`profile_viewer_url`
+    below) so callers with a `target_url` that isn't a `github_raw_url` -
+    e.g. pr_comparison_dashboard.py linking to files it copied onto the
+    ephemeral Cloudflare Pages site instead - can still reuse the query-string
+    format the viewer apps expect."""
+    return f"{viewer_base_url}?url={quote(target_url, safe='')}"
+
+
 def json_viewer_url(path: Path | str) -> str:
-    return f"{JSON_VIEWER_BASE_URL}?url={quote(github_raw_url(path), safe='')}"
+    return external_viewer_url(JSON_VIEWER_BASE_URL, github_raw_url(path))
 
 
 def profile_viewer_url(path: Path | str) -> str:
-    return f"{FLAMEGRAPH_VIEWER_BASE_URL}?url={quote(github_raw_url(path), safe='')}"
+    return external_viewer_url(FLAMEGRAPH_VIEWER_BASE_URL, github_raw_url(path))
 
 
 def software_env_json_url(software_hash: str) -> str:

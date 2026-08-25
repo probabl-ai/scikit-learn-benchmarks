@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 
-def dashboard_output_path(default_filename: str) -> Path:
+def dashboard_output_dir() -> Path:
     parser = ArgumentParser()
     parser.add_argument(
         "--output-dir",
@@ -13,4 +13,8 @@ def dashboard_output_path(default_filename: str) -> Path:
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    return args.output_dir / default_filename
+    return args.output_dir
+
+
+def dashboard_output_path(default_filename: str) -> Path:
+    return dashboard_output_dir() / default_filename
