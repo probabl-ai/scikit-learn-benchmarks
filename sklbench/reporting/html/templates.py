@@ -141,6 +141,35 @@ BASE_TEMPLATE = Template("""<!doctype html>
       }
       window.sklbenchTables[tableId] = table;
     }
+
+    function sklbenchRelativeTime(isoString, nowMs) {
+      const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
+      if (seconds < 60) {
+        return "just now";
+      }
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) {
+        return `${minutes}m ago`;
+      }
+      const hours = Math.floor(seconds / 3600);
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+
+    function sklbenchFormatDateRanges() {
+      const nowMs = Date.now();
+      document.querySelectorAll(".date-range").forEach((el) => {
+        const start = sklbenchRelativeTime(el.dataset.start, nowMs);
+        const end = sklbenchRelativeTime(el.dataset.end, nowMs);
+        const range = start === end ? start : `${start} to ${end}`;
+        el.textContent = `${el.dataset.count} benchmark records from ${range}`;
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
+    setInterval(sklbenchFormatDateRanges, 60000);
   </script>
 </head>
 <body>
@@ -157,7 +186,11 @@ BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
 
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">
-  <h2>{{ label }}</h2>
+  {% if empty %}
+  <h2>No results</h2>
+  {% else %}
+  <h2 class="date-range" data-count="{{ count }}" data-start="{{ start }}" data-end="{{ end }}"></h2>
+  {% endif %}
 </section>""")
 
 HARDWARE_TEMPLATE = Template("""<section class="panel">
