@@ -45,3 +45,6 @@ The benchmark suite currently focuses on:
 
 Developer setup, architecture notes, and instructions for adding benchmark
 cases or publishing new benchmark results live in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Instructions for triggering an automated before/after benchmark comparison
+against an upstream scikit-learn PR live in [COMPARISONS_PR.md](COMPARISONS_PR.md).
