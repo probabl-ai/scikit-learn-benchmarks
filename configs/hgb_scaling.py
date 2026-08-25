@@ -200,7 +200,7 @@ def _real_dataset_cases() -> list[dict]:
     return [
         _with_thread_count(case, thread_count)
         for case in hgb_cases
-        for thread_count in get_n_cores_list(max_n_cores=128)
+        for thread_count in get_n_cores_list()
     ]
 
 
@@ -210,5 +210,5 @@ def generate_cases() -> list[dict]:
         for workload in WORKLOADS
         for task in TASKS
         for columns_kind in COLUMNS_KINDS
-        for thread_count in get_n_cores_list(max_n_cores=128)
+        for thread_count in get_n_cores_list()
     ] + _real_dataset_cases()
