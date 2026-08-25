@@ -621,11 +621,7 @@ def find_matches(
 
 def date_range(results: list[MethodResult]) -> dict:
     if not results:
-        return {"label": "No results"}
+        return {"empty": True}
     start = min(result.timestamp_recorded for result in results)
     end = max(result.timestamp_recorded for result in results)
-    if start.date() == end.date():
-        date_range = start.strftime("%Y-%m-%d")
-    else:
-        date_range = f"{start:%Y-%m-%d} to {end:%Y-%m-%d}"
-    return {"label": f"{len(results)} benchmark records from {date_range}"}
+    return {"count": len(results), "start": start.isoformat(), "end": end.isoformat()}
