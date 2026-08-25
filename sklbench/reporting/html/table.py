@@ -224,6 +224,8 @@ def detailed_results_table_html(
     unmatched_base_results: list[MethodResult] = (),
     unmatched_candidate_results: list[MethodResult] = (),
     open: bool = False,
+    variant_column_title: str = "Variant name",
+    default_variant_filter: str | None = None,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set()
@@ -320,7 +322,7 @@ def detailed_results_table_html(
         _column("comparison_key", "comparison_key", visible=False, header_sort=False),
         _column("Estimator name", "estimator", header_filter=True, sorter="string"),
         _column("Dataset name", "dataset", header_filter=True, sorter="string"),
-        _column("Variant name", "variant", header_filter=True, sorter="string"),
+        _column(variant_column_title, "variant", header_filter=True, sorter="string"),
         _column("n_samples", "n_samples", header_filter=True, sorter="number"),
         _column("n_features", "n_features", header_filter=True, sorter="number"),
     ]
@@ -369,9 +371,12 @@ def detailed_results_table_html(
 
     table_id = f"detailed-results-{next(table_ids)}"
     reset_button_id = f"{table_id}-reset"
+    default_header_filters = (
+        {"variant": default_variant_filter} if default_variant_filter else {}
+    )
     init_call = (
         f'sklbenchInitTable("{table_id}", {_safe_json(rows)}, '
-        f'{_safe_json(columns)}, "{reset_button_id}");'
+        f'{_safe_json(columns)}, "{reset_button_id}", {_safe_json(default_header_filters)});'
     )
     # `<details open>` alone doesn't fire a "toggle" event on page load, so
     # an eagerly-visible table needs the init call to run unconditionally

@@ -75,6 +75,14 @@ def _base_build(builds: list[str]) -> str | None:
     return next((build for build in builds if build.rsplit(":", 1)[-1] == "main"), None)
 
 
+def _branch_label(build_name: str) -> str:
+    """Strip the `sklearn-dev@owner:` prefix off a build name, leaving just
+    the ref/branch (e.g. "sklearn-dev@cakedev0:ridge/optim_cholesky" ->
+    "ridge/optim_cholesky") - the owner is noise in a table whose whole point
+    is comparing two branches of the same PR."""
+    return build_name.rsplit(":", 1)[-1]
+
+
 def _case_key(case: dict) -> str:
     """Case identity ignoring implementation/max_bins - shared by a base
     result and the candidate(s) it would be compared against."""
@@ -170,15 +178,17 @@ if __name__ == "__main__":
     table_html = detailed_results_table_html(
         "all",
         matches_by_method,
-        baseline_label=base_build,
-        variant_label=lambda result: variant_build,
+        baseline_label=_branch_label(base_build),
+        variant_label=lambda result: _branch_label(variant_build),
         failed_records=(
-            [(record, base_build) for record in base_failed]
-            + [(record, variant_build) for record in variant_failed]
+            [(record, _branch_label(base_build)) for record in base_failed]
+            + [(record, _branch_label(variant_build)) for record in variant_failed]
         ),
         unmatched_base_results=unmatched_base_results,
         unmatched_candidate_results=unmatched_variant_results,
         open=True,
+        variant_column_title="Branch name",
+        default_variant_filter=_branch_label(variant_build),
     )
 
     variant_colors = variant_color_map([base_build, variant_build])
