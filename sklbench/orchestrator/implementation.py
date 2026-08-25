@@ -56,6 +56,17 @@ def _print_progress_line(index: int, total: int, case_name: str) -> None:
     print(f"[sklbench] {index}/{total} {case_name}", file=sys.stderr)
 
 
+def _warmup(duration_s: float = 30) -> None:
+    import numpy as np
+
+    print(f"[sklbench] Warming up ({duration_s:.0f}s matmul)...", file=sys.stderr)
+    a = np.random.rand(1000, 1000)
+    b = np.random.rand(1000, 1000)
+    start = time.monotonic()
+    while time.monotonic() - start < duration_s:
+        np.matmul(a, b)
+
+
 def _gzip_file(source: Path, destination: Path) -> None:
     destination.write_bytes(
         gzip.compress(source.read_bytes(), compresslevel=9, mtime=0)
@@ -215,6 +226,9 @@ def orchestrate_benchmarks(
         level=logging.WARNING,
         format="%(levelname)s - %(name)s - %(message)s",
     )
+
+    if any("test" not in config for config in args.config):
+        _warmup()
 
     env_info = get_environment_info()
     hardware_hash = get_hardware_hash(env_info["hardware"])
