@@ -110,7 +110,7 @@ def real_case_dataset(dataset, task, tier):
     return decorator
 
 
-@real_case_dataset("ames_housing", "regression", "test")
+@real_case_dataset("ames_housing", "regression", "fast")
 def ames_housing(implem: dict):
     # Ridge(alpha=1.0), linear/no-nystroem: test R2 0.89
     yield {
