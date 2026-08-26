@@ -1,6 +1,6 @@
 from math import sqrt
 
-from _scaling import get_n_cores_list, taskset_for_physical_cores
+from _scaling import get_n_cores_list, has_hybrid_cores, taskset_for_physical_cores
 from real_datasets import generate_cases as generate_real_dataset_cases
 
 
@@ -145,13 +145,22 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     transitively as a conda package, and pixi refuses to override a
     conda-selected package with a PyPI git dependency of the same name -
     so those keep using upstream joblib's affinity-blind cpu_count().
+
+    `OMP_PROC_BIND` is explicitly set to "false" (rather than "true") on
+    hybrid-core machines, for the same "make it correct regardless of
+    ambient state" reason OMP_NUM_THREADS is set explicitly above: "true"
+    binds each OpenMP thread to a place chosen from across the whole
+    taskset's topology without distinguishing core type, which can place a
+    thread team smaller than the taskset onto slower E-cores instead of
+    packing it onto the faster P-cores the taskset was sized for - see
+    `has_hybrid_cores`.
     """
     return {
         **case,
         "bench": {
             "n_runs": 3,
             "env": {
-                "OMP_PROC_BIND": "true",
+                "OMP_PROC_BIND": "false" if has_hybrid_cores() else "true",
                 "OMP_NUM_THREADS": str(thread_count),
             },
             "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
