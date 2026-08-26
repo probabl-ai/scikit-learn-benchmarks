@@ -49,22 +49,6 @@ def get_n_cores_list(*, max_n_cores: int | None = None) -> list[int]:
 
 
 def has_hybrid_cores() -> bool:
-    """Whether this machine's CPU mixes core types (e.g. Intel
-    Performance/Efficiency cores), detected via the `cpu_core`/`cpu_atom`
-    PMU sysfs directories the kernel exposes for Intel Hybrid Technology
-    (absent on homogeneous CPUs, older kernels, and non-Intel machines,
-    which this conservatively treats as non-hybrid).
-
-    `OMP_PROC_BIND=true` has each OpenMP thread bind to one place chosen
-    from across the whole affinity mask's topology, without distinguishing
-    core type - on a hybrid CPU that can place a thread team smaller than
-    the affinity mask on slower E-cores instead of packing it onto the
-    faster P-cores the mask was sized for, even though a narrower mask
-    (e.g. from a smaller thread count's own taskset) would have kept the
-    same-size team entirely on P-cores - observed on a hybrid laptop as a
-    ~2x fit-time regression between two thread counts that both resolved
-    to the same actual tree_n_threads.
-    """
     return (
         Path("/sys/devices/cpu_core/cpus").exists()
         and Path("/sys/devices/cpu_atom/cpus").exists()

@@ -155,14 +155,17 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     packing it onto the faster P-cores the taskset was sized for - see
     `has_hybrid_cores`.
     """
+    env = {
+        "OMP_NUM_THREADS": str(thread_count),
+    }
+    if not has_hybrid_cores():
+        env["OMP_PROC_BIND"] = "true"
+
     return {
         **case,
         "bench": {
             "n_runs": 3,
-            "env": {
-                "OMP_PROC_BIND": "false" if has_hybrid_cores() else "true",
-                "OMP_NUM_THREADS": str(thread_count),
-            },
+            "env": env,
             "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
             "py_spy_profiling": False,
         },
