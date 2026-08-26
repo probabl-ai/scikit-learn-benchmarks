@@ -1,4 +1,4 @@
-from itertools import chain, product
+from itertools import chain
 from math import ceil, sqrt
 from typing import Iterable
 
@@ -14,6 +14,14 @@ ALGORITHM_VARIANTS = [
     {"estimator": "LogisticRegression", "estimator_params": {"solver": "newton-cholesky"}},
     {"estimator": "LogisticRegression", "estimator_params": {"solver": "newton-cg"}},
 ]
+
+# Per-estimator multiplier applied on top of the base scale in scaled tiers,
+# so each estimator's data size grows at its own rate.
+ALGORITHM_SCALE_FACTORS = {
+    "LinearRegression": 1,
+    "LogisticRegression": 3,
+    "Ridge": 10,
+}
 
 
 def _build_case(
@@ -57,10 +65,10 @@ def _build_case(
     return case
 
 
-def _linear_cases_for(implem: dict, benchs: list[dict], data_variants: list[dict]) -> Iterable[dict]:
-    for algorithm, (bench, generation_kwargs) in product(
-        ALGORITHM_VARIANTS, zip(benchs, data_variants)
-    ):
+def _linear_cases_for(
+    implem: dict, algorithm: dict, benchs: list[dict], data_variants: list[dict]
+) -> Iterable[dict]:
+    for bench, generation_kwargs in zip(benchs, data_variants):
         solver = algorithm.get("estimator_params", {}).get("solver")
         if solver in ("newton-cholesky", "newton-cg") and generation_kwargs["n_features"] >= 1000:
             # Newton solvers factorize the (n_features, n_features) Hessian each
@@ -91,7 +99,8 @@ def _test_linear_cases(implem: dict) -> Iterable[dict]:
         }
     ]
 
-    yield from _linear_cases_for(implem, [bench], data_variants)
+    for algorithm in ALGORITHM_VARIANTS:
+        yield from _linear_cases_for(implem, algorithm, [bench], data_variants)
 
 
 def linear_data_shapes(scale: int) -> list[dict]:
@@ -116,11 +125,14 @@ def linear_data_shapes(scale: int) -> list[dict]:
 
 
 def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
-    data_shapes = linear_data_shapes(scale)
+    cases = []
+    for algorithm in ALGORITHM_VARIANTS:
+        algorithm_scale = scale * ALGORITHM_SCALE_FACTORS[algorithm["estimator"]]
+        data_shapes = linear_data_shapes(algorithm_scale)
+        benchs = [{"time_limit": 2 + algorithm_scale * 2} for _ in data_shapes]
+        cases.extend(_linear_cases_for(implem, algorithm, benchs, data_shapes))
 
-    benchs = [{"time_limit": 2 + scale * 2} for _ in data_shapes]
-
-    return list(_linear_cases_for(implem, benchs, data_shapes))
+    return cases
 
 
 def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dict]:
