@@ -16,10 +16,19 @@ from `bench.env.OMP_NUM_THREADS` in the record's raw JSON (via
 `record.record_path`) - the requested thread count, not an affinity-derived
 guess, since some configs (e.g. `hgb_scaling_laptop.py`) set
 `OMP_NUM_THREADS` without a matching `taskset`.
+
+Excludes `sklearn-dev*` builds - those are one-off scikit-learn git-checkout
+builds (a specific commit/PR branch, see CONTRIBUTING.md's
+`setup_sklearn_ref.sh` / `run.sh env@owner:ref` workflow) rather than a
+stable environment build, so mixing them into this dashboard's per-build
+tabs would make a tab mean "whatever PR happened to run last" instead of a
+fixed build. See `gen_hgb_dev_scaling.py` for the sklearn-dev-only
+counterpart.
 """
 from html import escape
 import json
 from pathlib import Path
+import re
 from statistics import median
 import sys
 
@@ -98,6 +107,20 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
     if "HistGradientBoosting" not in estimator:
         return False
     return any("binning_time" in (run.get("attributes") or {}) for run in record.runs)
+
+
+SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
+# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
+# "sklearn-dev-libomp@..." (see configs/_implementations.py). Re-derived here
+# rather than imported from gen_hgb_speedup_breakdown.py, per this codebase's
+# convention of each gen_*.py dashboard owning its own such helpers instead
+# of importing another dashboard module's internals.
+_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
+
+
+def _is_sklearn_dev_build(record: BenchmarkRecord) -> bool:
+    build_name = software_build_name(record.software_hash)
+    return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
 
 
 def _raw_bench_env(record: BenchmarkRecord) -> dict:
@@ -437,7 +460,11 @@ def _env_label(hardware_hash: str, software_hash: str, active_wait: bool) -> str
 
 if __name__ == "__main__":
     records = _dedup_latest(
-        [record for record in read_benchmark_records() if _is_instrumented_hgb(record)]
+        [
+            record
+            for record in read_benchmark_records()
+            if _is_instrumented_hgb(record) and not _is_sklearn_dev_build(record)
+        ]
     )
     by_env: dict[tuple[str, str, bool], list[BenchmarkRecord]] = {}
     for record in records:
