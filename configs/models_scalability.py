@@ -150,7 +150,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int) -> list[dict
             },
             "bench": {
                 **case["bench"],
-                "n_runs": 5,
+                "n_runs": 1,
                 "env": env,
                 "taskset": taskset_for_physical_cores(cores_count, with_siblings),
             },
