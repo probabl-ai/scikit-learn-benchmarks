@@ -14,7 +14,6 @@
 # limitations under the License.
 # ===============================================================================
 
-import hashlib
 import json
 import logging
 import os
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 # NB: non-registered data components and extensions will not be found by loader
 KNOWN_DATA_COMPONENTS = ["x", "y"]
 KNOWN_DATA_EXTENSIONS = ["parq", "npz"]
-PREPROCESSED_SUBSETS = ["x_train", "x_test", "y_train", "y_test"]
 
 
 def get_expr_by_prefix(prefix: str) -> str:
@@ -147,91 +145,3 @@ def load_from_cache_or_compute(
             data_desc["categorical_columns"] = categorical_columns
         save_data_description(data_desc, data_cache, data_name)
     return data, data_desc
-
-
-def load_preprocessed_from_cache(
-    data_cache: str,
-    cache_name: str,
-    categorical_columns: dict[str, list[str]] | None = None,
-) -> dict:
-    # unlike `load_data_from_cache`, subset names (x_train, x_test, ...) aren't
-    # in `KNOWN_DATA_COMPONENTS`, so files are looked up directly by name
-    # rather than discovered via `get_filenames_by_prefix`
-    categorical_columns = categorical_columns or {}
-    data_dict = {}
-    for subset_name in PREPROCESSED_SUBSETS:
-        subset_filepath = os.path.join(data_cache, f"{cache_name}_{subset_name}")
-        if os.path.exists(subset_filepath + ".parq"):
-            subset_data = load_data_file(subset_filepath + ".parq", "parq")
-            for column in categorical_columns.get(subset_name, []):
-                if column in subset_data.columns:
-                    subset_data[column] = subset_data[column].astype("category")
-        elif os.path.exists(subset_filepath + ".npz"):
-            subset_data = load_data_file(subset_filepath + ".npz", "npz")
-        else:
-            subset_data = None
-        data_dict[subset_name] = subset_data
-    return data_dict
-
-
-def get_preprocessing_cache_name(
-    data_name: str,
-    split_kwargs: dict,
-    preprocessing_kind: str | None,
-    preprocessing_kwargs: dict,
-) -> str:
-    key_repr = json.dumps(
-        {
-            "split_kwargs": split_kwargs,
-            "preprocessing_kind": preprocessing_kind,
-            "preprocessing_kwargs": preprocessing_kwargs,
-        },
-        sort_keys=True,
-        default=str,
-    )
-    key_hash = hashlib.sha256(key_repr.encode("utf-8")).hexdigest()[:8]
-    return f"{data_name}_{key_hash}"
-
-
-def load_preprocessed_from_cache_or_compute(
-    function,
-    *,
-    data_name: str,
-    preprocessed_data_cache: str,
-    split_kwargs: dict,
-    preprocessing_kind: str | None,
-    preprocessing_kwargs: dict,
-) -> dict:
-    """Cache the post-split, post-preprocessing x_train/x_test/y_train/y_test
-    subsets, so repeated runs of the same case skip both loading and
-    preprocessing. Keyed on the raw dataset name plus the split/preprocessing
-    settings that produced the subsets, so cases sharing a dataset but using
-    different splits or preprocessing don't collide.
-
-    The cache key covers `split_kwargs`/`preprocessing_kind`/
-    `preprocessing_kwargs` only, not the preprocessing code itself (same
-    limitation as `load_from_cache_or_compute`'s raw-data cache). Changing
-    what `trees_preprocessor`/`linear_preprocessor`/`hgb_preprocessing` (in
-    `preprocessing.py`) actually do will not change the cache key, so stale
-    subsets from before the change can still be served. Clear
-    `{data_cache}/preprocessed/` manually after editing those functions.
-    """
-    cache_name = get_preprocessing_cache_name(
-        data_name, split_kwargs, preprocessing_kind, preprocessing_kwargs
-    )
-    cache_desc_path = os.path.join(preprocessed_data_cache, f"{cache_name}.json")
-    if os.path.exists(cache_desc_path):
-        logger.info(f'Loading preprocessed "{data_name}" dataset from cache files')
-        data_desc = load_data_description(preprocessed_data_cache, cache_name)
-        return load_preprocessed_from_cache(
-            preprocessed_data_cache,
-            cache_name,
-            categorical_columns=data_desc.get("categorical_columns"),
-        )
-
-    logger.info(f'Preprocessing "{data_name}" dataset from scratch')
-    data_dict = function()
-    categorical_columns = save_data_to_cache(data_dict, preprocessed_data_cache, cache_name)
-    data_desc = {"categorical_columns": categorical_columns} if categorical_columns else {}
-    save_data_description(data_desc, preprocessed_data_cache, cache_name)
-    return data_dict

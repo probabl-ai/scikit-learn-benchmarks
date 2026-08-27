@@ -177,9 +177,6 @@ jobs:
           post-cleanup: false
           pixi-bin-path: ${{ runner.temp }}/bin/pixi
 
-      - name: Clear preprocessed dataset cache
-        run: rm -rf "${SKLBENCH_DATA_CACHE:-data_cache}/preprocessed"
-
       - name: Validate config
         # A prior version of this check lived in run.sh itself, using
         # `-e default` - broken for any config calling

@@ -18,7 +18,7 @@ import os
 
 from ...config import EstimatorCase
 from .loaders import dataset_loading_functions, load_openml_data
-from .loading import load_from_cache_or_compute, load_preprocessed_from_cache_or_compute
+from .loading import load_from_cache_or_compute
 from .preprocessing import split_and_preprocess_data
 from .synthetic import generate_synthetic_data
 from .transformer import convert_subsets
@@ -63,20 +63,10 @@ def load_data(bench_case: EstimatorCase) -> tuple[tuple, dict]:
         data_params.preprocessing_kind, {}
     )
     preprocessing_kwargs = preprocessing_defaults | data_params.preprocessing_kwargs
-    default_split = data_description.get('default_split')
-    preprocessed_data_cache = os.path.join(data_cache, "preprocessed")
-    os.makedirs(preprocessed_data_cache, exist_ok=True)
-    data_dict = load_preprocessed_from_cache_or_compute(
-        lambda: split_and_preprocess_data(
-            data,
-            split_kwargs=data_params.split_kwargs,
-            default_split=default_split,
-            preprocessing_kind=data_params.preprocessing_kind,
-            preprocessing_kwargs=preprocessing_kwargs,
-        ),
-        data_name=data_name,
-        preprocessed_data_cache=preprocessed_data_cache,
-        split_kwargs=(default_split or {}) | data_params.split_kwargs,
+    data_dict = split_and_preprocess_data(
+        data,
+        split_kwargs=data_params.split_kwargs,
+        default_split=data_description.get('default_split'),
         preprocessing_kind=data_params.preprocessing_kind,
         preprocessing_kwargs=preprocessing_kwargs,
     )
