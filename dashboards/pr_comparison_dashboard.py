@@ -18,6 +18,7 @@ the other dashboards handle: its only caller is that one CI job, so a shape
 mismatch here means the pipeline itself is broken, not "no data yet".
 """
 
+from html import escape
 import os
 from pathlib import Path
 import re
@@ -48,16 +49,12 @@ from sklbench.reporting.envs import (
     read_env,
     software_build_name,
     summarize_hardware_env,
-    summarize_software_env,
 )
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    SOFTWARE_TEMPLATE,
     detailed_results_table_html,
-    render_software_tabs,
-    variant_color_map,
 )
 
 
@@ -105,14 +102,21 @@ def result_matches(
     return base_res.minimal_match_key == candidate.minimal_match_key, warnings
 
 
-def _software_summary(build_name: str, software_hash: str, implementation) -> dict:
-    summary = summarize_software_env(
-        read_env("software", software_hash),
-        implementation,
-        software_hash=software_hash,
-    )
-    summary["name"] = build_name
-    return summary
+def _sklearn_commit_url(software_hash: str) -> str | None:
+    """A GitHub commit-view URL for the scikit-learn checkout `software_hash`
+    was built from, or None if that info isn't there (e.g. a failed-only
+    build whose env capture never ran). `sklearn-dev` builds always source
+    scikit-learn from a git checkout (see scripts/setup_sklearn_ref.sh), so
+    `git_info` should always resolve to remote+commit in practice."""
+    git_info = read_env("software", software_hash).get("runtime_imports", {}).get("sklearn", {}).get("git")
+    if not git_info:
+        return None
+    commit = git_info.get("commit")
+    owner_repo_match = re.search(r"[:/]([^/:]+)/([^/]+?)(?:\.git)?$", git_info.get("remote", ""))
+    if not commit or not owner_repo_match:
+        return None
+    owner, repo = owner_repo_match.groups()
+    return f"https://github.com/{owner}/{repo}/commit/{commit}"
 
 
 def _hosted_url_fn(
@@ -147,13 +151,11 @@ def _hosted_url_fn(
 
 
 def _first_source(results: list[MethodResult], failed: list[BenchmarkRecord]):
-    """A (software_hash, implementation) pair to source a build's
-    software-env summary from - handles the (unlikely but possible) case
-    where every case for one side failed outright."""
+    """A software_hash to source a build's scikit-learn commit link from -
+    handles the (unlikely but possible) case where every case for one side
+    failed outright."""
     source = results[0] if results else (failed[0] if failed else None)
-    if source is None:
-        return None
-    return source.software_hash, source.implementation
+    return source.software_hash if source is not None else None
 
 
 if __name__ == "__main__":
@@ -243,24 +245,45 @@ if __name__ == "__main__":
         ),
     )
 
-    variant_colors = variant_color_map([base_build, variant_build])
-    software_summaries = []
+    commit_urls = {}
     for build_name, build_results, build_failed in (
         (base_build, base_results, base_failed),
         (variant_build, variant_results, variant_failed),
     ):
-        source = _first_source(build_results, build_failed)
-        if source is not None:
-            software_hash, implementation = source
-            software_summaries.append(_software_summary(build_name, software_hash, implementation))
+        software_hash = _first_source(build_results, build_failed)
+        commit_urls[build_name] = (
+            _sklearn_commit_url(software_hash) if software_hash is not None else None
+        )
+
+    commit_links = []
+    for build_name in (base_build, variant_build):
+        label = escape(_branch_label(build_name))
+        commit_url = commit_urls[build_name]
+        if commit_url is None:
+            commit_links.append(f"<li>{label}: <span class=\"muted\">commit unknown</span></li>")
+        else:
+            commit_links.append(f'<li>{label}: <a href="{escape(commit_url)}">view commit</a></li>')
+
+    variant_label_html = escape(_branch_label(variant_build))
+    if commit_urls[variant_build] is not None:
+        variant_label_html = f'<a href="{escape(commit_urls[variant_build])}">{variant_label_html}</a>'
+
+    about_html = f"""<section class="panel">
+  <p>This page compares two scikit-learn builds &mdash; <code>main</code> and
+  {variant_label_html} &mdash; benchmarked back-to-back on the same self-hosted
+  runner in one CI job (see the commits below for exactly what was compared).
+  Each table row is one benchmark case (estimator, dataset, hyperparameters);
+  <code>fit speedup</code>/<code>predict speedup</code> is the branch's time
+  relative to the <code>main</code> baseline.
+  Use the column filters to narrow down by estimator, dataset, or branch name.</p>
+</section>"""
 
     rows = [
+        about_html,
         DATE_RANGE_TEMPLATE.render(date_range(results)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hardware_hash))),
-        render_software_tabs(
-            [SOFTWARE_TEMPLATE.render(**summary) for summary in software_summaries],
-            variant_colors=variant_colors,
-        ),
+        '<section class="panel"><h2>scikit-learn commits</h2>'
+        f'<ul class="compact">{"".join(commit_links)}</ul></section>',
         table_html or '<section class="empty">No comparable benchmark cases.</section>',
     ]
 
