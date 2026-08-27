@@ -99,18 +99,34 @@ BASE_TEMPLATE = Template("""<!doctype html>
       const resetToolbar = resetButton
         ? resetButton.closest(".detailed-results-toolbar")
         : null;
+      const initialSort = [
+        {column: "estimator", dir: "asc"},
+        {column: "dataset", dir: "asc"},
+        {column: "variant", dir: "asc"},
+      ];
+      // Row click puts every row sharing the clicked row's comparison_key on
+      // top instead of filtering everything else out, so clicking a column
+      // header to sort by something else naturally supersedes it.
+      let matchSortKey = null;
+      const matchFirstSorter = (a, b) => {
+        const aMatches = a === matchSortKey ? 0 : 1;
+        const bMatches = b === matchSortKey ? 0 : 1;
+        return aMatches - bMatches;
+      };
+      const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
+        if (column.field === "comparison_key") {
+          return {...column, sorter: matchFirstSorter};
+        }
+        return column;
+      });
       const table = new Tabulator(`#${tableId}`, {
         data: rows,
-        columns: sklbenchPrepareColumns(columns),
+        columns: preparedColumns,
         layout: "fitDataStretch",
         pagination: "local",
         paginationSize: 25,
         paginationSizeSelector: [10, 25, 50, 100, true],
-        initialSort: [
-          {column: "estimator", dir: "asc"},
-          {column: "dataset", dir: "asc"},
-          {column: "variant", dir: "asc"},
-        ],
+        initialSort,
         initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
           ([field, value]) => ({field, value})
         ),
@@ -126,14 +142,16 @@ BASE_TEMPLATE = Template("""<!doctype html>
         if (!comparisonKey) {
           return;
         }
-        table.setFilter("comparison_key", "=", comparisonKey);
+        matchSortKey = comparisonKey;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
         if (resetToolbar) {
           resetToolbar.hidden = false;
         }
       });
       if (resetButton) {
         resetButton.addEventListener("click", () => {
-          table.clearFilter(true);
+          matchSortKey = null;
+          table.setSort(initialSort);
           if (resetToolbar) {
             resetToolbar.hidden = true;
           }

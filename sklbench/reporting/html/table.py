@@ -83,6 +83,28 @@ def _result_params(case: dict) -> dict:
     return case.get("algorithm", {}).get("estimator_params", {}) or {}
 
 
+# Model params shown in the detailed results table, beyond this the table gets
+# too wide to be useful. "solver" is overwritten with the fitted
+# `estimator.solver_` (see `_row_hyperparams`) rather than the requested param,
+# since solvers are often auto-selected.
+HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
+
+
+def _row_hyperparams(case: dict, attributes: dict | None = None) -> dict:
+    params = _result_params(case)
+    attributes = attributes or {}
+    hyperparams = {}
+    for name in HYPERPARAM_DISPLAY_ALLOWLIST:
+        if name == "solver":
+            solver_values = attributes.get("solver")
+            if solver_values:
+                hyperparams["solver"] = solver_values[0]
+                continue
+        if name in params:
+            hyperparams[name] = params[name]
+    return hyperparams
+
+
 def _default_comparison_key(result: MethodResult) -> str:
     return stable_json(
         without_keys(result.case, excluded_names={"implementation", "max_bins"})
@@ -111,7 +133,7 @@ def _new_row(
         "profile_url": _profile_url(result, profile_url_fn),
         "profile_url_label": _profile_label(result.record),
         "json_url": _record_json_url(result, json_url_fn),
-        "hyperparams": _result_params(result.case),
+        "hyperparams": _row_hyperparams(result.case, result.attributes),
         "status": "ok",
     }
     return row
@@ -157,7 +179,7 @@ def _new_failed_row(
         "predict_speedup": None,
         "profile_url": None,
         "json_url": json_url_fn(record.record_path) if record.record_path else None,
-        "hyperparams": _result_params(record.case),
+        "hyperparams": _row_hyperparams(record.case),
         "status": _failed_status(failed_case),
     }
 
@@ -242,14 +264,12 @@ def detailed_results_table_html(
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
-    hyperparam_names = set()
+    hyperparam_names = set(HYPERPARAM_DISPLAY_ALLOWLIST)
 
     for matches in matches_by_method.values():
         for match in matches:
             base = match.base_result
             result = match.matched_result
-            hyperparam_names.update(_result_params(base.case))
-            hyperparam_names.update(_result_params(result.case))
             _add_result_method(
                 rows_by_key,
                 result=base,
@@ -270,7 +290,6 @@ def detailed_results_table_html(
             )
 
     for record, variant in failed_records:
-        hyperparam_names.update(_result_params(record.case))
         key = _failed_row_key(record, variant)
         rows_by_key[key] = _new_failed_row(
             record, variant, comparison_key(record), json_url_fn
@@ -282,7 +301,6 @@ def detailed_results_table_html(
     # No speedup is computable for either side, since there's no successful
     # counterpart to compare against.
     for result in unmatched_base_results:
-        hyperparam_names.update(_result_params(result.case))
         _add_result_method(
             rows_by_key,
             result=result,
@@ -293,7 +311,6 @@ def detailed_results_table_html(
         )
 
     for result in unmatched_candidate_results:
-        hyperparam_names.update(_result_params(result.case))
         _add_result_method(
             rows_by_key,
             result=result,
@@ -342,9 +359,9 @@ def detailed_results_table_html(
 
     columns = [
         _column("comparison_key", "comparison_key", visible=False, header_sort=False),
+        _column(variant_column_title, "variant", header_filter=True, sorter="string"),
         _column("Estimator name", "estimator", header_filter=True, sorter="string"),
         _column("Dataset name", "dataset", header_filter=True, sorter="string"),
-        _column(variant_column_title, "variant", header_filter=True, sorter="string"),
         _column("n_samples", "n_samples", header_filter=True, sorter="number"),
         _column("n_features", "n_features", header_filter=True, sorter="number"),
     ]
@@ -352,9 +369,12 @@ def detailed_results_table_html(
         _column(name, field, header_filter=True, sorter="string")
         for name, field in hyperparam_fields.items()
     )
+    if any(row["status"] != "ok" for row in rows):
+        columns.append(
+            _column("Status", "status", header_filter=True, sorter="string")
+        )
     columns.extend(
         [
-            _column("Status", "status", header_filter=True, sorter="string"),
             _column("fit time", "fit_time", sorter="number", formatter_name="duration"),
             _column(
                 "fit speed up",
@@ -374,21 +394,26 @@ def detailed_results_table_html(
                 sorter="number",
                 formatter_name="speedup",
             ),
+        ]
+    )
+    if any(row["profile_url"] for row in rows):
+        columns.append(
             _column(
                 "profile link",
                 "profile_url",
                 header_sort=False,
                 formatter_name="link",
                 link_label="profile",
-            ),
-            _column(
-                "JSON link",
-                "json_url",
-                header_sort=False,
-                formatter_name="link",
-                link_label="JSON",
-            ),
-        ]
+            )
+        )
+    columns.append(
+        _column(
+            "JSON link",
+            "json_url",
+            header_sort=False,
+            formatter_name="link",
+            link_label="JSON",
+        )
     )
 
     table_id = f"detailed-results-{next(table_ids)}"
@@ -419,7 +444,7 @@ def detailed_results_table_html(
     return f"""<details class="detailed-results"{" open" if open else ""}>
   <summary>Detailed results</summary>
   <div class="detailed-results-toolbar" hidden>
-    <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row filter" aria-label="Clear row filter">x</button>
+    <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row sort" aria-label="Clear row sort">x</button>
   </div>
   <div id="{table_id}" class="detailed-results-table"></div>
   {script}

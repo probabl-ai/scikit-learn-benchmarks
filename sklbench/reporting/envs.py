@@ -326,6 +326,14 @@ def _openmp_summary(env: dict, case_env: dict | None = None) -> list[str]:
     kmp_blocktime = _effective_openmp_value(case_env, info, "KMP_BLOCKTIME")
     if kmp_blocktime:
         summary.append(f"KMP_BLOCKTIME: {kmp_blocktime}")
+    # Unlike GOMP_SPINCOUNT/KMP_BLOCKTIME above, no fallback to the build's
+    # own OMP_DISPLAY_ENV dump here: that dump reflects whatever the capture
+    # process happened to run with, not a meaningful ambient default for
+    # thread affinity, so only show OMP_PROC_BIND when a case explicitly set
+    # it via `bench.env`.
+    omp_proc_bind = (case_env or {}).get("OMP_PROC_BIND")
+    if omp_proc_bind is not None:
+        summary.append(f"OMP_PROC_BIND: {omp_proc_bind}")
     return summary
 
 
