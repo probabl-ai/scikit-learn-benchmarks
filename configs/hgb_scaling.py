@@ -145,21 +145,18 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     transitively as a conda package, and pixi refuses to override a
     conda-selected package with a PyPI git dependency of the same name -
     so those keep using upstream joblib's affinity-blind cpu_count().
-
-    `OMP_PROC_BIND` is explicitly set to "false" (rather than "true") on
-    hybrid-core machines, for the same "make it correct regardless of
-    ambient state" reason OMP_NUM_THREADS is set explicitly above: "true"
-    binds each OpenMP thread to a place chosen from across the whole
-    taskset's topology without distinguishing core type, which can place a
-    thread team smaller than the taskset onto slower E-cores instead of
-    packing it onto the faster P-cores the taskset was sized for - see
-    `has_hybrid_cores`.
     """
     env = {
         "OMP_NUM_THREADS": str(thread_count),
+        # "OMP_PROC_BIND": "true"
+        # OMP_PROC_BIND=true has several issues:
+        # - use with parallel processes/threads it can be very detrimental
+        #   (e.g. grid search)
+        # - on hybrid cores, it can force using bad cores; while the OS would
+        #   have otherwise used fast cores preferably (when n_threads < n_cores)
+        # But OMP_PROC_BIND=true is also very beneficial on a big box like the GNR
+        # when you use all the available cores (and maybe even a bit on hybrid cores)
     }
-    if not has_hybrid_cores():
-        env["OMP_PROC_BIND"] = "true"
 
     return {
         **case,
