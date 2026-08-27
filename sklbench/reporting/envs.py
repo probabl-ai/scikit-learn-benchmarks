@@ -147,7 +147,7 @@ _GIT_SOURCE_PACKAGES = {"scikit-learn": "sklearn"}
 
 
 def _git_commit_digest(git_info: dict) -> str:
-    digest = git_info.get("describe") or git_info.get("commit", "")[:9] or "unknown commit"
+    digest = git_info.get("commit", "")[:9] or "unknown commit"
     return f"{digest}-dirty" if git_info.get("dirty") else digest
 
 
