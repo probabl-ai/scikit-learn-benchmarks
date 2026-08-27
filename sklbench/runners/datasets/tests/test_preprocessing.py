@@ -13,10 +13,9 @@ from sklbench.runners.datasets.preprocessing import (
 )
 
 # Ames Housing (`ames_housing` loader, openml id 42165): real dataset with both
-# categorical columns (mostly plain "object" dtype, as produced by this
-# codebase's openml loader) and actual missing values in both categorical and
-# numeric columns, so it exercises every code path in the preprocessing
-# functions below.
+# `category`-dtype categorical columns and actual missing values in both
+# categorical and numeric columns, so it exercises every code path in the
+# preprocessing functions below.
 
 
 @pytest.fixture(scope="module")
@@ -100,7 +99,7 @@ def test_split_and_preprocess_data_without_preprocessing_kind_is_a_noop_split(
     )
 
     assert isinstance(out["x_train"], pd.DataFrame)
-    assert out["x_train"]["MSZoning"].dtype == object
+    assert isinstance(out["x_train"]["MSZoning"].dtype, pd.CategoricalDtype)
 
 
 @pytest.mark.parametrize("encoding", ["ordinal", "one-hot"])

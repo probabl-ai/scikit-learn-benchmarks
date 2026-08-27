@@ -143,7 +143,7 @@ def trees_preprocessor(encoding : str = "ordinal"):
             (
                 "encoder",
                 encoder,
-                make_column_selector(dtype_include=["category", object]),
+                make_column_selector(dtype_include=["category"]),
             ),
         ],
         remainder='passthrough'
@@ -206,7 +206,7 @@ def linear_preprocessor(
                 ("onehot", one_hot_encoder),
                 ("target", target_encoder),
             ]),
-            make_column_selector(dtype_include=["category", object]),
+            make_column_selector(dtype_include=["category"]),
         ),
         (
             "numeric",
@@ -244,7 +244,9 @@ def hgb_preprocessing(X_train, X_test, y_train=None):
         max_categories=252
     )
 
-    categorical_columns = X_train.select_dtypes(["category", object]).columns.to_list()
+    categorical_columns = X_train.select_dtypes(["category"]).columns.to_list()
+    if not categorical_columns:
+        return X_train, X_test
     preprocessor = ColumnTransformer(
         transformers=[("encoder", encoder, categorical_columns)],
         remainder='passthrough',
