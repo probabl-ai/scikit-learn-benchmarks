@@ -16,6 +16,7 @@ DASHBOARDS = [
     ("HGB thread-scalability breakdown (sklearn-dev)", "hgb_dev_scaling.html"),
     ("HGB build scalability comparison", "hgb_build_scaling.html"),
     ("HGB speed-up breakdown", "hgb_speedup_breakdown.html"),
+    ("Model thread-scalability", "models_scalability.html"),
 ]
 
 

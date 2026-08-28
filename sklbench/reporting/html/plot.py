@@ -385,18 +385,47 @@ def scaling_line_plot_html(
     colors: dict[str, str] | None = None,
     x_title: str = "threads",
     y_title: str = "fit time (ms)",
+    y_unit: str = "ms",
+    x_log: bool = False,
+    y_log: bool = False,
+    reference_lines: dict[str, list[tuple[float, float]]] | None = None,
 ) -> str:
     """Simple line plot of `y_title` vs `x_title`, one line per series key
     (e.g. software build). `series` maps a label to a list of (x, y) points.
     Lighter-weight alternative to `phase_breakdown_plot_html` for comparing
     overall scaling behavior across builds, rather than a per-build phase
-    breakdown."""
+    breakdown. `y_unit` only affects the hover suffix - callers passing
+    non-millisecond `y` values (e.g. gen_models_scalability.py's seconds)
+    must override it to match, since it isn't derived from `y_title`.
+
+    `x_log` switches the x-axis to log scale - the intended use is a
+    power-of-two sweep (e.g. core counts), so ticks are pinned to powers of
+    two spanning `series`' x range (1, 2, 4, ...) rather than Plotly's
+    default power-of-10 log ticks, which wouldn't land on them - including
+    when the actual max x isn't itself a power of two (e.g. a core count
+    capped by the machine's physical core count). `y_log` switches the
+    y-axis to log scale - `rangemode: tozero` is skipped in that case, since
+    a log axis can't include 0.
+
+    Each point is normally an `(x, y)` pair; a point may add a third element
+    - one extra line of hover text (e.g. `"n_iter: 431"`) shown below the x/y
+    line, or `""`/`None` for no extra line - for callers that want per-point
+    context an aggregate x/y trend can't convey.
+
+    `reference_lines` draws additional dashed, marker-less, grey lines (e.g.
+    an ideal-scaling reference) in the same `{label: [(x, y), ...]}` shape as
+    `series`, kept visually distinct from the real data traces."""
     chart_id = f"scaling-line-{next(chart_ids)}"
     fig = go.Figure()
+    all_x_values = set()
     for label, points in sorted(series.items()):
-        points = sorted(points)
-        x_values = [x for x, _ in points]
-        y_values = [y for _, y in points]
+        points = sorted(points, key=lambda point: point[0])
+        x_values = [point[0] for point in points]
+        y_values = [point[1] for point in points]
+        hover_extra = [
+            f"<br>{point[2]}" if len(point) > 2 and point[2] else "" for point in points
+        ]
+        all_x_values.update(x_values)
         color = (colors or {}).get(label)
         fig.add_trace(
             go.Scatter(
@@ -406,12 +435,47 @@ def scaling_line_plot_html(
                 mode="lines+markers",
                 line={"color": color} if color else {},
                 marker={"color": color} if color else {},
-                hovertemplate=f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}ms<extra></extra>",
+                customdata=hover_extra,
+                hovertemplate=(
+                    f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}{y_unit}"
+                    "%{customdata}<extra></extra>"
+                ),
             )
         )
+    for label, points in sorted((reference_lines or {}).items()):
+        points = sorted(points, key=lambda point: point[0])
+        x_values = [point[0] for point in points]
+        y_values = [point[1] for point in points]
+        all_x_values.update(x_values)
+        fig.add_trace(
+            go.Scatter(
+                name=label,
+                x=x_values,
+                y=y_values,
+                mode="lines",
+                line={"color": "#999", "dash": "dash", "width": 1},
+                hoverinfo="skip",
+            )
+        )
+    xaxis = {"title": x_title}
+    if x_log and all_x_values:
+        min_x, max_x = min(all_x_values), max(all_x_values)
+        start_exp = math.floor(math.log2(max(min_x, 1)))
+        end_exp = math.ceil(math.log2(max(max_x, 1)))
+        tick_values = [2**exp for exp in range(start_exp, end_exp + 1)]
+        xaxis |= {
+            "type": "log",
+            "tickmode": "array",
+            "tickvals": tick_values,
+            "ticktext": [str(x) for x in tick_values],
+        }
+    yaxis = {"title": y_title, "type": "log"} if y_log else {
+        "title": y_title,
+        "rangemode": "tozero",
+    }
     fig.update_layout(
-        xaxis={"title": x_title},
-        yaxis={"title": y_title, "rangemode": "tozero"},
+        xaxis=xaxis,
+        yaxis=yaxis,
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         legend={"orientation": "h", "y": -0.25},
         template="none",
