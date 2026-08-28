@@ -33,24 +33,31 @@ uniform across estimators here.
 covtype's LogisticRegression case (Nystroem, 100 components) is ~48s/fit at
 `real_datasets.py`'s default ~465K-row train split (see its comment there);
 crossed with a thread-count sweep x n_runs x implementations that's too
-slow, so its train split is downsized to ~150K rows here (~3x smaller) via
-`split_kwargs`.
+slow, so its train split is downsized here via `split_kwargs`
+(`SUBSAMPLE_DATASETS`), same as fraud's RandomForestClassifier and susy's
+ExtraTreesClassifier cases - see `SUBSAMPLE_DATASETS` for the per-case
+train sizes.
 """
 from _common import _merge_dicts
 from _implementations import implementations_for_pixi_env
-from _scaling import get_n_cores_list, taskset_for_physical_cores
+from _scaling import get_n_cores_list, taskset_for_physical_cores, has_hybrid_cores
 from real_datasets import generate_cases as generate_real_dataset_cases
 
 
 MODEL_DATASET_PAIRS = {
     "Ridge": "year_prediction_msd",
     "LogisticRegression": "covtype",
-    "ExtraTreesClassifier": "susy",
-    "RandomForestClassifier": "fraud",
     "KMeans": "fashion_mnist_784",
+    "RandomForestClassifier": "fraud",
+    "ExtraTreesClassifier": "susy",
 }
 
-COVTYPE_TRAIN_SIZE = 150_000
+SUBSAMPLE_DATASETS = {
+    ("LogisticRegression", "covtype"): 200_000,
+    ("RandomForestClassifier", "fraud"): 150_000,
+    ("ExtraTreesClassifier", "susy"): 2_000_000,
+}
+
 
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
 
@@ -77,9 +84,10 @@ def _base_cases() -> list[dict]:
                     "max_features": 0.5
                 }}}
             )
-        if dataset == "covtype":
+        if (estimator, dataset) in SUBSAMPLE_DATASETS:
+            train_size = SUBSAMPLE_DATASETS[(estimator, dataset)]
             case = _merge_dicts(
-                case, {"data": {"split_kwargs": {"train_size": COVTYPE_TRAIN_SIZE}}}
+                case, {"data": {"split_kwargs": {"train_size": train_size}}}
             )
         cases.append(case)
 
@@ -90,7 +98,7 @@ def _base_cases() -> list[dict]:
 
 
 
-def _with_scaling_bench(case: dict, implem: dict, cores_count: int) -> list[dict]:
+def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     """Builds the sweep point(s) for one (case, implementation, cores_count)
     combo.
 
@@ -119,44 +127,54 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int) -> list[dict
     is_sklearn = implem["library"] == "sklearn"
     is_kmeans = case["algorithm"]["estimator"] == "KMeans"
     is_tree = case["algorithm"]["estimator"] in TREE_ESTIMATORS
+    has_smt_cores = (
+        taskset_for_physical_cores(cores_count, True)
+        != taskset_for_physical_cores(cores_count, False)
+    )
 
     if is_sklearn and is_kmeans and cores_count > 128:
-        return []
+        return
 
     env = {"OMP_NUM_THREADS": str(cores_count)} if is_sklearn and is_kmeans else {}
-    with_siblings_options = [True, False] if is_tree else [True]
+    n_runs = (
+        (2 if is_tree else 5) if has_hybrid_cores()
+        else (1 if is_tree else 3)
+    )
 
-    if is_tree:
-        # At least one tree per logical core (2 per physical core, since
-        # `with_siblings=True`'s taskset - and thus joblib's affinity-derived
-        # worker count - covers both hyperthread siblings), so every worker
-        # has its own tree to build rather than idling: `real_datasets.py`'s
-        # n_estimators is sized off *this* machine's total core count, not
-        # the swept cores_count, so it'd undershoot at the low end of the
-        # sweep.
-        case = _merge_dicts(
-            case,
-            {"algorithm": {"estimator_params": {"n_estimators": max(24, cores_count * 8)}}},
-        )
-
-    return [
+    case = _merge_dicts(
+        case,
         {
-            **case,
-            "implementation": implem,
             "metadata": {
-                **case["metadata"],
                 "n_cores": cores_count,
-                "with_siblings": with_siblings,
+                "with_siblings": True,
             },
+            "implementation": implem,
             "bench": {
                 **case["bench"],
-                "n_runs": 1,
+                "n_runs": n_runs,
                 "env": env,
-                "taskset": taskset_for_physical_cores(cores_count, with_siblings),
+                "taskset": taskset_for_physical_cores(cores_count, with_siblings=True),
             },
         }
-        for with_siblings in with_siblings_options
-    ]
+    )
+
+    if is_tree:
+        # At least 4 trees per logical core (so 8 per physical core)
+        case = _merge_dicts(
+            case,
+            {"algorithm": {"estimator_params": {"n_estimators": max(16, cores_count * 8)}}},
+        )
+
+    yield case
+
+    if is_tree and has_smt_cores:
+        yield _merge_dicts(
+            case,
+            {
+                "metadata": {"with_siblings": False},
+                "algorithm": {"estimator_params": {"n_jobs": cores_count}}
+            },
+        )
 
 
 def generate_cases() -> list[dict]:
