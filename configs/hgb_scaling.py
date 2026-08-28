@@ -161,7 +161,7 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     return {
         **case,
         "bench": {
-            "n_runs": 3,
+            "n_runs": 5,
             "env": env,
             "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
             "py_spy_profiling": False,
