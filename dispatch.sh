@@ -4,7 +4,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/scripts/pixi_env_check.sh"
 
 usage() {
-    echo "Usage: $0 env1 [env2 ...] --config PATH [--runner RUNNER] [--ref REF]" >&2
+    echo "Usage: $0 env1 [env2 ...] --config PATH [--runner RUNNER]" >&2
     echo "  Triggers the 'Run Benchmarks' workflow (.github/workflows/run-benchmarks.yml)" >&2
     echo "  via 'gh workflow run', passing env1 [env2 ...] as its 'env' input." >&2
     echo "  Environments are the leading arguments, same as run.sh: space-separated," >&2
@@ -13,8 +13,6 @@ usage() {
     echo "" >&2
     echo "  --config PATH    benchmark config script (required)" >&2
     echo "  --runner RUNNER  intel-laptop (default) | intel-gnr | both" >&2
-    echo "  --ref REF        git ref the workflow file is read from (default: current" >&2
-    echo "                   branch), forwarded to 'gh workflow run --ref'" >&2
     echo "" >&2
     echo "  Example: $0 sklearn-pypi intel --config configs/all_models_test.py" >&2
     echo "  Example: $0 '[all]' --config configs/all_models.py --runner both" >&2
@@ -28,7 +26,6 @@ fi
 envs=()
 runner="intel-laptop"
 config=""
-ref=""
 parsing_envs=true
 
 while [ "$#" -gt 0 ]; do
@@ -49,10 +46,6 @@ while [ "$#" -gt 0 ]; do
             config="$2"
             shift 2
             ;;
-        --ref)
-            ref="$2"
-            shift 2
-            ;;
         *)
             echo "error: unrecognized argument '$arg'" >&2
             usage
@@ -70,6 +63,24 @@ if [ -z "$config" ]; then
     echo "error: --config is required" >&2
     usage
     exit 2
+fi
+
+current_branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$current_branch" != "main" ]; then
+    echo "error: current branch is '$current_branch', not 'main'; switch to main before dispatching" >&2
+    exit 1
+fi
+
+upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)" || upstream=""
+if [ -z "$upstream" ]; then
+    echo "error: 'main' has no upstream tracking branch; push it before dispatching" >&2
+    exit 1
+fi
+local_head="$(git rev-parse HEAD)"
+remote_head="$(git rev-parse "$upstream")"
+if [ "$local_head" != "$remote_head" ]; then
+    echo "error: 'main' is not pushed to '$upstream' (the workflow runs off the remote ref, not your local checkout); push before dispatching" >&2
+    exit 1
 fi
 
 env_input="${envs[*]}"
@@ -121,11 +132,7 @@ for env in "${real_envs[@]}"; do
     fi
 done
 
-if [ -z "$ref" ]; then
-    ref="$(git rev-parse --abbrev-ref HEAD)"
-fi
-
-cmd=(gh workflow run run-benchmarks.yml --ref "$ref" -f env="$env_input" -f runner="$runner" -f config="$config")
+cmd=(gh workflow run run-benchmarks.yml --ref main -f env="$env_input" -f runner="$runner" -f config="$config")
 
 echo "=== ${cmd[*]} ===" >&2
 "${cmd[@]}"
