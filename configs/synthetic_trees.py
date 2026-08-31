@@ -1,6 +1,7 @@
 from copy import deepcopy
 from itertools import product, chain
 from typing import Iterable
+from math import sqrt
 
 from joblib import cpu_count
 
@@ -45,7 +46,14 @@ def tree_data_shapes(scale: int) -> list[dict]:
 
 
 def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
-    bench = {"n_runs": 5, "time_limit": 2 + scale * 2}
+    time_limit = round(
+        2 + scale * (2 + sqrt(cpu_count() / 16))
+    )
+    bench = {
+        "n_runs": 5,
+        "time_limit": time_limit,
+        "py_spy_profiling": False,
+    }
 
     base_data = tree_data_shapes(scale)
     data = []
