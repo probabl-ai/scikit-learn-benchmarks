@@ -38,12 +38,21 @@ logger = logging.getLogger(__name__)
 
 Array = pd.DataFrame | np.ndarray
 
+
+def _sklearn_version_at_least(major: int, minor: int) -> bool:
+    return tuple(int(v) for v in sklearn.__version__.split(".")[:2]) >= (major, minor)
+
+
 # sklearn <1.9 requires TargetEncoder's `cv` to be an int and takes shuffling
 # via `shuffle`/`random_state`; >=1.9 deprecates those two in favor of passing
 # a cv splitter (e.g. KFold) directly as `cv`.
-_SKLEARN_TARGET_ENCODER_CV_SPLITTER = tuple(
-    int(v) for v in sklearn.__version__.split(".")[:2]
-) >= (1, 9)
+_SKLEARN_TARGET_ENCODER_CV_SPLITTER = _sklearn_version_at_least(1, 9)
+
+# sklearn <1.9's `Nystroem.fit` calls raw `scipy.linalg.svd`, which forces
+# `np.asarray()` - GPU-resident arrays (dpnp, non-CPU torch/cupy) refuse that
+# conversion. >=1.9 dispatches via `xp.linalg.svd` on the input's own
+# namespace/device instead, so it's safe to feed it a transferred array.
+_SKLEARN_NYSTROEM_ARRAY_API_SVD = _sklearn_version_at_least(1, 9)
 
 
 def split_and_preprocess_data(
@@ -143,9 +152,6 @@ def build_transfer_to_device(
 
     Passed to every preprocessing function as `transfer_to_device`; each
     decides where to place it in its own pipeline (see their docstrings).
-    Placing it before `Nystroem` only dispatches on-device if
-    `array_api_dispatch=True` is also active - `run_case_to_jsonl` sets that
-    via `get_context()` whenever the case's config asks for it.
     """
     return FunctionTransformer(
         lambda X: convert_data(X, dformat=dformat, order=order, dtype=dtype, device=device),
@@ -208,11 +214,13 @@ def linear_preprocessor(
     already well-conditioned (e.g. `fraud`'s PCA components) and/or need
     non-default spline knots.
 
-    `transfer_to_device` (see `build_transfer_to_device`), when given, is
-    placed *before* `Nystroem` if `nystroem` is also requested - so the
-    kernel approximation runs on-device instead of on CPU numpy followed by
-    a separate transfer - otherwise it's placed last, like the other
-    preprocessing functions.
+    `transfer_to_device` (see `build_transfer_to_device`), when given and
+    `nystroem` is also requested, is placed *before* `Nystroem` on sklearn
+    >=1.9 (`_SKLEARN_NYSTROEM_ARRAY_API_SVD`) so the kernel approximation
+    runs on-device; on <1.9, `Nystroem.fit`'s raw `scipy.linalg.svd` forces
+    `np.asarray()`, which GPU-resident arrays (dpnp, non-CPU torch/cupy)
+    refuse, so it's placed after instead. Without `nystroem`, this pipeline
+    has no array-API-relevant step, so it's just placed last either way.
     """
 
     if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
@@ -276,7 +284,9 @@ def linear_preprocessor(
     if transfer_to_device is None:
         return make_pipeline(preprocessor, Nystroem(**nystroem))
 
-    return make_pipeline(preprocessor, transfer_to_device, Nystroem(**nystroem))
+    if _SKLEARN_NYSTROEM_ARRAY_API_SVD:
+        return make_pipeline(preprocessor, transfer_to_device, Nystroem(**nystroem))
+    return make_pipeline(preprocessor, Nystroem(**nystroem), transfer_to_device)
 
 
 def hgb_preprocessing(X_train, X_test, y_train=None, transfer_to_device=None):
