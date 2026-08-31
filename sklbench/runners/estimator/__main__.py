@@ -15,7 +15,7 @@ import numpy as np
 
 from ...config import EstimatorCase
 from .._measurement import measure_perf
-from ..datasets import load_data
+from ..datasets import load_raw_data, preprocess_data
 from .loading import (
     capture_sklearnex_dispatch_log,
     estimator_to_task,
@@ -149,29 +149,41 @@ def _collect_model_attributes(estimator) -> dict[str, Any]:
 def run_case_once(
     bench_case: EstimatorCase,
     estimator,
-    data,
+    raw_data,
     data_description: dict,
 ) -> dict:
     task = estimator_to_task(bench_case.algorithm.estimator)
-    X_train, X_test, y_train, y_test = data
     is_sklearnex = bench_case.implementation.library == "sklearnex"
 
     times = {}
     profiling_metrics = {}
+
+    # Preprocessed fresh on every repeat, not once up front, so the
+    # preprocessing pipeline itself is measured like `fit`/`predict`.
+    times["preprocessing"], profiling_metrics["preprocessing"], (data, subset_description) = (
+        measure_perf(
+            preprocess_data,
+            bench_case,
+            raw_data,
+            data_description,
+            bench_params=bench_case.bench,
+        )
+    )
+    X_train, X_test, y_train, y_test = data
 
     with (
         capture_sklearnex_dispatch_log()
         if is_sklearnex
         else nullcontext([])
     ) as dispatch_log:
-        times["fit"], profiling_metrics["fit"] = measure_perf(
+        times["fit"], profiling_metrics["fit"], _ = measure_perf(
             estimator.fit,
             X_train,
             y_train,
             bench_params=bench_case.bench,
         )
 
-        times["predict"], profiling_metrics["predict"] = measure_perf(
+        times["predict"], profiling_metrics["predict"], _ = measure_perf(
             estimator.predict,
             X_test,
             bench_params=bench_case.bench,
@@ -187,12 +199,14 @@ def run_case_once(
         }
 
     data_desc = {
-        "fit": dict(data_description["x_train"]),
-        "predict": dict(data_description["x_test"]),
+        "preprocessing": dict(subset_description["preprocessing"]),
+        "fit": dict(subset_description["x_train"]),
+        "predict": dict(subset_description["x_test"]),
     }
-    if "n_classes" in data_description:
-        data_desc["fit"].update({"n_classes": data_description["n_classes"]})
-        data_desc["predict"].update({"n_classes": data_description["n_classes"]})
+    if "n_classes" in subset_description:
+        data_desc["preprocessing"].update({"n_classes": subset_description["n_classes"]})
+        data_desc["fit"].update({"n_classes": subset_description["n_classes"]})
+        data_desc["predict"].update({"n_classes": subset_description["n_classes"]})
 
     attributes = _collect_model_attributes(estimator)
     if is_sklearnex:
@@ -238,7 +252,7 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
     estimator_name = bench_case.algorithm.estimator
     estimator_class = get_estimator(library_name, estimator_name)
 
-    data, data_description = load_data(bench_case)
+    raw_data, data_description = load_raw_data(bench_case)
     gc.collect()
     estimator_params = dict(bench_case.algorithm.estimator_params)
 
@@ -253,7 +267,7 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
             row = run_case_once(
                 bench_case,
                 estimator_class(**repeat_estimator_params),
-                data,
+                raw_data,
                 data_description,
             )
             fp.write(json.dumps(row, default=_as_jsonable) + "\n")

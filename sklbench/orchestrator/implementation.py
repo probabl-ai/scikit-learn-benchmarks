@@ -188,7 +188,7 @@ def save_benchmark_record(
 
 def _load_case_dataset(bench_case: Case) -> None:
     if isinstance(bench_case, EstimatorCase):
-        from ..runners.datasets import load_data
+        from ..runners.datasets import load_raw_data as load_data
     elif isinstance(bench_case, PipelineCase):
         from ..runners.pipeline import load_data
     else:

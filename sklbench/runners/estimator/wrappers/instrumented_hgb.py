@@ -48,7 +48,11 @@ def _instrument_hgbt(estimator):
         finally:
             timings.preprocess_x += _time.perf_counter() - t0
 
-    def timed_bin_data(X, sample_weight, is_training_data):
+    def timed_bin_data(*args, **kwargs):
+        # `_bin_data`'s signature varies by sklearn version (1.9+ added
+        # `sample_weight`); `is_training_data` is always passed as a keyword
+        # though, so forward args through rather than hardcoding a shape.
+        is_training_data = kwargs["is_training_data"]
         bin_mapper = estimator._bin_mapper
         original_fit = bin_mapper.fit
         original_transform = bin_mapper.transform
@@ -71,7 +75,7 @@ def _instrument_hgbt(estimator):
         bin_mapper.transform = timed_transform
         t0 = _time.perf_counter()
         try:
-            result = original_bin_data(X, sample_weight, is_training_data)
+            result = original_bin_data(*args, **kwargs)
             dt = _time.perf_counter() - t0
             if is_training_data:
                 timings.binning_train += dt

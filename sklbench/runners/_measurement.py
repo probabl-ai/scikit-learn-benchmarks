@@ -149,7 +149,7 @@ def measure_perf(
     Returns
     -------
     tuple
-        A tuple of (time_ms, perf_metrics) where:
+        A tuple of (time_ms, perf_metrics, result) where:
         - time_ms : float
             Execution time in milliseconds.
         - perf_metrics : dict
@@ -157,6 +157,8 @@ def measure_perf(
             - "peak RAM usage[MB]" : list of floats (if memory_profile enabled)
             - "peak VRAM usage[MB]" : list of floats (if NVML profiling enabled)
             - "cpu load[%]" : list of floats (if cpu_profile enabled)
+        - result
+            The return value of `func(*args, **kwargs)`.
     """
     if bench_params is None:
         bench_params = Bench()  # use defaults
@@ -195,7 +197,7 @@ def measure_perf(
         psutil.cpu_percent(interval=None)
 
     t0 = timeit.default_timer()
-    _ = func(*args, **kwargs)
+    result = func(*args, **kwargs)
     t1 = timeit.default_timer()
 
     if enable_cpu_profiling:
@@ -226,4 +228,4 @@ def measure_perf(
     if enable_cpu_profiling:
         perf_metrics["cpu load[%]"] = cpu_loads
 
-    return time_ms, perf_metrics
+    return time_ms, perf_metrics, result
