@@ -19,8 +19,8 @@ ALGORITHM_VARIANTS = [
 # so each estimator's data size grows at its own rate.
 ALGORITHM_SCALE_FACTORS = {
     "LinearRegression": 1,
-    "LogisticRegression": 3,
-    "Ridge": 6,
+    "LogisticRegression": 2,
+    "Ridge": 5,
 }
 
 
@@ -144,7 +144,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
 
     scales = {
         "fast": [10],
-        "normal": [20, 100],
+        "normal": [20, 80],
     }
 
     cases = list(chain(*[
