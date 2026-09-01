@@ -124,12 +124,24 @@ def linear_data_shapes(scale: int) -> list[dict]:
     ]
 
 
-def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
+def _scaled_linear_cases(implem: dict, scale: int, is_max_scale: bool) -> Iterable[dict]:
     cases = []
     for algorithm in ALGORITHM_VARIANTS:
         algorithm_scale = scale * ALGORITHM_SCALE_FACTORS[algorithm["estimator"]]
         data_shapes = linear_data_shapes(algorithm_scale)
         benchs = [{"time_limit": 2 + algorithm_scale * 2} for _ in data_shapes]
+
+        if (
+            is_max_scale
+            and implem["library"] == "sklearnex"
+            and algorithm["estimator"] == "Ridge"
+        ):
+            # linear_data_shapes()'s last shape has the highest n_features -
+            # at the highest scale this builds an (n_features, n_features)
+            # Gram matrix that OOM-killed the runner (~30GB RSS, run
+            # 33491820416). Drop just that shape.
+            benchs, data_shapes = benchs[:-1], data_shapes[:-1]
+
         cases.extend(_linear_cases_for(implem, algorithm, benchs, data_shapes))
 
     return cases
@@ -146,10 +158,11 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
         "fast": [10],
         "normal": [20, 80],
     }
+    tier_scales = scales[tier]
 
     cases = list(chain(*[
-        _scaled_linear_cases(implem, scale=scale)
-        for scale in scales[tier]
+        _scaled_linear_cases(implem, scale=scale, is_max_scale=scale == max(tier_scales))
+        for scale in tier_scales
     ]))
 
     return cases
