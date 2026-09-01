@@ -46,6 +46,9 @@ chart_ids = itertools.count()
 def _format_speedup_tick(value: float) -> str:
     if value >= 1:
         return f"{value:g}x"
+    denom = round(1 / value)
+    if math.isclose(value * denom, 1, rel_tol=1e-9):
+        return f"1/{denom}x"
     if value >= 0.001:
         return f"{value:.3f}".rstrip("0").rstrip(".") + "x"
     return f"{value:.3g}x"

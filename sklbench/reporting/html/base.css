@@ -102,6 +102,7 @@ code {
   gap: 18px;
 }
 .plot-cell {
+  position: relative;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -111,6 +112,53 @@ code {
 .plot-cell h3 {
   color: var(--muted);
   font-weight: 600;
+}
+.plot-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plot-cell-title {
+  margin: 0;
+}
+.predict-collapse-toggle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 15px;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+.predict-collapse-toggle:hover {
+  background: #f2f2f2;
+}
+.plot-grid.method-grid {
+  transition: grid-template-columns 0.2s ease;
+}
+body.predict-collapsed .plot-grid.method-grid {
+  grid-template-columns: var(--collapsed-columns) !important;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] {
+  padding: 8px 4px;
+  overflow: hidden;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-title,
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-body {
+  display: none;
+}
+body.predict-collapsed .plot-cell.empty[data-method="predict"] {
+  padding: 8px 4px;
+  font-size: 0;
+}
+body.predict-collapsed .predict-collapse-toggle {
+  transform: rotate(180deg);
 }
 .plot-subtitle {
   margin: -6px 0 8px;

@@ -188,6 +188,25 @@ BASE_TEMPLATE = Template("""<!doctype html>
     }
     document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
     setInterval(sklbenchFormatDateRanges, 60000);
+
+    function sklbenchSetPredictCollapsed(collapsed) {
+      document.body.classList.toggle("predict-collapsed", collapsed);
+      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
+        button.setAttribute("aria-expanded", String(!collapsed));
+      });
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".predict-collapse-toggle");
+      if (!button) {
+        return;
+      }
+      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
+    });
   </script>
 </head>
 <body>
