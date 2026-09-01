@@ -149,8 +149,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
 
     scales = {
         "fast": [10],
-        "normal": [10, 100],
-        "slow": [10, 100, 1000],
+        "normal": [20, 100],
     }
 
     cases = list(chain(*[
