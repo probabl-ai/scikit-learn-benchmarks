@@ -290,7 +290,7 @@ def detailed_results_table_html(
     category: str,
     matches_by_method: dict[str, list[Match]],
     *,
-    baseline_label: str,
+    baseline_label: str | Callable[[MethodResult], str],
     variant_label: Callable[[MethodResult], str],
     comparison_key: Callable[[MethodResult], str] = default_comparison_key,
     failed_records: list[tuple[BenchmarkRecord, str]] = (),
@@ -305,6 +305,10 @@ def detailed_results_table_html(
     rows_by_key: dict[str, dict] = {}
     hyperparam_names = set(HYPERPARAM_DISPLAY_ALLOWLIST)
 
+    resolve_baseline_label = (
+        baseline_label if callable(baseline_label) else (lambda _result: baseline_label)
+    )
+
     for matches in matches_by_method.values():
         for match in matches:
             base = match.base_result
@@ -313,7 +317,7 @@ def detailed_results_table_html(
                 rows_by_key,
                 result=base,
                 base_result=base,
-                variant=baseline_label,
+                variant=resolve_baseline_label(base),
                 comparison_key=comparison_key(base),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
@@ -343,7 +347,7 @@ def detailed_results_table_html(
         _add_result_method(
             rows_by_key,
             result=result,
-            variant=baseline_label,
+            variant=resolve_baseline_label(result),
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,

@@ -11,8 +11,12 @@ CI-produced directory (see .github/workflows/pr-comparison.yml) containing
 only the two runs being compared, and it would fail loudly if pointed at
 the real one (see below).
 
-Unlike those other dashboards, there's exactly one hardware_hash, one
-config, and exactly two sklearn-dev builds. This script assumes that shape
+Unlike those other dashboards, there's exactly one hardware_hash, and
+exactly one base + one variant sklearn-dev build per pixi env being
+compared (usually just one env; a `runs:` directive entry - see
+COMPARISONS_PR.md - can compare more than one, e.g. sklearn-dev and
+sklearn-dev-libomp, in which case each env is matched/labeled
+independently and merged into one table). This script assumes that shape
 rather than defending against the general multi-hardware/multi-build case
 the other dashboards handle: its only caller is that one CI job, so a shape
 mismatch here means the pipeline itself is broken, not "no data yet".
@@ -86,6 +90,17 @@ def _branch_label(build_name: str) -> str:
     "ridge/optim_cholesky") - the owner is noise in a table whose whole point
     is comparing two branches of the same PR."""
     return build_name.rsplit(":", 1)[-1]
+
+
+def _env_of(build_name: str) -> str:
+    """The pixi env a build name was built under (e.g.
+    "sklearn-dev-libomp@cakedev0:ridge/optim_cholesky" -> "sklearn-dev-libomp"),
+    per `software_build_name`'s `{pixi_env}@{owner:ref}` format. A `runs:`
+    directive entry (see COMPARISONS_PR.md) can run the same sklearn_ref vs
+    main comparison under more than one such pixi env, in which case
+    matching/labels are scoped per env group below rather than assuming
+    exactly one base + one variant build overall."""
+    return build_name.split("@", 1)[0]
 
 
 def _case_key(case: dict) -> str:
@@ -183,38 +198,74 @@ if __name__ == "__main__":
     if non_dev_builds:
         raise SystemExit(f"Expected only sklearn-dev@... builds in results/, found: {non_dev_builds}.")
 
-    base_build = _base_build(all_builds)
-    if base_build is None:
-        raise SystemExit(f"No sklearn-dev@...:main baseline build found among: {all_builds}.")
+    # A `runs:` directive entry can compare the same sklearn_ref against main
+    # under more than one pixi env (see _env_of) - exactly one base + one
+    # variant build per env group, matched/labeled independently per group,
+    # never across envs.
+    builds_by_env = groupby(all_builds, _env_of)
+    env_groups: list[tuple[str, str, str]] = []  # (env, base_build, variant_build)
+    for env, env_builds in sorted(builds_by_env.items()):
+        env_base_build = _base_build(env_builds)
+        if env_base_build is None:
+            raise SystemExit(f"No {env}@...:main baseline build found among: {env_builds}.")
+        env_variant_builds = [b for b in env_builds if b != env_base_build]
+        if len(env_variant_builds) != 1:
+            raise SystemExit(
+                f"Expected exactly one PR-branch build besides the {env_base_build!r} baseline "
+                f"for env {env!r}, found {len(env_variant_builds)}: {env_variant_builds}."
+            )
+        env_groups.append((env, env_base_build, env_variant_builds[0]))
 
-    variant_builds = [b for b in all_builds if b != base_build]
-    if len(variant_builds) != 1:
+    base_branch_labels = {_branch_label(base) for _, base, _ in env_groups}
+    if len(base_branch_labels) != 1:
+        raise SystemExit(f"Expected the same baseline branch across all envs, found: {sorted(base_branch_labels)}.")
+    variant_branch_labels = {_branch_label(variant) for _, _, variant in env_groups}
+    if len(variant_branch_labels) != 1:
         raise SystemExit(
-            f"Expected exactly one PR-branch build besides the {base_build!r} baseline, "
-            f"found {len(variant_builds)}: {variant_builds}."
+            f"Expected the same PR-branch across all envs (one shared sklearn_ref), "
+            f"found: {sorted(variant_branch_labels)}."
         )
-    (variant_build,) = variant_builds
+    (base_branch_label,) = base_branch_labels
+    (variant_branch_label,) = variant_branch_labels
 
-    base_results = by_build.get(base_build, [])
-    variant_results = by_build.get(variant_build, [])
-    base_failed = failed_by_build.get(base_build, [])
-    variant_failed = failed_by_build.get(variant_build, [])
+    multi_env = len(env_groups) > 1
 
-    matches = find_matches(base_results, variant_results, result_matches)
+    def build_label(build_name: str) -> str:
+        """Branch label, env-qualified only when more than one env is being
+        compared - keeps the common single-env case's labels unchanged."""
+        label = _branch_label(build_name)
+        return f"{label} [{_env_of(build_name)}]" if multi_env else label
+
+    matches = []
+    unmatched_base_results = []
+    unmatched_variant_results = []
+    failed_records_for_table: list[tuple[BenchmarkRecord, str]] = []
+    for env, base_build, variant_build in env_groups:
+        base_results = by_build.get(base_build, [])
+        variant_results = by_build.get(variant_build, [])
+        base_failed = failed_by_build.get(base_build, [])
+        variant_failed = failed_by_build.get(variant_build, [])
+
+        matches.extend(find_matches(base_results, variant_results, result_matches))
+
+        # A failed record means find_matches never sees a pair for that case -
+        # the side that *did* succeed would otherwise silently vanish from the
+        # table. Look those up by case identity (within this env group only)
+        # so they still show up (with no speedup, since there's no successful
+        # counterpart).
+        base_by_case_key = groupby(base_results, lambda r: _case_key(r.case))
+        variant_by_case_key = groupby(variant_results, lambda r: _case_key(r.case))
+        unmatched_variant_results.extend(
+            r for record in base_failed for r in variant_by_case_key.get(_case_key(record.case), [])
+        )
+        unmatched_base_results.extend(
+            r for record in variant_failed for r in base_by_case_key.get(_case_key(record.case), [])
+        )
+
+        failed_records_for_table.extend((record, build_label(base_build)) for record in base_failed)
+        failed_records_for_table.extend((record, build_label(variant_build)) for record in variant_failed)
+
     matches_by_method = groupby(matches, lambda match: match.matched_result.method)
-
-    # A failed record means find_matches never sees a pair for that case -
-    # the side that *did* succeed would otherwise silently vanish from the
-    # table. Look those up by case identity so they still show up (with no
-    # speedup, since there's no successful counterpart).
-    base_by_case_key = groupby(base_results, lambda r: _case_key(r.case))
-    variant_by_case_key = groupby(variant_results, lambda r: _case_key(r.case))
-    unmatched_variant_results = [
-        r for record in base_failed for r in variant_by_case_key.get(_case_key(record.case), [])
-    ]
-    unmatched_base_results = [
-        r for record in variant_failed for r in base_by_case_key.get(_case_key(record.case), [])
-    ]
 
     output_dir = dashboard_output_dir()
     # Set by .github/workflows/pr-comparison.yml's "Generate comparison
@@ -226,17 +277,14 @@ if __name__ == "__main__":
     table_html = detailed_results_table_html(
         "all",
         matches_by_method,
-        baseline_label=_branch_label(base_build),
-        variant_label=lambda result: _branch_label(variant_build),
-        failed_records=(
-            [(record, _branch_label(base_build)) for record in base_failed]
-            + [(record, _branch_label(variant_build)) for record in variant_failed]
-        ),
+        baseline_label=lambda result: build_label(software_build_name(result.software_hash)),
+        variant_label=lambda result: build_label(software_build_name(result.software_hash)),
+        failed_records=failed_records_for_table,
         unmatched_base_results=unmatched_base_results,
         unmatched_candidate_results=unmatched_variant_results,
         open=True,
         variant_column_title="Branch name",
-        default_variant_filter=_branch_label(variant_build),
+        default_variant_filter=None if multi_env else build_label(env_groups[0][2]),
         json_url_fn=_hosted_url_fn(
             JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir
         ),
@@ -246,32 +294,37 @@ if __name__ == "__main__":
     )
 
     commit_urls = {}
-    for build_name, build_results, build_failed in (
-        (base_build, base_results, base_failed),
-        (variant_build, variant_results, variant_failed),
-    ):
-        software_hash = _first_source(build_results, build_failed)
-        commit_urls[build_name] = (
-            _sklearn_commit_url(software_hash) if software_hash is not None else None
-        )
+    for env, base_build, variant_build in env_groups:
+        for build_name in (base_build, variant_build):
+            software_hash = _first_source(by_build.get(build_name, []), failed_by_build.get(build_name, []))
+            commit_urls[build_name] = (
+                _sklearn_commit_url(software_hash) if software_hash is not None else None
+            )
 
     commit_links = []
-    for build_name in (base_build, variant_build):
-        label = escape(_branch_label(build_name))
-        commit_url = commit_urls[build_name]
-        if commit_url is None:
-            commit_links.append(f"<li>{label}: <span class=\"muted\">commit unknown</span></li>")
-        else:
-            commit_links.append(f'<li>{label}: <a href="{escape(commit_url)}">view commit</a></li>')
+    for env, base_build, variant_build in env_groups:
+        for build_name in (base_build, variant_build):
+            label = escape(build_label(build_name))
+            commit_url = commit_urls[build_name]
+            if commit_url is None:
+                commit_links.append(f"<li>{label}: <span class=\"muted\">commit unknown</span></li>")
+            else:
+                commit_links.append(f'<li>{label}: <a href="{escape(commit_url)}">view commit</a></li>')
 
-    variant_label_html = escape(_branch_label(variant_build))
-    if commit_urls[variant_build] is not None:
-        variant_label_html = f'<a href="{escape(commit_urls[variant_build])}">{variant_label_html}</a>'
+    variant_label_html = escape(variant_branch_label)
+    first_variant_commit_url = next((commit_urls[v] for _, _, v in env_groups if commit_urls.get(v)), None)
+    if first_variant_commit_url is not None:
+        variant_label_html = f'<a href="{escape(first_variant_commit_url)}">{variant_label_html}</a>'
+
+    envs_note = ""
+    if multi_env:
+        env_names_html = ", ".join(f"<code>{escape(env)}</code>" for env, _, _ in env_groups)
+        envs_note = f" Compared under {len(env_groups)} pixi envs: {env_names_html} &mdash; use the branch-name filter to isolate one."
 
     about_html = f"""<section class="panel">
   <p>This page compares two scikit-learn builds &mdash; <code>main</code> and
   {variant_label_html} &mdash; benchmarked back-to-back on the same self-hosted
-  runner in one CI job (see the commits below for exactly what was compared).
+  runner in one CI job (see the commits below for exactly what was compared).{envs_note}
   Each table row is one benchmark case (estimator, dataset, hyperparameters);
   <code>fit speedup</code>/<code>predict speedup</code> is the branch's time
   relative to the <code>main</code> baseline.
@@ -287,8 +340,13 @@ if __name__ == "__main__":
         table_html or '<section class="empty">No comparable benchmark cases.</section>',
     ]
 
+    title = (
+        f"PR comparison: {env_groups[0][2]} vs {env_groups[0][1]}"
+        if not multi_env
+        else f"PR comparison: {variant_branch_label} vs {base_branch_label}"
+    )
     html = BASE_TEMPLATE.render(
-        title=f"PR comparison: {variant_build} vs {base_build}",
+        title=title,
         rows=[f'<div class="page-row">{row}</div>' for row in rows],
     )
 
