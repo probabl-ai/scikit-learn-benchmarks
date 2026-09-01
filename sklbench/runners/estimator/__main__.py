@@ -124,13 +124,14 @@ def _collect_model_attributes(estimator) -> dict[str, Any]:
         if jsonable is not None:
             attributes[attribute_name.rstrip("_")] = jsonable
 
-    if hasattr(estimator, "estimators_") and hasattr(estimator.estimators_[0], "tree_"):
-        attributes["avg_n_leaves"] = statistics.mean(
-            tree.tree_.n_leaves for tree in estimator.estimators_
-        )
-        attributes["avg_max_depth"] = statistics.mean(
-            tree.tree_.max_depth for tree in estimator.estimators_
-        )
+    # XXX: for sklearnex this is to slow:
+    # if hasattr(estimator, "estimators_") and hasattr(estimator.estimators_[0], "tree_"):
+    #     attributes["avg_n_leaves"] = statistics.mean(
+    #         tree.tree_.n_leaves for tree in estimator.estimators_
+    #     )
+    #     attributes["avg_max_depth"] = statistics.mean(
+    #         tree.tree_.max_depth for tree in estimator.estimators_
+    #     )
 
     for name, value in vars(estimator).items():
         if not name.endswith("_") or name.startswith("_"):
