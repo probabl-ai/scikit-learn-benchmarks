@@ -23,7 +23,7 @@ def get_estimator_params_variants(n_samples: int, broad=False):
         ]
 
     params_base = {
-        "n_estimators": cpu_count() * 3,
+        "n_estimators": cpu_count() * 2,
         "max_features": 0.3,
         "n_jobs": -1
     }
