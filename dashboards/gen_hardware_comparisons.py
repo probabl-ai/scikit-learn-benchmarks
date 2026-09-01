@@ -236,6 +236,7 @@ def render_linear_comparison(
                     trace_variant=linear_match_trace_label,
                     x_variant=linear_match_trace_label,
                     variant_sort_key=linear_trace_sort_key,
+                    comparison_key=_hardware_table_comparison_key,
                     failed_records=candidate_failed_records,
                 ),
             }
@@ -326,6 +327,7 @@ def render_cpu_comparison(
                         trace_variant=cpu_match_trace_label,
                         x_variant=cpu_match_trace_label,
                         variant_sort_key=cpu_trace_sort_key,
+                        comparison_key=_hardware_table_comparison_key,
                         failed_records=candidate_failed_by_category.get(category, []),
                     ),
                 }
