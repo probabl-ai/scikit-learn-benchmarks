@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 import math
 from pathlib import Path
@@ -52,6 +52,56 @@ def is_scaling_benchmark(result: "MethodResult | BenchmarkRecord") -> bool:
     (e.g. `configs/hgb_scaling.py`) rather than for the general per-hardware,
     build, or hardware comparison dashboards."""
     return result.benchmark_type == "scaling"
+
+
+def is_real_dataset(result: "MethodResult | BenchmarkRecord") -> bool:
+    """Whether this case runs against a named real dataset
+    (`configs/real_datasets.py`) rather than synthetic data - real datasets
+    are the only ones with a `preprocessing` phase worth timing (see
+    `add_preprocessing_time`)."""
+    return bool(result.case.get("data", {}).get("dataset"))
+
+
+def add_preprocessing_time(results: list["MethodResult"]) -> list["MethodResult"]:
+    """Folds each `fit` result's matching `preprocessing` phase (same
+    benchmark record, times summed per repeat) into its times, so
+    `Match.speedup` computed from the returned list reflects fit time
+    including preprocessing. Results with no matching `preprocessing` result
+    (synthetic data, or a real-dataset case with `preprocessing_kind=None`)
+    pass through unchanged, as do non-`fit` results.
+
+    Every repeat's row is written to the results file only once fit and
+    predict both completed (see `run_case_to_jsonl`), so a `fit` result and
+    its record's `preprocessing` result always have the same number of times,
+    recorded in the same repeat order - safe to sum pairwise by index.
+    """
+    preprocessing_by_record = {
+        id(result.record): result
+        for result in results
+        if result.method == "preprocessing"
+    }
+    combined = []
+    for result in results:
+        preprocessing = (
+            preprocessing_by_record.get(id(result.record))
+            if result.method == "fit"
+            else None
+        )
+        if preprocessing is None:
+            combined.append(result)
+            continue
+        combined.append(
+            replace(
+                result,
+                times=[
+                    fit_time + preprocessing_time
+                    for fit_time, preprocessing_time in zip(
+                        result.times, preprocessing.times
+                    )
+                ],
+            )
+        )
+    return combined
 
 
 def is_models_scalability_result(result: "MethodResult | BenchmarkRecord") -> bool:

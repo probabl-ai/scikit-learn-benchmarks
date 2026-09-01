@@ -207,6 +207,21 @@ BASE_TEMPLATE = Template("""<!doctype html>
       }
       sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
     });
+
+    document.addEventListener("change", (event) => {
+      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
+        return;
+      }
+      document.body.classList.toggle("with-preprocessing", event.target.checked);
+      if (event.target.checked) {
+        sklbenchSetPredictCollapsed(true);
+      }
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    });
   </script>
 </head>
 <body>
