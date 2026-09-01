@@ -122,6 +122,22 @@ def _estimator_name(match: Match) -> str:
     )
 
 
+# Shortens tree-estimator names on x-axis tick labels only - everywhere else
+# (hover text, warning tooltips, matching) keeps the full estimator name.
+_ESTIMATOR_LABEL_ABBREVIATIONS = {
+    "HistGradientBoosting": "HGB",
+    "RandomForest": "RF",
+    "Regressor": "Reg",
+    "Classifier": "Clf",
+}
+
+
+def _abbreviate_estimator_label(name: str) -> str:
+    for full, short in _ESTIMATOR_LABEL_ABBREVIATIONS.items():
+        name = name.replace(full, short)
+    return name
+
+
 def _format_point_count(count: int) -> str:
     return f"{count} point" if count == 1 else f"{count} points"
 
@@ -882,7 +898,7 @@ def speedup_plot_html(
         xaxis={
             "tickmode": "array",
             "tickvals": list(range(len(estimators))),
-            "ticktext": estimators,
+            "ticktext": [_abbreviate_estimator_label(e) for e in estimators],
             "range": [-0.5, len(estimators) - 0.5],
         },
         yaxis={

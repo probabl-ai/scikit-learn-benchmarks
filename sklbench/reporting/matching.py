@@ -54,6 +54,16 @@ def is_scaling_benchmark(result: "MethodResult | BenchmarkRecord") -> bool:
     return result.benchmark_type == "scaling"
 
 
+def is_models_scalability_result(result: "MethodResult | BenchmarkRecord") -> bool:
+    """Results from `configs/models_scalability.py`, meant for its own
+    dashboard (`gen_models_scalability.py`) rather than the general
+    per-hardware dashboard. That config doesn't set `benchmark_type: scaling`
+    (see `is_scaling_benchmark`), so it's identified instead by
+    `metadata.n_cores` - a key unique to its `_with_scaling_bench`, not set by
+    any other config."""
+    return "n_cores" in result.case.get("metadata", {})
+
+
 @dataclass
 class BenchmarkRecord:
     hardware_hash: str

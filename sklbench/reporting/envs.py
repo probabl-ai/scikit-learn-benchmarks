@@ -34,6 +34,22 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
     return read_env("software", software_hash)["pixi_environment_name"] in VANILLA_SKLEARN_PIXI_ENVS
 
 
+SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
+
+# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
+# "sklearn-dev-libomp@..." (see configs/_implementations.py).
+_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
+
+
+def is_sklearn_dev_build(build_name: str) -> bool:
+    """Whether `build_name` (a `software_build_name` return value) is a
+    `sklearn-dev`/`sklearn-dev-libomp`/... branch-vs-branch build - meant for
+    its own dedicated comparison (gen_sklearn_dev_comparison.py,
+    gen_hgb_speedup_breakdown.py) rather than being folded in as a build
+    variant elsewhere (e.g. gen_builds_comparison.py)."""
+    return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
+
+
 def _git_ref_label(git_info: dict) -> str | None:
     """Label a scikit-learn source checkout by owner:ref, e.g. 'cakedev0:my-branch'.
     `scripts/setup_sklearn_ref.sh` always leaves the checkout in a detached-HEAD
