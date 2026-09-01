@@ -68,7 +68,7 @@ DEFAULT_PREPROCESSING_KIND = {
 # or ask sklearnex to support RidgeClassifier?
 
 
-TIERS = ("test", "fast", "normal", "slow")
+TIERS = ("test", "fast", "normal")
 
 REAL_DATASET_CASE_FUNCS: list[Callable] = []
 
