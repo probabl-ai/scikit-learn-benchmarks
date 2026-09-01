@@ -12,11 +12,12 @@ from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
-    is_scaling_benchmark,
+    is_scaling_benchmark, is_models_scalability_result,
 )
 
 from sklbench.reporting.envs import (
-    is_vanilla_sklearn, read_env, summarize_software_env, summarize_hardware_env,
+    is_vanilla_sklearn, read_env, software_build_name, summarize_software_env,
+    summarize_hardware_env,
 )
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -105,6 +106,7 @@ def render_hardware_page(
     )
     if not base_results:
         return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+    baseline_label = software_build_name(base_results[0].software_hash)
 
     variant_colors = variant_color_map(
         sorted({res.implementation.short_name for res in other_results})
@@ -134,7 +136,7 @@ def render_hardware_page(
             "point_count": len(matches),
             "plot": speedup_plot_html(
                 matches,
-                baseline_label=BASE_IMPLEMENTATION,
+                baseline_label=baseline_label,
                 variant_colors=variant_colors,
                 failed_records=candidate_failed_by_category.get(category, []),
             )
@@ -168,7 +170,7 @@ def render_hardware_page(
         category: detailed_results_table_html(
             category,
             matches_by_category.get(category, {}),
-            baseline_label=BASE_IMPLEMENTATION,
+            baseline_label=baseline_label,
             variant_label=lambda result: result.implementation.short_name,
             failed_records=[
                 (record, record.implementation.short_name)
@@ -189,13 +191,13 @@ def render_hardware_page(
     base_sw_env = read_env("software", base_results[0].software_hash)
     base_implem = base_results[0].implementation
 
-    softwares = [
-        summarize_software_env(
-            base_sw_env,
-            base_implem,
-            software_hash=base_results[0].software_hash,
-        )
-    ]
+    base_summary = summarize_software_env(
+        base_sw_env,
+        base_implem,
+        software_hash=base_results[0].software_hash,
+    )
+    base_summary["name"] = baseline_label
+    softwares = [base_summary]
     for implem_name, implem_results in groupby(other_results, lambda res: res.implementation.short_name).items():
         res = implem_results[0]
         env = read_env("software", res.software_hash)
@@ -225,9 +227,13 @@ def render_hardware_page(
 
 
 if __name__ == "__main__":
-    results = [res for res in read_all_results() if not is_scaling_benchmark(res)]
+    results = [
+        res for res in read_all_results()
+        if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
+    ]
     failed_records = [
-        record for record in read_failed_records() if not is_scaling_benchmark(record)
+        record for record in read_failed_records()
+        if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
     ]
     hardware_pages = [
         (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
