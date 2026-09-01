@@ -105,10 +105,36 @@ def _row_hyperparams(case: dict, attributes: dict | None = None) -> dict:
     return hyperparams
 
 
-def _default_comparison_key(result: MethodResult) -> str:
+def default_comparison_key(result: MethodResult) -> str:
+    """Shared with `speedup_plot_html` (as its `comparison_key` param) so
+    speed-up plot points and detailed-results table rows for the same
+    case agree on the key used to link a plot click to its table row."""
     return stable_json(
         without_keys(result.case, excluded_names={"implementation", "max_bins"})
     )
+
+
+def _row_columns_kind(case: dict) -> str | None:
+    """The synthetic tree datasets' column-type mix (e.g. "mix", "binary",
+    "continuous", "long-tail") - only set in generation_kwargs for
+    tree-based configs (see configs/synthetic_trees.py, hgb_scaling.py)."""
+    return case.get("data", {}).get("generation_kwargs", {}).get("columns")
+
+
+def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
+    """sklearnex's max_bins setting for tree-based results: "default" (not
+    overridden - sklearnex's own default of 255) or "n_samples" (explicitly
+    set equal to n_samples, i.e. exact/unbinned splits - see
+    configs/synthetic_trees.py and append_max_bins_warning in matching.py).
+    Empty for sklearn, which doesn't vary this param in these benchmarks."""
+    if library != "sklearnex":
+        return None
+    estimator_params = case.get("algorithm", {}).get("estimator_params", {})
+    if "max_bins" not in estimator_params:
+        return "default"
+    if n_samples is not None and estimator_params["max_bins"] == n_samples:
+        return "n_samples"
+    return "default"
 
 
 def _new_row(
@@ -119,6 +145,11 @@ def _new_row(
     profile_url_fn: Callable[[Path], str | None],
 ) -> dict:
     data_desc = result.data_desc or {}
+    n_samples = result.case.get("data", {}).get("generation_kwargs", {}).get(
+        "n_samples"
+    )
+    if n_samples is None:
+        n_samples = data_desc.get("samples")
     row = {
         "comparison_key": comparison_key,
         "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
@@ -126,6 +157,10 @@ def _new_row(
         "variant": variant,
         "n_samples": data_desc.get("samples"),
         "n_features": data_desc.get("features"),
+        "columns": _row_columns_kind(result.case),
+        "max_bins": _row_max_bins(
+            result.case, result.implementation.library, n_samples
+        ),
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -173,6 +208,10 @@ def _new_failed_row(
         "variant": variant,
         "n_samples": generation_kwargs.get("n_samples"),
         "n_features": generation_kwargs.get("n_features"),
+        "columns": generation_kwargs.get("columns"),
+        "max_bins": _row_max_bins(
+            record.case, record.implementation.library, generation_kwargs.get("n_samples")
+        ),
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -253,7 +292,7 @@ def detailed_results_table_html(
     *,
     baseline_label: str,
     variant_label: Callable[[MethodResult], str],
-    comparison_key: Callable[[MethodResult], str] = _default_comparison_key,
+    comparison_key: Callable[[MethodResult], str] = default_comparison_key,
     failed_records: list[tuple[BenchmarkRecord, str]] = (),
     unmatched_base_results: list[MethodResult] = (),
     unmatched_candidate_results: list[MethodResult] = (),
@@ -365,6 +404,14 @@ def detailed_results_table_html(
         _column("n_samples", "n_samples", header_filter=True, sorter="number"),
         _column("n_features", "n_features", header_filter=True, sorter="number"),
     ]
+    if any(row.get("columns") for row in rows):
+        columns.append(
+            _column("columns", "columns", header_filter=True, sorter="string")
+        )
+    if any(row.get("max_bins") for row in rows):
+        columns.append(
+            _column("max_bins", "max_bins", header_filter=True, sorter="string")
+        )
     columns.extend(
         _column(name, field, header_filter=True, sorter="string")
         for name, field in hyperparam_fields.items()

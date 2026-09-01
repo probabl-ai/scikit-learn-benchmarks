@@ -9,6 +9,7 @@ from statistics import median
 from plotly import graph_objects as go
 
 from ..matching import BenchmarkRecord, Match
+from .table import default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
 
@@ -258,6 +259,30 @@ def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
     return None
 
 
+def _log_size(entry) -> float | None:
+    """log2(n_samples * n_features) for a Match or `_FailedMatch`, used by
+    `_size_jitter` to spread same-column points by dataset size. Synthetic
+    datasets carry n_samples/n_features in generation_kwargs; real datasets
+    only have them in data_desc."""
+    result = entry.matched_result
+    generation_kwargs = result.case.get("data", {}).get("generation_kwargs", {})
+    n_samples = generation_kwargs.get("n_samples")
+    n_features = generation_kwargs.get("n_features")
+    if n_samples is None or n_features is None:
+        data_desc = (
+            result.data_desc
+            if hasattr(result, "data_desc")
+            else _record_fit_data_desc(result)
+        ) or {}
+        if n_samples is None:
+            n_samples = data_desc.get("samples")
+        if n_features is None:
+            n_features = data_desc.get("features")
+    if not n_samples or not n_features:
+        return None
+    return math.log2(n_samples * n_features)
+
+
 def _data_hover_lines(data: dict, data_desc: dict | None) -> list[str]:
     lines = _hover_lines(data)
     dimensions_line = _real_dataset_dimensions_line(data, data_desc)
@@ -319,12 +344,24 @@ def _failed_hover_text(record: BenchmarkRecord) -> str:
     )
 
 
+# Spacing between adjacent x_variant columns (e.g. the w/wo max_bins tree
+# columns) - doubled from the original 0.14 so those columns stay clearly
+# separated once points within a column are spread by SIZE_JITTER_WIDTH.
+_VARIANT_OFFSET_STEP = 0.28
+
+# Max x-axis spread applied within a column by dataset size (see
+# `_size_jitter`) - matches the original (pre-doubling) w/wo max_bins gap.
+SIZE_JITTER_WIDTH = 0.14
+
+
 def _variant_offsets(variants: list[str]) -> dict[str, float]:
     if len(variants) <= 1:
         return {variant: 0 for variant in variants}
-    step = 0.14
     center = (len(variants) - 1) / 2
-    return {variant: (index - center) * step for index, variant in enumerate(variants)}
+    return {
+        variant: (index - center) * _VARIANT_OFFSET_STEP
+        for index, variant in enumerate(variants)
+    }
 
 
 def variant_color_map(variants: list[str]) -> dict[str, str]:
@@ -753,6 +790,27 @@ def _x_variant(match: Match) -> str:
     return f"{variant} / {max_bins_label}"
 
 
+def _size_jitter(entries: list) -> dict[int, float]:
+    """Map each entry's `_log_size` to an x-axis nudge within its column,
+    linearly across [-SIZE_JITTER_WIDTH/2, SIZE_JITTER_WIDTH/2] over the
+    full range of dataset sizes present, so same-column points for
+    differently sized datasets don't land exactly on top of each other.
+    Keyed by id() since Match/_FailedMatch aren't hashable/comparable."""
+    log_sizes = {id(entry): _log_size(entry) for entry in entries}
+    known = [value for value in log_sizes.values() if value is not None]
+    if len(known) < 2 or min(known) == max(known):
+        return {key: 0.0 for key in log_sizes}
+    lo, hi = min(known), max(known)
+    return {
+        key: (
+            0.0
+            if value is None
+            else (value - lo) / (hi - lo) * SIZE_JITTER_WIDTH - SIZE_JITTER_WIDTH / 2
+        )
+        for key, value in log_sizes.items()
+    }
+
+
 def speedup_plot_html(
     matches: list[Match],
     *,
@@ -761,6 +819,7 @@ def speedup_plot_html(
     trace_variant=None,
     x_variant=None,
     variant_sort_key=None,
+    comparison_key=None,
     failed_records: list[BenchmarkRecord] = (),
 ):
     if not matches and not failed_records:
@@ -773,6 +832,8 @@ def speedup_plot_html(
         x_variant = _x_variant
     if variant_sort_key is None:
         variant_sort_key = lambda variant: variant
+    if comparison_key is None:
+        comparison_key = default_comparison_key
     failed_matches = [_FailedMatch(record) for record in failed_records]
 
     estimators = sorted(
@@ -788,6 +849,7 @@ def speedup_plot_html(
         key=variant_sort_key,
     )
     offsets = _variant_offsets(x_variants)
+    jitter = _size_jitter(matches)
 
     grouped: dict[str, list[Match]] = {}
     for match in matches:
@@ -849,10 +911,18 @@ def speedup_plot_html(
                     x=[
                         estimator_positions[_estimator_name(match)]
                         + offsets[x_variant(match)]
+                        + jitter[id(match)]
                         for match in variant_matches
                     ],
                     y=[math.log2(match.speedup) for match in variant_matches],
                     text=[_hover_text(match) for match in variant_matches],
+                    # Read by the dashboard's plot-click handler to apply the
+                    # same "bring matching rows to top" sort as clicking the
+                    # detailed-results table row for this case.
+                    customdata=[
+                        comparison_key(match.matched_result)
+                        for match in variant_matches
+                    ],
                     hovertemplate="%{text}<extra></extra>",
                     marker=marker,
                 )
@@ -881,6 +951,10 @@ def speedup_plot_html(
                     ],
                     text=[
                         _failed_hover_text(failed.matched_result)
+                        for failed in variant_failed
+                    ],
+                    customdata=[
+                        comparison_key(failed.matched_result)
                         for failed in variant_failed
                     ],
                     hovertemplate="%{text}<extra></extra>",

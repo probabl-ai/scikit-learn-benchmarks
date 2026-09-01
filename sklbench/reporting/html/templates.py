@@ -104,9 +104,11 @@ BASE_TEMPLATE = Template("""<!doctype html>
         {column: "dataset", dir: "asc"},
         {column: "variant", dir: "asc"},
       ];
-      // Row click puts every row sharing the clicked row's comparison_key on
-      // top instead of filtering everything else out, so clicking a column
-      // header to sort by something else naturally supersedes it.
+      // Row click (in the table, or on a matching speed-up plot point via
+      // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
+      // comparison_key on top instead of filtering everything else out, so
+      // clicking a column header to sort by something else naturally
+      // supersedes it.
       let matchSortKey = null;
       const matchFirstSorter = (a, b) => {
         const aMatches = a === matchSortKey ? 0 : 1;
@@ -134,6 +136,13 @@ BASE_TEMPLATE = Template("""<!doctype html>
       if (resetToolbar && defaultHeaderFilters && Object.keys(defaultHeaderFilters).length) {
         resetToolbar.hidden = false;
       }
+      const applyMatchSort = (comparisonKey) => {
+        matchSortKey = comparisonKey;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
+        if (resetToolbar) {
+          resetToolbar.hidden = false;
+        }
+      };
       table.on("rowClick", (event, row) => {
         if (event.target.closest("a, button")) {
           return;
@@ -142,11 +151,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
         if (!comparisonKey) {
           return;
         }
-        matchSortKey = comparisonKey;
-        table.setSort([{column: "comparison_key", dir: "asc"}]);
-        if (resetToolbar) {
-          resetToolbar.hidden = false;
-        }
+        applyMatchSort(comparisonKey);
       });
       if (resetButton) {
         resetButton.addEventListener("click", () => {
@@ -157,8 +162,74 @@ BASE_TEMPLATE = Template("""<!doctype html>
           }
         });
       }
+      // Exposed so a click on a matching speed-up plot point
+      // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
+      // builds asynchronously - table.setSort isn't safe to call until
+      // "tableBuilt" fires, which a plot click (unlike a click on an
+      // already-rendered row) can easily race.
+      table.sklbenchRows = rows;
+      table.sklbenchApplyMatchSort = applyMatchSort;
+      table.sklbenchBuilt = new Promise((resolve) => table.on("tableBuilt", resolve));
       window.sklbenchTables[tableId] = table;
     }
+
+    // A table only builds (sklbenchInitTable runs) the first time its
+    // "Detailed results" <details> is opened - see the toggle listener next
+    // to each sklbenchInitTable call. Opening it programmatically still goes
+    // through that same listener, but the "toggle" event it relies on is
+    // dispatched as a separate task rather than synchronously, so callers
+    // await this before assuming the table exists.
+    function sklbenchOpenDetails(details) {
+      if (details.open) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        details.addEventListener("toggle", () => resolve(), {once: true});
+        details.open = true;
+      });
+    }
+
+    // Speed-up plot points carry the same comparison_key as their detailed-
+    // results table row (see speedup_plot_html's `comparison_key` param) -
+    // clicking one applies the same "bring matching rows to top" sort as
+    // clicking the table row. `assemble_plots_in_grid` always places a row's
+    // (or the whole grid's) "Detailed results" <details> right after its
+    // plot(s) in document order, so the nearest one following the clicked
+    // chart is its table - open that first in case it's still collapsed.
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey) {
+      if (!comparisonKey) {
+        return;
+      }
+      for (const details of document.querySelectorAll("details.detailed-results")) {
+        if (chartEl.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING) {
+          await sklbenchOpenDetails(details);
+          break;
+        }
+      }
+      const table = Object.values(window.sklbenchTables).find(
+        (t) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey)
+      );
+      if (table) {
+        await table.sklbenchBuilt;
+        table.sklbenchApplyMatchSort(comparisonKey);
+      }
+    }
+
+    function sklbenchWirePlotClicks() {
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.sklbenchClickWired || typeof chart.on !== "function") {
+          return;
+        }
+        chart.sklbenchClickWired = true;
+        chart.on("plotly_click", (eventData) => {
+          const point = eventData.points && eventData.points[0];
+          if (point) {
+            sklbenchApplyPlotMatchSort(chart, point.customdata);
+          }
+        });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
 
     function sklbenchRelativeTime(isoString, nowMs) {
       const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
