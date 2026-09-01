@@ -22,7 +22,7 @@ def generate_cases() -> list[dict]:
 
     for case in cases:
         case.setdefault('bench', {})
-        case['bench'] |= {'n_runs': 5, 'py_spy_profiling': True}
+        case['bench'] |= {'n_runs': 5}
         case['bench'].setdefault('time_limit', 30)
     disable_profiling_for_array_api_gpu_cases(cases)
 

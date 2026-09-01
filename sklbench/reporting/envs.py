@@ -34,6 +34,22 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
     return read_env("software", software_hash)["pixi_environment_name"] in VANILLA_SKLEARN_PIXI_ENVS
 
 
+SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
+
+# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
+# "sklearn-dev-libomp@..." (see configs/_implementations.py).
+_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
+
+
+def is_sklearn_dev_build(build_name: str) -> bool:
+    """Whether `build_name` (a `software_build_name` return value) is a
+    `sklearn-dev`/`sklearn-dev-libomp`/... branch-vs-branch build - meant for
+    its own dedicated comparison (gen_sklearn_dev_comparison.py,
+    gen_hgb_speedup_breakdown.py) rather than being folded in as a build
+    variant elsewhere (e.g. gen_builds_comparison.py)."""
+    return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
+
+
 def _git_ref_label(git_info: dict) -> str | None:
     """Label a scikit-learn source checkout by owner:ref, e.g. 'cakedev0:my-branch'.
     `scripts/setup_sklearn_ref.sh` always leaves the checkout in a detached-HEAD
@@ -147,7 +163,7 @@ _GIT_SOURCE_PACKAGES = {"scikit-learn": "sklearn"}
 
 
 def _git_commit_digest(git_info: dict) -> str:
-    digest = git_info.get("describe") or git_info.get("commit", "")[:9] or "unknown commit"
+    digest = git_info.get("commit", "")[:9] or "unknown commit"
     return f"{digest}-dirty" if git_info.get("dirty") else digest
 
 
@@ -326,6 +342,14 @@ def _openmp_summary(env: dict, case_env: dict | None = None) -> list[str]:
     kmp_blocktime = _effective_openmp_value(case_env, info, "KMP_BLOCKTIME")
     if kmp_blocktime:
         summary.append(f"KMP_BLOCKTIME: {kmp_blocktime}")
+    # Unlike GOMP_SPINCOUNT/KMP_BLOCKTIME above, no fallback to the build's
+    # own OMP_DISPLAY_ENV dump here: that dump reflects whatever the capture
+    # process happened to run with, not a meaningful ambient default for
+    # thread affinity, so only show OMP_PROC_BIND when a case explicitly set
+    # it via `bench.env`.
+    omp_proc_bind = (case_env or {}).get("OMP_PROC_BIND")
+    if omp_proc_bind is not None:
+        summary.append(f"OMP_PROC_BIND: {omp_proc_bind}")
     return summary
 
 

@@ -8,11 +8,11 @@ Per-workload case generators live in `configs/synthetic_trees.py`,
 `configs/synthetic_linear.py`, and `configs/real_datasets.py`. Each exposes
 `generate_cases(implem, tier)`, taking a single implementation dict and
 baking it directly into every case it yields (no separate cross-product step
-needed downstream). `tier`/`max_tier` is one of `"test"`, `"fast"`,
-`"normal"`, or `"slow"`; `"normal"`/`"slow"` in the synthetic generators chain
-several increasing `scale` values (mirroring `synthetic_trees.py`'s ladder)
-and deterministically subsample the resulting matrix down to about a third,
-so the case count stays manageable as more scales are added. Common
+needed downstream). `tier`/`max_tier` is one of `"test"`, `"fast"`, or
+`"normal"`; `"normal"` in the synthetic generators chains multiple
+increasing `scale` values, mirroring `synthetic_trees.py`'s ladder, and
+deterministically subsamples the resulting matrix down to about a third so
+the case count stays manageable. Common
 utilities live in `configs/_common.py`; implementation selection lives in
 `configs/_implementations.py`.
 

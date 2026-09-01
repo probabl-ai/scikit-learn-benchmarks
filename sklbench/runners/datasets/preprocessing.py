@@ -23,6 +23,7 @@ from sklearn.model_selection import KFold, train_test_split
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.pipeline import FeatureUnion, make_pipeline
 from sklearn.preprocessing import (
+    FunctionTransformer,
     OneHotEncoder,
     OrdinalEncoder,
     SplineTransformer,
@@ -30,17 +31,28 @@ from sklearn.preprocessing import (
 )
 from sklearn.kernel_approximation import Nystroem
 
+from .transformer import convert_data
+
 
 logger = logging.getLogger(__name__)
 
 Array = pd.DataFrame | np.ndarray
 
+
+def _sklearn_version_at_least(major: int, minor: int) -> bool:
+    return tuple(int(v) for v in sklearn.__version__.split(".")[:2]) >= (major, minor)
+
+
 # sklearn <1.9 requires TargetEncoder's `cv` to be an int and takes shuffling
 # via `shuffle`/`random_state`; >=1.9 deprecates those two in favor of passing
 # a cv splitter (e.g. KFold) directly as `cv`.
-_SKLEARN_TARGET_ENCODER_CV_SPLITTER = tuple(
-    int(v) for v in sklearn.__version__.split(".")[:2]
-) >= (1, 9)
+_SKLEARN_TARGET_ENCODER_CV_SPLITTER = _sklearn_version_at_least(1, 9)
+
+# sklearn <1.9's `Nystroem.fit` calls raw `scipy.linalg.svd`, which forces
+# `np.asarray()` - GPU-resident arrays (dpnp, non-CPU torch/cupy) refuse that
+# conversion. >=1.9 dispatches via `xp.linalg.svd` on the input's own
+# namespace/device instead, so it's safe to feed it a transferred array.
+_SKLEARN_NYSTROEM_ARRAY_API_SVD = _sklearn_version_at_least(1, 9)
 
 
 def split_and_preprocess_data(
@@ -50,15 +62,25 @@ def split_and_preprocess_data(
     preprocessing_kind: str | None = None,
     preprocessing_kwargs: dict | None = None,
 ) -> dict[str, Array]:
-    """Preprocessing function applied for all data arguments."""
+    """Split `data_dict` and, if `preprocessing_kind` is set, encode it.
+
+    `preprocessing_kwargs["transfer_to_device"]` (see
+    `build_transfer_to_device`) is forwarded to the preprocessing function,
+    which places it in its own pipeline. With no `preprocessing_kind`,
+    there's no such function, so it's applied directly here instead.
+    """
     data_dict = split_data(data_dict, split_kwargs, default_split)
-    if preprocessing_kind is None:
-        return data_dict
-    preprocessing_func = PREPROCESSINGS[preprocessing_kind]
-    data_dict['x_train'], data_dict['x_test'] = preprocessing_func(
-        data_dict['x_train'], data_dict['x_test'], data_dict['y_train'],
-        **preprocessing_kwargs
-    )
+    if preprocessing_kind is not None:
+        preprocessing_func = PREPROCESSINGS[preprocessing_kind]
+        data_dict['x_train'], data_dict['x_test'] = preprocessing_func(
+            data_dict['x_train'], data_dict['x_test'], data_dict['y_train'],
+            **preprocessing_kwargs
+        )
+    else:
+        transfer_to_device = (preprocessing_kwargs or {}).get("transfer_to_device")
+        if transfer_to_device is not None:
+            data_dict['x_train'] = transfer_to_device.fit_transform(data_dict['x_train'])
+            data_dict['x_test'] = transfer_to_device.transform(data_dict['x_test'])
     return data_dict
 
 
@@ -118,8 +140,30 @@ def preprocessor_to_preprocessing(f):
     return preprocesing
 
 
+def build_transfer_to_device(
+    dformat: str | None = None,
+    device: str | None = None,
+    dtype: str | None = None,
+    order: str | None = None,
+) -> FunctionTransformer:
+    """FunctionTransformer moving X to `dformat`'s array type on `device`,
+    casting to `dtype`/`order` along the way. No-op when none of the four is
+    set, so e.g. HGB's pandas `category` columns survive untouched.
+
+    Passed to every preprocessing function as `transfer_to_device`; each
+    decides where to place it in its own pipeline (see their docstrings).
+    """
+    return FunctionTransformer(
+        lambda X: convert_data(X, dformat=dformat, order=order, dtype=dtype, device=device),
+        feature_names_out="one-to-one",
+        check_inverse=False,
+    )
+
+
 @preprocessor_to_preprocessing
-def trees_preprocessor(encoding : str = "ordinal"):
+def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
+    """`transfer_to_device` (see `build_transfer_to_device`), when given, is
+    placed last."""
 
     encoders = {
         "ordinal": OrdinalEncoder(
@@ -143,7 +187,7 @@ def trees_preprocessor(encoding : str = "ordinal"):
             (
                 "encoder",
                 encoder,
-                make_column_selector(dtype_include=["category", object]),
+                make_column_selector(dtype_include=["category"]),
             ),
         ],
         remainder='passthrough'
@@ -152,7 +196,9 @@ def trees_preprocessor(encoding : str = "ordinal"):
     # TODO? returning categorical type as done for HGB
     # useful for sklearn nightly (categorical support)
 
-    return preprocessor
+    if transfer_to_device is None:
+        return preprocessor
+    return make_pipeline(preprocessor, transfer_to_device)
 
 
 @preprocessor_to_preprocessing
@@ -160,14 +206,21 @@ def linear_preprocessor(
     nystroem = None,
     passthrough_columns = (),
     spline_kwargs = None,
+    transfer_to_device = None,
 ):
     """
-    `passthrough_columns` and `spline_kwargs` let a loader flag (via
-    `data_desc["preprocessing_defaults"]["linear"]`, merged into these
-    kwargs by `load_data`) that some numeric columns are already
-    well-conditioned features that shouldn't be spline-expanded (e.g.
-    `fraud`'s PCA components), and/or that the spline transform applied to
-    the remaining numeric columns should use non-default knot settings.
+    `passthrough_columns`/`spline_kwargs` let a loader flag (via
+    `data_desc["preprocessing_defaults"]["linear"]`) numeric columns that are
+    already well-conditioned (e.g. `fraud`'s PCA components) and/or need
+    non-default spline knots.
+
+    `transfer_to_device` (see `build_transfer_to_device`), when given and
+    `nystroem` is also requested, is placed *before* `Nystroem` on sklearn
+    >=1.9 (`_SKLEARN_NYSTROEM_ARRAY_API_SVD`) so the kernel approximation
+    runs on-device; on <1.9, `Nystroem.fit`'s raw `scipy.linalg.svd` forces
+    `np.asarray()`, which GPU-resident arrays (dpnp, non-CPU torch/cupy)
+    refuse, so it's placed after instead. Without `nystroem`, this pipeline
+    has no array-API-relevant step, so it's just placed last either way.
     """
 
     if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
@@ -206,7 +259,7 @@ def linear_preprocessor(
                 ("onehot", one_hot_encoder),
                 ("target", target_encoder),
             ]),
-            make_column_selector(dtype_include=["category", object]),
+            make_column_selector(dtype_include=["category"]),
         ),
         (
             "numeric",
@@ -222,14 +275,25 @@ def linear_preprocessor(
     if nystroem is None:
         # it's already scaled I think?
         # So it should be fine for fitting linear models
-        return preprocessor
+        if transfer_to_device is None:
+            return preprocessor
+        return make_pipeline(preprocessor, transfer_to_device)
 
     nystroem = dict(kernel="poly", degree=2, n_components=300, random_state=721) | nystroem
 
-    return make_pipeline(preprocessor, Nystroem(**nystroem))
+    if transfer_to_device is None:
+        return make_pipeline(preprocessor, Nystroem(**nystroem))
+
+    if _SKLEARN_NYSTROEM_ARRAY_API_SVD:
+        return make_pipeline(preprocessor, transfer_to_device, Nystroem(**nystroem))
+    return make_pipeline(preprocessor, Nystroem(**nystroem), transfer_to_device)
 
 
-def hgb_preprocessing(X_train, X_test, y_train=None):
+def hgb_preprocessing(X_train, X_test, y_train=None, transfer_to_device=None):
+    """Not built via `preprocessor_to_preprocessing`: the category-dtype
+    restoration below must run as plain code between encoding and the
+    transfer. `transfer_to_device` is placed last, after that restoration.
+    """
 
     if not isinstance(X_train, pd.DataFrame):
         X_train = pd.DataFrame(X_train)
@@ -244,18 +308,23 @@ def hgb_preprocessing(X_train, X_test, y_train=None):
         max_categories=252
     )
 
-    categorical_columns = X_train.select_dtypes(["category", object]).columns.to_list()
-    preprocessor = ColumnTransformer(
-        transformers=[("encoder", encoder, categorical_columns)],
-        remainder='passthrough',
-        verbose_feature_names_out=False,
-    )
-    preprocessor.set_output(transform="pandas")
-    X_train = preprocessor.fit_transform(X_train)
-    X_test = preprocessor.transform(X_test)
-    for col in categorical_columns:
-        X_train[col] = X_train[col].astype('category')
-        X_test[col] = X_test[col].astype('category')
+    categorical_columns = X_train.select_dtypes(["category"]).columns.to_list()
+    if categorical_columns:
+        preprocessor = ColumnTransformer(
+            transformers=[("encoder", encoder, categorical_columns)],
+            remainder='passthrough',
+            verbose_feature_names_out=False,
+        )
+        preprocessor.set_output(transform="pandas")
+        X_train = preprocessor.fit_transform(X_train)
+        X_test = preprocessor.transform(X_test)
+        for col in categorical_columns:
+            X_train[col] = X_train[col].astype('category')
+            X_test[col] = X_test[col].astype('category')
+
+    if transfer_to_device is not None:
+        X_train = transfer_to_device.fit_transform(X_train)
+        X_test = transfer_to_device.transform(X_test)
 
     return X_train, X_test
 

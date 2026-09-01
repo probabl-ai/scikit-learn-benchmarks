@@ -1,0 +1,89 @@
+name: Dashboard Snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, tag, or branch to build the snapshot from.
+        required: false
+        default: main
+      version:
+        description: >-
+          Snapshot name (used as a URL path segment). Defaults to
+          <date>-<short-sha> of the resolved ref if left blank.
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out ref to snapshot
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          lfs: false
+
+      - name: Resolve snapshot version and pinned commit
+        id: version
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          version="${{ inputs.version }}"
+          if [ -z "$version" ]; then
+            version="$(date -u +%Y-%m-%d)-${sha::7}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Git LFS objects
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('results/records/**', 'results/hardware-envs/**', 'results/software-envs/**') }}
+          restore-keys: |
+            lfs-
+
+      - name: Pull needed LFS objects
+        run: |
+          git lfs pull --include "results/records/**,results/hardware-envs/**,results/software-envs/**"
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: reporting
+          locked: false
+          frozen: true
+          cache: true
+
+      - name: Generate dashboards
+        env:
+          # Pin profile/raw-file links (see sklbench/reporting/envs.py's
+          # _current_results_ref) to this exact commit instead of letting
+          # them fall back to GITHUB_REF (a moving branch), so the snapshot
+          # keeps pointing at what was true when it was built.
+          SKLBENCH_RESULTS_REF: ${{ steps.version.outputs.sha }}
+        run: |
+          mkdir -p _snapshot_site
+          for script in dashboards/gen_*.py; do
+            pixi run --frozen -e reporting python "$script" --output-dir _snapshot_site
+          done
+
+      - name: Publish snapshot to storage branch
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: dashboard-snapshots
+          publish_dir: _snapshot_site
+          destination_dir: snapshots/${{ steps.version.outputs.version }}
+          keep_files: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+
+      - name: Summary
+        run: |
+          echo "Snapshot '${{ steps.version.outputs.version }}' built from ${{ steps.version.outputs.sha }}." >> "$GITHUB_STEP_SUMMARY"
+          echo "It will appear at /snapshots/${{ steps.version.outputs.version }}/ next time dashboard-pages.yml runs." >> "$GITHUB_STEP_SUMMARY"

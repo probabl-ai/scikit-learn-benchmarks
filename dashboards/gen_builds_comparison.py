@@ -12,12 +12,12 @@ from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
-    is_scaling_benchmark,
+    is_scaling_benchmark, is_models_scalability_result,
 )
 
 from sklbench.reporting.envs import (
-    is_vanilla_sklearn, read_env, software_build_name, summarize_software_env,
-    summarize_hardware_env,
+    is_sklearn_dev_build, is_vanilla_sklearn, read_env, software_build_name,
+    summarize_software_env, summarize_hardware_env,
 )
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -48,12 +48,18 @@ def is_array_api_variant(result: MethodResult | BenchmarkRecord) -> bool:
     return result.implementation.data_library is not None
 
 
+def is_sklearn_dev_variant(result: MethodResult | BenchmarkRecord) -> bool:
+    """`sklearn-dev`/`sklearn-dev-libomp`/... builds get their own dedicated
+    branch-vs-branch dashboards (gen_sklearn_dev_comparison.py,
+    gen_hgb_speedup_breakdown.py) rather than being folded in here as more
+    build variants."""
+    return is_sklearn_dev_build(software_build_name(result.software_hash))
+
+
 def build_variant(result: MethodResult | BenchmarkRecord) -> str:
     """Label results/records by their sklearn build (pixi env), since every
     result compared on this dashboard has implementation.short_name ==
     'sklearn' regardless of build."""
-    if is_vanilla_sklearn(result.software_hash):
-        return BASE_IMPLEMENTATION
     return software_build_name(result.software_hash)
 
 
@@ -103,13 +109,16 @@ def render_hardware_page(
     results = [res for res in results if res.hardware_hash == hardware_hash]
     results = [
         res for res in results
-        if not is_other_library_build(res) and not is_array_api_variant(res)
+        if not is_other_library_build(res)
+        and not is_array_api_variant(res)
+        and not is_sklearn_dev_variant(res)
     ]
     failed_records = [
         record for record in failed_records
         if record.hardware_hash == hardware_hash
         and not is_other_library_build(record)
         and not is_array_api_variant(record)
+        and not is_sklearn_dev_variant(record)
     ]
     if not results:
         return '<section class="empty">No benchmark results for this hardware.</section>'
@@ -123,6 +132,7 @@ def render_hardware_page(
     )
     if not base_results:
         return f'<section class="empty">No vanilla {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+    baseline_label = build_variant(base_results[0])
 
     variant_colors = variant_color_map(
         sorted({build_variant(res) for res in other_results})
@@ -152,7 +162,7 @@ def render_hardware_page(
             "point_count": len(matches),
             "plot": speedup_plot_html(
                 matches,
-                baseline_label=BASE_IMPLEMENTATION,
+                baseline_label=baseline_label,
                 variant_colors=variant_colors,
                 trace_variant=match_build_variant,
                 x_variant=match_build_variant,
@@ -188,7 +198,7 @@ def render_hardware_page(
         category: detailed_results_table_html(
             category,
             matches_by_category.get(category, {}),
-            baseline_label=BASE_IMPLEMENTATION,
+            baseline_label=baseline_label,
             variant_label=build_variant,
             failed_records=[
                 (record, build_variant(record))
@@ -209,13 +219,13 @@ def render_hardware_page(
     base_sw_env = read_env("software", base_results[0].software_hash)
     base_implem = base_results[0].implementation
 
-    softwares = [
-        summarize_software_env(
-            base_sw_env,
-            base_implem,
-            software_hash=base_results[0].software_hash,
-        )
-    ]
+    base_summary = summarize_software_env(
+        base_sw_env,
+        base_implem,
+        software_hash=base_results[0].software_hash,
+    )
+    base_summary["name"] = baseline_label
+    softwares = [base_summary]
     for build_name, implem_results in groupby(other_results, build_variant).items():
         res = implem_results[0]
         env = read_env("software", res.software_hash)
@@ -245,9 +255,13 @@ def render_hardware_page(
 
 
 if __name__ == "__main__":
-    results = [res for res in read_all_results() if not is_scaling_benchmark(res)]
+    results = [
+        res for res in read_all_results()
+        if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
+    ]
     failed_records = [
-        record for record in read_failed_records() if not is_scaling_benchmark(record)
+        record for record in read_failed_records()
+        if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
     ]
     hardware_pages = [
         (hardware_name, render_hardware_page(results, failed_records, hardware_hash))

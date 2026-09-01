@@ -17,6 +17,14 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A PR with an `sklbench-compare` directive (see COMPARISONS_PR.md) gets
+    # its own dashboard from pr-comparison.yml instead - skip the normal
+    # preview here so it doesn't publish a second, unrelated one. Skipping
+    # the job (rather than gating steps within it) makes the whole workflow
+    # run's conclusion "skipped", which is what dashboard-preview-deploy.yml's
+    # `if: github.event.workflow_run.conclusion == 'success'` guard already
+    # relies on to no-op in turn.
+    if: ${{ !contains(github.event.pull_request.body, '```sklbench-compare') }}
 
     steps:
       - name: Check out repository

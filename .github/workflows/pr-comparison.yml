@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       parse_ok: ${{ steps.parse.outputs.ok }}
-      config: ${{ steps.parse.outputs.config }}
+      runs: ${{ steps.parse.outputs.runs }}
       runners: ${{ steps.parse.outputs.runners }}
       sklearn_owner: ${{ steps.parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
@@ -74,8 +74,7 @@ jobs:
         env:
           PARSE_OK: ${{ steps.parse.outputs.ok }}
           PARSE_ERROR: ${{ steps.parse.outputs.error }}
-          CONFIG: ${{ steps.parse.outputs.config }}
-          RUNNERS: ${{ steps.parse.outputs.runners }}
+          RUNS: ${{ steps.parse.outputs.runs }}
           SKLEARN_OWNER: ${{ steps.parse.outputs.sklearn_owner }}
           SKLEARN_HEAD_REF: ${{ steps.parse.outputs.sklearn_head_ref }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -84,11 +83,13 @@ jobs:
             if [ "$PARSE_OK" != "true" ]; then
               echo "**sklbench-compare directive is malformed:**"; echo; echo "$PARSE_ERROR"
             else
-              # RUNNERS is the JSON array string parse_compare_directive.py
-              # writes (e.g. ["intel-laptop"]) - render it as a plain
-              # comma-separated list instead.
-              runners_display=$(python3 -c "import json,sys; print(', '.join(json.loads(sys.argv[1])))" "$RUNNERS")
-              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against scikit-learn \`main\` using \`$CONFIG\` on: $runners_display."
+              # RUNS is the JSON array string parse_compare_directive.py writes
+              # (e.g. [{"runner": ..., "env": ..., "config": ...}]) - render it
+              # as a plain comma-separated list instead. The `runners` output
+              # (distinct runner values out of RUNS) drives the matrix below.
+              runs_display=$(python3 -c "import json,sys; runs=json.loads(sys.argv[1]); print(', '.join(f\"{r['runner']}: {r['config']} ({r['env']})\" for r in runs))" "$RUNS")
+              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against scikit-learn \`main\`:"
+              echo "$runs_display"
               echo "Results post as separate comments below as each runner finishes."
             fi
           } > "$RUNNER_TEMP/status.md"
@@ -123,7 +124,10 @@ jobs:
     timeout-minutes: 1440
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      CONFIG: ${{ needs.gate_and_parse.outputs.config }}
+      RUNS: ${{ needs.gate_and_parse.outputs.runs }}
+      # This job's matrix.runner - RUNS holds every runner's tuples, each
+      # step below filters down to the ones targeting this runner.
+      THIS_RUNNER: ${{ matrix.runner }}
       SKLEARN_OWNER: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
       SKLEARN_HEAD_REF: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
       # Deterministic from PR number + runner, so it's known before the
@@ -152,7 +156,7 @@ jobs:
       - name: Check out repository
         # Default pull_request checkout (merge of PR head into base) is
         # intentional here, unlike gate_and_parse's base-pinned checkout:
-        # `config:` may point at a config file this very PR adds. Same
+        # `runs:` may point at a config file this very PR adds. Same
         # trust level workflow_dispatch on run-benchmarks.yml already
         # assumes for a collaborator's branch.
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -177,9 +181,6 @@ jobs:
           post-cleanup: false
           pixi-bin-path: ${{ runner.temp }}/bin/pixi
 
-      - name: Clear preprocessed dataset cache
-        run: rm -rf "${SKLBENCH_DATA_CACHE:-data_cache}/preprocessed"
-
       - name: Validate config
         # A prior version of this check lived in run.sh itself, using
         # `-e default` - broken for any config calling
@@ -188,19 +189,39 @@ jobs:
         # PIXI_ENVIRONMENT_NAME. Removed there; kept here, scoped to this
         # workflow, using a real accepted env instead - catching a typo'd
         # config path/estimator name before a many-minutes sklearn-dev
-        # clone+build is still worth it.
-        run: pixi run --frozen -e sklearn-pypi python -m sklbench --config "$CONFIG" --validate-only
+        # clone+build is still worth it. Looped over the unique config paths
+        # in RUNS that target this runner (several tuples can share a
+        # config, and other runners' tuples aren't this job's concern).
+        run: |
+          pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; _=[print(c) for c in dict.fromkeys(r['config'] for r in runs)]" > "$RUNNER_TEMP/configs.txt"
+          while IFS= read -r config; do
+            pixi run --frozen -e sklearn-pypi python -m sklbench --config "$config" --validate-only
+          done < "$RUNNER_TEMP/configs.txt"
 
       - name: Run comparison benchmark
         # Reuses run.sh exactly as CONTRIBUTING.md's "Running Against
         # scikit-learn Branches" documents for a PR-vs-base comparison:
         # sequential setup_sklearn_ref.sh + sklbench run per env@owner:ref
         # entry, one shared sklearn-src/ checkout re-pointed between them.
+        # Looped over every (env, config) tuple in RUNS that targets this
+        # runner, all accumulating into the same $RESULTS_DIR so one
+        # dashboard covers all of them - mirrors run.sh's own
+        # accumulate-status-and-continue pattern rather than aborting after
+        # the first failing tuple.
         continue-on-error: true
         run: |
-          ./run.sh "sklearn-dev@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}" sklearn-dev@scikit-learn:main \
-            --config "$CONFIG" --results-dir "$RESULTS_DIR" \
-            2>&1 | tee "$RUNNER_TEMP/bench.log"
+          set -o pipefail
+          pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; _=[print(f\"{r['env']}\t{r['config']}\") for r in runs]" > "$RUNNER_TEMP/runs.tsv"
+          status=0
+          while IFS=$'\t' read -r env config; do
+            echo "=== env=$env config=$config ===" | tee -a "$RUNNER_TEMP/bench.log"
+            if ! ./run.sh "${env}@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}" "${env}@scikit-learn:main" \
+                --config "$config" --results-dir "$RESULTS_DIR" \
+                2>&1 | tee -a "$RUNNER_TEMP/bench.log"; then
+              status=1
+            fi
+          done < "$RUNNER_TEMP/runs.tsv"
+          exit "$status"
 
       - name: Classify benchmark session
         id: classify
@@ -251,6 +272,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          runs_display=$(pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; print(', '.join(f\"{r['config']} ({r['env']})\" for r in runs))")
           if [ "$DEPLOY_OUTCOME" = "success" ] && [ -f "$SITE_DIR/pr_comparison.html" ]; then
             # The site has no index.html (only pr_comparison.html), so the
             # bare domain 404s - link straight to the page. Cloudflare
@@ -258,7 +280,7 @@ jobs:
             # extension-less path anyway.
             url="https://${PAGES_BRANCH}.sklbench-pr-comparison.pages.dev/pr_comparison"
             {
-              echo "**${{ matrix.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`main\`, config \`$CONFIG\`"
+              echo "**${{ matrix.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`main\`, using: $runs_display"
               echo
               echo "Dashboard: $url"
               [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."

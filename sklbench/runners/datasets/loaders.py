@@ -46,7 +46,7 @@ def load_ames_housing(raw_data_cache: str) -> tuple[dict, dict]:
     """
     Ames Housing dataset (openml id 42165).
 
-    1460 samples, 79 features, a mix of numeric and (mostly `object`-dtype)
+    1460 samples, 79 features, a mix of numeric and `category`-dtype
     categorical columns, with real missing values in both. Small enough to be
     used in the "test" tier of configs.
 
@@ -54,6 +54,8 @@ def load_ames_housing(raw_data_cache: str) -> tuple[dict, dict]:
     """
     x, y = load_openml(42165, raw_data_cache, as_frame=True)
     x.drop(columns=['Id'], inplace=True)
+    for col in x.select_dtypes(["object"]).columns:
+        x[col] = x[col].astype("category")
 
     data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
     return {"x": x, "y": y}, data_desc
@@ -89,10 +91,10 @@ def load_kddcup09_churn(raw_data_cache: str) -> tuple[dict, dict]:
     KDD Cup 2009 "churn" task (openml id 1112).
     https://www.openml.org/d/1112
 
-    Raw shape is 50000 rows x 230 columns (174 float64, 18 `object`, and
-    38 `category` columns -- 56 categorical-like columns total). 23 of the
-    230 columns are entirely useless (all-NaN or constant, i.e.
-    `nunique(dropna=True) <= 1`) and are dropped here, leaving 207 columns.
+    Raw shape is 50000 rows x 230 columns (174 float64 and 56 `category`
+    columns). 23 of the 230 columns are entirely useless (all-NaN or
+    constant, i.e. `nunique(dropna=True) <= 1`) and are dropped here,
+    leaving 207 columns: 173 float64 and 34 `category`.
 
     Missingness remains heavy even after dropping the useless columns: 161
     of the original 230 columns have >50% NaN. This is real, expected
@@ -847,7 +849,7 @@ def load_abalone(raw_data_cache: str) -> tuple[dict, dict]:
     """
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data"
     data = download_and_read_csv(url, raw_data_cache, header=None)
-    data[0] = data[0].astype("category").cat.codes
+    data[0] = data[0].astype("category")
     x, y = data.iloc[:, :-1], data.iloc[:, -1].values
 
     data_desc = {"default_split": {"test_size": 0.2, "random_state": 0}}

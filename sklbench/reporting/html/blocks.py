@@ -122,6 +122,25 @@ def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
     )
 
 
+def _plot_cell_html(title: str, plot_html: str, *, method: str | None = None) -> str:
+    attrs = f' data-method="{method}"' if method in ("fit", "predict") else ""
+    toggle = ""
+    if method == "predict":
+        toggle = (
+            '<button type="button" class="predict-collapse-toggle" '
+            'aria-expanded="true" aria-label="Collapse predict plots" '
+            'title="Collapse predict plots">&rsaquo;</button>'
+        )
+    return (
+        f'<section class="plot-cell"{attrs}>'
+        '<div class="plot-cell-head">'
+        f'<h3 class="plot-cell-title">{escape(title)}</h3>{toggle}'
+        "</div>"
+        f'<div class="plot-cell-body">{plot_html}</div>'
+        "</section>"
+    )
+
+
 def assemble_plots_in_grid(
     plots: list[dict],
     *,
@@ -159,7 +178,20 @@ def assemble_plots_in_grid(
         for column_value in column_values:
             plot = by_position.get((row_value, column_value))
             if plot is None:
-                cells.append('<section class="plot-cell empty">No data</section>')
+                # column/row value doubles as the method when the grid is split
+                # by fit/predict, so an empty cell still collapses in step with
+                # its populated neighbors.
+                empty_method = column_value if column_key == "method" else (
+                    row_value if row_key == "method" else None
+                )
+                empty_attrs = (
+                    f' data-method="{empty_method}"'
+                    if empty_method in ("fit", "predict")
+                    else ""
+                )
+                cells.append(
+                    f'<section class="plot-cell empty"{empty_attrs}>No data</section>'
+                )
                 continue
             title = f"{row_value} / {column_value}"
             point_count = plot.get("point_count")
@@ -167,14 +199,24 @@ def assemble_plots_in_grid(
                 point_label = "point" if point_count == 1 else "points"
                 title = f"{title} ({point_count} {point_label})"
             cells.append(
-                '<section class="plot-cell">'
-                f"<h3>{escape(title)}</h3>"
-                f"{plot['plot']}"
-                "</section>"
+                _plot_cell_html(title, plot["plot"], method=plot.get("method"))
             )
         detail = details_by_row.get(row_value)
         if detail:
             cells.append(f'<section class="plot-detail-row">{detail}</section>')
-    style = f"grid-template-columns: repeat({len(column_values)}, minmax(0, 1fr));"
-    grid = f'<section class="plot-grid" style="{style}">{"".join(cells)}</section>'
+
+    grid_class = "plot-grid"
+    extra_style = ""
+    if column_key == "method" and "predict" in column_values:
+        grid_class += " method-grid"
+        collapsed_template = " ".join(
+            "44px" if value == "predict" else "1fr" for value in column_values
+        )
+        extra_style = f" --collapsed-columns: {collapsed_template};"
+
+    style = (
+        f"grid-template-columns: repeat({len(column_values)}, minmax(0, 1fr));"
+        f"{extra_style}"
+    )
+    grid = f'<section class="{grid_class}" style="{style}">{"".join(cells)}</section>'
     return grid + "".join(details_after_grid)

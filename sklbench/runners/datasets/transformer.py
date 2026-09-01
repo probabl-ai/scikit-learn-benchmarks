@@ -167,7 +167,7 @@ def convert_subsets(
                 "dtype": data_dtype,
                 "samples": converted_data.shape[0],
             }
-            if len(converted_data.shape) == 2 and converted_data.shape[1] > 1:
+            if len(converted_data.shape) == 2:
                 data_description[subset_name]["features"] = converted_data.shape[1]
             # Only meaningful when the subset is still a pandas DataFrame with
             # `category` dtype columns intact (e.g. `preprocessing_kind="hgb"`

@@ -28,6 +28,11 @@ def get_subset_metrics_of_estimator(
         if not hasattr(estimator_instance, "predict_proba"):
             raise NotImplementedError()
         y_pred_proba = convert_to_numpy(estimator_instance.predict_proba(x))
+        if y_pred_proba.shape[1] > 2:
+            # Accelerated multiclass predict_proba (e.g. sklearnex/oneDAL)
+            # can drift enough from summing to exactly 1 across classes at
+            # scale to trip roc_auc_score's multiclass tolerance check.
+            y_pred_proba = y_pred_proba / y_pred_proba.sum(axis=1, keepdims=True)
         binary_proba = y_pred_proba[:, 1] if y_pred_proba.shape[1] == 2 else y_pred_proba
         roc_auc = roc_auc_score(
             y_compat,

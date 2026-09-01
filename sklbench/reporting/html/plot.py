@@ -9,6 +9,7 @@ from statistics import median
 from plotly import graph_objects as go
 
 from ..matching import BenchmarkRecord, Match
+from .table import default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
 
@@ -46,6 +47,9 @@ chart_ids = itertools.count()
 def _format_speedup_tick(value: float) -> str:
     if value >= 1:
         return f"{value:g}x"
+    denom = round(1 / value)
+    if math.isclose(value * denom, 1, rel_tol=1e-9):
+        return f"1/{denom}x"
     if value >= 0.001:
         return f"{value:.3f}".rstrip("0").rstrip(".") + "x"
     return f"{value:.3g}x"
@@ -120,6 +124,22 @@ def _estimator_name(match: Match) -> str:
     return match.matched_result.case.get("algorithm", {}).get(
         "estimator", "unknown"
     )
+
+
+# Shortens tree-estimator names on x-axis tick labels only - everywhere else
+# (hover text, warning tooltips, matching) keeps the full estimator name.
+_ESTIMATOR_LABEL_ABBREVIATIONS = {
+    "HistGradientBoosting": "HGB",
+    "RandomForest": "RF",
+    "Regressor": "Reg",
+    "Classifier": "Clf",
+}
+
+
+def _abbreviate_estimator_label(name: str) -> str:
+    for full, short in _ESTIMATOR_LABEL_ABBREVIATIONS.items():
+        name = name.replace(full, short)
+    return name
 
 
 def _format_point_count(count: int) -> str:
@@ -239,6 +259,30 @@ def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
     return None
 
 
+def _log_size(entry) -> float | None:
+    """log2(n_samples * n_features) for a Match or `_FailedMatch`, used by
+    `_size_jitter` to spread same-column points by dataset size. Synthetic
+    datasets carry n_samples/n_features in generation_kwargs; real datasets
+    only have them in data_desc."""
+    result = entry.matched_result
+    generation_kwargs = result.case.get("data", {}).get("generation_kwargs", {})
+    n_samples = generation_kwargs.get("n_samples")
+    n_features = generation_kwargs.get("n_features")
+    if n_samples is None or n_features is None:
+        data_desc = (
+            result.data_desc
+            if hasattr(result, "data_desc")
+            else _record_fit_data_desc(result)
+        ) or {}
+        if n_samples is None:
+            n_samples = data_desc.get("samples")
+        if n_features is None:
+            n_features = data_desc.get("features")
+    if not n_samples or not n_features:
+        return None
+    return math.log2(n_samples * n_features)
+
+
 def _data_hover_lines(data: dict, data_desc: dict | None) -> list[str]:
     lines = _hover_lines(data)
     dimensions_line = _real_dataset_dimensions_line(data, data_desc)
@@ -300,12 +344,24 @@ def _failed_hover_text(record: BenchmarkRecord) -> str:
     )
 
 
+# Spacing between adjacent x_variant columns (e.g. the w/wo max_bins tree
+# columns) - doubled from the original 0.14 so those columns stay clearly
+# separated once points within a column are spread by SIZE_JITTER_WIDTH.
+_VARIANT_OFFSET_STEP = 0.28
+
+# Max x-axis spread applied within a column by dataset size (see
+# `_size_jitter`) - matches the original (pre-doubling) w/wo max_bins gap.
+SIZE_JITTER_WIDTH = 0.14
+
+
 def _variant_offsets(variants: list[str]) -> dict[str, float]:
     if len(variants) <= 1:
         return {variant: 0 for variant in variants}
-    step = 0.14
     center = (len(variants) - 1) / 2
-    return {variant: (index - center) * step for index, variant in enumerate(variants)}
+    return {
+        variant: (index - center) * _VARIANT_OFFSET_STEP
+        for index, variant in enumerate(variants)
+    }
 
 
 def variant_color_map(variants: list[str]) -> dict[str, str]:
@@ -385,18 +441,47 @@ def scaling_line_plot_html(
     colors: dict[str, str] | None = None,
     x_title: str = "threads",
     y_title: str = "fit time (ms)",
+    y_unit: str = "ms",
+    x_log: bool = False,
+    y_log: bool = False,
+    reference_lines: dict[str, list[tuple[float, float]]] | None = None,
 ) -> str:
     """Simple line plot of `y_title` vs `x_title`, one line per series key
     (e.g. software build). `series` maps a label to a list of (x, y) points.
     Lighter-weight alternative to `phase_breakdown_plot_html` for comparing
     overall scaling behavior across builds, rather than a per-build phase
-    breakdown."""
+    breakdown. `y_unit` only affects the hover suffix - callers passing
+    non-millisecond `y` values (e.g. gen_models_scalability.py's seconds)
+    must override it to match, since it isn't derived from `y_title`.
+
+    `x_log` switches the x-axis to log scale - the intended use is a
+    power-of-two sweep (e.g. core counts), so ticks are pinned to powers of
+    two spanning `series`' x range (1, 2, 4, ...) rather than Plotly's
+    default power-of-10 log ticks, which wouldn't land on them - including
+    when the actual max x isn't itself a power of two (e.g. a core count
+    capped by the machine's physical core count). `y_log` switches the
+    y-axis to log scale - `rangemode: tozero` is skipped in that case, since
+    a log axis can't include 0.
+
+    Each point is normally an `(x, y)` pair; a point may add a third element
+    - one extra line of hover text (e.g. `"n_iter: 431"`) shown below the x/y
+    line, or `""`/`None` for no extra line - for callers that want per-point
+    context an aggregate x/y trend can't convey.
+
+    `reference_lines` draws additional dashed, marker-less, grey lines (e.g.
+    an ideal-scaling reference) in the same `{label: [(x, y), ...]}` shape as
+    `series`, kept visually distinct from the real data traces."""
     chart_id = f"scaling-line-{next(chart_ids)}"
     fig = go.Figure()
+    all_x_values = set()
     for label, points in sorted(series.items()):
-        points = sorted(points)
-        x_values = [x for x, _ in points]
-        y_values = [y for _, y in points]
+        points = sorted(points, key=lambda point: point[0])
+        x_values = [point[0] for point in points]
+        y_values = [point[1] for point in points]
+        hover_extra = [
+            f"<br>{point[2]}" if len(point) > 2 and point[2] else "" for point in points
+        ]
+        all_x_values.update(x_values)
         color = (colors or {}).get(label)
         fig.add_trace(
             go.Scatter(
@@ -406,12 +491,47 @@ def scaling_line_plot_html(
                 mode="lines+markers",
                 line={"color": color} if color else {},
                 marker={"color": color} if color else {},
-                hovertemplate=f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}ms<extra></extra>",
+                customdata=hover_extra,
+                hovertemplate=(
+                    f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}{y_unit}"
+                    "%{customdata}<extra></extra>"
+                ),
             )
         )
+    for label, points in sorted((reference_lines or {}).items()):
+        points = sorted(points, key=lambda point: point[0])
+        x_values = [point[0] for point in points]
+        y_values = [point[1] for point in points]
+        all_x_values.update(x_values)
+        fig.add_trace(
+            go.Scatter(
+                name=label,
+                x=x_values,
+                y=y_values,
+                mode="lines",
+                line={"color": "#999", "dash": "dash", "width": 1},
+                hoverinfo="skip",
+            )
+        )
+    xaxis = {"title": x_title}
+    if x_log and all_x_values:
+        min_x, max_x = min(all_x_values), max(all_x_values)
+        start_exp = math.floor(math.log2(max(min_x, 1)))
+        end_exp = math.ceil(math.log2(max(max_x, 1)))
+        tick_values = [2**exp for exp in range(start_exp, end_exp + 1)]
+        xaxis |= {
+            "type": "log",
+            "tickmode": "array",
+            "tickvals": tick_values,
+            "ticktext": [str(x) for x in tick_values],
+        }
+    yaxis = {"title": y_title, "type": "log"} if y_log else {
+        "title": y_title,
+        "rangemode": "tozero",
+    }
     fig.update_layout(
-        xaxis={"title": x_title},
-        yaxis={"title": y_title, "rangemode": "tozero"},
+        xaxis=xaxis,
+        yaxis=yaxis,
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         legend={"orientation": "h", "y": -0.25},
         template="none",
@@ -670,6 +790,27 @@ def _x_variant(match: Match) -> str:
     return f"{variant} / {max_bins_label}"
 
 
+def _size_jitter(entries: list) -> dict[int, float]:
+    """Map each entry's `_log_size` to an x-axis nudge within its column,
+    linearly across [-SIZE_JITTER_WIDTH/2, SIZE_JITTER_WIDTH/2] over the
+    full range of dataset sizes present, so same-column points for
+    differently sized datasets don't land exactly on top of each other.
+    Keyed by id() since Match/_FailedMatch aren't hashable/comparable."""
+    log_sizes = {id(entry): _log_size(entry) for entry in entries}
+    known = [value for value in log_sizes.values() if value is not None]
+    if len(known) < 2 or min(known) == max(known):
+        return {key: 0.0 for key in log_sizes}
+    lo, hi = min(known), max(known)
+    return {
+        key: (
+            0.0
+            if value is None
+            else (value - lo) / (hi - lo) * SIZE_JITTER_WIDTH - SIZE_JITTER_WIDTH / 2
+        )
+        for key, value in log_sizes.items()
+    }
+
+
 def speedup_plot_html(
     matches: list[Match],
     *,
@@ -678,6 +819,7 @@ def speedup_plot_html(
     trace_variant=None,
     x_variant=None,
     variant_sort_key=None,
+    comparison_key=None,
     failed_records: list[BenchmarkRecord] = (),
 ):
     if not matches and not failed_records:
@@ -690,6 +832,8 @@ def speedup_plot_html(
         x_variant = _x_variant
     if variant_sort_key is None:
         variant_sort_key = lambda variant: variant
+    if comparison_key is None:
+        comparison_key = default_comparison_key
     failed_matches = [_FailedMatch(record) for record in failed_records]
 
     estimators = sorted(
@@ -705,6 +849,7 @@ def speedup_plot_html(
         key=variant_sort_key,
     )
     offsets = _variant_offsets(x_variants)
+    jitter = _size_jitter(matches)
 
     grouped: dict[str, list[Match]] = {}
     for match in matches:
@@ -766,10 +911,18 @@ def speedup_plot_html(
                     x=[
                         estimator_positions[_estimator_name(match)]
                         + offsets[x_variant(match)]
+                        + jitter[id(match)]
                         for match in variant_matches
                     ],
                     y=[math.log2(match.speedup) for match in variant_matches],
                     text=[_hover_text(match) for match in variant_matches],
+                    # Read by the dashboard's plot-click handler to apply the
+                    # same "bring matching rows to top" sort as clicking the
+                    # detailed-results table row for this case.
+                    customdata=[
+                        comparison_key(match.matched_result)
+                        for match in variant_matches
+                    ],
                     hovertemplate="%{text}<extra></extra>",
                     marker=marker,
                 )
@@ -800,6 +953,10 @@ def speedup_plot_html(
                         _failed_hover_text(failed.matched_result)
                         for failed in variant_failed
                     ],
+                    customdata=[
+                        comparison_key(failed.matched_result)
+                        for failed in variant_failed
+                    ],
                     hovertemplate="%{text}<extra></extra>",
                     marker={"size": 10, "symbol": "x", "color": color},
                 )
@@ -818,7 +975,7 @@ def speedup_plot_html(
         xaxis={
             "tickmode": "array",
             "tickvals": list(range(len(estimators))),
-            "ticktext": estimators,
+            "ticktext": [_abbreviate_estimator_label(e) for e in estimators],
             "range": [-0.5, len(estimators) - 0.5],
         },
         yaxis={

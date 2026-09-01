@@ -3,15 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import sys
 import time
-import traceback
-import warnings
 from functools import partial
 from importlib import import_module
 from pathlib import Path
-from typing import Any
 
 import joblib
 import numpy as np
@@ -53,13 +49,10 @@ def _array_namespace(case: PipelineCase):
     if namespace == "numpy":
         return np
 
-    os.environ["SCIPY_ARRAY_API"] = "1"
-    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-    warnings.filterwarnings(
-        "ignore",
-        category=UserWarning,
-        message=".*is not currently supported on the MPS.*",
-    )
+    # `SCIPY_ARRAY_API` isn't set here: scipy caches it at import time
+    # (`scipy._lib._array_api_override`), and this file's own top-level
+    # sklearn imports already pulled scipy in by now. Pixi sets it via
+    # `activation.env` in every array-API-capable environment instead.
     set_config(array_api_dispatch=True)
     return import_module(namespace)
 

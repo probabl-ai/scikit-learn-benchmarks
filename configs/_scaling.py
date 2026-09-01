@@ -48,6 +48,13 @@ def get_n_cores_list(*, max_n_cores: int | None = None) -> list[int]:
     return counts
 
 
+def has_hybrid_cores() -> bool:
+    return (
+        Path("/sys/devices/cpu_core/cpus").exists()
+        and Path("/sys/devices/cpu_atom/cpus").exists()
+    )
+
+
 def taskset_for_physical_cores(n_cores: int, with_siblings: bool = False) -> str:
     # If n_cores == 1 and the first physical core has two logical CPUs,
     # this returns both logical CPU ids, for instance "0,1".

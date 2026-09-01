@@ -19,8 +19,8 @@ ALGORITHM_VARIANTS = [
 # so each estimator's data size grows at its own rate.
 ALGORITHM_SCALE_FACTORS = {
     "LinearRegression": 1,
-    "LogisticRegression": 3,
-    "Ridge": 10,
+    "LogisticRegression": 2,
+    "Ridge": 5,
 }
 
 
@@ -117,19 +117,31 @@ def linear_data_shapes(scale: int) -> list[dict]:
         {"n_samples": 5000 * scale, "n_features": 100, "n_informative": 20},
         {"n_samples": 500 * scale, "n_features": 1000, "n_informative": 100},
         {
-            "n_samples": int(round(500 * sqrt(scale), -2)),
+            "n_samples": int(round(250 * sqrt(scale), -2)),
             "n_features": int(round(2000 * sqrt(scale), -2)),
             "n_informative": 500
         },
     ]
 
 
-def _scaled_linear_cases(implem: dict, scale: int) -> Iterable[dict]:
+def _scaled_linear_cases(implem: dict, scale: int, is_max_scale: bool) -> Iterable[dict]:
     cases = []
     for algorithm in ALGORITHM_VARIANTS:
         algorithm_scale = scale * ALGORITHM_SCALE_FACTORS[algorithm["estimator"]]
         data_shapes = linear_data_shapes(algorithm_scale)
         benchs = [{"time_limit": 2 + algorithm_scale * 2} for _ in data_shapes]
+
+        if (
+            is_max_scale
+            and implem["library"] == "sklearnex"
+            and algorithm["estimator"] == "Ridge"
+        ):
+            # linear_data_shapes()'s last shape has the highest n_features -
+            # at the highest scale this builds an (n_features, n_features)
+            # Gram matrix that OOM-killed the runner (~30GB RSS, run
+            # 33491820416). Drop just that shape.
+            benchs, data_shapes = benchs[:-1], data_shapes[:-1]
+
         cases.extend(_linear_cases_for(implem, algorithm, benchs, data_shapes))
 
     return cases
@@ -144,13 +156,13 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
 
     scales = {
         "fast": [10],
-        "normal": [10, 100],
-        "slow": [10, 100, 1000],
+        "normal": [20, 80],
     }
+    tier_scales = scales[tier]
 
     cases = list(chain(*[
-        _scaled_linear_cases(implem, scale=scale)
-        for scale in scales[tier]
+        _scaled_linear_cases(implem, scale=scale, is_max_scale=scale == max(tier_scales))
+        for scale in tier_scales
     ]))
 
     return cases

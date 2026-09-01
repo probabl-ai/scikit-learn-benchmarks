@@ -1,39 +1,14 @@
 from copy import deepcopy
 from itertools import product, chain
 from typing import Iterable
+from math import sqrt
 
 from joblib import cpu_count
-from math import floor
-
-N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
 
 from _common import deterministic_random_choice
 
 
-def _stable_seed(case: dict) -> dict:
-    """Strip fields that vary across otherwise-identical cases so
-    `deterministic_random_choice` picks the same cases regardless of which
-    machine or implementation generated them:
-
-    - `case["algorithm"]["estimator_params"]` embeds `n_jobs`/`n_estimators`,
-      both scaled from `N_JOBS = joblib.cpu_count(...)`, i.e. machine-dependent,
-      plus `max_bins`, which is only ever added for sklearnex cases.
-    - `case["implementation"]` differs between sklearn/sklearnex/array-API for
-      what is meant to be the same logical case. Hashing it in means each
-      implementation independently samples a different one-third subset of
-      the matrix, so a case kept for sklearn can be dropped for sklearnex (and
-      vice versa) - breaking the sklearn-vs-sklearnex/array-API comparison for
-      most of the matrix.
-    """
-    seed = deepcopy(case)
-    seed["algorithm"]["estimator_params"].pop("n_jobs", None)
-    seed["algorithm"]["estimator_params"].pop("n_estimators", None)
-    seed["algorithm"]["estimator_params"].pop("max_bins", None)
-    seed.pop("implementation", None)
-    return seed
-
-
-def get_estimator_params_variants(n_samples: int, n_estimators: int | None = None, broad=False):
+def get_estimator_params_variants(n_samples: int, broad=False):
     params_list = [
         {},
         {"min_samples_split": round(n_samples ** 0.22)},
@@ -48,9 +23,9 @@ def get_estimator_params_variants(n_samples: int, n_estimators: int | None = Non
         ]
 
     params_base = {
-        "n_estimators": n_estimators or N_JOBS * 5,
+        "n_estimators": cpu_count() * 2,
         "max_features": 0.3,
-        "n_jobs": N_JOBS
+        "n_jobs": -1
     }
 
     for params in params_list:
@@ -71,7 +46,14 @@ def tree_data_shapes(scale: int) -> list[dict]:
 
 
 def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
-    bench = {"n_runs": 5, "time_limit": 2 + scale * 2}
+    time_limit = round(
+        2 + scale * (2 + sqrt(cpu_count() / 16))
+    )
+    bench = {
+        "n_runs": 5,
+        "time_limit": time_limit,
+        "py_spy_profiling": False,
+    }
 
     base_data = tree_data_shapes(scale)
     data = []
@@ -136,12 +118,11 @@ def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
                 },
                 "implementation": implem,
             }
-            if (
-                implem["library"] == "sklearnex"
-                and deterministic_random_choice(_stable_seed(case), [True, False])
-            ):
-                case["algorithm"]["estimator_params"]["max_bins"] = n_samples
             cases.append(case)
+            if implem["library"] == "sklearnex":
+                case = deepcopy(case)
+                case["algorithm"]["estimator_params"]["max_bins"] = n_samples
+                cases.append(case)        
 
     return cases
 
@@ -168,8 +149,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
 
     scales = {
         "fast": [10],
-        "normal": [10, 100],
-        "slow": [10, 100, 1000],
+        "normal": [20, 100],
     }
 
     cases = list(chain(*[

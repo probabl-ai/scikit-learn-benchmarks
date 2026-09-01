@@ -20,18 +20,19 @@ Restricted to "sklearn-dev" builds - see CONTRIBUTING.md's
 `software_build_name` return e.g. `sklearn-dev@scikit-learn:main` vs
 `sklearn-dev@cakedev0:my-branch`. This is a branch-vs-branch comparison, not
 a build-variant one (unlike gen_builds_comparison.py, which compares e.g.
-`sklearn-mkl`/`sklearn-openblas-openmp` against plain `sklearn`), so builds
-outside `sklearn-dev` (different BLAS/OpenMP runtime, not different sklearn
-source) are excluded rather than folded in as more variants. The baseline is
-picked dynamically as whichever `sklearn-dev` build's ref is `main` (the
-`<owner>` half varies depending on which fork/remote the comparison run
+`sklearn-mkl`/`sklearn-openblas-openmp` against plain `sklearn`, and
+excludes `sklearn-dev` builds for the same reason this dashboard excludes
+everything else), so builds outside `sklearn-dev` (different BLAS/OpenMP
+runtime, not different sklearn source) are excluded rather than folded in as
+more variants. The baseline is picked dynamically as whichever `sklearn-dev`
+build's ref is `main` (the `<owner>` half varies depending on which
+fork/remote the comparison run
 used), rather than a fixed constant.
 """
 from collections import defaultdict
 from html import escape
 import math
 from pathlib import Path
-import re
 from statistics import median
 import sys
 
@@ -53,8 +54,10 @@ from dashboards.gen_hgb_scaling import (
 from dashboards.output import dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
+    is_sklearn_dev_build,
     openmp_runtime_family,
     read_env,
+    SKLEARN_DEV_PIXI_ENV,
     software_build_name,
     summarize_hardware_env,
     summarize_software_env,
@@ -73,8 +76,6 @@ from sklbench.reporting.html import (
 from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
 
 
-SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
-
 _OPENMP_FAMILY_SHORT = {
     "GNU libgomp": "libgomp",
     "Intel/LLVM OpenMP": "libomp",
@@ -89,18 +90,9 @@ PLOT_PHASE_ORDER = [*PHASE_ORDER, TOTAL_PHASE_KEY]
 PLOT_PHASE_LABELS = {**PHASE_LABELS, TOTAL_PHASE_KEY: "overall"}
 
 
-# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
-# "sklearn-dev-libomp@..." (see configs/_implementations.py).
-_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
-
-
-def _is_sklearn_dev_build(build_name: str) -> bool:
-    return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
-
-
 def _has_sklearn_dev_build(records: list[BenchmarkRecord]) -> bool:
     return any(
-        _is_sklearn_dev_build(software_build_name(record.software_hash)) for record in records
+        is_sklearn_dev_build(software_build_name(record.software_hash)) for record in records
     )
 
 
@@ -300,7 +292,7 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
     by_build: dict[str, list[BenchmarkRecord]] = defaultdict(list)
     for record in records:
         build = software_build_name(record.software_hash)
-        if _is_sklearn_dev_build(build):
+        if is_sklearn_dev_build(build):
             by_build[build].append(record)
 
     base_build = _base_build(by_build)
