@@ -69,6 +69,26 @@ jobs:
             pixi run --frozen -e reporting python "$script" --output-dir _site
           done
 
+      - name: Check out persisted dashboard snapshots
+        # deploy-pages replaces the whole site on every run, so snapshots
+        # published by dashboard-snapshot.yml (which live only on the
+        # dashboard-snapshots branch) have to be re-merged into _site here
+        # on every build, not just once. continue-on-error covers the case
+        # where that branch doesn't exist yet (no snapshot published so far).
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        continue-on-error: true
+        with:
+          ref: dashboard-snapshots
+          path: _snapshot_storage
+          lfs: false
+
+      - name: Merge snapshots into site
+        run: |
+          if [ -d _snapshot_storage/snapshots ]; then
+            mkdir -p _site/snapshots
+            cp -r _snapshot_storage/snapshots/. _site/snapshots/
+          fi
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
