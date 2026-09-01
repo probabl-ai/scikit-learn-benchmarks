@@ -160,6 +160,22 @@ body.predict-collapsed .plot-cell.empty[data-method="predict"] {
 body.predict-collapsed .predict-collapse-toggle {
   transform: rotate(180deg);
 }
+.preprocessing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.speedup-view-preprocessing {
+  display: none;
+}
+body.with-preprocessing .speedup-view-default {
+  display: none;
+}
+body.with-preprocessing .speedup-view-preprocessing {
+  display: block;
+}
 .plot-subtitle {
   margin: -6px 0 8px;
   font-size: 12px;

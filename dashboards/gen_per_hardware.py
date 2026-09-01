@@ -13,6 +13,7 @@ from sklbench.reporting.matching import (
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
     is_scaling_benchmark, is_models_scalability_result,
+    add_preprocessing_time, is_real_dataset,
 )
 
 from sklbench.reporting.envs import (
@@ -38,6 +39,14 @@ HARDWARE_NAMES = {
     "3b5e61": "Intel laptop with B390 GPU",
 }
 BASE_IMPLEMENTATION = "sklearn"
+PREPROCESSING_TOGGLE_HTML = (
+    '<section class="panel">'
+    '<label class="preprocessing-toggle">'
+    '<input type="checkbox" class="preprocessing-toggle-checkbox">'
+    " Include preprocessing time in fit speed-ups (real datasets only)"
+    "</label>"
+    "</section>"
+)
 
 
 def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
@@ -83,23 +92,15 @@ def result_matches(
     )
 
 
-def render_hardware_page(
+def _render_speedup_grid(
     results: list[MethodResult],
     failed_records: list[BenchmarkRecord],
-    hardware_hash: str,
+    *,
+    variant_colors: dict[str, str],
 ) -> str:
-    results = [res for res in results if res.hardware_hash == hardware_hash]
-    results = [res for res in results if not is_alt_sklearn_build(res)]
-    failed_records = [
-        record for record in failed_records
-        if record.hardware_hash == hardware_hash and not is_alt_sklearn_build(record)
-    ]
-    if not results:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
-    hardwares_set = {res.hardware_hash for res in results}
-    if len(hardwares_set) > 1:
-        raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
-
+    """Renders the category x fit/predict speed-up grid for one variant of
+    the page (the default view, or the "with preprocessing" view - real
+    datasets only, preprocessing time folded into fit)."""
     base_results, other_results = partition_iterable(
         results,
         predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
@@ -108,10 +109,10 @@ def render_hardware_page(
         return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
     baseline_label = software_build_name(base_results[0].software_hash)
 
-    variant_colors = variant_color_map(
-        sorted({res.implementation.short_name for res in other_results})
+    grouped_results = groupby(
+        (res for res in base_results if res.method in ("fit", "predict")),
+        lambda res: (res.category, res.method),
     )
-    grouped_results = groupby(base_results, lambda res: (res.category, res.method))
 
     # Non-baseline (candidate) failures: shown on the plots too, at the bottom
     # of their model-variant column, since we don't know from a failed record
@@ -185,6 +186,58 @@ def render_hardware_page(
         )
     }
 
+    return assemble_plots_in_grid(
+        plots,
+        rows={"category": ["linear", "tree-based", "clustering"]},
+        columns={"method": ["fit", "predict"]},
+        details_by_row=details_by_category,
+    )
+
+
+def render_hardware_page(
+    results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
+    hardware_hash: str,
+) -> str:
+    results = [res for res in results if res.hardware_hash == hardware_hash]
+    results = [res for res in results if not is_alt_sklearn_build(res)]
+    failed_records = [
+        record for record in failed_records
+        if record.hardware_hash == hardware_hash and not is_alt_sklearn_build(record)
+    ]
+    if not results:
+        return '<section class="empty">No benchmark results for this hardware.</section>'
+    hardwares_set = {res.hardware_hash for res in results}
+    if len(hardwares_set) > 1:
+        raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
+
+    base_results, other_results = partition_iterable(
+        results,
+        predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
+    )
+    if not base_results:
+        return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+    baseline_label = software_build_name(base_results[0].software_hash)
+
+    variant_colors = variant_color_map(
+        sorted({res.implementation.short_name for res in other_results})
+    )
+
+    default_grid_html = _render_speedup_grid(
+        results, failed_records, variant_colors=variant_colors
+    )
+    preprocessing_grid_html = _render_speedup_grid(
+        add_preprocessing_time([res for res in results if is_real_dataset(res)]),
+        [record for record in failed_records if is_real_dataset(record)],
+        variant_colors=variant_colors,
+    )
+    speedup_views_html = (
+        '<div class="speedup-view-switch">'
+        f'<div class="speedup-view speedup-view-default">{default_grid_html}</div>'
+        f'<div class="speedup-view speedup-view-preprocessing">{preprocessing_grid_html}</div>'
+        "</div>"
+    )
+
     hardware_hash, = hardwares_set
     hardware_env = read_env("hardware", hardware_hash)
 
@@ -216,12 +269,7 @@ def render_hardware_page(
             SOFTWARE_TEMPLATE.render(**summary)
             for summary in softwares
         ], variant_colors=variant_colors),
-        assemble_plots_in_grid(
-            plots,
-            rows={"category": ["linear", "tree-based", "clustering"]},
-            columns={"method": ["fit", "predict"]},
-            details_by_row=details_by_category,
-        )
+        speedup_views_html,
     ]
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
@@ -241,6 +289,7 @@ if __name__ == "__main__":
     ]
 
     html = BASE_TEMPLATE.render(rows=[
+        PREPROCESSING_TOGGLE_HTML,
         render_hardware_tabs(hardware_pages),
     ])
 
