@@ -22,6 +22,7 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
     Path("configs/all_models_scaling.py"): GENERAL_ENVS,
+    Path("configs/all_models_ridge_only.py"): ARRAY_API_ENVS,
 }
 
 
