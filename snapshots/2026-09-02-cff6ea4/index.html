@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>sklbench dashboards</title>
+  <link href="https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-3.6.0.min.js"></script>
+  <script src="https://unpkg.com/tabulator-tables@6.5.0/dist/js/tabulator.min.js"></script>
+  <style>
+:root {
+  color-scheme: light;
+  --text: #222;
+  --muted: #5f6368;
+  --line: #d9dde3;
+  --surface: #f7f8fa;
+  --accent: #2864c8;
+  --warn: #8a1f11;
+}
+body {
+  margin: 24px;
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: white;
+}
+h1 { margin: 0 0 20px; font-size: 30px; }
+h2 { margin: 0 0 12px; font-size: 20px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+code {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #eef1f5;
+}
+.page-row {
+  margin-bottom: 24px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: white;
+}
+.panel p {
+  margin: 5px 0;
+}
+.muted {
+  color: var(--muted);
+}
+.tabs {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+.tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.tab-button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tab-button.active {
+  color: var(--text);
+  background: white;
+  box-shadow: inset 0 3px 0 var(--accent);
+}
+.tab-panel {
+  display: none;
+  padding: 16px;
+}
+.tab-panel.active {
+  display: block;
+}
+.software-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  gap: 12px 28px;
+  align-items: start;
+}
+.package-list {
+  columns: 2;
+  column-gap: 40px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 5px 0;
+  padding-left: 18px;
+}
+@media (max-width: 900px) {
+  .software-details {
+    grid-template-columns: 1fr;
+  }
+  .package-list {
+    width: auto;
+  }
+}
+.plot-grid {
+  display: grid;
+  gap: 18px;
+}
+.plot-cell {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+}
+.plot-cell h3 {
+  color: var(--muted);
+  font-weight: 600;
+}
+.plot-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plot-cell-title {
+  margin: 0;
+}
+.predict-collapse-toggle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 15px;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+.predict-collapse-toggle:hover {
+  background: #f2f2f2;
+}
+.plot-grid.method-grid {
+  transition: grid-template-columns 0.2s ease;
+}
+body.predict-collapsed .plot-grid.method-grid {
+  grid-template-columns: var(--collapsed-columns) !important;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] {
+  padding: 8px 4px;
+  overflow: hidden;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-title,
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-body {
+  display: none;
+}
+body.predict-collapsed .plot-cell.empty[data-method="predict"] {
+  padding: 8px 4px;
+  font-size: 0;
+}
+body.predict-collapsed .predict-collapse-toggle {
+  transform: rotate(180deg);
+}
+.preprocessing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.speedup-view-preprocessing {
+  display: none;
+}
+body.with-preprocessing .speedup-view-default {
+  display: none;
+}
+body.with-preprocessing .speedup-view-preprocessing {
+  display: block;
+}
+.plot-subtitle {
+  margin: -6px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plotly-graph-div {
+  width: 100%;
+  height: 540px;
+}
+.plot-detail-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.phase-breakdown {
+  gap: 24px;
+}
+.phase-breakdown .plot-cell {
+  padding: 16px;
+}
+.phase-breakdown .plotly-graph-div {
+  height: 320px;
+}
+.phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.phase-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.detailed-results {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+.detailed-results summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.detailed-results-table {
+  margin-top: 12px;
+}
+.detailed-results-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 28px;
+  margin-top: 8px;
+}
+.detailed-results-toolbar[hidden] {
+  display: none;
+}
+.row-filter-reset {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.row-filter-reset:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+.detailed-results-table .tabulator-row {
+  cursor: pointer;
+}
+.speedup-positive {
+  color: #18794e;
+  font-weight: 600;
+}
+.speedup-negative {
+  color: #b42318;
+  font-weight: 600;
+}
+.plot-notes {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.plot-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 3px 0;
+}
+.plot-note ul {
+  margin: 3px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plot-marker {
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.plot-marker-circle {
+  font-size: 20px;
+}
+.plot-marker-square,
+.plot-marker-diamond {
+  font-size: 16px;
+}
+.plot-marker-x {
+  font-size: 16px;
+  color: var(--muted);
+}
+.warning-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.warning-icon {
+  text-align: center;
+}
+.empty {
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 8px;
+}
+ul.compact {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+  </style>
+  <script>
+    window.sklbenchTables = window.sklbenchTables || {};
+
+    function sklbenchFormatDuration(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (value < 10) {
+        return `${value.toPrecision(2)}ms`;
+      }
+      if (value < 1000) {
+        return `${Math.round(value)}ms`;
+      }
+      if (value < 10000) {
+        return `${(value / 1000).toPrecision(2)}s`;
+      }
+      return `${Math.round(value / 1000)}s`;
+    }
+
+    function sklbenchDurationFormatter(cell) {
+      return sklbenchFormatDuration(cell.getValue());
+    }
+
+    function sklbenchSpeedupFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      const label = `${value.toPrecision(2)}x`;
+      if (value > 1.1) {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (value < 0.9) {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    function sklbenchLinkFormatter(cell, formatterParams) {
+      const value = cell.getValue();
+      if (!value) {
+        return "N/A";
+      }
+      const field = cell.getColumn().getField();
+      const rowLabel = cell.getData()[`${field}_label`];
+      const label = rowLabel || formatterParams.label || "open";
+      return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
+    }
+
+    function sklbenchPrepareColumns(columns) {
+      return columns.map((column) => {
+        const prepared = {...column};
+        if (prepared.formatterName === "duration") {
+          prepared.formatter = sklbenchDurationFormatter;
+        } else if (prepared.formatterName === "speedup") {
+          prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "link") {
+          prepared.formatter = sklbenchLinkFormatter;
+          prepared.formatterParams = {label: prepared.linkLabel || "open"};
+        }
+        delete prepared.formatterName;
+        delete prepared.linkLabel;
+        return prepared;
+      });
+    }
+
+    function sklbenchInitTable(tableId, rows, columns, resetButtonId, defaultHeaderFilters) {
+      if (window.sklbenchTables[tableId]) {
+        window.sklbenchTables[tableId].redraw(true);
+        return;
+      }
+      const resetButton = document.getElementById(resetButtonId);
+      const resetToolbar = resetButton
+        ? resetButton.closest(".detailed-results-toolbar")
+        : null;
+      const initialSort = [
+        {column: "estimator", dir: "asc"},
+        {column: "dataset", dir: "asc"},
+        {column: "variant", dir: "asc"},
+      ];
+      // Row click (in the table, or on a matching speed-up plot point via
+      // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
+      // comparison_key on top instead of filtering everything else out, so
+      // clicking a column header to sort by something else naturally
+      // supersedes it.
+      let matchSortKey = null;
+      const matchFirstSorter = (a, b) => {
+        const aMatches = a === matchSortKey ? 0 : 1;
+        const bMatches = b === matchSortKey ? 0 : 1;
+        return aMatches - bMatches;
+      };
+      const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
+        if (column.field === "comparison_key") {
+          return {...column, sorter: matchFirstSorter};
+        }
+        return column;
+      });
+      const table = new Tabulator(`#${tableId}`, {
+        data: rows,
+        columns: preparedColumns,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 25,
+        paginationSizeSelector: [10, 25, 50, 100, true],
+        initialSort,
+        initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
+          ([field, value]) => ({field, value})
+        ),
+      });
+      if (resetToolbar && defaultHeaderFilters && Object.keys(defaultHeaderFilters).length) {
+        resetToolbar.hidden = false;
+      }
+      const applyMatchSort = (comparisonKey) => {
+        matchSortKey = comparisonKey;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
+        if (resetToolbar) {
+          resetToolbar.hidden = false;
+        }
+      };
+      table.on("rowClick", (event, row) => {
+        if (event.target.closest("a, button")) {
+          return;
+        }
+        const comparisonKey = row.getData().comparison_key;
+        if (!comparisonKey) {
+          return;
+        }
+        applyMatchSort(comparisonKey);
+      });
+      if (resetButton) {
+        resetButton.addEventListener("click", () => {
+          matchSortKey = null;
+          table.setSort(initialSort);
+          if (resetToolbar) {
+            resetToolbar.hidden = true;
+          }
+        });
+      }
+      // Exposed so a click on a matching speed-up plot point
+      // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
+      // builds asynchronously - table.setSort isn't safe to call until
+      // "tableBuilt" fires, which a plot click (unlike a click on an
+      // already-rendered row) can easily race.
+      table.sklbenchRows = rows;
+      table.sklbenchApplyMatchSort = applyMatchSort;
+      table.sklbenchBuilt = new Promise((resolve) => table.on("tableBuilt", resolve));
+      window.sklbenchTables[tableId] = table;
+    }
+
+    // A table only builds (sklbenchInitTable runs) the first time its
+    // "Detailed results" <details> is opened - see the toggle listener next
+    // to each sklbenchInitTable call. Opening it programmatically still goes
+    // through that same listener, but the "toggle" event it relies on is
+    // dispatched as a separate task rather than synchronously, so callers
+    // await this before assuming the table exists.
+    function sklbenchOpenDetails(details) {
+      if (details.open) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        details.addEventListener("toggle", () => resolve(), {once: true});
+        details.open = true;
+      });
+    }
+
+    // Speed-up plot points carry the same comparison_key as their detailed-
+    // results table row (see speedup_plot_html's `comparison_key` param) -
+    // clicking one applies the same "bring matching rows to top" sort as
+    // clicking the table row. `assemble_plots_in_grid` always places a row's
+    // (or the whole grid's) "Detailed results" <details> right after its
+    // plot(s) in document order, so the nearest one following the clicked
+    // chart is its table - open that first in case it's still collapsed.
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey) {
+      if (!comparisonKey) {
+        return;
+      }
+      for (const details of document.querySelectorAll("details.detailed-results")) {
+        if (chartEl.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING) {
+          await sklbenchOpenDetails(details);
+          break;
+        }
+      }
+      const table = Object.values(window.sklbenchTables).find(
+        (t) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey)
+      );
+      if (table) {
+        await table.sklbenchBuilt;
+        table.sklbenchApplyMatchSort(comparisonKey);
+      }
+    }
+
+    function sklbenchWirePlotClicks() {
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.sklbenchClickWired || typeof chart.on !== "function") {
+          return;
+        }
+        chart.sklbenchClickWired = true;
+        chart.on("plotly_click", (eventData) => {
+          const point = eventData.points && eventData.points[0];
+          if (point) {
+            sklbenchApplyPlotMatchSort(chart, point.customdata);
+          }
+        });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
+
+    function sklbenchRelativeTime(isoString, nowMs) {
+      const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
+      if (seconds < 60) {
+        return "just now";
+      }
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) {
+        return `${minutes}m ago`;
+      }
+      const hours = Math.floor(seconds / 3600);
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+
+    function sklbenchFormatDateRanges() {
+      const nowMs = Date.now();
+      document.querySelectorAll(".date-range").forEach((el) => {
+        const start = sklbenchRelativeTime(el.dataset.start, nowMs);
+        const end = sklbenchRelativeTime(el.dataset.end, nowMs);
+        const range = start === end ? start : `${start} to ${end}`;
+        el.textContent = `${el.dataset.count} benchmark records from ${range}`;
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
+    setInterval(sklbenchFormatDateRanges, 60000);
+
+    function sklbenchSetPredictCollapsed(collapsed) {
+      document.body.classList.toggle("predict-collapsed", collapsed);
+      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
+        button.setAttribute("aria-expanded", String(!collapsed));
+      });
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".predict-collapse-toggle");
+      if (!button) {
+        return;
+      }
+      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
+    });
+
+    document.addEventListener("change", (event) => {
+      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
+        return;
+      }
+      document.body.classList.toggle("with-preprocessing", event.target.checked);
+      if (event.target.checked) {
+        sklbenchSetPredictCollapsed(true);
+      }
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>sklbench dashboards</h1>
+  
+  <div class="page-row">
+            <section class="panel">
+              <h2>Dashboards</h2>
+              <ul class="compact">
+                <li><a href="per_hardware.html">Software/implementations comparison</a></li><li><a href="builds_comparison.html">Builds comparison</a></li><li><a href="hardware_comparisons.html">Hardware comparison</a></li><li><a href="models_scalability.html">Model thread-scalability</a></li><li><a href="hgb_scaling.html">HGB thread-scalability breakdown</a></li><li><a href="hgb_dev_scaling.html">[dev] HGB thread-scalability breakdown</a></li><li><a href="hgb_speedup_breakdown.html">[dev] HGB speed-up breakdown</a></li>
+              </ul>
+            </section>
+            </div>
+  
+</body>
+</html>

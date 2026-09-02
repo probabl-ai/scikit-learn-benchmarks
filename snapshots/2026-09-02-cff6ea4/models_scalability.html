@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Model thread-scalability</title>
+  <link href="https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-3.6.0.min.js"></script>
+  <script src="https://unpkg.com/tabulator-tables@6.5.0/dist/js/tabulator.min.js"></script>
+  <style>
+:root {
+  color-scheme: light;
+  --text: #222;
+  --muted: #5f6368;
+  --line: #d9dde3;
+  --surface: #f7f8fa;
+  --accent: #2864c8;
+  --warn: #8a1f11;
+}
+body {
+  margin: 24px;
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: white;
+}
+h1 { margin: 0 0 20px; font-size: 30px; }
+h2 { margin: 0 0 12px; font-size: 20px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+code {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #eef1f5;
+}
+.page-row {
+  margin-bottom: 24px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: white;
+}
+.panel p {
+  margin: 5px 0;
+}
+.muted {
+  color: var(--muted);
+}
+.tabs {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+.tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.tab-button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tab-button.active {
+  color: var(--text);
+  background: white;
+  box-shadow: inset 0 3px 0 var(--accent);
+}
+.tab-panel {
+  display: none;
+  padding: 16px;
+}
+.tab-panel.active {
+  display: block;
+}
+.software-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  gap: 12px 28px;
+  align-items: start;
+}
+.package-list {
+  columns: 2;
+  column-gap: 40px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 5px 0;
+  padding-left: 18px;
+}
+@media (max-width: 900px) {
+  .software-details {
+    grid-template-columns: 1fr;
+  }
+  .package-list {
+    width: auto;
+  }
+}
+.plot-grid {
+  display: grid;
+  gap: 18px;
+}
+.plot-cell {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: white;
+}
+.plot-cell h3 {
+  color: var(--muted);
+  font-weight: 600;
+}
+.plot-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plot-cell-title {
+  margin: 0;
+}
+.predict-collapse-toggle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 15px;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+.predict-collapse-toggle:hover {
+  background: #f2f2f2;
+}
+.plot-grid.method-grid {
+  transition: grid-template-columns 0.2s ease;
+}
+body.predict-collapsed .plot-grid.method-grid {
+  grid-template-columns: var(--collapsed-columns) !important;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] {
+  padding: 8px 4px;
+  overflow: hidden;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-title,
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-body {
+  display: none;
+}
+body.predict-collapsed .plot-cell.empty[data-method="predict"] {
+  padding: 8px 4px;
+  font-size: 0;
+}
+body.predict-collapsed .predict-collapse-toggle {
+  transform: rotate(180deg);
+}
+.preprocessing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.speedup-view-preprocessing {
+  display: none;
+}
+body.with-preprocessing .speedup-view-default {
+  display: none;
+}
+body.with-preprocessing .speedup-view-preprocessing {
+  display: block;
+}
+.plot-subtitle {
+  margin: -6px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plotly-graph-div {
+  width: 100%;
+  height: 540px;
+}
+.plot-detail-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.phase-breakdown {
+  gap: 24px;
+}
+.phase-breakdown .plot-cell {
+  padding: 16px;
+}
+.phase-breakdown .plotly-graph-div {
+  height: 320px;
+}
+.phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.phase-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.detailed-results {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+.detailed-results summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.detailed-results-table {
+  margin-top: 12px;
+}
+.detailed-results-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 28px;
+  margin-top: 8px;
+}
+.detailed-results-toolbar[hidden] {
+  display: none;
+}
+.row-filter-reset {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+.row-filter-reset:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+.detailed-results-table .tabulator-row {
+  cursor: pointer;
+}
+.speedup-positive {
+  color: #18794e;
+  font-weight: 600;
+}
+.speedup-negative {
+  color: #b42318;
+  font-weight: 600;
+}
+.plot-notes {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.plot-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 3px 0;
+}
+.plot-note ul {
+  margin: 3px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plot-marker {
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.plot-marker-circle {
+  font-size: 20px;
+}
+.plot-marker-square,
+.plot-marker-diamond {
+  font-size: 16px;
+}
+.plot-marker-x {
+  font-size: 16px;
+  color: var(--muted);
+}
+.warning-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.warning-icon {
+  text-align: center;
+}
+.empty {
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 8px;
+}
+ul.compact {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+  </style>
+  <script>
+    window.sklbenchTables = window.sklbenchTables || {};
+
+    function sklbenchFormatDuration(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (value < 10) {
+        return `${value.toPrecision(2)}ms`;
+      }
+      if (value < 1000) {
+        return `${Math.round(value)}ms`;
+      }
+      if (value < 10000) {
+        return `${(value / 1000).toPrecision(2)}s`;
+      }
+      return `${Math.round(value / 1000)}s`;
+    }
+
+    function sklbenchDurationFormatter(cell) {
+      return sklbenchFormatDuration(cell.getValue());
+    }
+
+    function sklbenchSpeedupFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      const label = `${value.toPrecision(2)}x`;
+      if (value > 1.1) {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (value < 0.9) {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    function sklbenchLinkFormatter(cell, formatterParams) {
+      const value = cell.getValue();
+      if (!value) {
+        return "N/A";
+      }
+      const field = cell.getColumn().getField();
+      const rowLabel = cell.getData()[`${field}_label`];
+      const label = rowLabel || formatterParams.label || "open";
+      return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
+    }
+
+    function sklbenchPrepareColumns(columns) {
+      return columns.map((column) => {
+        const prepared = {...column};
+        if (prepared.formatterName === "duration") {
+          prepared.formatter = sklbenchDurationFormatter;
+        } else if (prepared.formatterName === "speedup") {
+          prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "link") {
+          prepared.formatter = sklbenchLinkFormatter;
+          prepared.formatterParams = {label: prepared.linkLabel || "open"};
+        }
+        delete prepared.formatterName;
+        delete prepared.linkLabel;
+        return prepared;
+      });
+    }
+
+    function sklbenchInitTable(tableId, rows, columns, resetButtonId, defaultHeaderFilters) {
+      if (window.sklbenchTables[tableId]) {
+        window.sklbenchTables[tableId].redraw(true);
+        return;
+      }
+      const resetButton = document.getElementById(resetButtonId);
+      const resetToolbar = resetButton
+        ? resetButton.closest(".detailed-results-toolbar")
+        : null;
+      const initialSort = [
+        {column: "estimator", dir: "asc"},
+        {column: "dataset", dir: "asc"},
+        {column: "variant", dir: "asc"},
+      ];
+      // Row click (in the table, or on a matching speed-up plot point via
+      // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
+      // comparison_key on top instead of filtering everything else out, so
+      // clicking a column header to sort by something else naturally
+      // supersedes it.
+      let matchSortKey = null;
+      const matchFirstSorter = (a, b) => {
+        const aMatches = a === matchSortKey ? 0 : 1;
+        const bMatches = b === matchSortKey ? 0 : 1;
+        return aMatches - bMatches;
+      };
+      const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
+        if (column.field === "comparison_key") {
+          return {...column, sorter: matchFirstSorter};
+        }
+        return column;
+      });
+      const table = new Tabulator(`#${tableId}`, {
+        data: rows,
+        columns: preparedColumns,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 25,
+        paginationSizeSelector: [10, 25, 50, 100, true],
+        initialSort,
+        initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
+          ([field, value]) => ({field, value})
+        ),
+      });
+      if (resetToolbar && defaultHeaderFilters && Object.keys(defaultHeaderFilters).length) {
+        resetToolbar.hidden = false;
+      }
+      const applyMatchSort = (comparisonKey) => {
+        matchSortKey = comparisonKey;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
+        if (resetToolbar) {
+          resetToolbar.hidden = false;
+        }
+      };
+      table.on("rowClick", (event, row) => {
+        if (event.target.closest("a, button")) {
+          return;
+        }
+        const comparisonKey = row.getData().comparison_key;
+        if (!comparisonKey) {
+          return;
+        }
+        applyMatchSort(comparisonKey);
+      });
+      if (resetButton) {
+        resetButton.addEventListener("click", () => {
+          matchSortKey = null;
+          table.setSort(initialSort);
+          if (resetToolbar) {
+            resetToolbar.hidden = true;
+          }
+        });
+      }
+      // Exposed so a click on a matching speed-up plot point
+      // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
+      // builds asynchronously - table.setSort isn't safe to call until
+      // "tableBuilt" fires, which a plot click (unlike a click on an
+      // already-rendered row) can easily race.
+      table.sklbenchRows = rows;
+      table.sklbenchApplyMatchSort = applyMatchSort;
+      table.sklbenchBuilt = new Promise((resolve) => table.on("tableBuilt", resolve));
+      window.sklbenchTables[tableId] = table;
+    }
+
+    // A table only builds (sklbenchInitTable runs) the first time its
+    // "Detailed results" <details> is opened - see the toggle listener next
+    // to each sklbenchInitTable call. Opening it programmatically still goes
+    // through that same listener, but the "toggle" event it relies on is
+    // dispatched as a separate task rather than synchronously, so callers
+    // await this before assuming the table exists.
+    function sklbenchOpenDetails(details) {
+      if (details.open) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        details.addEventListener("toggle", () => resolve(), {once: true});
+        details.open = true;
+      });
+    }
+
+    // Speed-up plot points carry the same comparison_key as their detailed-
+    // results table row (see speedup_plot_html's `comparison_key` param) -
+    // clicking one applies the same "bring matching rows to top" sort as
+    // clicking the table row. `assemble_plots_in_grid` always places a row's
+    // (or the whole grid's) "Detailed results" <details> right after its
+    // plot(s) in document order, so the nearest one following the clicked
+    // chart is its table - open that first in case it's still collapsed.
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey) {
+      if (!comparisonKey) {
+        return;
+      }
+      for (const details of document.querySelectorAll("details.detailed-results")) {
+        if (chartEl.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING) {
+          await sklbenchOpenDetails(details);
+          break;
+        }
+      }
+      const table = Object.values(window.sklbenchTables).find(
+        (t) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey)
+      );
+      if (table) {
+        await table.sklbenchBuilt;
+        table.sklbenchApplyMatchSort(comparisonKey);
+      }
+    }
+
+    function sklbenchWirePlotClicks() {
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.sklbenchClickWired || typeof chart.on !== "function") {
+          return;
+        }
+        chart.sklbenchClickWired = true;
+        chart.on("plotly_click", (eventData) => {
+          const point = eventData.points && eventData.points[0];
+          if (point) {
+            sklbenchApplyPlotMatchSort(chart, point.customdata);
+          }
+        });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
+
+    function sklbenchRelativeTime(isoString, nowMs) {
+      const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
+      if (seconds < 60) {
+        return "just now";
+      }
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) {
+        return `${minutes}m ago`;
+      }
+      const hours = Math.floor(seconds / 3600);
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+
+    function sklbenchFormatDateRanges() {
+      const nowMs = Date.now();
+      document.querySelectorAll(".date-range").forEach((el) => {
+        const start = sklbenchRelativeTime(el.dataset.start, nowMs);
+        const end = sklbenchRelativeTime(el.dataset.end, nowMs);
+        const range = start === end ? start : `${start} to ${end}`;
+        el.textContent = `${el.dataset.count} benchmark records from ${range}`;
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
+    setInterval(sklbenchFormatDateRanges, 60000);
+
+    function sklbenchSetPredictCollapsed(collapsed) {
+      document.body.classList.toggle("predict-collapsed", collapsed);
+      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
+        button.setAttribute("aria-expanded", String(!collapsed));
+      });
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".predict-collapse-toggle");
+      if (!button) {
+        return;
+      }
+      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
+    });
+
+    document.addEventListener("change", (event) => {
+      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
+        return;
+      }
+      document.body.classList.toggle("with-preprocessing", event.target.checked);
+      if (event.target.checked) {
+        sklbenchSetPredictCollapsed(true);
+      }
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Model thread-scalability</h1>
+  
+  <div class="page-row"><section class="tabs" id="hardware-tabs">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="intel_gnr">Intel GNR</button>
+  
+    <button class="tab-button" type="button" data-tab-target="intel_laptop">Intel laptop</button>
+  
+  </div>
+  
+  <div id="intel_gnr" class="tab-panel active"><div class="page-row"><section class="panel">
+  
+  <h2 class="date-range" data-count="187" data-start="2026-08-28T08:50:53.163484+00:00" data-end="2026-08-28T10:21:34.884897+00:00"></h2>
+  
+</section></div><div class="page-row"><section class="tabs" id="tabs-0">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="tab-tabs-0-0">sklearn-pypi</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-0-1">sklearn-cf-mkl</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-0-2">intel</button>
+  
+  </div>
+  
+  <div id="tab-tabs-0-0" class="tab-panel active"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-pypi</h3>
+    <p> Python 3.12.13</p>
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>numpy</code> 2.5.2 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.34 (128 threads)</li>
+    
+      <li>libgomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fgithub.com%2Fprobabl-ai%2Fscikit-learn-benchmarks%2Fraw%2Fcff6ea4d44c121c2b8f2a06a0c3c7d10c91363e4%2Fresults%2Fsoftware-envs%2F50ad44.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-0-1" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-cf-mkl</h3>
+    <p> Python 3.12.13</p>
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>numpy</code> 2.5.2 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libmkl_rt 2026.1-Product (172 threads)</li>
+    
+      <li>libomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>Intel/LLVM OpenMP (spec 201611)</li>
+    
+      <li>KMP_BLOCKTIME: 200ms</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fgithub.com%2Fprobabl-ai%2Fscikit-learn-benchmarks%2Fraw%2Fcff6ea4d44c121c2b8f2a06a0c3c7d10c91363e4%2Fresults%2Fsoftware-envs%2Fa20ee6.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-0-2" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>intel</h3>
+    <p> Python 3.12.13</p>
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.8.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scikit_learn_intelex</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>daal</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.33 (128 threads)</li>
+    
+      <li>libgomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fgithub.com%2Fprobabl-ai%2Fscikit-learn-benchmarks%2Fraw%2Fcff6ea4d44c121c2b8f2a06a0c3c7d10c91363e4%2Fresults%2Fsoftware-envs%2F64cf66.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <script>
+    document.querySelectorAll("#tabs-0 .tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#tabs-0 .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#tabs-0 .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tabTarget).classList.add("active");
+      });
+    });
+  </script>
+</section></div><div class="page-row"><section class="panel"><h3>Ridge</h3><div class="plot-subtitle">dataset: year_prediction_msd (463,810 rows x 990 features)</div><div class="plot-subtitle">params: alpha=1.0</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">Ridge / sklearn-pypi (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-0" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-0")) {                    Plotly.newPlot(                        "scaling-line-0",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[7.705462360754609,4.984376636799425,3.3280994398519397,2.7816224289126694,2.304868042934686,7.27630320424214,7.774442565161735,7.819547306280583,7.325429163873196],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">Ridge / sklearn-cf-mkl (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-1" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-1")) {                    Plotly.newPlot(                        "scaling-line-1",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[7.102746614255011,4.41458400292322,3.2274049129337072,2.5957929878495634,2.406445922330022,2.5820567249320447,3.584198684897274,3.998335055075586,4.501631147693843],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">Ridge / intel (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-2" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-2")) {                    Plotly.newPlot(                        "scaling-line-2",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[5.848410424776375,2.7784478780813515,1.4233014839701355,0.7334821401163936,0.4201434589922428,0.46188222290948033,0.37642770959064364,0.7374714412726462,0.6919303676113486],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>LogisticRegression</h3><div class="plot-subtitle">dataset: covtype (200,000 rows x 100 features, 7 classes)</div><div class="plot-subtitle">params: C=10.0, max_iter=1000, solver=lbfgs</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">LogisticRegression / sklearn-pypi (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-3" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-3")) {                    Plotly.newPlot(                        "scaling-line-3",                        [{"customdata":["\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383","\u003cbr\u003en_iter: 383"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[24.340527429711074,18.608714876696467,16.09228124609217,15.6584451678209,15.287681414745748,15.441848564893007,16.83284785412252,15.758633601013571,14.9782088175416],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">LogisticRegression / sklearn-cf-mkl (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-4" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-4")) {                    Plotly.newPlot(                        "scaling-line-4",                        [{"customdata":["\u003cbr\u003en_iter: 402","\u003cbr\u003en_iter: 384","\u003cbr\u003en_iter: 374","\u003cbr\u003en_iter: 431","\u003cbr\u003en_iter: 441","\u003cbr\u003en_iter: 423","\u003cbr\u003en_iter: 406","\u003cbr\u003en_iter: 389","\u003cbr\u003en_iter: 389"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[18.67939786007628,13.400914575904608,11.873199760913849,12.17736428976059,12.88115018606186,13.579889529850334,11.83651760686189,14.3240119619295,15.310687766876072],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">LogisticRegression / intel (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-5" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-5")) {                    Plotly.newPlot(                        "scaling-line-5",                        [{"customdata":["\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[29.692020611837506,23.714721750933677,18.7528611831367,18.77820308879018,13.995051364880055,3.373068382963538,2.2618685639463365,4.1061400612816215,3.9719148157164454],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>ExtraTreesClassifier</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=-1</div><div class="plot-subtitle">&quot;with SMT&quot; tasksets both logical siblings of each selected physical core; &quot;without SMT&quot; restricts to one logical thread per physical core. This hardware has SMT (simultaneous multithreading, aka hyper-threading): twice as many logical cores as physical cores.</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">ExtraTreesClassifier / sklearn-pypi (18 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-6" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-6")) {                    Plotly.newPlot(                        "scaling-line-6",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[155.12463499908336,85.4564316192409,50.452423037495464,28.617786886024987,17.544140233803773,12.658771634778532,9.591735701542348,4.37747390496952,3.223051584892917],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"without SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF553B"},"marker":{"color":"#EF553B"},"mode":"lines+markers","name":"without SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[186.94798000797164,102.74705295742024,57.13798779033823,34.81133737441269,19.35777957442042,13.902753519505495,9.084534164048819,4.83926845613496,3.522380685662515],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172],"y":[155.12463499908336,77.56231749954168,38.78115874977084,19.39057937488542,9.69528968744271,4.847644843721355,2.4238224218606774,1.2119112109303387,0.9018874127853683],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">ExtraTreesClassifier / sklearn-cf-mkl (18 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-7" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-7")) {                    Plotly.newPlot(                        "scaling-line-7",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[205.48836596426554,117.4749417201383,66.84376487828558,36.946967824042076,21.483367238397477,14.226050890283659,10.113261465812684,4.462153751728692,3.9292009010285596],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"without SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF553B"},"marker":{"color":"#EF553B"},"mode":"lines+markers","name":"without SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[255.14759182697162,144.78753614530433,74.88587264379021,42.896868434763746,23.83971785020549,15.916091203143878,9.365460642584367,5.234527813672685,4.66504562165599],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172],"y":[205.48836596426554,102.74418298213277,51.372091491066385,25.686045745533193,12.843022872766596,6.421511436383298,3.210755718191649,1.6053778590958245,1.194699802117823],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">ExtraTreesClassifier / intel (18 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-8" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-8")) {                    Plotly.newPlot(                        "scaling-line-8",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[105.5487364064902,55.77308177307714,33.23097745596897,17.253288640495157,9.857913206360536,6.710756222128111,3.580225631412759,2.2007442080393957,1.7306387247815511],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"without SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF553B"},"marker":{"color":"#EF553B"},"mode":"lines+markers","name":"without SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[130.52276309172157,67.62401943851728,38.8058025520877,19.059962018945953,10.40591740711534,6.956230586183665,3.4527721318227123,2.188463053835221,1.5683253890994482],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172],"y":[105.5487364064902,52.7743682032451,26.38718410162255,13.193592050811276,6.596796025405638,3.298398012702819,1.6491990063514095,0.8245995031757047,0.6136554442237803],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>RandomForestClassifier</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_features=0.5, n_jobs=64</div><div class="plot-subtitle">&quot;with SMT&quot; tasksets both logical siblings of each selected physical core; &quot;without SMT&quot; restricts to one logical thread per physical core. This hardware has SMT (simultaneous multithreading, aka hyper-threading): twice as many logical cores as physical cores.</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">RandomForestClassifier / sklearn-pypi (18 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-9" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-9")) {                    Plotly.newPlot(                        "scaling-line-9",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[152.26818051887676,77.80470250581857,37.65474881656701,19.421307606535265,10.342744806257542,6.21824080189981,3.4983382694917964,1.8487090238522796,1.4701741185786505],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"without SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF553B"},"marker":{"color":"#EF553B"},"mode":"lines+markers","name":"without SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[212.26937369210646,113.76158288039733,53.59122314985143,28.30878423919785,15.182454539171886,8.314013467133918,4.566597992925381,2.661082084159716,1.9404588266530312],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172],"y":[152.26818051887676,76.13409025943838,38.06704512971919,19.033522564859595,9.516761282429798,4.758380641214899,2.3791903206074494,1.1895951603037247,0.8852801192957951],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">RandomForestClassifier / sklearn-cf-mkl (18 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-10" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-10")) {                    Plotly.newPlot(                        "scaling-line-10",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[154.69732394558378,83.32460566889495,37.99596456810832,20.10217395145446,10.576420653160312,6.205873838553089,3.4715704845439177,1.8395749854789756,1.5793998428582496],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"without SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF553B"},"marker":{"color":"#EF553B"},"mode":"lines+markers","name":"without SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[212.46474644285627,115.1727191027021,53.79028429451864,27.339390849374468,15.061783649798599,8.499795860916493,4.655397958958929,2.4471564761824993,1.8143419433198327],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172],"y":[154.69732394558378,77.34866197279189,38.674330986395944,19.337165493197972,9.668582746598986,4.834291373299493,2.4171456866497465,1.2085728433248732,0.8994030461952545],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">RandomForestClassifier / intel (18 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-11" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-11")) {                    Plotly.newPlot(                        "scaling-line-11",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[4.856502774055116,2.581647370243445,1.272654540662188,0.6299442560703028,0.2998120697156992,0.21224854535830673,0.10102655160153517,0.06167226115394442,0.049653977966531676],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"without SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF553B"},"marker":{"color":"#EF553B"},"mode":"lines+markers","name":"without SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[6.8141440860927105,3.457578510278836,1.5507656469708309,0.7194335550593678,0.33736933110048994,0.2210928243584931,0.10108749729624833,0.061646292260775226,0.04527037279669542],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172],"y":[4.856502774055116,2.428251387027558,1.214125693513779,0.6070628467568895,0.30353142337844474,0.15176571168922237,0.07588285584461119,0.03794142792230559,0.028235481244506488],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>KMeans</h3><div class="plot-subtitle">dataset: fashion_mnist_784 (60,000 rows x 784 features)</div><div class="plot-subtitle">params: n_clusters=100</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">KMeans / sklearn-pypi (8 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-12" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-12")) {                    Plotly.newPlot(                        "scaling-line-12",                        [{"customdata":["\u003cbr\u003en_iter: 72","\u003cbr\u003en_iter: 72","\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 72","\u003cbr\u003en_iter: 87","\u003cbr\u003en_iter: 103","\u003cbr\u003en_iter: 87","\u003cbr\u003en_iter: 72"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128],"y":[14.460851964075118,9.767627173569053,7.234453862998635,6.328524278942496,6.094914653804153,6.851257182192057,7.291094656102359,17.97480568382889],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128],"ticktext":["1","2","4","8","16","32","64","128"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">KMeans / sklearn-cf-mkl (8 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-13" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-13")) {                    Plotly.newPlot(                        "scaling-line-13",                        [{"customdata":["\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 119","\u003cbr\u003en_iter: 89","\u003cbr\u003en_iter: 82","\u003cbr\u003en_iter: 69","\u003cbr\u003en_iter: 81","\u003cbr\u003en_iter: 81","\u003cbr\u003en_iter: 144"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128],"y":[13.49327823286876,9.419632543809712,6.54699879931286,6.7636723960749805,6.213830477092415,6.472003834322095,6.690222129691392,18.595880893990397],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128],"ticktext":["1","2","4","8","16","32","64","128"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">KMeans / intel (9 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-14" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-14")) {                    Plotly.newPlot(                        "scaling-line-14",                        [{"customdata":["\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16,32,64,128,172],"y":[13.816617540549487,6.930183168966323,4.009400011971593,2.2162163062021136,1.3435095329768956,1.1887617320753634,1.078738038893789,4.007931228727102,4.834189137909561],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div></div>
+  
+  <div id="intel_laptop" class="tab-panel"><div class="page-row"><section class="panel">
+  
+  <h2 class="date-range" data-count="75" data-start="2026-08-28T08:51:03.686117+00:00" data-end="2026-08-28T09:53:44.133099+00:00"></h2>
+  
+</section></div><div class="page-row"><section class="tabs" id="tabs-1">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="tab-tabs-1-0">sklearn-pypi</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-1-1">sklearn-cf-mkl</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-1-2">intel</button>
+  
+  </div>
+  
+  <div id="tab-tabs-1-0" class="tab-panel active"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-pypi</h3>
+    <p> Python 3.12.13</p>
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>numpy</code> 2.5.2 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.34 (16 threads)</li>
+    
+      <li>libgomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fgithub.com%2Fprobabl-ai%2Fscikit-learn-benchmarks%2Fraw%2Fcff6ea4d44c121c2b8f2a06a0c3c7d10c91363e4%2Fresults%2Fsoftware-envs%2Ffb384d.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-1-1" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-cf-mkl</h3>
+    <p> Python 3.12.13</p>
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>numpy</code> 2.5.2 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libmkl_rt 2026.1-Product (16 threads)</li>
+    
+      <li>libomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>Intel/LLVM OpenMP (spec 201611)</li>
+    
+      <li>KMP_BLOCKTIME: 0ms</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fgithub.com%2Fprobabl-ai%2Fscikit-learn-benchmarks%2Fraw%2Fcff6ea4d44c121c2b8f2a06a0c3c7d10c91363e4%2Fresults%2Fsoftware-envs%2Ff3b69e.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-1-2" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>intel</h3>
+    <p> Python 3.12.13</p>
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.8.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scikit_learn_intelex</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>daal</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.33 (16 threads)</li>
+    
+      <li>libgomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 1</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fgithub.com%2Fprobabl-ai%2Fscikit-learn-benchmarks%2Fraw%2Fcff6ea4d44c121c2b8f2a06a0c3c7d10c91363e4%2Fresults%2Fsoftware-envs%2Fcf9c8d.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <script>
+    document.querySelectorAll("#tabs-1 .tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#tabs-1 .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#tabs-1 .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tabTarget).classList.add("active");
+      });
+    });
+  </script>
+</section></div><div class="page-row"><section class="panel"><h3>Ridge</h3><div class="plot-subtitle">dataset: year_prediction_msd (463,810 rows x 990 features)</div><div class="plot-subtitle">params: alpha=1.0</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">Ridge / sklearn-pypi (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-15" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-15")) {                    Plotly.newPlot(                        "scaling-line-15",                        [{"customdata":["","","","",""],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[9.099479925818741,5.250135820358992,3.3113119108602405,3.2920697550289333,2.8831742890179157],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">Ridge / sklearn-cf-mkl (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-16" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-16")) {                    Plotly.newPlot(                        "scaling-line-16",                        [{"customdata":["","","","",""],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[8.768184954300523,4.929764250293374,2.9776757690124214,3.134756412357092,2.6615293081849813],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">Ridge / intel (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-17" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-17")) {                    Plotly.newPlot(                        "scaling-line-17",                        [{"customdata":["","","","",""],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[7.927896844223142,3.973899007309228,1.9949504220858216,2.111402743961662,1.5352926040068269],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>LogisticRegression</h3><div class="plot-subtitle">dataset: covtype (200,000 rows x 100 features, 7 classes)</div><div class="plot-subtitle">params: C=10.0, max_iter=1000, solver=lbfgs</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">LogisticRegression / sklearn-pypi (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-18" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-18")) {                    Plotly.newPlot(                        "scaling-line-18",                        [{"customdata":["\u003cbr\u003en_iter: 362","\u003cbr\u003en_iter: 413","\u003cbr\u003en_iter: 409","\u003cbr\u003en_iter: 454","\u003cbr\u003en_iter: 500"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[17.869844500906765,15.214200952090323,12.373532690107822,14.636666147969663,18.19283088389784],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">LogisticRegression / sklearn-cf-mkl (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-19" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-19")) {                    Plotly.newPlot(                        "scaling-line-19",                        [{"customdata":["\u003cbr\u003en_iter: 528","\u003cbr\u003en_iter: 425","\u003cbr\u003en_iter: 424","\u003cbr\u003en_iter: 391","\u003cbr\u003en_iter: 433"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[18.01156632695347,12.507603191304952,9.968376660253853,9.626096670981497,10.067565551027656],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">LogisticRegression / intel (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-20" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-20")) {                    Plotly.newPlot(                        "scaling-line-20",                        [{"customdata":["\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 131","\u003cbr\u003en_iter: 51"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[24.482166967354715,24.19349991483614,27.29269555490464,1.8934591179713607,0.7793355388566852],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>ExtraTreesClassifier</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=-1</div><div class="plot-subtitle">This hardware has no SMT cores.</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">ExtraTreesClassifier / sklearn-pypi (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-21" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-21")) {                    Plotly.newPlot(                        "scaling-line-21",                        [{"customdata":["","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":false,"x":[1,2,4,8,16],"y":[170.33237542345887,93.23412888479652,53.098566678818315,43.88372506618907,37.695453602100315],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16],"y":[170.33237542345887,85.16618771172944,42.58309385586472,21.29154692793236,10.64577346396618],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">ExtraTreesClassifier / sklearn-cf-mkl (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-22" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-22")) {                    Plotly.newPlot(                        "scaling-line-22",                        [{"customdata":["","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":false,"x":[1,2,4,8,16],"y":[254.64135601941962,136.44218362896936,80.2139273728244,60.49212878169783,45.39714466063742],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16],"y":[254.64135601941962,127.32067800970981,63.660339004854904,31.830169502427452,15.915084751213726],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">ExtraTreesClassifier / intel (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-23" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-23")) {                    Plotly.newPlot(                        "scaling-line-23",                        [{"customdata":["","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":false,"x":[1,2,4,8,16],"y":[105.22283286554739,59.33990400226321,34.518138421844924,27.025623696681578,25.16922809136304],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16],"y":[105.22283286554739,52.611416432773694,26.305708216386847,13.152854108193424,6.576427054096712],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>RandomForestClassifier</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_features=0.5, n_jobs=-1</div><div class="plot-subtitle">This hardware has no SMT cores.</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">RandomForestClassifier / sklearn-pypi (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-24" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-24")) {                    Plotly.newPlot(                        "scaling-line-24",                        [{"customdata":["","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":false,"x":[1,2,4,8,16],"y":[169.03394184773788,87.633002147777,46.45174293764285,37.55053383902123,25.855327238241443],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16],"y":[169.03394184773788,84.51697092386894,42.25848546193447,21.129242730967235,10.564621365483617],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">RandomForestClassifier / sklearn-cf-mkl (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-25" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-25")) {                    Plotly.newPlot(                        "scaling-line-25",                        [{"customdata":["","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":false,"x":[1,2,4,8,16],"y":[174.84936839173315,91.96708022791427,51.112897540588165,38.24012503027916,26.29258124579792],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16],"y":[174.84936839173315,87.42468419586658,43.71234209793329,21.856171048966644,10.928085524483322],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">RandomForestClassifier / intel (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-26" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-26")) {                    Plotly.newPlot(                        "scaling-line-26",                        [{"customdata":["","","","",""],"hovertemplate":"with SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#636EFA"},"marker":{"color":"#636EFA"},"mode":"lines+markers","name":"with SMT","showlegend":false,"x":[1,2,4,8,16],"y":[4.8881192051339895,2.537304814904928,1.0625307935697492,0.6156525440019323,0.3861207425870816],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#999","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16],"y":[4.8881192051339895,2.4440596025669947,1.2220298012834974,0.6110149006417487,0.30550745032087434],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div><div class="page-row"><section class="panel"><h3>KMeans</h3><div class="plot-subtitle">dataset: fashion_mnist_784 (60,000 rows x 784 features)</div><div class="plot-subtitle">params: n_clusters=100</div></section><section class="plot-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));"><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">KMeans / sklearn-pypi (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-27" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-27")) {                    Plotly.newPlot(                        "scaling-line-27",                        [{"customdata":["\u003cbr\u003en_iter: 86","\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 89","\u003cbr\u003en_iter: 72","\u003cbr\u003en_iter: 76"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[16.853573220781982,10.77891224808991,6.756681501865387,7.608925731386989,7.302212317008525],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">KMeans / sklearn-cf-mkl (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-28" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-28")) {                    Plotly.newPlot(                        "scaling-line-28",                        [{"customdata":["\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 143","\u003cbr\u003en_iter: 140","\u003cbr\u003en_iter: 87","\u003cbr\u003en_iter: 72"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[18.19386192690581,10.315876509062946,8.28002143278718,8.743117763660848,7.3750484343618155],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section><section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">KMeans / intel (5 points)</h3></div><div class="plot-cell-body"><div style="height:340px; width:100%;">                            <div id="scaling-line-29" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-29")) {                    Plotly.newPlot(                        "scaling-line-29",                        [{"customdata":["\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91"],"hovertemplate":"fit time\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","mode":"lines+markers","name":"fit time","showlegend":false,"x":[1,2,4,8,16],"y":[10.907341045327485,5.542666480876505,3.2885844842530787,3.0388370961882174,2.31302258791402],"type":"scatter"}],                        {"template":{"data":{"scatter":[{"type":"scatter"}]}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></div></section></section></div></div>
+  
+  <script>
+    const hardwareTabButtons = document.querySelectorAll("#hardware-tabs > .tab-buttons .tab-button");
+    function activateHardwareTab(button, updateHash = false) {
+      document.querySelectorAll("#hardware-tabs > .tab-buttons .tab-button").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll("#hardware-tabs > .tab-panel").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      const panel = document.getElementById(button.dataset.tabTarget);
+      panel.classList.add("active");
+      panel.querySelectorAll(".plotly-graph-div").forEach((chart) => Plotly.Plots.resize(chart));
+      if (updateHash) {
+        history.replaceState(null, "", `#${button.dataset.tabTarget}`);
+      }
+    }
+    hardwareTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activateHardwareTab(button, true);
+      });
+    });
+    const hardwareTabFromHash = Array.from(hardwareTabButtons).find(
+      (button) => button.dataset.tabTarget === window.location.hash.slice(1)
+    );
+    if (hardwareTabFromHash) {
+      activateHardwareTab(hardwareTabFromHash);
+    }
+  </script>
+</section></div>
+  
+</body>
+</html>
