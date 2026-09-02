@@ -38,7 +38,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dashboards.gen_hgb_scaling import (
+from dashboards.gen_hgb_scalability_breakdown import (
     HARDWARE_NAMES,
     PHASE_LABELS,
     PHASE_ORDER,

@@ -52,7 +52,12 @@ from sklbench.reporting.html import (
     phase_breakdown_plot_html,
     render_hardware_tabs,
 )
-from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
+from sklbench.reporting.matching import (
+    BenchmarkRecord,
+    date_range,
+    is_scaling_benchmark,
+    read_benchmark_records,
+)
 
 
 HARDWARE_NAMES = {
@@ -103,6 +108,16 @@ _SECONDS_ATTRIBUTES = [
 
 
 def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
+    """Whether `record` is an instrumented-HGB result from a thread-scaling
+    sweep config (`configs/hgb_scaling.py` or alike, e.g.
+    `hgb_scaling_proc_bind.py`/`hgb_scaling_force_active_wait.py` - anything
+    tagging `metadata.benchmark_type: scaling`), as opposed to some other
+    config's HGB result that happens to carry phase timings too, since
+    `sklbench.runners.estimator.loading.wrapped_estimators` instruments every
+    HistGradientBoosting* estimator unconditionally regardless of which
+    config ran it."""
+    if not is_scaling_benchmark(record):
+        return False
     estimator = record.case.get("algorithm", {}).get("estimator", "")
     if "HistGradientBoosting" not in estimator:
         return False
