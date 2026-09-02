@@ -41,15 +41,18 @@ if __name__ == "__main__":
             if _is_instrumented_hgb(record) and _is_sklearn_dev_build(record)
         ]
     )
-    by_env: dict[tuple[str, str, bool], list[BenchmarkRecord]] = {}
+    by_env: dict[tuple[str, str, bool, str | None], list[BenchmarkRecord]] = {}
     for record in records:
         by_env.setdefault(_env_key(record), []).append(record)
 
     # Same tab structure as gen_hgb_scaling.py - one per (hardware, software
-    # build, active-wait) combo, see that module's __main__ for why.
+    # build, active-wait, proc-bind) combo, see that module's __main__ for why.
     pages = [
-        (_env_label(hardware_hash, software_hash, active_wait), render_env_page(env_records))
-        for (hardware_hash, software_hash, active_wait), env_records in sorted(
+        (
+            _env_label(hardware_hash, software_hash, active_wait, proc_bind),
+            render_env_page(env_records),
+        )
+        for (hardware_hash, software_hash, active_wait, proc_bind), env_records in sorted(
             by_env.items(),
             key=lambda item: _env_label(*item[0]),
         )
