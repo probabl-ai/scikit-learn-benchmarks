@@ -37,7 +37,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dashboards.output import dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
+    case_proc_bind,
     has_active_wait,
+    proc_bind_label_suffix,
     read_env,
     software_build_name,
     summarize_hardware_env,
@@ -176,6 +178,16 @@ def _has_active_wait(record: BenchmarkRecord) -> bool:
     the same workload and thread count would collide as if they were reruns
     of each other."""
     return has_active_wait(_raw_bench_env(record), record.software_hash)
+
+
+def _proc_bind(record: BenchmarkRecord) -> str | None:
+    """The record's explicit `OMP_PROC_BIND` override (e.g.
+    `hgb_scalability_proc_bind.py` sets `close`), or `None` for the default
+    (unset) proc-bind runs (e.g. `hgb_scalability.py`) - part of the
+    tab/dedup identity below for the same reason as `_has_active_wait`: a
+    proc_bind-pinned sweep and an unpinned sweep of the same
+    workload/hardware/software/thread-count aren't reruns of each other."""
+    return case_proc_bind(_raw_bench_env(record))
 
 
 def _fit_within_budget(values: dict[str, float], budget: float) -> tuple[dict[str, float], float]:
@@ -454,6 +466,7 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
             _workload_name(record),
             _thread_count(record),
             _has_active_wait(record),
+            _proc_bind(record),
         )
         current = latest.get(key)
         if current is None or record.timestamp_recorded > current.timestamp_recorded:
@@ -461,15 +474,16 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
     return list(latest.values())
 
 
-def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool]:
-    return (record.hardware_hash, record.software_hash, _has_active_wait(record))
+def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool, str | None]:
+    return (record.hardware_hash, record.software_hash, _has_active_wait(record), _proc_bind(record))
 
 
-def _env_label(hardware_hash: str, software_hash: str, active_wait: bool) -> str:
+def _env_label(hardware_hash: str, software_hash: str, active_wait: bool, proc_bind: str | None) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
     return (
         f"{hardware_label} — {software_build_name(software_hash)}"
         f"{active_wait_label_suffix(active_wait)}"
+        f"{proc_bind_label_suffix(proc_bind)}"
     )
 
 
@@ -481,19 +495,23 @@ if __name__ == "__main__":
             if _is_instrumented_hgb(record) and not _is_sklearn_dev_build(record)
         ]
     )
-    by_env: dict[tuple[str, str, bool], list[BenchmarkRecord]] = {}
+    by_env: dict[tuple[str, str, bool, str | None], list[BenchmarkRecord]] = {}
     for record in records:
         by_env.setdefault(_env_key(record), []).append(record)
 
-    # Tabs are one per (hardware, software build, active-wait) combo - each
-    # build (e.g. different OpenMP runtime) gets its own tab rather than
-    # nesting tabs inside tabs, so the impact of a build swap is a tab click
-    # away without doubling up the hardware-tabs template's page-global JS on
-    # one page. Active-wait (GOMP_SPINCOUNT) is included too since some runs
-    # of the same build toggle it (see `_has_active_wait`).
+    # Tabs are one per (hardware, software build, active-wait, proc-bind)
+    # combo - each build (e.g. different OpenMP runtime) gets its own tab
+    # rather than nesting tabs inside tabs, so the impact of a build swap is
+    # a tab click away without doubling up the hardware-tabs template's
+    # page-global JS on one page. Active-wait (GOMP_SPINCOUNT) and proc_bind
+    # (OMP_PROC_BIND) are included too since some sweeps of the same build
+    # toggle one or the other (see `_has_active_wait`/`_proc_bind`).
     pages = [
-        (_env_label(hardware_hash, software_hash, active_wait), render_env_page(env_records))
-        for (hardware_hash, software_hash, active_wait), env_records in sorted(
+        (
+            _env_label(hardware_hash, software_hash, active_wait, proc_bind),
+            render_env_page(env_records),
+        )
+        for (hardware_hash, software_hash, active_wait, proc_bind), env_records in sorted(
             by_env.items(),
             key=lambda item: _env_label(*item[0]),
         )

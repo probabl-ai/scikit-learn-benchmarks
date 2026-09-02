@@ -320,6 +320,22 @@ def active_wait_label_suffix(active_wait: bool) -> str:
     return "" if active_wait else " (no active wait)"
 
 
+def case_proc_bind(case_env: dict | None) -> str | None:
+    """A case's explicit `OMP_PROC_BIND` override (`bench.env`), or `None` if
+    it didn't set one - same "only the explicit override, no ambient-default
+    fallback" rule as `_openmp_summary`'s OMP_PROC_BIND line, since the
+    build's own captured value isn't a meaningful default for thread
+    affinity."""
+    return (case_env or {}).get("OMP_PROC_BIND")
+
+
+def proc_bind_label_suffix(proc_bind: str | None) -> str:
+    """The shared tab-label suffix for a case's explicit `OMP_PROC_BIND`
+    override (`case_proc_bind`), distinguishing it from the default
+    (unset/ambient) proc-bind behavior."""
+    return f" (proc_bind={proc_bind})" if proc_bind is not None else ""
+
+
 def _openmp_summary(env: dict, case_env: dict | None = None) -> list[str]:
     info = env.get("openmp_runtime_info")
     if not info:
