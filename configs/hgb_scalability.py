@@ -201,7 +201,7 @@ def _real_dataset_cases() -> list[dict]:
     above - needed for a scaling sweep, where a variable iteration count per
     thread count would confound the measurement."""
     hgb_cases = [
-        case
+        {**case, "metadata": {**case["metadata"], "benchmark_type": "scaling"}}
         for case in generate_real_dataset_cases()
         if case["algorithm"]["estimator"].startswith("HistGradientBoosting")
         and case["data"]["dataset"] in REAL_SCALING_DATASETS

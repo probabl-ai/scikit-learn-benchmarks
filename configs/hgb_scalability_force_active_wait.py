@@ -1,4 +1,4 @@
-import configs.hgb_scaling as hgb_scaling
+import configs.hgb_scalability as hgb_scalability
 
 
 def generate_cases() -> list[dict]:
@@ -8,11 +8,12 @@ def generate_cases() -> list[dict]:
             "bench": {
                 "n_runs": 5,
                 "env": {
-                    "OMP_PROC_BIND": "close",
+                    "GOMP_SPINCOUNT": "300000",
+                    "KMP_BLOCKTIME": "200ms",
                     "OMP_NUM_THREADS": case["bench"]["env"]["OMP_NUM_THREADS"],
                 },
                 "py_spy_profiling": False,
             },
         }
-        for case in hgb_scaling.generate_cases()
+        for case in hgb_scalability.generate_cases()
     ]
