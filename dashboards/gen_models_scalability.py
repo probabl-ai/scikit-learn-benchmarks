@@ -1,25 +1,33 @@
 """Thread-count scalability dashboard for `configs/models_scalability.py`.
 
-One tab per hardware; within a tab, one row of plots per (estimator, dataset)
-pair from that config - preceded by a small panel naming the dataset (shape,
-class count) and the estimator's fixed hyperparameters, see `_row_detail_html`
-- and one column per plain-CPU Pixi environment it sweeps (`sklearn-pypi`,
-`sklearn-cf-mkl`, `intel`). Each row is its own single-row grid (rather than
-one grid for the whole tab) precisely so that detail panel can sit right
-above its own row instead of a shared grid's `details_by_row` trailing
-placement (see `assemble_plots_in_grid`). Each cell is a fit-time vs.
-core-count line plot. RandomForestClassifier/ExtraTreesClassifier are the
-only estimators there with both a `with_siblings=True` and `=False` variant
-(see `models_scalability.py`'s `_with_scaling_bench` docstring for why) - both
-are drawn as separate lines on the same cell so the SMT-vs-no-SMT gap reads
-directly off one plot rather than needing a second row. Their fit times are
-also normalized to a fixed forest size (see `NORMALIZED_N_ESTIMATORS`) and
-plotted on a log y-axis, since that config scales `n_estimators` with core
-count and normalized fit time spans two-plus orders of magnitude across the
-core sweep - a linear axis would flatten most of that range into an
-unreadable near-zero tail. A dashed "perfect scalability" reference line
-(see `_perfect_scaling_reference`) is added to their cells too, so the real
-curve's departure from ideal linear scaling reads directly off the plot.
+One tab per hardware; within a tab, a software-envs panel (tabbed
+`SOFTWARE_TEMPLATE` cards, one per plain-CPU Pixi environment it sweeps -
+see `_software_tabs_html`, same pattern as e.g. `gen_per_hardware.py`) followed
+by one row of plots per (estimator, dataset) pair from that config -
+preceded by a small panel naming the dataset (shape, class count) and the
+estimator's fixed hyperparameters, see `_row_detail_html` - and one column
+per swept environment (`sklearn-pypi`, `sklearn-cf-mkl`, `intel`). Each row
+is its own single-row grid (rather than one grid for the whole tab)
+precisely so that detail panel can sit right above its own row instead of a
+shared grid's `details_by_row` trailing placement (see
+`assemble_plots_in_grid`). Each cell is a fit-time vs. core-count line plot.
+RandomForestClassifier/ExtraTreesClassifier are the only estimators there
+with both a `with_siblings=True` and `=False` variant (see
+`models_scalability.py`'s `_with_scaling_bench` docstring for why) - both are
+drawn as separate lines on the same cell so the SMT-vs-no-SMT gap reads
+directly off one plot rather than needing a second row, and `_row_detail_html`
+adds a plain-language note explaining that "with SMT"/"without SMT" split
+(see `SMT_NOTES`) - on hardware without SMT cores, only the `with_siblings`
+variant is ever generated (again see `_with_scaling_bench`), so the note
+there just says so instead of explaining a legend the plot doesn't have
+anything to contrast. Their fit times are also normalized to a fixed forest
+size (see `NORMALIZED_N_ESTIMATORS`) and plotted on a log y-axis, since that
+config scales `n_estimators` with core count and normalized fit time spans
+two-plus orders of magnitude across the core sweep - a linear axis would
+flatten most of that range into an unreadable near-zero tail. A dashed
+"perfect scalability" reference line (see `_perfect_scaling_reference`) is
+added to their cells too, so the real curve's departure from ideal linear
+scaling reads directly off the plot.
 
 Records from that config are identified by `metadata.n_cores` - a key unique
 to `_with_scaling_bench`, not set by any other config - combined with the
@@ -37,12 +45,14 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dashboards.output import dashboard_output_path
-from sklbench.reporting.envs import software_build_name
+from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
+    SOFTWARE_TEMPLATE,
     assemble_plots_in_grid,
     render_hardware_tabs,
+    render_software_tabs,
     scaling_line_plot_html,
 )
 from sklbench.reporting.matching import MethodResult, date_range, read_all_results
@@ -51,6 +61,23 @@ from sklbench.reporting.matching import MethodResult, date_range, read_all_resul
 HARDWARE_NAMES = {
     "534824": "Intel GNR",
     "3b5e61": "Intel laptop",
+}
+
+# RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
+# module docstring and `SIBLINGS_LABELS`) - this explains that legend where
+# it's meaningful (GNR, which actually has SMT siblings to compare) and
+# says why it's absent otherwise (the laptop's `without SMT` series is never
+# generated - see `models_scalability.py`'s `_with_scaling_bench`, which
+# only yields it `if is_tree and has_smt_cores`).
+SMT_NOTES = {
+    "534824": (
+        "\"with SMT\" tasksets both logical siblings of each selected "
+        "physical core; \"without SMT\" restricts to one logical thread "
+        "per physical core. This hardware has SMT (simultaneous "
+        "multithreading, aka hyper-threading): twice as many logical "
+        "cores as physical cores."
+    ),
+    "3b5e61": "This hardware has no SMT cores.",
 }
 
 # (estimator, dataset) pairs from `MODEL_DATASET_PAIRS` in
@@ -199,10 +226,34 @@ def _params_line(result: MethodResult, estimator: str) -> str:
     return f"params: {formatted}"
 
 
-def _row_detail_html(result: MethodResult, estimator: str) -> str:
+def _row_detail_html(result: MethodResult, estimator: str, hardware_hash: str) -> str:
     lines = [_dataset_line(result), _params_line(result, estimator)]
+    if estimator in TREE_ESTIMATORS:
+        smt_note = SMT_NOTES.get(hardware_hash)
+        if smt_note:
+            lines.append(smt_note)
     subtitles = "".join(f'<div class="plot-subtitle">{escape(line)}</div>' for line in lines)
     return f'<section class="panel"><h3>{escape(estimator)}</h3>{subtitles}</section>'
+
+
+def _software_tabs_html(hw_results: list[MethodResult]) -> str:
+    """Tabbed `SOFTWARE_TEMPLATE` card per swept environment (pixi env,
+    package versions, threadpools, OpenMP - see `summarize_software_env`),
+    same pattern as e.g. `gen_per_hardware.py`/`gen_builds_comparison.py`."""
+    cards = []
+    for env in ENV_ORDER:
+        env_results = [result for result in hw_results if _env(result) == env]
+        if not env_results:
+            continue
+        result = env_results[0]
+        summary = summarize_software_env(
+            read_env("software", result.software_hash),
+            result.implementation,
+            software_hash=result.software_hash,
+        )
+        summary["name"] = env
+        cards.append(SOFTWARE_TEMPLATE.render(**summary))
+    return render_software_tabs(cards)
 
 
 def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str:
@@ -211,7 +262,8 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
         return '<section class="empty">No benchmark results for this hardware.</section>'
 
     sections = [
-        f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_results))}</div>'
+        f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_results))}</div>',
+        f'<div class="page-row">{_software_tabs_html(hw_results)}</div>',
     ]
     for estimator in MODEL_ORDER:
         estimator_results = [
@@ -251,7 +303,7 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
         if not plots:
             continue
 
-        detail_html = _row_detail_html(estimator_results[0], estimator)
+        detail_html = _row_detail_html(estimator_results[0], estimator, hardware_hash)
         grid = assemble_plots_in_grid(
             plots,
             rows={"model": [estimator]},

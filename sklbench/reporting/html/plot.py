@@ -496,6 +496,11 @@ def scaling_line_plot_html(
                     f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}{y_unit}"
                     "%{customdata}<extra></extra>"
                 ),
+                # A single series has nothing to contrast its label against
+                # (e.g. hardware with no SMT cores never gets a "without
+                # SMT" counterpart - see gen_models_scalability.py), so its
+                # legend entry would just be noise.
+                showlegend=len(series) > 1,
             )
         )
     for label, points in sorted((reference_lines or {}).items()):
