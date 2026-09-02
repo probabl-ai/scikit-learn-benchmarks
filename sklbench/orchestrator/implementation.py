@@ -52,8 +52,38 @@ def _truncate_log(log: str) -> str:
     return f"... truncated ...\n{log[-_MAX_LOG_CHARS:]}"
 
 
-def _print_progress_line(index: int, total: int, case_name: str) -> None:
-    print(f"[sklbench] {index}/{total} {case_name}", file=sys.stderr)
+def _extract_shape(rows: list[dict] | None) -> tuple[int | None, int | None]:
+    if not rows:
+        return None, None
+    data_desc = rows[0].get("data_desc")
+    if not isinstance(data_desc, dict):
+        return None, None
+    if "n_samples" in data_desc:
+        return data_desc.get("n_samples"), data_desc.get("n_features")
+    fit_desc = data_desc.get("fit")
+    if isinstance(fit_desc, dict):
+        return fit_desc.get("samples"), fit_desc.get("features")
+    return None, None
+
+
+def _print_progress_line(
+    index: int,
+    total: int,
+    case_name: str,
+    duration_s: float,
+    n_samples: int | None,
+    n_features: int | None,
+) -> None:
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    shape = (
+        f"{n_samples} x {n_features}"
+        if n_samples is not None and n_features is not None
+        else "? x ?"
+    )
+    print(
+        f"[{timestamp}] {index}/{total} {case_name} {shape} - took {duration_s:.0f}s",
+        file=sys.stderr,
+    )
 
 
 def _warmup(duration_s: float = 30) -> None:
@@ -186,14 +216,22 @@ def save_benchmark_record(
         json.dump(record, fp, indent=4)
 
 
-def _load_case_dataset(bench_case: Case) -> None:
+def _load_case_dataset(bench_case: Case) -> tuple[int | None, int | None]:
     if isinstance(bench_case, EstimatorCase):
         from ..runners.datasets import load_raw_data as load_data
+
+        raw_data, _ = load_data(bench_case)
+        x = raw_data.get("x", raw_data.get("x_train"))
     elif isinstance(bench_case, PipelineCase):
         from ..runners.pipeline import load_data
+
+        x, _ = load_data(bench_case)
     else:
         raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
-    load_data(bench_case)
+    if x is None:
+        return None, None
+    n_features = x.shape[1] if len(x.shape) == 2 else None
+    return x.shape[0], n_features
 
 
 def load_datasets_only(bench_cases: list[Case], args) -> int:
@@ -206,15 +244,24 @@ def load_datasets_only(bench_cases: list[Case], args) -> int:
     n_cases = len(bench_cases)
     for index, bench_case in enumerate(bench_cases, start=1):
         case_name = bench_case.name(shortened=True)
+        case_start = time.monotonic()
+        n_samples, n_features = None, None
         try:
-            _load_case_dataset(bench_case)
+            n_samples, n_features = _load_case_dataset(bench_case)
         except Exception as exc:
             return_code = -1
             logger.warning(f"Failed to load dataset for {case_name!r}: {exc!r}")
             if args.exit_on_error:
                 break
         finally:
-            _print_progress_line(index, n_cases, case_name)
+            _print_progress_line(
+                index,
+                n_cases,
+                case_name,
+                time.monotonic() - case_start,
+                n_samples,
+                n_features,
+            )
     return return_code
 
 
@@ -253,6 +300,8 @@ def orchestrate_benchmarks(
         record_saved = False
         cprofile_already_run = False
         case_name = bench_case.name(shortened=True)
+        case_start = time.monotonic()
+        rows = None
         try:
             normal_run_start = time.monotonic()
             bench_return_code, rows, failed_case = run_runner_from_case(bench_case)
@@ -387,5 +436,13 @@ def orchestrate_benchmarks(
             if args.exit_on_error:
                 break
         finally:
-            _print_progress_line(index, n_cases, case_name)
+            n_samples, n_features = _extract_shape(rows)
+            _print_progress_line(
+                index,
+                n_cases,
+                case_name,
+                time.monotonic() - case_start,
+                n_samples,
+                n_features,
+            )
     return return_code
