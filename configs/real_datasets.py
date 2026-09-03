@@ -296,20 +296,18 @@ def covtype(implem: dict):
     }
     if implem["library"] == "sklearn":
         # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC
-        # (OVR, weighted) 0.992. time_limit bumped to 600s: on many-core
-        # runners, n_runs=5 at this size doesn't fit the default 300s budget.
+        # (OVR, weighted) 0.995.
         yield {
             "estimator": "HistGradientBoostingClassifier",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 100,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
                 "max_bins": 255,
                 "early_stopping": False,
             },
-            "bench": {"time_limit": 600},
         }
 
 
@@ -344,21 +342,18 @@ def susy(implem: dict):
     if implem["library"] == "sklearn":
         # HistGradientBoostingClassifier, hgb (no categorical columns, so
         # this is a no-op passthrough - kept for consistency with the other
-        # cases below): ROC AUC 0.878. time_limit bumped to 600s: on
-        # many-core runners, n_runs=5 at this size doesn't fit the default
-        # 300s budget.
+        # cases below): ROC AUC 0.876.
         yield {
             "estimator": "HistGradientBoostingClassifier",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 70,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
                 "max_bins": 255,
                 "early_stopping": False,
             },
-            "bench": {"time_limit": 600},
         }
 
 
@@ -393,13 +388,13 @@ def year_prediction_msd(implem: dict):
     }
     if implem["library"] == "sklearn":
         # HistGradientBoostingRegressor, hgb (no categorical columns): test
-        # R2 0.314 - better than both Ridge and RandomForest above, though
+        # R2 0.304 - better than both Ridge and RandomForest above, though
         # still firmly in "inherently hard task" territory like they are.
         yield {
             "estimator": "HistGradientBoostingRegressor",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 100,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
