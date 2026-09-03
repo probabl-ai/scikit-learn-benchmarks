@@ -20,6 +20,7 @@ jobs:
       parse_ok: ${{ steps.parse.outputs.ok }}
       runs: ${{ steps.parse.outputs.runs }}
       runners: ${{ steps.parse.outputs.runners }}
+      dashboards: ${{ steps.parse.outputs.dashboards }}
       sklearn_owner: ${{ steps.parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
     steps:
@@ -75,6 +76,7 @@ jobs:
           PARSE_OK: ${{ steps.parse.outputs.ok }}
           PARSE_ERROR: ${{ steps.parse.outputs.error }}
           RUNS: ${{ steps.parse.outputs.runs }}
+          DASHBOARDS: ${{ steps.parse.outputs.dashboards }}
           SKLEARN_OWNER: ${{ steps.parse.outputs.sklearn_owner }}
           SKLEARN_HEAD_REF: ${{ steps.parse.outputs.sklearn_head_ref }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -90,6 +92,8 @@ jobs:
               runs_display=$(python3 -c "import json,sys; runs=json.loads(sys.argv[1]); print(', '.join(f\"{r['runner']}: {r['config']} ({r['env']})\" for r in runs))" "$RUNS")
               echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against scikit-learn \`main\`:"
               echo "$runs_display"
+              dashboards_display=$(python3 -c "import json,sys; print(', '.join(json.loads(sys.argv[1])))" "$DASHBOARDS")
+              [ -n "$dashboards_display" ] && echo "Extra dashboards: $dashboards_display"
               echo "Results post as separate comments below as each runner finishes."
             fi
           } > "$RUNNER_TEMP/status.md"
@@ -125,6 +129,9 @@ jobs:
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       RUNS: ${{ needs.gate_and_parse.outputs.runs }}
+      # Applies once per runner's job (not filtered by THIS_RUNNER like RUNS
+      # is) - see COMPARISONS_PR.md's `dashboards:` key.
+      DASHBOARDS: ${{ needs.gate_and_parse.outputs.dashboards }}
       # This job's matrix.runner - RUNS holds every runner's tuples, each
       # step below filters down to the ones targeting this runner.
       THIS_RUNNER: ${{ matrix.runner }}
@@ -198,6 +205,16 @@ jobs:
             pixi run --frozen -e sklearn-pypi python -m sklbench --config "$config" --validate-only
           done < "$RUNNER_TEMP/configs.txt"
 
+      - name: Validate requested dashboard scripts exist
+        # Catches a typo'd `dashboards:` entry (see COMPARISONS_PR.md) before
+        # committing to the benchmark run below, same rationale as the
+        # config validation above.
+        run: |
+          pixi run --frozen -e reporting python3 -c "import json,os; _=[print(d) for d in json.loads(os.environ['DASHBOARDS'])]" > "$RUNNER_TEMP/dashboards.txt"
+          while IFS= read -r dashboard; do
+            [ -f "$dashboard" ] || { echo "::error::requested dashboard script not found: $dashboard" >&2; exit 1; }
+          done < "$RUNNER_TEMP/dashboards.txt"
+
       - name: Run comparison benchmark
         # Reuses run.sh exactly as CONTRIBUTING.md's "Running Against
         # scikit-learn Branches" documents for a PR-vs-base comparison:
@@ -244,6 +261,20 @@ jobs:
           pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
             python "$GITHUB_WORKSPACE/dashboards/pr_comparison_dashboard.py" --output-dir "$SITE_DIR"
 
+      - name: Generate additional dashboards
+        # Requested via the `dashboards:` key (see COMPARISONS_PR.md) - runs
+        # any of this repo's own gen_*.py dashboard generators (e.g.
+        # gen_hgb_dev_speedup_breakdown.py) against the same ephemeral
+        # results/ dir as the comparison table above, alongside it in
+        # $SITE_DIR. A no-op when DASHBOARDS is an empty list.
+        working-directory: ${{ runner.temp }}/pr-compare
+        run: |
+          pixi run --frozen -e reporting python3 -c "import json,os; _=[print(d) for d in json.loads(os.environ['DASHBOARDS'])]" > "$RUNNER_TEMP/dashboards.txt"
+          while IFS= read -r dashboard; do
+            pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
+              python "$GITHUB_WORKSPACE/$dashboard" --output-dir "$SITE_DIR"
+          done < "$RUNNER_TEMP/dashboards.txt"
+
       - name: Deploy to Cloudflare Pages
         id: deploy
         continue-on-error: true
@@ -274,15 +305,25 @@ jobs:
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           runs_display=$(pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; print(', '.join(f\"{r['config']} ({r['env']})\" for r in runs))")
           if [ "$DEPLOY_OUTCOME" = "success" ] && [ -f "$SITE_DIR/pr_comparison.html" ]; then
-            # The site has no index.html (only pr_comparison.html), so the
-            # bare domain 404s - link straight to the page. Cloudflare
-            # Pages' clean-URL rewriting would redirect .html to this same
-            # extension-less path anyway.
-            url="https://${PAGES_BRANCH}.sklbench-pr-comparison.pages.dev/pr_comparison"
+            base_url="https://${PAGES_BRANCH}.sklbench-pr-comparison.pages.dev"
+            # The site has no index.html, so the bare domain 404s - link
+            # straight to each page. Cloudflare Pages' clean-URL rewriting
+            # serves every *.html file at its extension-less path anyway.
+            # List every dashboard actually written to $SITE_DIR
+            # (pr_comparison.html always; any `dashboards:`-requested ones,
+            # see COMPARISONS_PR.md, land there too from the "Generate
+            # additional dashboards" step) instead of hardcoding filenames -
+            # a gen_*.py script's output filename doesn't necessarily match
+            # its script name (e.g. gen_hgb_dev_speedup_breakdown.py writes
+            # hgb_speedup_breakdown.html).
+            dashboard_links=$(
+              { echo "pr_comparison"; (cd "$SITE_DIR" && ls *.html) | sed 's/\.html$//' | grep -v '^pr_comparison$' | sort; } |
+                while IFS= read -r stem; do echo "- [$stem]($base_url/$stem)"; done
+            )
             {
               echo "**${{ matrix.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`main\`, using: $runs_display"
               echo
-              echo "Dashboard: $url"
+              echo "$dashboard_links"
               [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."
               echo
               echo "Full run: $run_url"

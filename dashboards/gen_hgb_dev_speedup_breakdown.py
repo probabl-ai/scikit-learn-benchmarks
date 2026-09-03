@@ -321,7 +321,7 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
     if not points:
         return (
             '<section class="empty">No overlapping (workload, thread count) '
-            f"points between {BASE_BUILD!r} and any variant build.</section>"
+            f"points between {base_build!r} and any variant build.</section>"
         )
 
     variant_colors = variant_color_map(variant_builds)
