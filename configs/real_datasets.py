@@ -388,13 +388,13 @@ def year_prediction_msd(implem: dict):
     }
     if implem["library"] == "sklearn":
         # HistGradientBoostingRegressor, hgb (no categorical columns): test
-        # R2 0.314 - better than both Ridge and RandomForest above, though
+        # R2 0.304 - better than both Ridge and RandomForest above, though
         # still firmly in "inherently hard task" territory like they are.
         yield {
             "estimator": "HistGradientBoostingRegressor",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 100,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
