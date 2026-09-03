@@ -9,18 +9,12 @@ platforms = [
 
 [dependencies]
 python = "3.12.*"
-numpy = "*"
-scipy = "*"
-pandas = "<3"
 ipykernel = "*"
 tabulate = "*"
-fastparquet = "*"
-h5py = "*"
 tqdm = "*"
 psutil = "*"
 requests = "*"
 py-cpuinfo = "*"
-matplotlib = "*"
 pydantic = "*"
 pytest = "*"
 
@@ -34,6 +28,32 @@ joblib = { git = "https://github.com/cakedev0/joblib.git", branch = "vendor-loky
 
 [feature.sklearn-pypi.pypi-dependencies]
 scikit-learn = "==1.9.*"
+# Vanilla `pip install scikit-learn` also pulls numpy/scipy/pandas as PyPI
+# wheels (bundled OpenBLAS), not conda-forge builds - keep this environment
+# on the same wheels so it reflects what most users actually run. fastparquet/
+# h5py/matplotlib have to come from PyPI here too: their conda-forge builds
+# link against conda numpy, which would drag conda numpy/pandas back in as a
+# transitive conda dependency and defeat the point.
+numpy = "*"
+scipy = "*"
+pandas = "<3"
+fastparquet = "*"
+h5py = "*"
+matplotlib = "*"
+
+[feature.numpy-conda.dependencies]
+# numpy/scipy/pandas, plus the conda packages that transitively require
+# conda-built numpy/pandas (fastparquet, h5py, matplotlib), for every
+# conda-forge-built scikit-learn environment. Kept out of the base
+# [dependencies] so `sklearn-pypi` (and the Array API environments layered
+# on it) can source all of these from PyPI instead - see
+# feature.sklearn-pypi.pypi-dependencies above.
+numpy = "*"
+scipy = "*"
+pandas = "<3"
+fastparquet = "*"
+h5py = "*"
+matplotlib = "*"
 
 [feature.sklearn-conda.dependencies]
 scikit-learn = "1.9.*"
@@ -157,18 +177,22 @@ plotly = "*"
 Jinja2 = "*"
 
 [environments]
+# Explicit so a bare `pixi run` (no `-e`) still gets conda-forge numpy/scipy/
+# pandas instead of silently falling back to whatever PyPI transitively
+# resolves from openml now that they're no longer in the base [dependencies].
+default = ["numpy-conda"]
 sklearn-pypi = ["sklearn-pypi"]
-sklearn-cf-default = ["sklearn-conda"]
+sklearn-cf-default = ["sklearn-conda", "numpy-conda"]
 # ^ this environement is the exact same than "sklearn-openblas-libgomp" in practice
 # so we never use it:
-sklearn-cf-libgomp-openblas = ["sklearn-openblas-pthreads"]
-sklearn-cf-libomp-openblas = ["sklearn-openblas-pthreads", "sklearn-openblas-pthreads-kmp-llvm"]
-sklearn-cf-libomp-openblas-omp = ["sklearn-openblas-openmp"]
-sklearn-cf-mkl = ["sklearn-mkl"]
-sklearn-dev = ["sklearn-dev"]
-sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp"]
+sklearn-cf-libgomp-openblas = ["sklearn-openblas-pthreads", "numpy-conda"]
+sklearn-cf-libomp-openblas = ["sklearn-openblas-pthreads", "sklearn-openblas-pthreads-kmp-llvm", "numpy-conda"]
+sklearn-cf-libomp-openblas-omp = ["sklearn-openblas-openmp", "numpy-conda"]
+sklearn-cf-mkl = ["sklearn-mkl", "numpy-conda"]
+sklearn-dev = ["sklearn-dev", "numpy-conda"]
+sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp", "numpy-conda"]
 skl-cpu = ["sklearn-pypi", "skl-cpu"]
 skl-intel = ["sklearn-pypi", "skl-intel"]
 skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
-intel = ["intel"]
-reporting = ["reporting"]
+intel = ["intel", "numpy-conda"]
+reporting = ["reporting", "numpy-conda"]
