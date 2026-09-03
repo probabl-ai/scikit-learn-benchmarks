@@ -106,11 +106,9 @@ def _test_linear_cases(implem: dict) -> Iterable[dict]:
 def linear_data_shapes(scale: int) -> list[dict]:
     """Base (n_samples, n_features, n_informative) shapes at a given scale.
 
-    Shared with `all_models_scaling.py`'s thread-count scaling study so both
-    configs stay in sync on what "scale N" means. scale=10 matches the
-    "fast" tier, so "normal"'s first rung sits at roughly the same magnitude
-    as "fast", then grows from there - mirroring `synthetic_trees.py`'s
-    scale ladder.
+    scale=10 matches the "fast" tier, so "normal"'s first rung sits at
+    roughly the same magnitude as "fast", then grows from there - mirroring
+    `synthetic_trees.py`'s scale ladder.
     """
     return [
         {"n_samples": 50000 * scale, "n_features": 20, "n_informative": 5},

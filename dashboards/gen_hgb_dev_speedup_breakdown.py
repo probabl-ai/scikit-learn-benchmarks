@@ -2,7 +2,7 @@
 branches against `main` on the same machine.
 
 Reuses the instrumented HGB records, thread-count/dedup logic and phase
-breakdown from gen_hgb_scaling.py (see that module's docstring for why raw
+breakdown from gen_hgb_scalability_breakdown.py (see that module's docstring for why raw
 `read_benchmark_records()` is read instead of `read_all_results()`).
 
 One chart per thread count. Within a chart, x-axis = phase (categorical),

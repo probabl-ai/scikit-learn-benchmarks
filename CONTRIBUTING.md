@@ -216,7 +216,7 @@ base ref:
 
 ```bash
 ./run.sh sklearn-dev@cakedev0:hgb/use_threads_if sklearn-dev@scikit-learn:main \
-    --config configs/hgb_scaling.py
+    --config configs/hgb_scalability.py
 ```
 
 Each `env@owner:ref` entry is set up and run in turn, so this checks out and
@@ -243,7 +243,7 @@ to `run.sh` with the same ref:
 
 ```bash
 ./run.sh sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \
-    --config configs/hgb_scaling.py
+    --config configs/hgb_scalability.py
 ```
 
 For local scikit-learn edits, make a temporary commit in the scikit-learn

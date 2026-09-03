@@ -2,7 +2,7 @@
 restricted to `sklearn-dev*` builds.
 
 Reuses the instrumented-HGB record selection, phase-breakdown math and
-per-workload rendering from gen_hgb_scaling.py (see that module's docstring
+per-workload rendering from gen_hgb_scalability_breakdown.py (see that module's docstring
 for why raw `read_benchmark_records()` is read and how thread count/dedup
 identity work) - this dashboard differs only in which builds it includes.
 
@@ -10,7 +10,7 @@ identity work) - this dashboard differs only in which builds it includes.
 specific commit/PR branch, see CONTRIBUTING.md's `setup_sklearn_ref.sh` /
 `run.sh env@owner:ref` workflow) rather than a stable environment build, so
 a "software build" tab here means "whatever ref that checkout was on", not a
-fixed BLAS/OpenMP variant. gen_hgb_scaling.py excludes these builds for the
+fixed BLAS/OpenMP variant. gen_hgb_scalability_breakdown.py excludes these builds for the
 same reason, in the other direction - kept split into two dashboards rather
 than one so neither's per-build tabs mix apples (stable builds) with oranges
 (one-off dev checkouts).
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     for record in records:
         by_env.setdefault(_env_key(record), []).append(record)
 
-    # Same tab structure as gen_hgb_scaling.py - one per (hardware, software
+    # Same tab structure as gen_hgb_scalability_breakdown.py - one per (hardware, software
     # build, active-wait, proc-bind) combo, see that module's __main__ for why.
     pages = [
         (

@@ -345,12 +345,12 @@ def _failed_hover_text(record: BenchmarkRecord) -> str:
 
 
 # Spacing between adjacent x_variant columns (e.g. the w/wo max_bins tree
-# columns) - doubled from the original 0.14 so those columns stay clearly
-# separated once points within a column are spread by SIZE_JITTER_WIDTH.
+# columns) - kept wide enough that columns stay clearly separated once
+# points within a column are spread by SIZE_JITTER_WIDTH.
 _VARIANT_OFFSET_STEP = 0.28
 
 # Max x-axis spread applied within a column by dataset size (see
-# `_size_jitter`) - matches the original (pre-doubling) w/wo max_bins gap.
+# `_size_jitter`).
 SIZE_JITTER_WIDTH = 0.14
 
 
@@ -385,7 +385,7 @@ def phase_breakdown_plot_html(
     optional `"x_label"` overriding `str(x)` as the tick label (e.g. to show
     an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
     drives sort order. Legend is disabled on every trace - callers render one
-    shared legend across a grid of these (see dashboards/gen_hgb_scaling.py)
+    shared legend across a grid of these (see dashboards/gen_hgb_scalability_breakdown.py)
     rather than repeating it per small multiple."""
     if phase_labels is None:
         phase_labels = {phase: phase for phase in phase_order}

@@ -35,7 +35,7 @@ to `_with_scaling_bench`, not set by any other config - combined with the
 the config module itself (`configs/` isn't on this script's import path, and
 no other `dashboards/gen_*.py` imports from it - see e.g.
 `configs/_implementations.py` being re-derived instead of imported in
-gen_hgb_scaling.py).
+gen_hgb_scalability_breakdown.py).
 """
 from html import escape
 from pathlib import Path

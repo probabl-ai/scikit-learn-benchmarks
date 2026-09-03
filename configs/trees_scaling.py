@@ -1,23 +1,23 @@
 """
 Thread-count scaling study for RandomForestClassifier, mirroring
-`hgb_scaling.py`'s pattern (`taskset_for_physical_cores` + a fixed workload
-list swept across `get_n_cores_list()`) but for a forest of independently
-built trees instead of HGB's sequential boosting.
+`hgb_scalability.py`'s pattern (`taskset_for_physical_cores` + a fixed
+workload list swept across `get_n_cores_list()`) but for a forest of
+independently built trees instead of HGB's sequential boosting.
 
 Half the workloads are synthetic (`make_trees_classification_data`, sized
 XS/S/M/L) and half are real datasets already used with RandomForestClassifier
 in `real_datasets.py` (amazon_employee_access, bank_marketing, fraud,
-covtype), spanning a similar size range. All cases are classification only,
-same simplification `hgb_scaling.py` already made after finding
-classification/regression didn't need separate coverage.
+covtype), spanning a similar size range. All cases are classification only:
+classification/regression don't need separate coverage here, same as
+`hgb_scalability.py`'s TASKS restriction.
 
 `n_estimators`/`max_features` are fixed across the thread sweep (unlike
 `real_datasets.py`, which scales `n_estimators` with the host's core count)
 so forest size doesn't change together with thread count - only `n_jobs`
 does. `n_jobs=-1` + `taskset` is the same thread-pinning pattern
-`all_models_scaling.py` already uses for RandomForest/ExtraTrees: joblib
-picks up the taskset-restricted CPU affinity rather than being told the
-count directly.
+`models_scalability.py` uses for RandomForest/ExtraTrees: joblib picks up
+the taskset-restricted CPU affinity rather than being told the count
+directly.
 """
 from math import sqrt
 

@@ -1,9 +1,8 @@
 """
 Thread-count scaling study for a small, representative slice of models, each
-paired with one real dataset from `real_datasets.py` (real data, not
-synthetic like `all_models_scaling.py`'s thread-scaling sweep) - one linear
-regressor, one linear classifier, two different tree-ensemble classifiers,
-and one clustering estimator:
+paired with one real dataset from `real_datasets.py` - one linear regressor,
+one linear classifier, two different tree-ensemble classifiers, and one
+clustering estimator:
 
 - Ridge on year_prediction_msd (regression)
 - LogisticRegression on covtype (classification, Nystroem-preprocessed)
@@ -14,12 +13,11 @@ and one clustering estimator:
 Cases/hyperparameters are pulled straight from `real_datasets.py` (filtered
 to these exact (estimator, dataset) pairs) rather than duplicated here, then
 swept across thread count (`taskset_for_physical_cores`, same pattern as
-`hgb_scaling.py`/`all_models_scaling.py`) and crossed with every plain-CPU
+`hgb_scalability.py`/`trees_scaling.py`) and crossed with every plain-CPU
 implementation for the active Pixi environment (`sklearn`, and
 `sklearnex-cpu` under `intel`) via `implementations_for_pixi_env` - no
 array-API and no sklearnex-gpu implementations, since `taskset`-based thread
-pinning isn't a meaningful axis for GPU-offloaded/array-API-dispatched work
-(same filter as `all_models_scaling.py`).
+pinning isn't a meaningful axis for GPU-offloaded/array-API-dispatched work.
 
 RandomForestClassifier/ExtraTreesClassifier's `n_jobs` (baked into
 `real_datasets.py` as a fixed fraction of *this* machine's core count) is
@@ -111,15 +109,15 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     the axis worth comparing directly for RF/ET, so both variants are
     yielded (tagged via `metadata["with_siblings"]`, since `bench` - where
     the taskset itself lives - is stripped from case identity elsewhere,
-    e.g. `gen_hgb_scaling.py`). Every other estimator here (Ridge/
-    LogisticRegression/KMeans) has no `n_jobs`, so `with_siblings=True`
-    unconditionally, same as `hgb_scaling.py`.
+    e.g. `dashboards/gen_hgb_scalability_breakdown.py`). Every other
+    estimator here (Ridge/LogisticRegression/KMeans) has no `n_jobs`, so
+    `with_siblings=True` unconditionally, same as `hgb_scalability.py`.
 
     KMeans is the only estimator here whose hot loop is OpenMP-parallelized
     in Cython (like HistGradientBoosting), so it's the only one that needs
     `OMP_NUM_THREADS` set explicitly to make thread count follow the sweep
     (Ridge/LogisticRegression/RF/ET rely on BLAS/`n_jobs` respecting the
-    `taskset` affinity alone, same as `all_models_scaling.py`). sklearn's
+    `taskset` affinity alone). sklearn's
     KMeans is also skipped above 128 threads - see `real_datasets.py`'s
     `KMEANS_BENCH` for the OpenBLAS crash this avoids; not applied to
     sklearnex, whose threading isn't OpenMP/OMP_NUM_THREADS-driven.

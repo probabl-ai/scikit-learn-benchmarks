@@ -49,7 +49,7 @@ def _category_of(case: dict) -> str:
 
 def is_scaling_benchmark(result: "MethodResult | BenchmarkRecord") -> bool:
     """Results from a config meant for its own thread/size scaling dashboard
-    (e.g. `configs/hgb_scaling.py`) rather than for the general per-hardware,
+    (e.g. `configs/hgb_scalability.py`) rather than for the general per-hardware,
     build, or hardware comparison dashboards."""
     return result.benchmark_type == "scaling"
 

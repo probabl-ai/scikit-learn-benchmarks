@@ -29,5 +29,6 @@ def generate_cases() -> list[dict]:
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_array_api_supported_cases_if_needed(cases))
 
-    # removed clustering cases, as it's enough with what's in real_datasets.py's KMeans cases
+    # No separate clustering-case generator here: real_datasets.py's KMeans
+    # cases already cover this tier.
     return cases

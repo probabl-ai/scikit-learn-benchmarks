@@ -12,7 +12,7 @@ but kept as pandas `category` dtype, so HGB still uses its native
 categorical split rather than treating them as plain ordinals). Tuned the
 same way as the other models, with `early_stopping=False` fixed during the
 search - the goal is a realistic-but-fixed-cost HGB config, since
-`configs/hgb_scaling.py` reuses these exact cases (filtered to HGB only) for
+`configs/hgb_scalability.py` reuses these exact cases (filtered to HGB only) for
 its thread-scaling sweep, where a variable iteration count per thread count
 would confound the scaling measurement.
 

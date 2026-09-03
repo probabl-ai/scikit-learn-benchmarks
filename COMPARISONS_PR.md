@@ -7,7 +7,7 @@ somewhere in the PR description:
 
 ```sklbench-compare
 sklearn_ref: cakedev0:ridge/optim_cholesky
-runs: configs/hgb_scaling.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
+runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
 ```
 
 - `sklearn_ref` (required): the scikit-learn fork owner and branch/ref to
@@ -28,8 +28,8 @@ runs: configs/hgb_scaling.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
     both sides of the `sklearn_ref` vs `main` comparison for this entry.
     Defaults to `sklearn-dev` when omitted.
 
-  So `configs/hgb_scaling.py` alone runs that config on both runners under
-  `sklearn-dev` (the original, single-config/single-env behavior).
+  So `configs/hgb_scalability.py` alone runs that config on both runners under
+  `sklearn-dev`.
   `intel-gnr#sklearn-dev-libomp#configs/pipeline.py` runs only on `intel-gnr`,
   building both `main` and the PR ref under `sklearn-dev-libomp`, to isolate
   e.g. an OpenMP-runtime effect the way CONTRIBUTING.md's `run.sh` example

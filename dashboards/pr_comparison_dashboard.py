@@ -65,7 +65,7 @@ from sklbench.reporting.html import (
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
 # "sklearn-dev-libomp@..." (see configs/_implementations.py). Re-derived
-# here rather than imported from gen_hgb_speedup_breakdown.py, per this
+# here rather than imported from gen_hgb_dev_speedup_breakdown.py, per this
 # codebase's convention of each gen_*.py dashboard owning its own such
 # helpers instead of importing another dashboard module's internals.
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
@@ -79,7 +79,7 @@ def _base_build(builds: list[str]) -> str | None:
     """The `sklearn-dev@<owner>:main` build among `builds` - picked
     dynamically since `<owner>` varies with whichever fork/remote this
     comparison's baseline used (see CONTRIBUTING.md's `env@owner:ref`
-    workflow), same heuristic as gen_hgb_speedup_breakdown.py's
+    workflow), same heuristic as gen_hgb_dev_speedup_breakdown.py's
     `_base_build`."""
     return next((build for build in builds if build.rsplit(":", 1)[-1] == "main"), None)
 

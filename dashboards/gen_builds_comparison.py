@@ -50,8 +50,8 @@ def is_array_api_variant(result: MethodResult | BenchmarkRecord) -> bool:
 
 def is_sklearn_dev_variant(result: MethodResult | BenchmarkRecord) -> bool:
     """`sklearn-dev`/`sklearn-dev-libomp`/... builds get their own dedicated
-    branch-vs-branch dashboards (gen_sklearn_dev_comparison.py,
-    gen_hgb_speedup_breakdown.py) rather than being folded in here as more
+    branch-vs-branch dashboards (gen_hgb_dev_scalability_breakdown.py,
+    gen_hgb_dev_speedup_breakdown.py) rather than being folded in here as more
     build variants."""
     return is_sklearn_dev_build(software_build_name(result.software_hash))
 

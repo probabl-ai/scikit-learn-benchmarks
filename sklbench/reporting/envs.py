@@ -23,9 +23,9 @@ def read_env(kind: str, hash: str):
 # results from all of them report implementation.short_name == "sklearn".
 # Dashboards that compare implementations against a single sklearn baseline
 # should restrict to this one to avoid ambiguous matches.
-# "sklearn" was the pixi environment's name before the 2026-08-13 pixi.toml
-# rename to "sklearn-pypi"; results captured before that rename still record
-# the old name, so both must match.
+# Older result files record the pixi environment name as "sklearn"; newer
+# ones use "sklearn-pypi". Both must match so historical results are still
+# picked up.
 VANILLA_SKLEARN_PIXI_ENVS = {"sklearn", "sklearn-pypi"}
 
 

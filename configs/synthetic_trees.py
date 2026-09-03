@@ -33,11 +33,7 @@ def get_estimator_params_variants(n_samples: int, broad=False):
 
 
 def tree_data_shapes(scale: int) -> list[dict]:
-    """Base (n_samples, n_features, n_informative) shapes at a given scale.
-
-    Shared with `all_models_scaling.py`'s thread-count scaling study so both
-    configs stay in sync on what "scale N" means.
-    """
+    """Base (n_samples, n_features, n_informative) shapes at a given scale."""
     return [
         {"n_samples": 10000 * scale, "n_features": 1, "n_informative": 1},
         {"n_samples": 1000 * scale, "n_features": 20, "n_informative": 10},

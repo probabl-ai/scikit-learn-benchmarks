@@ -117,7 +117,7 @@ def default_comparison_key(result: MethodResult) -> str:
 def _row_columns_kind(case: dict) -> str | None:
     """The synthetic tree datasets' column-type mix (e.g. "mix", "binary",
     "continuous", "long-tail") - only set in generation_kwargs for
-    tree-based configs (see configs/synthetic_trees.py, hgb_scaling.py)."""
+    tree-based configs (see configs/synthetic_trees.py, hgb_scalability.py)."""
     return case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 

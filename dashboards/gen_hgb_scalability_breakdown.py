@@ -1,6 +1,6 @@
 """HistGradientBoosting fit-time phase breakdown across thread counts.
 
-Reads the instrumented HGB records produced by `configs/hgb_scaling.py`
+Reads the instrumented HGB records produced by `configs/hgb_scalability.py`
 (`sklbench/runners/estimator/wrappers/instrumented_hgb.py` swaps in an HGB
 subclass that times binning/tree-growing sub-phases). One small-multiple
 stacked bar per workload, x-axis = thread count, segments = phase.
@@ -22,7 +22,7 @@ builds (a specific commit/PR branch, see CONTRIBUTING.md's
 `setup_sklearn_ref.sh` / `run.sh env@owner:ref` workflow) rather than a
 stable environment build, so mixing them into this dashboard's per-build
 tabs would make a tab mean "whatever PR happened to run last" instead of a
-fixed build. See `gen_hgb_dev_scaling.py` for the sklearn-dev-only
+fixed build. See `gen_hgb_dev_scalability_breakdown.py` for the sklearn-dev-only
 counterpart.
 """
 from html import escape
@@ -111,8 +111,8 @@ _SECONDS_ATTRIBUTES = [
 
 def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
     """Whether `record` is an instrumented-HGB result from a thread-scaling
-    sweep config (`configs/hgb_scaling.py` or alike, e.g.
-    `hgb_scaling_proc_bind.py`/`hgb_scaling_force_active_wait.py` - anything
+    sweep config (`configs/hgb_scalability.py` or alike, e.g.
+    `hgb_scalability_proc_bind.py`/`hgb_scalability_force_active_wait.py` - anything
     tagging `metadata.benchmark_type: scaling`), as opposed to some other
     config's HGB result that happens to carry phase timings too, since
     `sklbench.runners.estimator.loading.wrapped_estimators` instruments every
@@ -129,7 +129,7 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
 # "sklearn-dev-libomp@..." (see configs/_implementations.py). Re-derived here
-# rather than imported from gen_hgb_speedup_breakdown.py, per this codebase's
+# rather than imported from gen_hgb_dev_speedup_breakdown.py, per this codebase's
 # convention of each gen_*.py dashboard owning its own such helpers instead
 # of importing another dashboard module's internals.
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
@@ -265,7 +265,7 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
         "hist_time": grow_parts["hist_time"],
         "total_ms": fit_ms,
         # Raw per-repeat fit times (ms), for callers that need to gauge
-        # measurement noise around `total_ms` (e.g. gen_hgb_speedup_breakdown.py)
+        # measurement noise around `total_ms` (e.g. gen_hgb_dev_speedup_breakdown.py)
         # rather than just the de-noised median point estimate.
         "total_ms_repeats": fit_ms_repeats,
     }
@@ -318,7 +318,7 @@ _SUBTITLE_HPARAMS_EXCLUDED = {
 def _workload_subtitle(record: BenchmarkRecord) -> str:
     """One small-print line of the hyperparameters/data-shape details that
     most affect fit time but aren't captured by the workload name/shape
-    alone - e.g. "L" vs "L-leaf255" in hgb_scaling.py's WORKLOADS only differ
+    alone - e.g. "L" vs "L-leaf255" in hgb_scalability.py's WORKLOADS only differ
     by `max_leaf_nodes`/`max_iter`, not by name. `n_iter` is the actual
     number of boosting iterations run (from the fitted estimator's
     `n_iter_`), not the `max_iter` param - the two only diverge when

@@ -21,7 +21,8 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models_test.py"): ARRAY_API_ENVS,
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
-    Path("configs/all_models_scaling.py"): GENERAL_ENVS,
+    Path("configs/all_models_linear.py"): ARRAY_API_ENVS,
+    Path("configs/models_scalability.py"): GENERAL_ENVS,
 }
 
 
@@ -80,9 +81,11 @@ def test_shipped_configs_generate_valid_cases(monkeypatch):
     # environment it supports, including GPU-only ones (skl-intel,
     # skl-nvidia) - independent of whether the machine actually running the
     # test has that GPU hardware. `filter_gpu_cases_if_unavailable` (see
-    # test_filter_gpu_cases_if_unavailable_*) is what makes that hardware
-    # check environment-dependent for real runs; pretend a GPU is always
-    # present here so this test keeps validating config *structure*.
+    # test_filter_gpu_cases_drops_gpu_cases_without_matching_hardware and
+    # test_filter_gpu_cases_keeps_gpu_cases_with_matching_hardware below) is
+    # what makes that hardware check environment-dependent for real runs;
+    # pretend a GPU is always present here so this test keeps validating
+    # config *structure*.
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
 
