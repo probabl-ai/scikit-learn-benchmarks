@@ -158,7 +158,7 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
             # when you use all the available cores (and maybe even a bit on hybrid cores)
         },
         "py_spy_profiling": False,
-    },
+    }
 
     if not has_hybrid_cores():
         bench["taskset"] = taskset_for_physical_cores(thread_count, with_siblings=True)
