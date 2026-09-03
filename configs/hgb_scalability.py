@@ -144,26 +144,28 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     conda-selected package with a PyPI git dependency of the same name -
     so those keep using upstream joblib's affinity-blind cpu_count().
     """
-    env = {
-        "OMP_NUM_THREADS": str(thread_count),
-        # "OMP_PROC_BIND": "true"
-        # OMP_PROC_BIND=true has several issues:
-        # - use with parallel processes/threads it can be very detrimental
-        #   (e.g. grid search)
-        # - on hybrid cores, it can force using bad cores; while the OS would
-        #   have otherwise used fast cores preferably (when n_threads < n_cores)
-        # But OMP_PROC_BIND=true is also very beneficial on a big box like the GNR
-        # when you use all the available cores (and maybe even a bit on hybrid cores)
-    }
+
+    bench = {
+        "n_runs": 5,
+        "env": {
+            "OMP_NUM_THREADS": str(thread_count),
+            # OMP_PROC_BIND=true has several issues:
+            # - used with parallel processes/threads it can be very detrimental
+            #   (e.g. grid search)
+            # - on hybrid cores, it can force using bad cores; while the OS would
+            #   have otherwise used fast cores preferably (when n_threads < n_cores)
+            # But OMP_PROC_BIND=true is also very beneficial on a big box like the GNR
+            # when you use all the available cores (and maybe even a bit on hybrid cores)
+        },
+        "py_spy_profiling": False,
+    },
+
+    if not has_hybrid_cores():
+        bench["taskset"] = taskset_for_physical_cores(thread_count, with_siblings=True)
 
     return {
         **case,
-        "bench": {
-            "n_runs": 5,
-            "env": env,
-            "taskset": taskset_for_physical_cores(thread_count, with_siblings=True),
-            "py_spy_profiling": False,
-        },
+        "bench": bench
     }
 
 
