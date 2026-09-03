@@ -15,6 +15,7 @@ from typing import Any
 from ..config import Case, EstimatorCase, PipelineCase
 from .commands import run_runner_from_case
 from .env import get_environment_info
+from .system_monitor import SystemMonitor
 
 logger = logging.getLogger(__name__)
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -203,6 +204,7 @@ def save_benchmark_record(
     failed_case: dict | None,
     hardware_hash: str,
     software_hash: str,
+    system_telemetry: list[dict] | None = None,
 ):
     record_path.parent.mkdir(parents=True, exist_ok=True)
     record = {
@@ -212,6 +214,14 @@ def save_benchmark_record(
         "results": rows,
         "failed_case": failed_case,
     }
+    if system_telemetry:
+        # Only the samples that fell within this case's own wall-clock
+        # window (see `SystemMonitor.samples_between`) - omitted entirely
+        # rather than an empty list when there are none, so a boring
+        # sub-second case's record doesn't carry the key at all. The
+        # complete, uninterrupted session log still lives in
+        # results/system-telemetry/ regardless of what's embedded here.
+        record["system_telemetry"] = system_telemetry
     with record_path.open("x", encoding="utf-8") as fp:
         json.dump(record, fp, indent=4)
 
@@ -292,7 +302,42 @@ def orchestrate_benchmarks(
     records_dir = results_root / "records"
     profiles_dir = results_root / "profiles"
 
+    system_monitor = SystemMonitor(
+        results_root / "system-telemetry" / f"{hardware_hash}_{_timestamp()}.jsonl",
+        interval=args.system_telemetry_interval,
+    )
+    if not args.no_system_telemetry:
+        system_monitor.start()
+
     n_cases = len(bench_cases)
+    try:
+        return_code = _run_all_cases(
+            bench_cases,
+            args,
+            return_code,
+            records_dir,
+            profiles_dir,
+            hardware_hash,
+            software_hash,
+            n_cases,
+            system_monitor,
+        )
+    finally:
+        system_monitor.stop()
+    return return_code
+
+
+def _run_all_cases(
+    bench_cases: list[Case],
+    args,
+    return_code: int,
+    records_dir: Path,
+    profiles_dir: Path,
+    hardware_hash: str,
+    software_hash: str,
+    n_cases: int,
+    system_monitor: SystemMonitor,
+) -> int:
     for index, bench_case in enumerate(bench_cases, start=1):
         basename = _case_basename(bench_case)
         record_path = records_dir / f"{basename}.json"
@@ -300,7 +345,9 @@ def orchestrate_benchmarks(
         record_saved = False
         cprofile_already_run = False
         case_name = bench_case.name(shortened=True)
+        system_monitor.set_current_case(index, case_name)
         case_start = time.monotonic()
+        case_start_wall = datetime.now(timezone.utc)
         rows = None
         try:
             normal_run_start = time.monotonic()
@@ -313,6 +360,9 @@ def orchestrate_benchmarks(
                 failed_case,
                 hardware_hash,
                 software_hash,
+                system_telemetry=system_monitor.samples_between(
+                    case_start_wall, datetime.now(timezone.utc)
+                ),
             )
             record_saved = True
             if bench_return_code != 0:

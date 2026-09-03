@@ -153,6 +153,22 @@ Generated benchmark records are written under `results/records/`. Captured
 hardware and software environments are stored under `results/hardware-envs/`
 and `results/software-envs/` using hash-only filenames.
 
+The orchestrator also samples system telemetry (per-core CPU load/frequency,
+temperature sensors, load average, system-wide RAM/swap usage) on a fixed
+wall-clock interval for the
+whole run, independent of case boundaries, and writes it to
+`results/system-telemetry/<hardware_hash>_<run_timestamp>.jsonl` - a
+complete, uninterrupted log of the whole session. Whatever samples fall
+within one case's own wall-clock window are also embedded directly into
+that case's saved record, under a `system_telemetry` key, so a slow case's
+record is self-contained; a case that finishes well within one sampling
+interval simply doesn't get the key. This is a debugging aid for
+correlating a suspicious repeat's timestamp against what the machine was
+doing at the time (e.g. thermal throttling, a core stuck at a low P-state) -
+not something dashboards read. Disable it with `--no-system-telemetry`, or
+adjust the cadence with `--system-telemetry-interval <seconds>` (default:
+2.0).
+
 **Cloud machines can have high tail variability**, especially for scaling studies
 and short workloads. Prefer stable local/dedicated hardware when deciding whether
 one representative case can replace a broader matrix.

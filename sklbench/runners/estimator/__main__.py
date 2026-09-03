@@ -9,12 +9,13 @@ import math
 import statistics
 import sys
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
+import joblib
 import numpy as np
 
 from ...config import EstimatorCase
-from .._measurement import measure_perf
 from ..datasets import load_raw_data, preprocess_data
 from .loading import (
     capture_sklearnex_dispatch_log,
@@ -26,6 +27,18 @@ from .loading import (
 from .metrics import get_subset_metrics_of_estimator
 
 logger = logging.getLogger(__name__)
+
+
+def detected_core_counts() -> dict:
+    """Cores joblib sees under the process's current CPU affinity (e.g. a
+    benchmark case's `taskset`, applied once for the whole runner
+    subprocess). Fixed for the life of the process - call this once per case
+    run, not once per timed call: it can't differ between `fit` and
+    `predict`, or between repeats of the same case."""
+    return {
+        "n_detected_physical_cores": joblib.cpu_count(only_physical_cores=True),
+        "n_detected_logical_cpus": joblib.cpu_count(only_physical_cores=False),
+    }
 
 
 def _array_like_size(value: Any) -> int | None:
@@ -157,19 +170,12 @@ def run_case_once(
     is_sklearnex = bench_case.implementation.library == "sklearnex"
 
     times = {}
-    profiling_metrics = {}
 
     # Preprocessed fresh on every repeat, not once up front, so the
     # preprocessing pipeline itself is measured like `fit`/`predict`.
-    times["preprocessing"], profiling_metrics["preprocessing"], (data, subset_description) = (
-        measure_perf(
-            preprocess_data,
-            bench_case,
-            raw_data,
-            data_description,
-            bench_params=bench_case.bench,
-        )
-    )
+    t0 = perf_counter()
+    data, subset_description = preprocess_data(bench_case, raw_data, data_description)
+    times["preprocessing"] = 1000 * (perf_counter() - t0)
     X_train, X_test, y_train, y_test = data
 
     with (
@@ -177,18 +183,13 @@ def run_case_once(
         if is_sklearnex
         else nullcontext([])
     ) as dispatch_log:
-        times["fit"], profiling_metrics["fit"], _ = measure_perf(
-            estimator.fit,
-            X_train,
-            y_train,
-            bench_params=bench_case.bench,
-        )
+        t0 = perf_counter()
+        estimator.fit(X_train, y_train)
+        times["fit"] = 1000 * (perf_counter() - t0)
 
-        times["predict"], profiling_metrics["predict"], _ = measure_perf(
-            estimator.predict,
-            X_test,
-            bench_params=bench_case.bench,
-        )
+        t0 = perf_counter()
+        estimator.predict(X_test)
+        times["predict"] = 1000 * (perf_counter() - t0)
 
         quality_metrics = {
             "fit": get_subset_metrics_of_estimator(
@@ -227,7 +228,6 @@ def run_case_once(
         "data_desc": data_desc,
         "time_ms": times,
         "metrics": quality_metrics,
-        "profiling_metrics": profiling_metrics,
         "attributes": attributes,
     }
 
@@ -254,14 +254,15 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
     estimator_class = get_estimator(library_name, estimator_name)
 
     raw_data, data_description = load_raw_data(bench_case)
-    gc.collect()
     estimator_params = dict(bench_case.algorithm.estimator_params)
+    detected_cores = detected_core_counts()
 
     with (
         output_jsonl.open("w", encoding="utf-8") as fp,
         get_context(bench_case.implementation),
     ):
         for repeat in range(n_runs):
+            gc.collect()
             repeat_estimator_params = estimator_params_for_repeat(
                 estimator_class, estimator_params, repeat
             )
@@ -271,6 +272,7 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
                 raw_data,
                 data_description,
             )
+            row["detected_cores"] = detected_cores
             fp.write(json.dumps(row, default=_as_jsonable) + "\n")
             fp.flush()
 

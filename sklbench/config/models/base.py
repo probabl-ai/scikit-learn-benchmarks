@@ -32,11 +32,6 @@ class Bench(Section):
     py_spy_profiling: bool = Field(default_factory=_py_spy_profiling_default)
     py_spy_native: bool = True
     cprofile_profiling: bool = False
-    flush_cache: bool = False
-    gc_collect: bool = False
-    cpu_profile: bool = False
-    memory_profile: bool = False
-    memory_profiling_interval: float = 0.001
 
 
 class BaseCase(BaseModel):

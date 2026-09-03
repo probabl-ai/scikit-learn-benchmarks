@@ -35,6 +35,23 @@ def add_orchestrator_arguments(
         ),
     )
     parser.add_argument(
+        "--no-system-telemetry",
+        dest="no_system_telemetry",
+        default=False,
+        action="store_true",
+        help=(
+            "Disable the background system telemetry sampler (CPU load, "
+            "per-core frequency, temperature) that otherwise runs for the "
+            "whole session and writes to results/system-telemetry/."
+        ),
+    )
+    parser.add_argument(
+        "--system-telemetry-interval",
+        type=float,
+        default=2.0,
+        help="Seconds between system telemetry samples (default: 2.0).",
+    )
+    parser.add_argument(
         "--validate-only",
         default=False,
         action="store_true",
