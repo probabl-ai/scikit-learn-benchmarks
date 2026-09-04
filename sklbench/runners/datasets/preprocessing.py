@@ -329,8 +329,40 @@ def hgb_preprocessing(X_train, X_test, y_train=None, transfer_to_device=None):
     return X_train, X_test
 
 
+def categorical_only_preprocessing(
+    X_train, X_test, y_train=None, format=None, transfer_to_device=None
+):
+    """Keep only `category`-dtype columns, dropping numeric ones, and cast
+    them to `format` (e.g. `"object"`/`"string"`/`"category"`).
+
+    Used by the `encoders` benchmark config to time OneHotEncoder/
+    OrdinalEncoder/TargetEncoder on the categorical part of a dataset in
+    isolation. `format` is applied here, as its own `preprocessing_kwargs`
+    key, rather than through `data.dtype`/`transfer_to_device` (see
+    `build_transfer_to_device`) - that generic knob also casts `y`
+    (`sklbench.runners.datasets.preprocess_data`'s `label_transfer_to_device`
+    falls back to `data.dtype` for datasets with no `n_classes`, i.e.
+    regression), which would corrupt `TargetEncoder`'s target-type
+    detection.
+    """
+    categorical_columns = X_train.select_dtypes(["category"]).columns.tolist()
+    X_train = X_train[categorical_columns]
+    X_test = X_test[categorical_columns]
+
+    if format is not None:
+        X_train = X_train.astype(format)
+        X_test = X_test.astype(format)
+
+    if transfer_to_device is not None:
+        X_train = transfer_to_device.fit_transform(X_train)
+        X_test = transfer_to_device.transform(X_test)
+
+    return X_train, X_test
+
+
 PREPROCESSINGS = {
     'trees': trees_preprocessor,
     'linear': linear_preprocessor,
     'hgb': hgb_preprocessing,
+    'categorical_only': categorical_only_preprocessing,
 }

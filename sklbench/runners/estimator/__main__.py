@@ -178,6 +178,12 @@ def run_case_once(
     times["preprocessing"] = 1000 * (perf_counter() - t0)
     X_train, X_test, y_train, y_test = data
 
+    # Encoders (OneHotEncoder/OrdinalEncoder/TargetEncoder, ...) have no
+    # `predict` - `transform` is their equivalent inference-time call, timed
+    # under the same "predict" key so existing reporting (fit vs. predict/
+    # train vs. test) keeps working unchanged.
+    inference_method_name = "transform" if task == "encoding" else "predict"
+
     with (
         capture_sklearnex_dispatch_log()
         if is_sklearnex
@@ -188,7 +194,7 @@ def run_case_once(
         times["fit"] = 1000 * (perf_counter() - t0)
 
         t0 = perf_counter()
-        estimator.predict(X_test)
+        getattr(estimator, inference_method_name)(X_test)
         times["predict"] = 1000 * (perf_counter() - t0)
 
         quality_metrics = {
