@@ -23,9 +23,50 @@ WORKLOADS = [
         "max_features": 1.0,
     },
     {
+        "name": "S-thin",
+        "n_samples": 5_000,
+        "n_features": 10,
+        "max_features": 1.0,
+    },
+    {
         "name": "S",
         "n_samples": 1_000,
         "n_features": 100,
+    },
+    {
+        "name": "M",
+        "n_samples": 20_000,
+        "n_features": 50,
+    },
+    {
+        "name": "M-very-thin",
+        "n_samples": 50_000,
+        "n_features": 5,
+        "max_features": 1.0,
+    },
+    {
+        "name": "L-thin",
+        "n_samples": 500_000,
+        "n_features": 10,
+        "max_features": 1.0,
+    },
+    {
+        "name": "L",
+        "n_samples": 100_000,
+        "n_features": 100,
+    },
+    {
+        "name": "L-stumps",
+        "n_samples": 1_000_000,
+        "n_features": 100,
+        "max_leaf_nodes": 2,
+    },
+    {
+        "name": "L-leaf255",
+        "n_samples": 100_000,
+        "n_features": 100,
+        "max_iter": 20,
+        "max_leaf_nodes": 255,
     },
 ]
 
@@ -144,6 +185,11 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
 #   magnitude past the medium-big pair.
 REAL_SCALING_DATASETS = {
     "ames_housing",
+    "amazon_employee_access",
+    "kddcup09_churn",
+    "year_prediction_msd",
+    "covtype",
+    "susy",
 }
 
 
