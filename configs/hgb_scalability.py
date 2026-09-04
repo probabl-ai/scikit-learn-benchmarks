@@ -1,3 +1,4 @@
+# NO-OP
 from math import sqrt
 
 from _scaling import get_n_cores_list, has_hybrid_cores, taskset_for_physical_cores
