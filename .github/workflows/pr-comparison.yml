@@ -269,7 +269,8 @@ jobs:
         # $SITE_DIR. A no-op when DASHBOARDS is an empty list.
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
-          pixi run --frozen -e reporting python3 -c "import json,os; _=[print(d) for d in json.loads(os.environ['DASHBOARDS'])]" > "$RUNNER_TEMP/dashboards.txt"
+          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
+            python3 -c "import json,os; _=[print(d) for d in json.loads(os.environ['DASHBOARDS'])]" > "$RUNNER_TEMP/dashboards.txt"
           while IFS= read -r dashboard; do
             pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
               python "$GITHUB_WORKSPACE/$dashboard" --output-dir "$SITE_DIR"
