@@ -139,11 +139,15 @@ jobs:
       SKLEARN_HEAD_REF: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
       # Deterministic from PR number + runner, so it's known before the
       # "Deploy to Cloudflare Pages" step actually publishes there - shared
-      # by that step, the dashboard-generation step (to link JSON/profile
+      # by that step, the dashboard-generation steps (to link JSON/profile
       # viewers at this run's to-be-deployed site instead of a GitHub raw URL
       # that 404s for these never-committed ephemeral results), and the
       # comment step.
       PAGES_BRANCH: pr-${{ github.event.pull_request.number }}-compare-${{ matrix.runner }}
+      # Job-level (not just `export`-ed in one step) so both the "Generate
+      # comparison dashboard" and "Generate additional dashboards" steps see
+      # it - a step-local `export` doesn't persist to the next `run:` step.
+      SKLBENCH_PR_COMPARE_SITE_URL: https://${{ format('pr-{0}-compare-{1}', github.event.pull_request.number, matrix.runner) }}.sklbench-pr-comparison.pages.dev
     steps:
       - name: Set scratch directories
         # The `runner` context (unlike the $RUNNER_TEMP env var it mirrors)
@@ -252,12 +256,12 @@ jobs:
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
           mkdir -p "$SITE_DIR"
-          # Lets pr_comparison_dashboard.py copy referenced record/profile
-          # files into $SITE_DIR and link JSON/profile viewers at their
+          # SKLBENCH_PR_COMPARE_SITE_URL (job-level env, see above) lets
+          # pr_comparison_dashboard.py copy referenced record/profile files
+          # into $SITE_DIR and link JSON/profile viewers at their
           # to-be-deployed URL there, instead of a GitHub raw URL that 404s
-          # for these ephemeral, never-committed results (see PAGES_BRANCH
-          # above and pr_comparison_dashboard.py's _hosted_url_fn).
-          export SKLBENCH_PR_COMPARE_SITE_URL="https://${PAGES_BRANCH}.sklbench-pr-comparison.pages.dev"
+          # for these ephemeral, never-committed results (see
+          # hosted_viewer_url_fn in sklbench/reporting/envs.py).
           pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
             python "$GITHUB_WORKSPACE/dashboards/pr_comparison_dashboard.py" --output-dir "$SITE_DIR"
 
@@ -266,7 +270,11 @@ jobs:
         # any of this repo's own gen_*.py dashboard generators (e.g.
         # gen_hgb_dev_speedup_breakdown.py) against the same ephemeral
         # results/ dir as the comparison table above, alongside it in
-        # $SITE_DIR. A no-op when DASHBOARDS is an empty list.
+        # $SITE_DIR. A no-op when DASHBOARDS is an empty list. Same
+        # SKLBENCH_PR_COMPARE_SITE_URL job-level env as the step above, so a
+        # dashboard using summarize_software_env's json_url_fn hook (e.g.
+        # gen_hgb_dev_speedup_breakdown.py) also links the hosted copy
+        # rather than a 404ing GitHub-raw-URL.
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
           pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
@@ -275,6 +283,23 @@ jobs:
             pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
               python "$GITHUB_WORKSPACE/$dashboard" --output-dir "$SITE_DIR"
           done < "$RUNNER_TEMP/dashboards.txt"
+
+      - name: Copy environment metadata to site
+        # results/software-envs/ and results/hardware-envs/ hold this run's
+        # full env-capture metadata (pixi/package versions, CPU/GPU info) -
+        # copied wholesale (not just the ones a dashboard happens to link)
+        # so they're recoverable straight from the deployed site by path,
+        # independent of any dashboard's own linking logic. Same
+        # never-committed-ephemeral-results rationale as SKLBENCH_PR_COMPARE_SITE_URL
+        # above: results/ here only exists in this CI job's $RESULTS_DIR.
+        working-directory: ${{ runner.temp }}/pr-compare
+        run: |
+          for kind in software-envs hardware-envs; do
+            src="results/$kind"
+            [ -d "$src" ] || continue
+            mkdir -p "$SITE_DIR/results/$kind"
+            cp -a "$src"/. "$SITE_DIR/results/$kind"/
+          done
 
       - name: Deploy to Cloudflare Pages
         id: deploy

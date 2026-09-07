@@ -26,9 +26,7 @@ from html import escape
 import os
 from pathlib import Path
 import re
-import shutil
 import sys
-from typing import Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -47,7 +45,7 @@ from sklbench.reporting.matching import (
 from sklbench.reporting.envs import (
     FLAMEGRAPH_VIEWER_BASE_URL,
     JSON_VIEWER_BASE_URL,
-    external_viewer_url,
+    hosted_viewer_url_fn,
     json_viewer_url,
     profile_viewer_url,
     read_env,
@@ -132,37 +130,6 @@ def _sklearn_commit_url(software_hash: str) -> str | None:
         return None
     owner, repo = owner_repo_match.groups()
     return f"https://github.com/{owner}/{repo}/commit/{commit}"
-
-
-def _hosted_url_fn(
-    viewer_base_url: str,
-    fallback: Callable[[Path], str],
-    site_base_url: str | None,
-    output_dir: Path,
-):
-    """Build a `json_url_fn`/`profile_url_fn` for `detailed_results_table_html`.
-
-    PR-comparison results are ephemeral (never committed to `results/`, see
-    .github/workflows/pr-comparison.yml), so `json_viewer_url`/
-    `profile_viewer_url`'s GitHub-raw-URL links 404 - the underlying file
-    doesn't exist at any repo ref. When the CI job tells us where this run's
-    site will be deployed (`SKLBENCH_PR_COMPARE_SITE_URL`), copy each
-    referenced record/profile file into the site output directory instead
-    and link the viewer at that to-be-deployed copy. Without a known site URL
-    (e.g. a local ephemeral results/ dir), fall back to the normal
-    GitHub-raw-URL link rather than fail outright.
-    """
-
-    def build(record_path: Path) -> str | None:
-        if site_base_url is None:
-            return fallback(record_path)
-        dest = output_dir / record_path
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(record_path, dest)
-        hosted_url = f"{site_base_url}/{record_path.as_posix()}"
-        return external_viewer_url(viewer_base_url, hosted_url)
-
-    return build
 
 
 def _first_source(results: list[MethodResult], failed: list[BenchmarkRecord]):
@@ -285,10 +252,10 @@ if __name__ == "__main__":
         open=True,
         variant_column_title="Branch name",
         default_variant_filter=None if multi_env else build_label(env_groups[0][2]),
-        json_url_fn=_hosted_url_fn(
+        json_url_fn=hosted_viewer_url_fn(
             JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir
         ),
-        profile_url_fn=_hosted_url_fn(
+        profile_url_fn=hosted_viewer_url_fn(
             FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url, output_dir
         ),
     )

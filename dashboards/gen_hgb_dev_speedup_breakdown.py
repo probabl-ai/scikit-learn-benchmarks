@@ -32,9 +32,11 @@ used), rather than a fixed constant.
 from collections import defaultdict
 from html import escape
 import math
+import os
 from pathlib import Path
 from statistics import median
 import sys
+from typing import Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -51,10 +53,13 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _workload_name,
     _workload_size,
 )
-from dashboards.output import dashboard_output_path
+from dashboards.output import dashboard_output_dir
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     is_sklearn_dev_build,
+    hosted_viewer_url_fn,
+    JSON_VIEWER_BASE_URL,
+    json_viewer_url,
     openmp_runtime_family,
     read_env,
     SKLEARN_DEV_PIXI_ENV,
@@ -271,12 +276,15 @@ def _collect_points(
     return points
 
 
-def _software_summary(build_name: str, record: BenchmarkRecord) -> dict:
+def _software_summary(
+    build_name: str, record: BenchmarkRecord, json_url_fn: Callable[[Path], str]
+) -> dict:
     summary = summarize_software_env(
         read_env("software", record.software_hash),
         record.implementation,
         software_hash=record.software_hash,
         case_env=_raw_bench_env(record),
+        json_url_fn=json_url_fn,
     )
     # Baseline and every variant are typically the same `implementation`
     # (e.g. plain "sklearn"), so the default name would collide across
@@ -285,7 +293,9 @@ def _software_summary(build_name: str, record: BenchmarkRecord) -> dict:
     return summary
 
 
-def render_hardware_page(records: list[BenchmarkRecord]) -> str:
+def render_hardware_page(
+    records: list[BenchmarkRecord], json_url_fn: Callable[[Path], str]
+) -> str:
     if not records:
         return '<section class="empty">No instrumented HGB results for this hardware.</section>'
 
@@ -348,9 +358,13 @@ def render_hardware_page(records: list[BenchmarkRecord]) -> str:
 
     software_tabs = render_software_tabs(
         [
-            SOFTWARE_TEMPLATE.render(**_software_summary(base_build, by_build[base_build][0])),
+            SOFTWARE_TEMPLATE.render(
+                **_software_summary(base_build, by_build[base_build][0], json_url_fn)
+            ),
             *(
-                SOFTWARE_TEMPLATE.render(**_software_summary(build, by_build[build][0]))
+                SOFTWARE_TEMPLATE.render(
+                    **_software_summary(build, by_build[build][0], json_url_fn)
+                )
                 for build in variant_builds
             ),
         ],
@@ -399,8 +413,18 @@ if __name__ == "__main__":
     # `main` to compare against, but an empty tab for a combo that was never
     # a branch-comparison run in the first place (e.g. libomp/MKL-only
     # combos) is just noise.
+    output_dir = dashboard_output_dir()
+    # Set by .github/workflows/pr-comparison.yml's "Generate comparison
+    # dashboard" step - PR-comparison results are ephemeral (never committed
+    # to `results/`), so the plain GitHub-raw-URL links `summarize_software_env`
+    # would otherwise build 404 (see `hosted_viewer_url_fn`'s docstring).
+    # Unset for the regular (committed-results) dashboard-pages.yml build,
+    # where the GitHub-raw-URL fallback is correct.
+    site_base_url = os.environ.get("SKLBENCH_PR_COMPARE_SITE_URL", "").rstrip("/") or None
+    json_url_fn = hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir)
+
     pages = [
-        (_env_label(*key), render_hardware_page(env_records))
+        (_env_label(*key), render_hardware_page(env_records, json_url_fn))
         for key, env_records in sorted(by_env.items(), key=lambda item: _env_label(*item[0]))
         if _has_sklearn_dev_build(env_records)
     ]
@@ -409,6 +433,6 @@ if __name__ == "__main__":
         title="HGB speed-up breakdown (branch comparison)",
         rows=[render_hardware_tabs(pages)],
     )
-    output = dashboard_output_path("hgb_speedup_breakdown.html")
+    output = output_dir / "hgb_speedup_breakdown.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")
