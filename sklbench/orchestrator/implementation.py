@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..config import Case, EstimatorCase, PipelineCase
+from ..config import Case, EstimatorCase, HPTuningCase
 from .commands import run_runner_from_case
 from .env import get_environment_info
 from .system_monitor import SystemMonitor
@@ -227,15 +227,11 @@ def save_benchmark_record(
 
 
 def _load_case_dataset(bench_case: Case) -> tuple[int | None, int | None]:
-    if isinstance(bench_case, EstimatorCase):
-        from ..runners.datasets import load_raw_data as load_data
+    if isinstance(bench_case, (EstimatorCase, HPTuningCase)):
+        from ..runners.datasets import load_raw_data
 
-        raw_data, _ = load_data(bench_case)
+        raw_data, _ = load_raw_data(bench_case)
         x = raw_data.get("x", raw_data.get("x_train"))
-    elif isinstance(bench_case, PipelineCase):
-        from ..runners.pipeline import load_data
-
-        x, _ = load_data(bench_case)
     else:
         raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
     if x is None:

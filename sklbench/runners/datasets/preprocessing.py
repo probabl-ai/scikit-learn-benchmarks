@@ -19,6 +19,7 @@ import logging
 import numpy as np
 import pandas as pd
 import sklearn
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.pipeline import FeatureUnion, make_pipeline
@@ -289,38 +290,69 @@ def linear_preprocessor(
     return make_pipeline(preprocessor, Nystroem(**nystroem), transfer_to_device)
 
 
-def hgb_preprocessing(X_train, X_test, y_train=None, transfer_to_device=None):
-    """Not built via `preprocessor_to_preprocessing`: the category-dtype
-    restoration below must run as plain code between encoding and the
-    transfer. `transfer_to_device` is placed last, after that restoration.
+class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
+    """Ordinal-encodes `category`-dtype columns down to <=252 categories
+    (rare/excess values folded together via `min_frequency`/
+    `max_categories`), then restores `category` dtype - so
+    HistGradientBoosting's native per-column cardinality limit (255) is
+    never hit, while it still gets to use its native categorical
+    splitting/missing-value handling on those columns.
+
+    A proper `fit`/`transform` transformer (rather than a plain function
+    like the other `PREPROCESSINGS` entries) so it can also be dropped into
+    a `sklearn.pipeline.Pipeline` and refit per CV fold -
+    `sklbench.runners.hptuning` does exactly that; `hgb_preprocessing`
+    below fits it once, on a fixed train split, instead.
     """
 
-    if not isinstance(X_train, pd.DataFrame):
-        X_train = pd.DataFrame(X_train)
-    if not isinstance(X_test, pd.DataFrame):
-        X_test = pd.DataFrame(X_test)
-
-    encoder = OrdinalEncoder(
-        handle_unknown="use_encoded_value",
-        unknown_value=np.nan,
-        encoded_missing_value=-1,
-        min_frequency=5,
-        max_categories=252
-    )
-
-    categorical_columns = X_train.select_dtypes(["category"]).columns.to_list()
-    if categorical_columns:
-        preprocessor = ColumnTransformer(
-            transformers=[("encoder", encoder, categorical_columns)],
-            remainder='passthrough',
+    def fit(self, X, y=None):
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
+        self.categorical_columns_ = list(X.select_dtypes(["category"]).columns)
+        if not self.categorical_columns_:
+            return self
+        self._encoder = ColumnTransformer(
+            transformers=[
+                (
+                    "encoder",
+                    OrdinalEncoder(
+                        handle_unknown="use_encoded_value",
+                        unknown_value=np.nan,
+                        encoded_missing_value=-1,
+                        min_frequency=5,
+                        max_categories=252,
+                    ),
+                    self.categorical_columns_,
+                )
+            ],
+            remainder="passthrough",
             verbose_feature_names_out=False,
         )
-        preprocessor.set_output(transform="pandas")
-        X_train = preprocessor.fit_transform(X_train)
-        X_test = preprocessor.transform(X_test)
-        for col in categorical_columns:
-            X_train[col] = X_train[col].astype('category')
-            X_test[col] = X_test[col].astype('category')
+        self._encoder.set_output(transform="pandas")
+        self._encoder.fit(X, y)
+        return self
+
+    def transform(self, X):
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
+        if not self.categorical_columns_:
+            return X
+        X = self._encoder.transform(X)
+        for column in self.categorical_columns_:
+            X[column] = X[column].astype("category")
+        return X
+
+
+def hgb_preprocessing(X_train, X_test, y_train=None, transfer_to_device=None):
+    """Not built via `preprocessor_to_preprocessing`: `HGBCategoricalCapper`
+    takes a single array per call (`fit`/`transform`), so it's applied to
+    X_train/X_test as plain code here rather than through a pipeline;
+    `transfer_to_device` is placed last, after that.
+    """
+
+    capper = HGBCategoricalCapper().fit(X_train, y_train)
+    X_train = capper.transform(X_train)
+    X_test = capper.transform(X_test)
 
     if transfer_to_device is not None:
         X_train = transfer_to_device.fit_transform(X_train)
