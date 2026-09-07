@@ -1,6 +1,6 @@
 from .base import BaseCase, Bench, JsonDict
 from .estimator import Algorithm, Data, EstimatorCase, Implementation
-from .pipeline import PipelineCase, PipelineData, PipelineRun
+from .hptuning import HPTuning, HPTuningCase
 
 __all__ = [
     "Algorithm",
@@ -8,9 +8,8 @@ __all__ = [
     "Bench",
     "Data",
     "EstimatorCase",
+    "HPTuning",
+    "HPTuningCase",
     "Implementation",
     "JsonDict",
-    "PipelineCase",
-    "PipelineData",
-    "PipelineRun",
 ]

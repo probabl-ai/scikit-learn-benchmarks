@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from sklbench.config import EstimatorCase, PipelineCase, load_cases_from_script
+from sklbench.config import EstimatorCase, HPTuningCase, load_cases_from_script
 
 
 SKLEARN_ENVS = [
@@ -30,11 +30,16 @@ def test_load_cases_from_script_accepts_model_instances(tmp_path):
     config = tmp_path / "config.py"
     config.write_text(
         """
-from sklbench.config import PipelineCase
+from sklbench.config import Algorithm, Data, HPTuningCase
 
 
 def generate_cases():
-    return [PipelineCase()]
+    return [
+        HPTuningCase(
+            algorithm=Algorithm(estimator="Ridge"),
+            data=Data(source="make_regression"),
+        )
+    ]
 """,
         encoding="utf-8",
     )
@@ -42,7 +47,7 @@ def generate_cases():
     cases = load_cases_from_script(config)
 
     assert len(cases) == 1
-    assert isinstance(cases[0], PipelineCase)
+    assert isinstance(cases[0], HPTuningCase)
 
 
 def test_load_cases_from_script_accepts_estimator_dict(tmp_path):

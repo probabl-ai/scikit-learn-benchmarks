@@ -5,12 +5,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-from ..config import Case, EstimatorCase
+from ..config import Case, EstimatorCase, HPTuningCase
+from ..config.models.hptuning import resolve_outer_n_jobs
 
 
 RUNNER_MODULES = {
     "estimator": "sklbench.runners.estimator",
-    "pipeline": "sklbench.runners.pipeline",
+    "hptuning": "sklbench.runners.hptuning",
 }
 PY_SPY_NO_CHILD_PROCESS_ERROR = "Error: No child process (os error 10)"
 
@@ -39,8 +40,10 @@ def _n_jobs(bench_case: Case) -> int:
     """
     if isinstance(bench_case, EstimatorCase):
         n_jobs = bench_case.algorithm.estimator_params.get("n_jobs", 1)
+    elif isinstance(bench_case, HPTuningCase):
+        n_jobs = resolve_outer_n_jobs(bench_case.hptuning)
     else:
-        n_jobs = bench_case.run.n_jobs
+        raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
     if not n_jobs or n_jobs <= 0:
         return os.cpu_count() or 1
     return n_jobs
