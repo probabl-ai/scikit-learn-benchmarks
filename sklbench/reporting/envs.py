@@ -4,7 +4,9 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
+from typing import Callable
 from urllib.parse import quote
 
 from .matching import Implementation
@@ -154,6 +156,37 @@ def profile_viewer_url(path: Path | str) -> str:
 def software_env_json_url(software_hash: str) -> str:
     raw_url = github_raw_url(f"results/software-envs/{software_hash}.json")
     return f"{JSON_VIEWER_BASE_URL}?url={quote(raw_url, safe='')}"
+
+
+def hosted_viewer_url_fn(
+    viewer_base_url: str,
+    fallback: Callable[[Path], str],
+    site_base_url: str | None,
+    output_dir: Path,
+) -> Callable[[Path], str]:
+    """Build a `json_url_fn`/`profile_url_fn` (see `summarize_software_env`,
+    `detailed_results_table_html`) for results that may be ephemeral (never
+    committed to `results/`, e.g. PR-comparison runs - see
+    .github/workflows/pr-comparison.yml), where `json_viewer_url`/
+    `profile_viewer_url`'s GitHub-raw-URL links would 404 since the
+    underlying file doesn't exist at any repo ref. When the CI job tells us
+    where this run's site will be deployed (`SKLBENCH_PR_COMPARE_SITE_URL`),
+    copy each referenced record/profile/software-env file into the site
+    output directory instead and link the viewer at that to-be-deployed
+    copy. Without a known site URL (e.g. a local ephemeral results/ dir),
+    fall back to the normal GitHub-raw-URL link rather than fail outright.
+    """
+
+    def build(record_path: Path) -> str | None:
+        if site_base_url is None:
+            return fallback(record_path)
+        dest = output_dir / record_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(record_path, dest)
+        hosted_url = f"{site_base_url}/{record_path.as_posix()}"
+        return external_viewer_url(viewer_base_url, hosted_url)
+
+    return build
 
 
 # Packages this benchmark suite can build from an arbitrary git checkout
@@ -398,6 +431,7 @@ def summarize_software_env(
     *,
     software_hash: str | None = None,
     case_env: dict | None = None,
+    json_url_fn: Callable[[Path], str] | None = None,
 ):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
@@ -418,7 +452,10 @@ def summarize_software_env(
         "openmp": _openmp_summary(env, case_env),
     }
     if software_hash is not None:
-        out["software_env_json_url"] = software_env_json_url(software_hash)
+        record_path = Path(f"results/software-envs/{software_hash}.json")
+        out["software_env_json_url"] = (
+            json_url_fn(record_path) if json_url_fn is not None else software_env_json_url(software_hash)
+        )
     if implementation.library == "sklearn" and implementation.data_library:
         out["array_api_docs_url"] = "https://scikit-learn.org/stable/modules/array_api.html"
     return out
