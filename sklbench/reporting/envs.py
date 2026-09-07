@@ -124,11 +124,13 @@ def _current_results_ref() -> str:
 
 
 def github_raw_url(path: Path | str) -> str:
+    # raw.githubusercontent.com, not github.com/{repo}/raw/{ref}/{path}: the
+    # latter 404s for refs outside branches/commits/tags, e.g. the
+    # `refs/pull/<n>/merge` ref GITHUB_REF holds on `pull_request`-triggered
+    # workflow runs (see pr-comparison.yml), which is exactly the ref PR
+    # comparison dashboards resolve to here.
     path = Path(path).as_posix().lstrip("/")
-    return (
-        f"https://github.com/{RESULTS_REPOSITORY}/raw/{_current_results_ref()}/"
-        f"{path}"
-    )
+    return f"https://raw.githubusercontent.com/{RESULTS_REPOSITORY}/{_current_results_ref()}/{path}"
 
 
 def external_viewer_url(viewer_base_url: str, target_url: str) -> str:
