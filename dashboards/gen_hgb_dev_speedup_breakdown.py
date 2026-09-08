@@ -48,6 +48,7 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _has_active_wait,
     _is_instrumented_hgb,
     _phase_breakdown_ms,
+    _proc_bind,
     _raw_bench_env,
     _thread_count,
     _workload_name,
@@ -61,6 +62,7 @@ from sklbench.reporting.envs import (
     JSON_VIEWER_BASE_URL,
     json_viewer_url,
     openmp_runtime_family,
+    proc_bind_label_suffix,
     read_env,
     SKLEARN_DEV_PIXI_ENV,
     software_build_name,
@@ -381,30 +383,36 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
-def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool]:
+def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool, str | None]:
     return (
         record.hardware_hash,
         openmp_runtime_family(record.software_hash),
         _has_active_wait(record),
+        _proc_bind(record),
     )
 
 
-def _env_label(hardware_hash: str, openmp_family: str, active_wait: bool) -> str:
+def _env_label(hardware_hash: str, openmp_family: str, active_wait: bool, proc_bind: str | None) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
     family_label = _OPENMP_FAMILY_SHORT.get(openmp_family, openmp_family)
-    return f"{hardware_label} ({family_label}){active_wait_label_suffix(active_wait)}"
+    return (
+        f"{hardware_label} ({family_label})"
+        f"{active_wait_label_suffix(active_wait)}"
+        f"{proc_bind_label_suffix(proc_bind)}"
+    )
 
 
 if __name__ == "__main__":
     records = _dedup_latest(
         [record for record in read_benchmark_records() if _is_instrumented_hgb(record)]
     )
-    # Tabs are one per (hardware, OpenMP runtime family, active-wait) combo -
-    # baseline and variants are only ever compared within the same combo (see
-    # `render_hardware_page`), since a build swap that also swaps OpenMP
-    # runtime or busy-wait behavior wouldn't isolate the sklearn-side change
-    # the branch comparison is meant to show.
-    by_env: dict[tuple[str, str, bool], list[BenchmarkRecord]] = defaultdict(list)
+    # Tabs are one per (hardware, OpenMP runtime family, active-wait,
+    # proc-bind) combo - baseline and variants are only ever compared within
+    # the same combo (see `render_hardware_page`), since a build swap that
+    # also swaps OpenMP runtime, busy-wait behavior, or OMP_PROC_BIND
+    # wouldn't isolate the sklearn-side change the branch comparison is meant
+    # to show.
+    by_env: dict[tuple[str, str, bool, str | None], list[BenchmarkRecord]] = defaultdict(list)
     for record in records:
         by_env[_env_key(record)].append(record)
 
