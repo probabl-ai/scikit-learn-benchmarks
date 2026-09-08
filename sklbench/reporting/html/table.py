@@ -121,6 +121,12 @@ def _row_columns_kind(case: dict) -> str | None:
     return case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
+def _row_order(case: dict) -> str | None:
+    """The data's memory layout ("C" or "F") - only set where a config
+    varies it (see configs/synthetic_linear.py's `order` field)."""
+    return case.get("data", {}).get("order")
+
+
 def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
@@ -158,6 +164,7 @@ def _new_row(
         "n_samples": data_desc.get("samples"),
         "n_features": data_desc.get("features"),
         "columns": _row_columns_kind(result.case),
+        "order": _row_order(result.case),
         "max_bins": _row_max_bins(
             result.case, result.implementation.library, n_samples
         ),
@@ -209,6 +216,7 @@ def _new_failed_row(
         "n_samples": generation_kwargs.get("n_samples"),
         "n_features": generation_kwargs.get("n_features"),
         "columns": generation_kwargs.get("columns"),
+        "order": _row_order(record.case),
         "max_bins": _row_max_bins(
             record.case, record.implementation.library, generation_kwargs.get("n_samples")
         ),
@@ -411,6 +419,10 @@ def detailed_results_table_html(
     if any(row.get("columns") for row in rows):
         columns.append(
             _column("columns", "columns", header_filter=True, sorter="string")
+        )
+    if any(row.get("order") for row in rows):
+        columns.append(
+            _column("order", "order", header_filter=True, sorter="string")
         )
     if any(row.get("max_bins") for row in rows):
         columns.append(
