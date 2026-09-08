@@ -7,7 +7,12 @@ from pathlib import Path
 from statistics import median
 from typing import Callable
 
-from ..envs import json_viewer_url, openmp_runtime_short_label, profile_viewer_url
+from ..envs import (
+    effective_openmp_value,
+    json_viewer_url,
+    openmp_runtime_short_label,
+    profile_viewer_url,
+)
 from ..matching import BenchmarkRecord, Match, MethodResult
 from ..utils import stable_json, without_keys
 
@@ -150,6 +155,23 @@ def _row_openmp(software_hash: str) -> str:
     return openmp_runtime_short_label(software_hash)
 
 
+def _row_active_wait_knobs(
+    case_env: dict, software_hash: str
+) -> tuple[str | None, str | None]:
+    """The effective GOMP_SPINCOUNT/KMP_BLOCKTIME busy-wait knobs for this
+    case: the case's own `bench.env` override if it set one, else the
+    build's own resolved ambient default (see
+    `sklbench.reporting.envs.effective_openmp_value`) - same
+    override-or-ambient logic the HGB scalability dashboards use to decide
+    `has_active_wait`. Only one of the two is ever set for a given build
+    (GOMP_SPINCOUNT is GNU libgomp only, KMP_BLOCKTIME is Intel/LLVM OpenMP
+    only), so an unrelated build simply reports None for the other."""
+    return (
+        effective_openmp_value(case_env, software_hash, "GOMP_SPINCOUNT"),
+        effective_openmp_value(case_env, software_hash, "KMP_BLOCKTIME"),
+    )
+
+
 def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
@@ -179,6 +201,9 @@ def _new_row(
     )
     if n_samples is None:
         n_samples = data_desc.get("samples")
+    gomp_spincount, kmp_blocktime = _row_active_wait_knobs(
+        result.case.get("env"), result.software_hash
+    )
     row = {
         "comparison_key": comparison_key,
         "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
@@ -192,6 +217,8 @@ def _new_row(
             result.case, result.implementation.library, n_samples
         ),
         "openmp": _row_openmp(result.software_hash),
+        "gomp_spincount": gomp_spincount,
+        "kmp_blocktime": kmp_blocktime,
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -233,6 +260,9 @@ def _new_failed_row(
 ) -> dict:
     generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {})
     failed_case = record.failed_case or {}
+    gomp_spincount, kmp_blocktime = _row_active_wait_knobs(
+        record.case.get("env"), record.software_hash
+    )
     return {
         "comparison_key": comparison_key,
         "estimator": record.case.get("algorithm", {}).get("estimator", "unknown"),
@@ -246,6 +276,8 @@ def _new_failed_row(
             record.case, record.implementation.library, generation_kwargs.get("n_samples")
         ),
         "openmp": _row_openmp(record.software_hash),
+        "gomp_spincount": gomp_spincount,
+        "kmp_blocktime": kmp_blocktime,
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -473,6 +505,18 @@ def detailed_results_table_html(
     if len({row.get("openmp") for row in rows}) > 1:
         columns.append(
             _column("OpenMP", "openmp", header_filter=True, sorter="string")
+        )
+    if any(row.get("gomp_spincount") for row in rows):
+        columns.append(
+            _column(
+                "GOMP_SPINCOUNT", "gomp_spincount", header_filter=True, sorter="string"
+            )
+        )
+    if any(row.get("kmp_blocktime") for row in rows):
+        columns.append(
+            _column(
+                "KMP_BLOCKTIME", "kmp_blocktime", header_filter=True, sorter="string"
+            )
         )
     columns.extend(
         _column(name, field, header_filter=True, sorter="string")
