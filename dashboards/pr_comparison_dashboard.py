@@ -252,11 +252,9 @@ if __name__ == "__main__":
         open=True,
         variant_column_title="Branch name",
         default_variant_filter=None if multi_env else build_label(env_groups[0][2]),
-        json_url_fn=hosted_viewer_url_fn(
-            JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir
-        ),
+        json_url_fn=hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url),
         profile_url_fn=hosted_viewer_url_fn(
-            FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url, output_dir
+            FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url
         ),
     )
 

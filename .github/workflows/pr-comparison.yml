@@ -257,11 +257,11 @@ jobs:
         run: |
           mkdir -p "$SITE_DIR"
           # SKLBENCH_PR_COMPARE_SITE_URL (job-level env, see above) lets
-          # pr_comparison_dashboard.py copy referenced record/profile files
-          # into $SITE_DIR and link JSON/profile viewers at their
-          # to-be-deployed URL there, instead of a GitHub raw URL that 404s
-          # for these ephemeral, never-committed results (see
-          # hosted_viewer_url_fn in sklbench/reporting/envs.py).
+          # pr_comparison_dashboard.py link JSON/profile viewers straight at
+          # this run's to-be-deployed site (populated by the later "Copy
+          # results to site" step) instead of a GitHub raw URL that 404s for
+          # these ephemeral, never-committed results (see hosted_viewer_url_fn
+          # in sklbench/reporting/envs.py).
           pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
             python "$GITHUB_WORKSPACE/dashboards/pr_comparison_dashboard.py" --output-dir "$SITE_DIR"
 
@@ -273,7 +273,7 @@ jobs:
         # $SITE_DIR. A no-op when DASHBOARDS is an empty list. Same
         # SKLBENCH_PR_COMPARE_SITE_URL job-level env as the step above, so a
         # dashboard using summarize_software_env's json_url_fn hook (e.g.
-        # gen_hgb_dev_speedup_breakdown.py) also links the hosted copy
+        # gen_hgb_dev_speedup_breakdown.py) also links the hosted site
         # rather than a 404ing GitHub-raw-URL.
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
@@ -284,22 +284,19 @@ jobs:
               python "$GITHUB_WORKSPACE/$dashboard" --output-dir "$SITE_DIR"
           done < "$RUNNER_TEMP/dashboards.txt"
 
-      - name: Copy environment metadata to site
-        # results/software-envs/ and results/hardware-envs/ hold this run's
-        # full env-capture metadata (pixi/package versions, CPU/GPU info) -
-        # copied wholesale (not just the ones a dashboard happens to link)
-        # so they're recoverable straight from the deployed site by path,
-        # independent of any dashboard's own linking logic. Same
-        # never-committed-ephemeral-results rationale as SKLBENCH_PR_COMPARE_SITE_URL
-        # above: results/ here only exists in this CI job's $RESULTS_DIR.
+      - name: Copy results to site
+        # The whole results/ tree (records, profiles, software-envs,
+        # hardware-envs, ...) copied wholesale onto the site, not just the
+        # files a dashboard happens to link - so anything is recoverable
+        # straight from the deployed site by path, and hosted_viewer_url_fn
+        # (sklbench/reporting/envs.py) only has to build a URL rather than
+        # copy the file itself. Same never-committed-ephemeral-results
+        # rationale as SKLBENCH_PR_COMPARE_SITE_URL above: results/ here
+        # only exists in this CI job's $RESULTS_DIR.
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
-          for kind in software-envs hardware-envs; do
-            src="results/$kind"
-            [ -d "$src" ] || continue
-            mkdir -p "$SITE_DIR/results/$kind"
-            cp -a "$src"/. "$SITE_DIR/results/$kind"/
-          done
+          mkdir -p "$SITE_DIR/results"
+          cp -a results/. "$SITE_DIR/results"/
 
       - name: Deploy to Cloudflare Pages
         id: deploy

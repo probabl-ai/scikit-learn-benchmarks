@@ -429,7 +429,7 @@ if __name__ == "__main__":
     # Unset for the regular (committed-results) dashboard-pages.yml build,
     # where the GitHub-raw-URL fallback is correct.
     site_base_url = os.environ.get("SKLBENCH_PR_COMPARE_SITE_URL", "").rstrip("/") or None
-    json_url_fn = hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir)
+    json_url_fn = hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url)
 
     pages = [
         (_env_label(*key), render_hardware_page(env_records, json_url_fn))

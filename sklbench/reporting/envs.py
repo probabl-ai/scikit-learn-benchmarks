@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 from typing import Callable
 from urllib.parse import quote
@@ -162,7 +161,6 @@ def hosted_viewer_url_fn(
     viewer_base_url: str,
     fallback: Callable[[Path], str],
     site_base_url: str | None,
-    output_dir: Path,
 ) -> Callable[[Path], str]:
     """Build a `json_url_fn`/`profile_url_fn` (see `summarize_software_env`,
     `detailed_results_table_html`) for results that may be ephemeral (never
@@ -171,18 +169,17 @@ def hosted_viewer_url_fn(
     `profile_viewer_url`'s GitHub-raw-URL links would 404 since the
     underlying file doesn't exist at any repo ref. When the CI job tells us
     where this run's site will be deployed (`SKLBENCH_PR_COMPARE_SITE_URL`),
-    copy each referenced record/profile/software-env file into the site
-    output directory instead and link the viewer at that to-be-deployed
-    copy. Without a known site URL (e.g. a local ephemeral results/ dir),
-    fall back to the normal GitHub-raw-URL link rather than fail outright.
+    link the viewer straight at that to-be-deployed path instead - the whole
+    `results/` tree is copied onto the site wholesale by a CI step (see
+    pr-comparison.yml's "Copy results to site"), so no copying needs to
+    happen here. Without a known site URL (e.g. a local ephemeral results/
+    dir), fall back to the normal GitHub-raw-URL link rather than fail
+    outright.
     """
 
     def build(record_path: Path) -> str | None:
         if site_base_url is None:
             return fallback(record_path)
-        dest = output_dir / record_path
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(record_path, dest)
         hosted_url = f"{site_base_url}/{record_path.as_posix()}"
         return external_viewer_url(viewer_base_url, hosted_url)
 
