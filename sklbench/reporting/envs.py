@@ -290,6 +290,23 @@ def openmp_runtime_family(software_hash: str) -> str:
     return _openmp_runtime_family(info) if info else "unknown OpenMP runtime"
 
 
+# Short labels for `openmp_runtime_family`'s values, for compact display
+# (table columns, tab labels) - shared so every dashboard/table using this
+# renders the same "libgomp"/"libomp" wording.
+OPENMP_FAMILY_SHORT_LABELS = {
+    "GNU libgomp": "libgomp",
+    "Intel/LLVM OpenMP": "libomp",
+}
+
+
+def openmp_runtime_short_label(software_hash: str) -> str:
+    """`openmp_runtime_family(software_hash)`, shortened via
+    `OPENMP_FAMILY_SHORT_LABELS` (falls back to the full family string for
+    "unknown OpenMP runtime")."""
+    family = openmp_runtime_family(software_hash)
+    return OPENMP_FAMILY_SHORT_LABELS.get(family, family)
+
+
 def _openmp_env_value(info: dict, var_name: str) -> str | None:
     for key, value in info.items():
         if key == var_name or key.endswith(f" {var_name}"):

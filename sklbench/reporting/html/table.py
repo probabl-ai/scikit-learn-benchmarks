@@ -7,7 +7,7 @@ from pathlib import Path
 from statistics import median
 from typing import Callable
 
-from ..envs import json_viewer_url, profile_viewer_url
+from ..envs import json_viewer_url, openmp_runtime_short_label, profile_viewer_url
 from ..matching import BenchmarkRecord, Match, MethodResult
 from ..utils import stable_json, without_keys
 
@@ -141,6 +141,15 @@ def _row_env(case: dict) -> dict:
     return case.get("env", {}) or {}
 
 
+def _row_openmp(software_hash: str) -> str:
+    """Short "libgomp"/"libomp" label for the OpenMP runtime `software_hash`
+    links against - a build property rather than a case one, but only
+    interesting once more than one OpenMP runtime shows up in the same
+    table (e.g. comparing a `sklearn-dev` build against `sklearn-dev-libomp`
+    - see configs/_implementations.py)."""
+    return openmp_runtime_short_label(software_hash)
+
+
 def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
@@ -182,6 +191,7 @@ def _new_row(
         "max_bins": _row_max_bins(
             result.case, result.implementation.library, n_samples
         ),
+        "openmp": _row_openmp(result.software_hash),
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -235,6 +245,7 @@ def _new_failed_row(
         "max_bins": _row_max_bins(
             record.case, record.implementation.library, generation_kwargs.get("n_samples")
         ),
+        "openmp": _row_openmp(record.software_hash),
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -458,6 +469,10 @@ def detailed_results_table_html(
     if any(row.get("max_bins") for row in rows):
         columns.append(
             _column("max_bins", "max_bins", header_filter=True, sorter="string")
+        )
+    if len({row.get("openmp") for row in rows}) > 1:
+        columns.append(
+            _column("OpenMP", "openmp", header_filter=True, sorter="string")
         )
     columns.extend(
         _column(name, field, header_filter=True, sorter="string")

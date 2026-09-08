@@ -62,6 +62,7 @@ from sklbench.reporting.envs import (
     JSON_VIEWER_BASE_URL,
     json_viewer_url,
     openmp_runtime_family,
+    OPENMP_FAMILY_SHORT_LABELS,
     proc_bind_label_suffix,
     read_env,
     SKLEARN_DEV_PIXI_ENV,
@@ -82,11 +83,6 @@ from sklbench.reporting.html import (
 )
 from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
 
-
-_OPENMP_FAMILY_SHORT = {
-    "GNU libgomp": "libgomp",
-    "Intel/LLVM OpenMP": "libomp",
-}
 
 # `_phase_breakdown_ms()` already carries the wall-clock fit time as
 # "total_ms" alongside the real phases - reusing that dict key as one more
@@ -394,7 +390,7 @@ def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool, str | None]:
 
 def _env_label(hardware_hash: str, openmp_family: str, active_wait: bool, proc_bind: str | None) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
-    family_label = _OPENMP_FAMILY_SHORT.get(openmp_family, openmp_family)
+    family_label = OPENMP_FAMILY_SHORT_LABELS.get(openmp_family, openmp_family)
     return (
         f"{hardware_label} ({family_label})"
         f"{active_wait_label_suffix(active_wait)}"
