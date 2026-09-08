@@ -152,7 +152,7 @@ class MethodResult:
     software_hash: str
     method: str  # fit/predict
     timestamp_recorded: datetime
-    case: dict  # case without the "bench" key
+    case: dict  # case without "bench" (its "env" is kept, see _case_without_bench)
     times: list[float]  # in ms
     data_desc: dict
     metrics: dict[str, dict[str, list[Any]]]
@@ -300,6 +300,23 @@ def _runs_to_values(runs: list[dict]) -> dict:
     return values
 
 
+def _case_without_bench(raw_case: dict) -> dict:
+    """Strips the "bench" section (run mechanics: n_runs, time_limit,
+    taskset, profiling flags - none of which should affect case identity or
+    be shown in reports) while keeping `bench.env` under a top-level "env"
+    key. Env vars are the one bench.* field that can change what's actually
+    measured (e.g. a BLAS thread-count sweep via
+    OMP_NUM_THREADS/OPENBLAS_NUM_THREADS - see
+    configs/all_models_logistic_lbfgs_only.py), so they need to keep taking
+    part in case matching (`MethodResult.minimal_match_key`/`full_match_key`)
+    and be displayable (see `_row_env` in `sklbench/reporting/html/table.py`)."""
+    env = (raw_case.get("bench") or {}).get("env") or {}
+    case = without_keys(raw_case, excluded_names={"bench"})
+    if env:
+        case["env"] = env
+    return case
+
+
 def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
     """
     Read one-record-per-case benchmark files from `path`, defaulting to ./results/.
@@ -332,7 +349,7 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 hardware_hash=hardware_hash,
                 software_hash=software_hash,
                 timestamp_recorded=timestamp,
-                case=without_keys(result_file["case"], excluded_names={"bench"}),
+                case=_case_without_bench(result_file["case"]),
                 runs=result_file.get("results", []),
                 record_path=result_path,
                 profile_path=profile_path,

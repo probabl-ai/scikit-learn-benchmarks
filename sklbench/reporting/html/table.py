@@ -3,11 +3,18 @@ from __future__ import annotations
 import itertools
 import json
 import math
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from statistics import median
-from typing import Callable
+from typing import Any, Callable
 
-from ..envs import json_viewer_url, profile_viewer_url
+from ..envs import (
+    effective_openmp_value,
+    json_viewer_url,
+    openmp_runtime_short_label,
+    profile_viewer_url,
+)
 from ..matching import BenchmarkRecord, Match, MethodResult
 from ..utils import stable_json, without_keys
 
@@ -79,6 +86,53 @@ def _profile_label(record: BenchmarkRecord | None) -> str | None:
     return "py-spy"
 
 
+def _failed_status(failed_case: dict) -> str:
+    return "timed out" if failed_case.get("return_code") == -9 else "failed"
+
+
+@dataclass(frozen=True)
+class RowInputs:
+    """Normalizes a live `MethodResult` and a failed `BenchmarkRecord` into
+    one shape, so every column getter below is written once and works for
+    both (see `_method_result_inputs` / `_failed_record_inputs`)."""
+
+    case: dict
+    software_hash: str
+    library: str
+    data_desc: dict
+    attributes: dict
+    status: str
+
+
+def _method_result_inputs(result: MethodResult) -> RowInputs:
+    return RowInputs(
+        case=result.case,
+        software_hash=result.software_hash,
+        library=result.implementation.library,
+        data_desc=result.data_desc or {},
+        attributes=result.attributes or {},
+        status="ok",
+    )
+
+
+def _failed_record_inputs(record: BenchmarkRecord) -> RowInputs:
+    generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {}) or {}
+    return RowInputs(
+        case=record.case,
+        software_hash=record.software_hash,
+        library=record.implementation.library,
+        # No run ever happened, so there's no measured data_desc - the
+        # config's own declared shape is the closest equivalent, and matches
+        # what a successful run of the same case would have reported.
+        data_desc={
+            "samples": generation_kwargs.get("n_samples"),
+            "features": generation_kwargs.get("n_features"),
+        },
+        attributes={},
+        status=_failed_status(record.failed_case or {}),
+    )
+
+
 def _result_params(case: dict) -> dict:
     return case.get("algorithm", {}).get("estimator_params", {}) or {}
 
@@ -90,13 +144,12 @@ def _result_params(case: dict) -> dict:
 HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
 
 
-def _row_hyperparams(case: dict, attributes: dict | None = None) -> dict:
-    params = _result_params(case)
-    attributes = attributes or {}
+def _row_hyperparams(inputs: RowInputs) -> dict:
+    params = _result_params(inputs.case)
     hyperparams = {}
     for name in HYPERPARAM_DISPLAY_ALLOWLIST:
         if name == "solver":
-            solver_values = attributes.get("solver")
+            solver_values = inputs.attributes.get("solver")
             if solver_values:
                 hyperparams["solver"] = solver_values[0]
                 continue
@@ -114,27 +167,296 @@ def default_comparison_key(result: MethodResult) -> str:
     )
 
 
-def _row_columns_kind(case: dict) -> str | None:
+# --- Column value getters -------------------------------------------------
+# Each of these computes one column's raw value from RowInputs alone. Add
+# one here (plus a ColumnSpec entry below) for any new case/software-derived
+# inspection column - see the COLUMNS list's docstring.
+
+
+def _row_estimator(inputs: RowInputs) -> str:
+    return inputs.case.get("algorithm", {}).get("estimator", "unknown")
+
+
+def _row_dataset(inputs: RowInputs) -> str:
+    return _dataset_name(inputs.case)
+
+
+def _row_columns_kind(inputs: RowInputs) -> str | None:
     """The synthetic tree datasets' column-type mix (e.g. "mix", "binary",
     "continuous", "long-tail") - only set in generation_kwargs for
     tree-based configs (see configs/synthetic_trees.py, hgb_scalability.py)."""
-    return case.get("data", {}).get("generation_kwargs", {}).get("columns")
+    return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
-def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
+def _row_order(inputs: RowInputs) -> str | None:
+    """The data's memory layout ("C" or "F"): the config-forced value where a
+    config varies it (see configs/synthetic_linear.py's `order` field), else
+    the measured layout of the loaded array (real datasets - see
+    sklbench/runners/datasets/__init__.py's `_measure_order`)."""
+    order = inputs.case.get("data", {}).get("order")
+    if order is not None:
+        return order
+    return inputs.data_desc.get("order")
+
+
+def _row_env(inputs: RowInputs) -> dict:
+    """The `bench.env` vars this case ran with (e.g. a BLAS thread-count
+    sweep via OMP_NUM_THREADS/OPENBLAS_NUM_THREADS - see
+    configs/all_models_logistic_lbfgs_only.py) - kept under a top-level "env"
+    key by `_case_without_bench` in matching.py, since the rest of "bench" is
+    stripped from case identity before it ever reaches this table."""
+    return inputs.case.get("env", {}) or {}
+
+
+def _row_openmp(inputs: RowInputs) -> str:
+    """Short "libgomp"/"libomp" label for the OpenMP runtime this row's build
+    links against - a build property rather than a case one, but only
+    interesting once more than one OpenMP runtime shows up in the same
+    table (e.g. comparing a `sklearn-dev` build against `sklearn-dev-libomp`
+    - see configs/_implementations.py)."""
+    return openmp_runtime_short_label(inputs.software_hash)
+
+
+def _row_gomp_spincount(inputs: RowInputs) -> str | None:
+    return effective_openmp_value(
+        inputs.case.get("env"), inputs.software_hash, "GOMP_SPINCOUNT"
+    )
+
+
+def _row_kmp_blocktime(inputs: RowInputs) -> str | None:
+    return effective_openmp_value(
+        inputs.case.get("env"), inputs.software_hash, "KMP_BLOCKTIME"
+    )
+
+
+def _row_n_samples_for_max_bins(inputs: RowInputs) -> int | None:
+    declared = (
+        inputs.case.get("data", {}).get("generation_kwargs", {}).get("n_samples")
+    )
+    return declared if declared is not None else inputs.data_desc.get("samples")
+
+
+def _row_max_bins(inputs: RowInputs) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
     configs/synthetic_trees.py and append_max_bins_warning in matching.py).
     Empty for sklearn, which doesn't vary this param in these benchmarks."""
-    if library != "sklearnex":
+    if inputs.library != "sklearnex":
         return None
-    estimator_params = case.get("algorithm", {}).get("estimator_params", {})
+    estimator_params = inputs.case.get("algorithm", {}).get("estimator_params", {})
     if "max_bins" not in estimator_params:
         return "default"
+    n_samples = _row_n_samples_for_max_bins(inputs)
     if n_samples is not None and estimator_params["max_bins"] == n_samples:
         return "n_samples"
     return "default"
+
+
+def _row_status(inputs: RowInputs) -> str:
+    return inputs.status
+
+
+class ColumnVisibility(Enum):
+    """When a `ColumnSpec` is included in the table at all:
+    - ALWAYS: always included.
+    - IF_VARIES: only once at least two distinct (formatted) values appear
+      across all rows - a column that's constant for the whole table isn't
+      worth its width (e.g. "order" when every case happens to use the same
+      layout).
+    - IF_ANY: only once at least one row's value is truthy - for a field
+      that's either meaningfully set or essentially absent, where "varies"
+      wouldn't work because every *present* value is expected to differ
+      from every other one anyway (e.g. a profile link: each is a distinct
+      per-record URL, so a table where every row has one would "vary" even
+      though the real question is just "was profiling ever captured?")."""
+
+    ALWAYS = "always"
+    IF_VARIES = "if_varies"
+    IF_ANY = "if_any"
+
+
+@dataclass(frozen=True)
+class ColumnSpec:
+    """One column of the detailed-results table, listed below in `COLUMNS`
+    in the exact order they appear on screen - read that list top to bottom
+    to see every column the table can show and when.
+
+    `getter`, when set, computes the column's value once per row from
+    `RowInputs` alone - the easy path for a new case/software-derived
+    inspection column (add a getter above, then one `ColumnSpec` entry to
+    `COLUMNS`; nothing else needs to change). Leave it `None` for a column
+    whose value some other code already writes into the row dict (fit/predict
+    times and speedups from the method loop, profile/JSON links needing the
+    caller's URL-building functions - see `_base_row`/`_add_result_method`);
+    the entry then serves purely as that column's display/visibility
+    declaration.
+
+    `custom_show`, when set, overrides `visibility` with an arbitrary
+    `rows -> bool` predicate, for a column none of the three visibility
+    modes describes correctly (see `Status` in `COLUMNS`: a table where
+    every single row failed shouldn't hide the column just because "failed"
+    doesn't *vary* - that's exactly the case it needs to report)."""
+
+    title: str
+    field: str
+    getter: Callable[[RowInputs], Any] | None = None
+    visibility: ColumnVisibility = ColumnVisibility.ALWAYS
+    custom_show: Callable[[list[dict]], bool] | None = None
+    header_filter: bool = True
+    header_sort: bool | None = None
+    sorter: str = "string"
+    formatter_name: str | None = None
+    link_label: str | None = None
+    visible: bool | None = None
+
+
+def _status_column_visible(rows: list[dict]) -> bool:
+    return any(row["status"] != "ok" for row in rows)
+
+
+@dataclass(frozen=True)
+class ColumnGroupSpec:
+    """One family of dynamically-named columns, one per key that varies
+    across rows (e.g. one column per hyperparameter, one per env var) -
+    mixed directly into `COLUMNS` at the position its columns should appear.
+    `getter` returns this row's whole `{key: raw_value}` dict; `allowed_keys`
+    restricts which keys are even considered (None = every key seen across
+    all rows). Every generated column is shown only where it varies - a
+    group's whole point is "one column per *varying* key", so there's no
+    "always show" mode here."""
+
+    field_prefix: str
+    getter: Callable[[RowInputs], dict]
+    allowed_keys: list[str] | None = None
+
+
+COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
+    ColumnSpec(
+        "comparison_key",
+        "comparison_key",
+        visible=False,
+        header_filter=False,
+        header_sort=False,
+    ),
+    # Title is overridden per-call by `variant_column_title`.
+    ColumnSpec("Variant name", "variant"),
+    ColumnSpec("Estimator name", "estimator", _row_estimator),
+    ColumnSpec("Dataset name", "dataset", _row_dataset),
+    # n_samples/n_features: initial value below comes from data_desc via the
+    # getter, then gets overridden in `_add_result_method` once the "fit"
+    # method's result arrives, since that's the more authoritative source.
+    ColumnSpec(
+        "n_samples",
+        "n_samples",
+        lambda inputs: inputs.data_desc.get("samples"),
+        sorter="number",
+    ),
+    ColumnSpec(
+        "n_features",
+        "n_features",
+        lambda inputs: inputs.data_desc.get("features"),
+        sorter="number",
+    ),
+    ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
+    ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
+    ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
+    ColumnSpec("OpenMP", "openmp", _row_openmp, ColumnVisibility.IF_VARIES),
+    ColumnSpec(
+        "GOMP_SPINCOUNT",
+        "gomp_spincount",
+        _row_gomp_spincount,
+        ColumnVisibility.IF_VARIES,
+    ),
+    ColumnSpec(
+        "KMP_BLOCKTIME",
+        "kmp_blocktime",
+        _row_kmp_blocktime,
+        ColumnVisibility.IF_VARIES,
+    ),
+    ColumnGroupSpec("hp", _row_hyperparams, HYPERPARAM_DISPLAY_ALLOWLIST),
+    ColumnGroupSpec("env", _row_env),
+    ColumnSpec(
+        "Status", "status", _row_status, custom_show=_status_column_visible
+    ),
+    ColumnSpec(
+        "fit time",
+        "fit_time",
+        header_filter=False,
+        sorter="number",
+        formatter_name="duration",
+    ),
+    ColumnSpec(
+        "fit speed up",
+        "fit_speedup",
+        header_filter=False,
+        sorter="number",
+        formatter_name="speedup",
+    ),
+    ColumnSpec(
+        "predict time",
+        "predict_time",
+        header_filter=False,
+        sorter="number",
+        formatter_name="duration",
+    ),
+    ColumnSpec(
+        "predict speed up",
+        "predict_speedup",
+        header_filter=False,
+        sorter="number",
+        formatter_name="speedup",
+    ),
+    ColumnSpec(
+        "profile link",
+        "profile_url",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        header_sort=False,
+        formatter_name="link",
+        link_label="profile",
+    ),
+    ColumnSpec(
+        "JSON link",
+        "json_url",
+        header_filter=False,
+        header_sort=False,
+        formatter_name="link",
+        link_label="JSON",
+    ),
+]
+
+
+def _base_row(
+    inputs: RowInputs,
+    *,
+    comparison_key: str,
+    variant: str,
+    n_samples: int | None,
+    n_features: int | None,
+    profile_url: str | None,
+    profile_url_label: str | None,
+    json_url: str | None,
+) -> dict:
+    row = {
+        "comparison_key": comparison_key,
+        "variant": variant,
+        "n_samples": n_samples,
+        "n_features": n_features,
+        "fit_time": None,
+        "fit_speedup": None,
+        "predict_time": None,
+        "predict_speedup": None,
+        "profile_url": profile_url,
+        "profile_url_label": profile_url_label,
+        "json_url": json_url,
+    }
+    for spec in COLUMNS:
+        if isinstance(spec, ColumnGroupSpec):
+            row[f"__group_{spec.field_prefix}"] = spec.getter(inputs)
+        elif spec.getter is not None:
+            row[spec.field] = spec.getter(inputs)
+    return row
 
 
 def _new_row(
@@ -144,38 +466,17 @@ def _new_row(
     json_url_fn: Callable[[Path], str | None],
     profile_url_fn: Callable[[Path], str | None],
 ) -> dict:
-    data_desc = result.data_desc or {}
-    n_samples = result.case.get("data", {}).get("generation_kwargs", {}).get(
-        "n_samples"
+    inputs = _method_result_inputs(result)
+    return _base_row(
+        inputs,
+        comparison_key=comparison_key,
+        variant=variant,
+        n_samples=inputs.data_desc.get("samples"),
+        n_features=inputs.data_desc.get("features"),
+        profile_url=_profile_url(result, profile_url_fn),
+        profile_url_label=_profile_label(result.record),
+        json_url=_record_json_url(result, json_url_fn),
     )
-    if n_samples is None:
-        n_samples = data_desc.get("samples")
-    row = {
-        "comparison_key": comparison_key,
-        "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
-        "dataset": _dataset_name(result.case),
-        "variant": variant,
-        "n_samples": data_desc.get("samples"),
-        "n_features": data_desc.get("features"),
-        "columns": _row_columns_kind(result.case),
-        "max_bins": _row_max_bins(
-            result.case, result.implementation.library, n_samples
-        ),
-        "fit_time": None,
-        "fit_speedup": None,
-        "predict_time": None,
-        "predict_speedup": None,
-        "profile_url": _profile_url(result, profile_url_fn),
-        "profile_url_label": _profile_label(result.record),
-        "json_url": _record_json_url(result, json_url_fn),
-        "hyperparams": _row_hyperparams(result.case, result.attributes),
-        "status": "ok",
-    }
-    return row
-
-
-def _failed_status(failed_case: dict) -> str:
-    return "timed out" if failed_case.get("return_code") == -9 else "failed"
 
 
 def _failed_row_key(record: BenchmarkRecord, variant: str) -> str:
@@ -199,28 +500,17 @@ def _new_failed_row(
     comparison_key: str,
     json_url_fn: Callable[[Path], str | None],
 ) -> dict:
-    generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {})
-    failed_case = record.failed_case or {}
-    return {
-        "comparison_key": comparison_key,
-        "estimator": record.case.get("algorithm", {}).get("estimator", "unknown"),
-        "dataset": _dataset_name(record.case),
-        "variant": variant,
-        "n_samples": generation_kwargs.get("n_samples"),
-        "n_features": generation_kwargs.get("n_features"),
-        "columns": generation_kwargs.get("columns"),
-        "max_bins": _row_max_bins(
-            record.case, record.implementation.library, generation_kwargs.get("n_samples")
-        ),
-        "fit_time": None,
-        "fit_speedup": None,
-        "predict_time": None,
-        "predict_speedup": None,
-        "profile_url": None,
-        "json_url": json_url_fn(record.record_path) if record.record_path else None,
-        "hyperparams": _row_hyperparams(record.case),
-        "status": _failed_status(failed_case),
-    }
+    inputs = _failed_record_inputs(record)
+    return _base_row(
+        inputs,
+        comparison_key=comparison_key,
+        variant=variant,
+        n_samples=inputs.data_desc.get("samples"),
+        n_features=inputs.data_desc.get("features"),
+        profile_url=None,
+        profile_url_label=None,
+        json_url=json_url_fn(record.record_path) if record.record_path else None,
+    )
 
 
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
@@ -254,7 +544,7 @@ def _add_result_method(
     )
 
 
-def _column(
+def _column_dict(
     title: str,
     field: str,
     *,
@@ -286,6 +576,35 @@ def _column(
     return column
 
 
+def _varies_across(rows: list[dict], field: str) -> bool:
+    return len({_format_value(row.get(field)) for row in rows}) > 1
+
+
+def _spec_column_dict(spec: ColumnSpec, *, title: str) -> dict:
+    return _column_dict(
+        title,
+        spec.field,
+        visible=spec.visible,
+        header_filter=spec.header_filter,
+        header_sort=spec.header_sort,
+        sorter=spec.sorter,
+        formatter_name=spec.formatter_name,
+        link_label=spec.link_label,
+    )
+
+
+def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
+    if spec.custom_show is not None:
+        return spec.custom_show(rows)
+    if spec.visibility is ColumnVisibility.ALWAYS:
+        return True
+    if spec.visibility is ColumnVisibility.IF_VARIES:
+        return _varies_across(rows, spec.field)
+    if spec.visibility is ColumnVisibility.IF_ANY:
+        return any(row.get(spec.field) for row in rows)
+    raise AssertionError(spec.visibility)
+
+
 def detailed_results_table_html(
     category: str,
     matches_by_method: dict[str, list[Match]],
@@ -297,13 +616,13 @@ def detailed_results_table_html(
     unmatched_base_results: list[MethodResult] = (),
     unmatched_candidate_results: list[MethodResult] = (),
     open: bool = False,
+    collapsible: bool = True,
     variant_column_title: str = "Variant name",
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
-    hyperparam_names = set(HYPERPARAM_DISPLAY_ALLOWLIST)
 
     resolve_baseline_label = (
         baseline_label if callable(baseline_label) else (lambda _result: baseline_label)
@@ -366,27 +685,35 @@ def detailed_results_table_html(
     if not rows_by_key:
         return ""
 
-    row_hyperparams = []
-    varying_hyperparam_names = []
-    for row in rows_by_key.values():
-        row_hyperparams.append(row["hyperparams"])
-
-    for name in sorted(hyperparam_names):
-        values = {
-            _format_value(hyperparams.get(name))
-            for hyperparams in row_hyperparams
+    # Every ColumnGroupSpec (hyperparams, env vars) expands into one
+    # Tabulator field per key that varies across rows - resolved once here,
+    # then applied uniformly when flattening each row below.
+    column_groups = [spec for spec in COLUMNS if isinstance(spec, ColumnGroupSpec)]
+    group_fields: dict[str, dict[str, str]] = {}
+    for group in column_groups:
+        group_key = f"__group_{group.field_prefix}"
+        raw_dicts = [row[group_key] for row in rows_by_key.values()]
+        candidate_keys = (
+            group.allowed_keys
+            if group.allowed_keys is not None
+            else sorted({name for raw in raw_dicts for name in raw})
+        )
+        varying_names = [
+            name
+            for name in candidate_keys
+            if len({_format_value(raw.get(name)) for raw in raw_dicts}) > 1
+        ]
+        group_fields[group.field_prefix] = {
+            name: f"{group.field_prefix}_{index}"
+            for index, name in enumerate(varying_names)
         }
-        if len(values) > 1:
-            varying_hyperparam_names.append(name)
 
-    hyperparam_fields = {
-        name: f"hp_{index}" for index, name in enumerate(varying_hyperparam_names)
-    }
     rows = []
     for row in rows_by_key.values():
-        hyperparams = row.pop("hyperparams")
-        for name, field in hyperparam_fields.items():
-            row[field] = _format_value(hyperparams.get(name))
+        for group in column_groups:
+            raw = row.pop(f"__group_{group.field_prefix}")
+            for name, field in group_fields[group.field_prefix].items():
+                row[field] = _format_value(raw.get(name))
         rows.append(row)
 
     rows = sorted(
@@ -400,72 +727,18 @@ def detailed_results_table_html(
         ),
     )
 
-    columns = [
-        _column("comparison_key", "comparison_key", visible=False, header_sort=False),
-        _column(variant_column_title, "variant", header_filter=True, sorter="string"),
-        _column("Estimator name", "estimator", header_filter=True, sorter="string"),
-        _column("Dataset name", "dataset", header_filter=True, sorter="string"),
-        _column("n_samples", "n_samples", header_filter=True, sorter="number"),
-        _column("n_features", "n_features", header_filter=True, sorter="number"),
-    ]
-    if any(row.get("columns") for row in rows):
-        columns.append(
-            _column("columns", "columns", header_filter=True, sorter="string")
-        )
-    if any(row.get("max_bins") for row in rows):
-        columns.append(
-            _column("max_bins", "max_bins", header_filter=True, sorter="string")
-        )
-    columns.extend(
-        _column(name, field, header_filter=True, sorter="string")
-        for name, field in hyperparam_fields.items()
-    )
-    if any(row["status"] != "ok" for row in rows):
-        columns.append(
-            _column("Status", "status", header_filter=True, sorter="string")
-        )
-    columns.extend(
-        [
-            _column("fit time", "fit_time", sorter="number", formatter_name="duration"),
-            _column(
-                "fit speed up",
-                "fit_speedup",
-                sorter="number",
-                formatter_name="speedup",
-            ),
-            _column(
-                "predict time",
-                "predict_time",
-                sorter="number",
-                formatter_name="duration",
-            ),
-            _column(
-                "predict speed up",
-                "predict_speedup",
-                sorter="number",
-                formatter_name="speedup",
-            ),
-        ]
-    )
-    if any(row["profile_url"] for row in rows):
-        columns.append(
-            _column(
-                "profile link",
-                "profile_url",
-                header_sort=False,
-                formatter_name="link",
-                link_label="profile",
+    columns = []
+    for spec in COLUMNS:
+        if isinstance(spec, ColumnGroupSpec):
+            columns.extend(
+                _column_dict(name, field, header_filter=True, sorter="string")
+                for name, field in group_fields[spec.field_prefix].items()
             )
-        )
-    columns.append(
-        _column(
-            "JSON link",
-            "json_url",
-            header_sort=False,
-            formatter_name="link",
-            link_label="JSON",
-        )
-    )
+            continue
+        if not _spec_visible(spec, rows):
+            continue
+        title = variant_column_title if spec.field == "variant" else spec.title
+        columns.append(_spec_column_dict(spec, title=title))
 
     table_id = f"detailed-results-{next(table_ids)}"
     reset_button_id = f"{table_id}-reset"
@@ -479,10 +752,11 @@ def detailed_results_table_html(
     # `<details open>` alone doesn't fire a "toggle" event on page load, so
     # an eagerly-visible table needs the init call to run unconditionally
     # instead of waiting on that event - a real code-path difference, not
-    # just a markup attribute.
+    # just a markup attribute. A non-collapsible table is always eagerly
+    # visible for the same reason.
     script = (
         f"<script>{init_call}</script>"
-        if open
+        if open or not collapsible
         else f"""<script>
     document.currentScript.closest("details").addEventListener("toggle", (event) => {{
       if (!event.target.open) {{
@@ -492,11 +766,17 @@ def detailed_results_table_html(
     }}, {{once: true}});
   </script>"""
     )
-    return f"""<details class="detailed-results"{" open" if open else ""}>
-  <summary>Detailed results</summary>
-  <div class="detailed-results-toolbar" hidden>
+    body = f"""<div class="detailed-results-toolbar" hidden>
     <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row sort" aria-label="Clear row sort">x</button>
   </div>
   <div id="{table_id}" class="detailed-results-table"></div>
-  {script}
+  {script}"""
+    if not collapsible:
+        return f"""<div class="detailed-results">
+  <div class="detailed-results-title">Detailed results</div>
+  {body}
+</div>"""
+    return f"""<details class="detailed-results"{" open" if open else ""}>
+  <summary>Detailed results</summary>
+  {body}
 </details>"""
