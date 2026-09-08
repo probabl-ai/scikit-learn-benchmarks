@@ -12,6 +12,12 @@ ALGORITHM = {"estimator": "LogisticRegression", "estimator_params": {"solver": "
 # here than for the general matrix.
 EXTRA_SCALES = [10, 40, 60]
 
+# The PR only changes anything by way of BLAS thread parallelization (see
+# scikit-learn#34903's description) - sweep low/high thread counts via env
+# var so the comparison actually exercises that axis instead of whatever
+# thread count happens to be the ambient default on the runner.
+BLAS_THREAD_COUNTS = [1, 4]
+
 
 def _is_target(case) -> bool:
     solver = case.algorithm.estimator_params.get("solver", "lbfgs")
@@ -28,15 +34,38 @@ def _extra_scale_cases() -> list[dict]:
     return cases
 
 
+def _with_blas_threads(case: dict, n_threads: int) -> dict:
+    bench = case.get("bench") or {}
+    return {
+        **case,
+        "metadata": {**case.get("metadata", {}), "blas_num_threads": n_threads},
+        "bench": {
+            **bench,
+            "py_spy_profiling": False,
+            "env": {
+                **(bench.get("env") or {}),
+                "OMP_NUM_THREADS": str(n_threads),
+                "OPENBLAS_NUM_THREADS": str(n_threads),
+                "MKL_NUM_THREADS": str(n_threads),
+            },
+        },
+    }
+
+
 def generate_cases() -> list[dict]:
     # all_models.generate_cases() returns EstimatorCase objects, not plain
     # dicts, despite its own type hint - its last filtering step
     # (filter_array_api_supported_cases_if_needed) converts every case via
     # EstimatorCase(**case) before yielding it.
-    cases = [case for case in generate_all_models_cases() if _is_target(case)]
-    for case in cases:
-        case.bench.py_spy_profiling = False
-
-    cases = [case.model_dump(mode="json") for case in cases]
+    cases = [
+        case.model_dump(mode="json")
+        for case in generate_all_models_cases()
+        if _is_target(case)
+    ]
     cases.extend(_extra_scale_cases())
-    return cases
+
+    return [
+        _with_blas_threads(case, n_threads)
+        for case in cases
+        for n_threads in BLAS_THREAD_COUNTS
+    ]
