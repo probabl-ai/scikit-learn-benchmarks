@@ -8,7 +8,13 @@ from sklbench.orchestrator import implementation
 
 
 def _args(tmp_path):
-    return Namespace(results_dir=str(tmp_path), exit_on_error=False)
+    return Namespace(
+        results_dir=str(tmp_path),
+        exit_on_error=False,
+        config=["test"],
+        no_system_telemetry=True,
+        system_telemetry_interval=2.0,
+    )
 
 
 def _hptuning_case(**kwargs):

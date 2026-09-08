@@ -12,6 +12,7 @@ from typing import Any, Callable
 from ..envs import (
     effective_openmp_value,
     json_viewer_url,
+    openmp_runtime_family,
     openmp_runtime_short_label,
     profile_viewer_url,
 )
@@ -217,16 +218,29 @@ def _row_openmp(inputs: RowInputs) -> str:
     return openmp_runtime_short_label(inputs.software_hash)
 
 
-def _row_gomp_spincount(inputs: RowInputs) -> str | None:
-    return effective_openmp_value(
-        inputs.case.get("env"), inputs.software_hash, "GOMP_SPINCOUNT"
-    )
+def _format_spincount(value: str) -> str:
+    """"300000" -> "300k"; anything not a clean multiple of 1000 is left as-is
+    (e.g. a value someone hand-set to something odd)."""
+    if value.isdigit() and int(value) >= 1000 and int(value) % 1000 == 0:
+        return f"{int(value) // 1000}k"
+    return value
 
 
-def _row_kmp_blocktime(inputs: RowInputs) -> str | None:
-    return effective_openmp_value(
-        inputs.case.get("env"), inputs.software_hash, "KMP_BLOCKTIME"
-    )
+def _row_omp_active_wait(inputs: RowInputs) -> str | None:
+    """The busy-wait knob that actually applies to this row's OpenMP runtime
+    family - `GOMP_SPINCOUNT` for GNU libgomp, `KMP_BLOCKTIME` for Intel/LLVM
+    OpenMP (see `has_active_wait`) - as a single "spincount=300k" /
+    "blocktime=200ms" label, since a build only ever has one of the two
+    knobs, never both."""
+    family = openmp_runtime_family(inputs.software_hash)
+    case_env = inputs.case.get("env")
+    if family == "GNU libgomp":
+        value = effective_openmp_value(case_env, inputs.software_hash, "GOMP_SPINCOUNT")
+        return f"spincount={_format_spincount(value)}" if value is not None else None
+    if family == "Intel/LLVM OpenMP":
+        value = effective_openmp_value(case_env, inputs.software_hash, "KMP_BLOCKTIME")
+        return f"blocktime={value}" if value is not None else None
+    return None
 
 
 def _row_n_samples_for_max_bins(inputs: RowInputs) -> int | None:
@@ -341,7 +355,9 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
-    ColumnSpec("Estimator name", "estimator", _row_estimator),
+    ColumnSpec(
+        "Estimator name", "estimator", _row_estimator, ColumnVisibility.IF_VARIES
+    ),
     ColumnSpec("Dataset name", "dataset", _row_dataset),
     # n_samples/n_features: initial value below comes from data_desc via the
     # getter, then gets overridden in `_add_result_method` once the "fit"
@@ -363,15 +379,9 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
     ColumnSpec("OpenMP", "openmp", _row_openmp, ColumnVisibility.IF_VARIES),
     ColumnSpec(
-        "GOMP_SPINCOUNT",
-        "gomp_spincount",
-        _row_gomp_spincount,
-        ColumnVisibility.IF_VARIES,
-    ),
-    ColumnSpec(
-        "KMP_BLOCKTIME",
-        "kmp_blocktime",
-        _row_kmp_blocktime,
+        "OMP active wait",
+        "omp_active_wait",
+        _row_omp_active_wait,
         ColumnVisibility.IF_VARIES,
     ),
     ColumnGroupSpec("hp", _row_hyperparams, HYPERPARAM_DISPLAY_ALLOWLIST),

@@ -51,7 +51,8 @@ OPENMP DISPLAY ENVIRONMENT END
     assert command == [
         sys.executable,
         "-c",
-        "from sklearn.utils._openmp_helpers import _openmp_parallelism_enabled",
+        "from sklearn.utils._openmp_helpers import _openmp_effective_n_threads; "
+        "_openmp_effective_n_threads()",
     ]
     assert kwargs["env"]["OMP_DISPLAY_ENV"] == "VERBOSE"
     assert kwargs["env"]["OMP_NUM_THREADS"] == "2"
@@ -100,9 +101,6 @@ def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
         if command == ["git", "status", "--porcelain", "--untracked-files=no"]:
             assert cwd == sklearn_root
             return ""
-        if command == ["git", "describe", "--tags", "--always", "--dirty"]:
-            assert cwd == sklearn_root
-            return "abc123"
         if command == ["git", "remote", "get-url", "origin"]:
             assert cwd == sklearn_root
             return "git@github.com:scikit-learn/scikit-learn.git"
@@ -114,6 +112,5 @@ def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
         "commit": "abc123",
         "dirty": False,
         "branch": "feature",
-        "describe": "abc123",
         "remote": "git@github.com:scikit-learn/scikit-learn.git",
     }
