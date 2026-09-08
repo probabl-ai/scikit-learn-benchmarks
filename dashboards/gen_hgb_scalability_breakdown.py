@@ -63,8 +63,8 @@ from sklbench.reporting.matching import (
 
 
 HARDWARE_NAMES = {
-    "534824": "Intel GNR",  # TODO: re-rerun
     "3b5e61": "Laptop",
+    "534824": "Intel GNR",  # TODO: re-rerun
 }
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
@@ -487,6 +487,15 @@ def _env_label(hardware_hash: str, software_hash: str, active_wait: bool, proc_b
     )
 
 
+def _hardware_sort_index(hardware_hash: str) -> int:
+    """Position in HARDWARE_NAMES (laptop first), so tabs group by hardware
+    in that order even though labels are otherwise sorted alphabetically."""
+    try:
+        return list(HARDWARE_NAMES).index(hardware_hash)
+    except ValueError:
+        return len(HARDWARE_NAMES)
+
+
 if __name__ == "__main__":
     records = _dedup_latest(
         [
@@ -513,7 +522,7 @@ if __name__ == "__main__":
         )
         for (hardware_hash, software_hash, active_wait, proc_bind), env_records in sorted(
             by_env.items(),
-            key=lambda item: _env_label(*item[0]),
+            key=lambda item: (_hardware_sort_index(item[0][0]), _env_label(*item[0])),
         )
     ]
 

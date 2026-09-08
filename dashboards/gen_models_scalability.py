@@ -59,8 +59,8 @@ from sklbench.reporting.matching import MethodResult, date_range, read_all_resul
 
 
 HARDWARE_NAMES = {
-    "534824": "Intel GNR",
     "3b5e61": "Intel laptop",
+    "534824": "Intel GNR",
 }
 
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
@@ -320,7 +320,12 @@ if __name__ == "__main__":
     ]
     hardware_hashes = sorted(
         {result.hardware_hash for result in results},
-        key=lambda hardware_hash: HARDWARE_NAMES.get(hardware_hash, hardware_hash),
+        key=lambda hardware_hash: (
+            list(HARDWARE_NAMES).index(hardware_hash)
+            if hardware_hash in HARDWARE_NAMES
+            else len(HARDWARE_NAMES),
+            HARDWARE_NAMES.get(hardware_hash, hardware_hash),
+        ),
     )
     hardware_pages = [
         (
