@@ -24,6 +24,7 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _dedup_latest,
     _env_key,
     _env_label,
+    _hardware_sort_index,
     _is_instrumented_hgb,
     _is_sklearn_dev_build,
     render_env_page,
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         )
         for (hardware_hash, software_hash, active_wait, proc_bind), env_records in sorted(
             by_env.items(),
-            key=lambda item: _env_label(*item[0]),
+            key=lambda item: (_hardware_sort_index(item[0][0]), _env_label(*item[0])),
         )
     ]
 

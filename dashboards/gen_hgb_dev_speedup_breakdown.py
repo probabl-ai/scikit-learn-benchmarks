@@ -45,6 +45,7 @@ from dashboards.gen_hgb_scalability_breakdown import (
     PHASE_LABELS,
     PHASE_ORDER,
     _dedup_latest,
+    _hardware_sort_index,
     _has_active_wait,
     _is_instrumented_hgb,
     _phase_breakdown_ms,
@@ -429,7 +430,10 @@ if __name__ == "__main__":
 
     pages = [
         (_env_label(*key), render_hardware_page(env_records, json_url_fn))
-        for key, env_records in sorted(by_env.items(), key=lambda item: _env_label(*item[0]))
+        for key, env_records in sorted(
+            by_env.items(),
+            key=lambda item: (_hardware_sort_index(item[0][0]), _env_label(*item[0])),
+        )
         if _has_sklearn_dev_build(env_records)
     ]
 

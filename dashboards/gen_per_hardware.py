@@ -35,8 +35,8 @@ from sklbench.reporting.html import (
 
 
 HARDWARE_NAMES = {
-    "534824": "Intel GNR 172 CPU cores",
     "3b5e61": "Intel laptop with B390 GPU",
+    "534824": "Intel GNR 172 CPU cores",
 }
 BASE_IMPLEMENTATION = "sklearn"
 PREPROCESSING_TOGGLE_HTML = (
