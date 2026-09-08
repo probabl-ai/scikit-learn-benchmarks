@@ -4,6 +4,7 @@ import itertools
 import json
 import math
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from statistics import median
 from typing import Any, Callable
@@ -92,9 +93,8 @@ def _failed_status(failed_case: dict) -> str:
 @dataclass(frozen=True)
 class RowInputs:
     """Normalizes a live `MethodResult` and a failed `BenchmarkRecord` into
-    one shape, so every `ColumnSpec`/`ColumnGroupSpec` getter below is
-    written once and works for both (see `_method_result_inputs` /
-    `_failed_record_inputs`)."""
+    one shape, so every column getter below is written once and works for
+    both (see `_method_result_inputs` / `_failed_record_inputs`)."""
 
     case: dict
     software_hash: str
@@ -165,6 +165,20 @@ def default_comparison_key(result: MethodResult) -> str:
     return stable_json(
         without_keys(result.case, excluded_names={"implementation", "max_bins"})
     )
+
+
+# --- Column value getters -------------------------------------------------
+# Each of these computes one column's raw value from RowInputs alone. Add
+# one here (plus a ColumnSpec entry below) for any new case/software-derived
+# inspection column - see the COLUMNS list's docstring.
+
+
+def _row_estimator(inputs: RowInputs) -> str:
+    return inputs.case.get("algorithm", {}).get("estimator", "unknown")
+
+
+def _row_dataset(inputs: RowInputs) -> str:
+    return _dataset_name(inputs.case)
 
 
 def _row_columns_kind(inputs: RowInputs) -> str | None:
@@ -239,61 +253,177 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     return "default"
 
 
+def _row_status(inputs: RowInputs) -> str:
+    return inputs.status
+
+
+class ColumnVisibility(Enum):
+    """When a `ColumnSpec` is included in the table at all:
+    - ALWAYS: always included.
+    - IF_VARIES: only once at least two distinct (formatted) values appear
+      across all rows - a column that's constant for the whole table isn't
+      worth its width (e.g. "order" when every case happens to use the same
+      layout).
+    - IF_ANY: only once at least one row's value is truthy - for a field
+      that's either meaningfully set or essentially absent, where "varies"
+      wouldn't work because every *present* value is expected to differ
+      from every other one anyway (e.g. a profile link: each is a distinct
+      per-record URL, so a table where every row has one would "vary" even
+      though the real question is just "was profiling ever captured?")."""
+
+    ALWAYS = "always"
+    IF_VARIES = "if_varies"
+    IF_ANY = "if_any"
+
+
 @dataclass(frozen=True)
 class ColumnSpec:
-    """One column of the detailed-results table: `getter` extracts its raw
-    value from a row's normalized `RowInputs` (works uniformly for a live
-    result or a failed record). `show_if_varies` gates whether the column is
-    included at all: when True, it's only added once at least two distinct
-    (formatted) values appear across all rows - a column that's constant
-    for a whole table rarely earns its width. When False, the column always
-    shows once declared.
+    """One column of the detailed-results table, listed below in `COLUMNS`
+    in the exact order they appear on screen - read that list top to bottom
+    to see every column the table can show and when.
 
-    To add a case/software-derived column for a specific dashboard, add a
-    `ColumnSpec` to `COLUMNS` below - no changes needed anywhere else in this
-    module. A column needing external, call-time context instead (a URL
-    builder, per-method fit/predict state...) doesn't fit this shape; see the
-    bespoke fields built directly in `_new_row`/`detailed_results_table_html`."""
+    `getter`, when set, computes the column's value once per row from
+    `RowInputs` alone - the easy path for a new case/software-derived
+    inspection column (add a getter above, then one `ColumnSpec` entry to
+    `COLUMNS`; nothing else needs to change). Leave it `None` for a column
+    whose value some other code already writes into the row dict (fit/predict
+    times and speedups from the method loop, profile/JSON links needing the
+    caller's URL-building functions - see `_base_row`/`_add_result_method`);
+    the entry then serves purely as that column's display/visibility
+    declaration.
+
+    `custom_show`, when set, overrides `visibility` with an arbitrary
+    `rows -> bool` predicate, for a column none of the three visibility
+    modes describes correctly (see `Status` in `COLUMNS`: a table where
+    every single row failed shouldn't hide the column just because "failed"
+    doesn't *vary* - that's exactly the case it needs to report)."""
 
     title: str
     field: str
-    getter: Callable[[RowInputs], Any]
-    show_if_varies: bool = False
+    getter: Callable[[RowInputs], Any] | None = None
+    visibility: ColumnVisibility = ColumnVisibility.ALWAYS
+    custom_show: Callable[[list[dict]], bool] | None = None
+    header_filter: bool = True
+    header_sort: bool | None = None
     sorter: str = "string"
+    formatter_name: str | None = None
+    link_label: str | None = None
+    visible: bool | None = None
 
 
-COLUMNS: list[ColumnSpec] = [
-    ColumnSpec("columns", "columns", _row_columns_kind, show_if_varies=True),
-    ColumnSpec("order", "order", _row_order, show_if_varies=True),
-    ColumnSpec("max_bins", "max_bins", _row_max_bins, show_if_varies=True),
-    ColumnSpec("OpenMP", "openmp", _row_openmp, show_if_varies=True),
-    ColumnSpec(
-        "GOMP_SPINCOUNT", "gomp_spincount", _row_gomp_spincount, show_if_varies=True
-    ),
-    ColumnSpec(
-        "KMP_BLOCKTIME", "kmp_blocktime", _row_kmp_blocktime, show_if_varies=True
-    ),
-]
+def _status_column_visible(rows: list[dict]) -> bool:
+    return any(row["status"] != "ok" for row in rows)
 
 
 @dataclass(frozen=True)
 class ColumnGroupSpec:
     """One family of dynamically-named columns, one per key that varies
-    across rows (e.g. one column per hyperparameter, one per env var).
+    across rows (e.g. one column per hyperparameter, one per env var) -
+    mixed directly into `COLUMNS` at the position its columns should appear.
     `getter` returns this row's whole `{key: raw_value}` dict; `allowed_keys`
     restricts which keys are even considered (None = every key seen across
-    all rows). Every generated column is shown only where it varies - same
-    reasoning as `ColumnSpec.show_if_varies`, there's no "always show" mode
-    here since a group's whole point is "one column per *varying* key"."""
+    all rows). Every generated column is shown only where it varies - a
+    group's whole point is "one column per *varying* key", so there's no
+    "always show" mode here."""
 
     field_prefix: str
     getter: Callable[[RowInputs], dict]
     allowed_keys: list[str] | None = None
 
 
-COLUMN_GROUPS: list[ColumnGroupSpec] = [
+COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
+    ColumnSpec(
+        "comparison_key",
+        "comparison_key",
+        visible=False,
+        header_filter=False,
+        header_sort=False,
+    ),
+    # Title is overridden per-call by `variant_column_title`.
+    ColumnSpec("Variant name", "variant"),
+    ColumnSpec("Estimator name", "estimator", _row_estimator),
+    ColumnSpec("Dataset name", "dataset", _row_dataset),
+    # n_samples/n_features: initial value below comes from data_desc via the
+    # getter, then gets overridden in `_add_result_method` once the "fit"
+    # method's result arrives, since that's the more authoritative source.
+    ColumnSpec(
+        "n_samples",
+        "n_samples",
+        lambda inputs: inputs.data_desc.get("samples"),
+        sorter="number",
+    ),
+    ColumnSpec(
+        "n_features",
+        "n_features",
+        lambda inputs: inputs.data_desc.get("features"),
+        sorter="number",
+    ),
+    ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
+    ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
+    ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
+    ColumnSpec("OpenMP", "openmp", _row_openmp, ColumnVisibility.IF_VARIES),
+    ColumnSpec(
+        "GOMP_SPINCOUNT",
+        "gomp_spincount",
+        _row_gomp_spincount,
+        ColumnVisibility.IF_VARIES,
+    ),
+    ColumnSpec(
+        "KMP_BLOCKTIME",
+        "kmp_blocktime",
+        _row_kmp_blocktime,
+        ColumnVisibility.IF_VARIES,
+    ),
     ColumnGroupSpec("hp", _row_hyperparams, HYPERPARAM_DISPLAY_ALLOWLIST),
     ColumnGroupSpec("env", _row_env),
+    ColumnSpec(
+        "Status", "status", _row_status, custom_show=_status_column_visible
+    ),
+    ColumnSpec(
+        "fit time",
+        "fit_time",
+        header_filter=False,
+        sorter="number",
+        formatter_name="duration",
+    ),
+    ColumnSpec(
+        "fit speed up",
+        "fit_speedup",
+        header_filter=False,
+        sorter="number",
+        formatter_name="speedup",
+    ),
+    ColumnSpec(
+        "predict time",
+        "predict_time",
+        header_filter=False,
+        sorter="number",
+        formatter_name="duration",
+    ),
+    ColumnSpec(
+        "predict speed up",
+        "predict_speedup",
+        header_filter=False,
+        sorter="number",
+        formatter_name="speedup",
+    ),
+    ColumnSpec(
+        "profile link",
+        "profile_url",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        header_sort=False,
+        formatter_name="link",
+        link_label="profile",
+    ),
+    ColumnSpec(
+        "JSON link",
+        "json_url",
+        header_filter=False,
+        header_sort=False,
+        formatter_name="link",
+        link_label="JSON",
+    ),
 ]
 
 
@@ -310,8 +440,6 @@ def _base_row(
 ) -> dict:
     row = {
         "comparison_key": comparison_key,
-        "estimator": inputs.case.get("algorithm", {}).get("estimator", "unknown"),
-        "dataset": _dataset_name(inputs.case),
         "variant": variant,
         "n_samples": n_samples,
         "n_features": n_features,
@@ -322,12 +450,12 @@ def _base_row(
         "profile_url": profile_url,
         "profile_url_label": profile_url_label,
         "json_url": json_url,
-        "status": inputs.status,
     }
     for spec in COLUMNS:
-        row[spec.field] = spec.getter(inputs)
-    for group in COLUMN_GROUPS:
-        row[f"__group_{group.field_prefix}"] = group.getter(inputs)
+        if isinstance(spec, ColumnGroupSpec):
+            row[f"__group_{spec.field_prefix}"] = spec.getter(inputs)
+        elif spec.getter is not None:
+            row[spec.field] = spec.getter(inputs)
     return row
 
 
@@ -416,7 +544,7 @@ def _add_result_method(
     )
 
 
-def _column(
+def _column_dict(
     title: str,
     field: str,
     *,
@@ -450,6 +578,31 @@ def _column(
 
 def _varies_across(rows: list[dict], field: str) -> bool:
     return len({_format_value(row.get(field)) for row in rows}) > 1
+
+
+def _spec_column_dict(spec: ColumnSpec, *, title: str) -> dict:
+    return _column_dict(
+        title,
+        spec.field,
+        visible=spec.visible,
+        header_filter=spec.header_filter,
+        header_sort=spec.header_sort,
+        sorter=spec.sorter,
+        formatter_name=spec.formatter_name,
+        link_label=spec.link_label,
+    )
+
+
+def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
+    if spec.custom_show is not None:
+        return spec.custom_show(rows)
+    if spec.visibility is ColumnVisibility.ALWAYS:
+        return True
+    if spec.visibility is ColumnVisibility.IF_VARIES:
+        return _varies_across(rows, spec.field)
+    if spec.visibility is ColumnVisibility.IF_ANY:
+        return any(row.get(spec.field) for row in rows)
+    raise AssertionError(spec.visibility)
 
 
 def detailed_results_table_html(
@@ -534,8 +687,9 @@ def detailed_results_table_html(
     # Every ColumnGroupSpec (hyperparams, env vars) expands into one
     # Tabulator field per key that varies across rows - resolved once here,
     # then applied uniformly when flattening each row below.
+    column_groups = [spec for spec in COLUMNS if isinstance(spec, ColumnGroupSpec)]
     group_fields: dict[str, dict[str, str]] = {}
-    for group in COLUMN_GROUPS:
+    for group in column_groups:
         group_key = f"__group_{group.field_prefix}"
         raw_dicts = [row[group_key] for row in rows_by_key.values()]
         candidate_keys = (
@@ -555,7 +709,7 @@ def detailed_results_table_html(
 
     rows = []
     for row in rows_by_key.values():
-        for group in COLUMN_GROUPS:
+        for group in column_groups:
             raw = row.pop(f"__group_{group.field_prefix}")
             for name, field in group_fields[group.field_prefix].items():
                 row[field] = _format_value(raw.get(name))
@@ -572,71 +726,18 @@ def detailed_results_table_html(
         ),
     )
 
-    columns = [
-        _column("comparison_key", "comparison_key", visible=False, header_sort=False),
-        _column(variant_column_title, "variant", header_filter=True, sorter="string"),
-        _column("Estimator name", "estimator", header_filter=True, sorter="string"),
-        _column("Dataset name", "dataset", header_filter=True, sorter="string"),
-        _column("n_samples", "n_samples", header_filter=True, sorter="number"),
-        _column("n_features", "n_features", header_filter=True, sorter="number"),
-    ]
+    columns = []
     for spec in COLUMNS:
-        if spec.show_if_varies and not _varies_across(rows, spec.field):
-            continue
-        columns.append(
-            _column(spec.title, spec.field, header_filter=True, sorter=spec.sorter)
-        )
-    for group in COLUMN_GROUPS:
-        columns.extend(
-            _column(name, field, header_filter=True, sorter="string")
-            for name, field in group_fields[group.field_prefix].items()
-        )
-    if any(row["status"] != "ok" for row in rows):
-        columns.append(
-            _column("Status", "status", header_filter=True, sorter="string")
-        )
-    columns.extend(
-        [
-            _column("fit time", "fit_time", sorter="number", formatter_name="duration"),
-            _column(
-                "fit speed up",
-                "fit_speedup",
-                sorter="number",
-                formatter_name="speedup",
-            ),
-            _column(
-                "predict time",
-                "predict_time",
-                sorter="number",
-                formatter_name="duration",
-            ),
-            _column(
-                "predict speed up",
-                "predict_speedup",
-                sorter="number",
-                formatter_name="speedup",
-            ),
-        ]
-    )
-    if any(row["profile_url"] for row in rows):
-        columns.append(
-            _column(
-                "profile link",
-                "profile_url",
-                header_sort=False,
-                formatter_name="link",
-                link_label="profile",
+        if isinstance(spec, ColumnGroupSpec):
+            columns.extend(
+                _column_dict(name, field, header_filter=True, sorter="string")
+                for name, field in group_fields[spec.field_prefix].items()
             )
-        )
-    columns.append(
-        _column(
-            "JSON link",
-            "json_url",
-            header_sort=False,
-            formatter_name="link",
-            link_label="JSON",
-        )
-    )
+            continue
+        if not _spec_visible(spec, rows):
+            continue
+        title = variant_column_title if spec.field == "variant" else spec.title
+        columns.append(_spec_column_dict(spec, title=title))
 
     table_id = f"detailed-results-{next(table_ids)}"
     reset_button_id = f"{table_id}-reset"
