@@ -378,6 +378,7 @@ def phase_breakdown_plot_html(
     phase_colors: dict[str, str],
     phase_labels: dict[str, str] | None = None,
     x_title: str = "threads",
+    series_order: list[str] | None = None,
 ) -> str:
     """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
     count), one bar per `points` entry. Each point is
@@ -386,39 +387,65 @@ def phase_breakdown_plot_html(
     an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
     drives sort order. Legend is disabled on every trace - callers render one
     shared legend across a grid of these (see dashboards/gen_hgb_scalability_breakdown.py)
-    rather than repeating it per small multiple."""
+    rather than repeating it per small multiple.
+
+    A point may also carry a `"series"` label (e.g. a build being compared
+    against another, see gen_hgb_dev_scalability_breakdown.py) - when more
+    than one distinct series is present, each `x` position gets one
+    side-by-side bar per series (`offsetgroup` per series, stacked manually
+    via each trace's `base` since `barmode="overlay"` doesn't stack on its
+    own), ordered left-to-right by `series_order` (defaults to alphabetical).
+    X-axis ticks stay plain `x`/`x_label` values either way - the series
+    only affects a bar's left/right position at a given tick, not the tick
+    itself. A single series (the common case, `"series"` absent everywhere)
+    renders exactly as before - one plain stacked bar per `x`."""
     if phase_labels is None:
         phase_labels = {phase: phase for phase in phase_order}
     chart_id = f"phase-breakdown-{next(chart_ids)}"
     points = sorted(points, key=lambda point: point["x"])
-    x_values = [str(point.get("x_label", point["x"])) for point in points]
+    series_values = {point.get("series") for point in points if point.get("series") is not None}
+    multi_series = len(series_values) > 1
+    if multi_series and series_order is None:
+        series_order = sorted(series_values)
 
     fig = go.Figure()
-    for phase in phase_order:
-        y_values = [point["phases"].get(phase, 0.0) for point in points]
-        totals = [point["total_ms"] for point in points]
-        fig.add_trace(
-            go.Bar(
-                name=phase_labels[phase],
-                x=x_values,
-                y=y_values,
-                marker={"color": phase_colors[phase]},
-                showlegend=False,
-                # Duration is pre-formatted in Python (hovertemplate's own
-                # %{y:.3g} can't apply format_duration_ms's ms/s unit
-                # switch), so it rides along in customdata next to the share.
-                customdata=[
-                    (format_duration_ms(y), _phase_share(y, total))
-                    for y, total in zip(y_values, totals)
-                ],
-                hovertemplate=(
-                    f"{phase_labels[phase]}: "
-                    "%{customdata[0]} (%{customdata[1]:.0%})<extra></extra>"
-                ),
-            )
+    for series in series_order if multi_series else [None]:
+        series_points = (
+            [point for point in points if point.get("series") == series]
+            if multi_series
+            else points
         )
+        x_values = [str(point.get("x_label", point["x"])) for point in series_points]
+        cumulative_ms = [0.0] * len(series_points)
+        for phase in phase_order:
+            y_values = [point["phases"].get(phase, 0.0) for point in series_points]
+            totals = [point["total_ms"] for point in series_points]
+            fig.add_trace(
+                go.Bar(
+                    name=phase_labels[phase],
+                    x=x_values,
+                    y=y_values,
+                    base=list(cumulative_ms) if multi_series else None,
+                    offsetgroup=series if multi_series else None,
+                    marker={"color": phase_colors[phase]},
+                    showlegend=False,
+                    # Duration is pre-formatted in Python (hovertemplate's own
+                    # %{y:.3g} can't apply format_duration_ms's ms/s unit
+                    # switch), so it rides along in customdata next to the share.
+                    customdata=[
+                        (format_duration_ms(y), _phase_share(y, total))
+                        for y, total in zip(y_values, totals)
+                    ],
+                    hovertemplate=(
+                        (f"{series}<br>" if multi_series else "")
+                        + f"{phase_labels[phase]}: "
+                        "%{customdata[0]} (%{customdata[1]:.0%})<extra></extra>"
+                    ),
+                )
+            )
+            cumulative_ms = [total + y for total, y in zip(cumulative_ms, y_values)]
     fig.update_layout(
-        barmode="stack",
+        barmode="overlay" if multi_series else "stack",
         xaxis={"type": "category", "title": x_title},
         yaxis={"title": "time (ms)", "rangemode": "tozero"},
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
