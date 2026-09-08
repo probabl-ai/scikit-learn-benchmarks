@@ -197,12 +197,6 @@ if __name__ == "__main__":
 
     multi_env = len(env_groups) > 1
 
-    def build_label(build_name: str) -> str:
-        """Branch label, env-qualified only when more than one env is being
-        compared - keeps the common single-env case's labels unchanged."""
-        label = _branch_label(build_name)
-        return f"{label} [{_env_of(build_name)}]" if multi_env else label
-
     matches = []
     unmatched_base_results = []
     unmatched_variant_results = []
@@ -229,8 +223,8 @@ if __name__ == "__main__":
             r for record in variant_failed for r in base_by_case_key.get(_case_key(record.case), [])
         )
 
-        failed_records_for_table.extend((record, build_label(base_build)) for record in base_failed)
-        failed_records_for_table.extend((record, build_label(variant_build)) for record in variant_failed)
+        failed_records_for_table.extend((record, _branch_label(base_build)) for record in base_failed)
+        failed_records_for_table.extend((record, _branch_label(variant_build)) for record in variant_failed)
 
     matches_by_method = groupby(matches, lambda match: match.matched_result.method)
 
@@ -244,14 +238,14 @@ if __name__ == "__main__":
     table_html = detailed_results_table_html(
         "all",
         matches_by_method,
-        baseline_label=lambda result: build_label(software_build_name(result.software_hash)),
-        variant_label=lambda result: build_label(software_build_name(result.software_hash)),
+        baseline_label=lambda result: _branch_label(software_build_name(result.software_hash)),
+        variant_label=lambda result: _branch_label(software_build_name(result.software_hash)),
         failed_records=failed_records_for_table,
         unmatched_base_results=unmatched_base_results,
         unmatched_candidate_results=unmatched_variant_results,
         collapsible=False,
         variant_column_title="Branch name",
-        default_variant_filter=None if multi_env else build_label(env_groups[0][2]),
+        default_variant_filter=None if multi_env else _branch_label(env_groups[0][2]),
         json_url_fn=hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url),
         profile_url_fn=hosted_viewer_url_fn(
             FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url
@@ -269,7 +263,7 @@ if __name__ == "__main__":
     commit_links = []
     for env, base_build, variant_build in env_groups:
         for build_name in (base_build, variant_build):
-            label = escape(build_label(build_name))
+            label = escape(_branch_label(build_name))
             commit_url = commit_urls[build_name]
             if commit_url is None:
                 commit_links.append(f"<li>{label}: <span class=\"muted\">commit unknown</span></li>")
