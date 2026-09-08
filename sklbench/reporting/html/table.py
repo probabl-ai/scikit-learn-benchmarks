@@ -121,10 +121,15 @@ def _row_columns_kind(case: dict) -> str | None:
     return case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
-def _row_order(case: dict) -> str | None:
-    """The data's memory layout ("C" or "F") - only set where a config
-    varies it (see configs/synthetic_linear.py's `order` field)."""
-    return case.get("data", {}).get("order")
+def _row_order(case: dict, data_desc: dict | None = None) -> str | None:
+    """The data's memory layout ("C" or "F"): the config-forced value where a
+    config varies it (see configs/synthetic_linear.py's `order` field), else
+    the measured layout of the loaded array (real datasets - see
+    sklbench/runners/datasets/__init__.py's `_measure_order`)."""
+    order = case.get("data", {}).get("order")
+    if order is not None:
+        return order
+    return (data_desc or {}).get("order")
 
 
 def _row_env(case: dict) -> dict:
@@ -173,7 +178,7 @@ def _new_row(
         "n_samples": data_desc.get("samples"),
         "n_features": data_desc.get("features"),
         "columns": _row_columns_kind(result.case),
-        "order": _row_order(result.case),
+        "order": _row_order(result.case, data_desc),
         "max_bins": _row_max_bins(
             result.case, result.implementation.library, n_samples
         ),

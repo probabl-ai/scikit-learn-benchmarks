@@ -64,6 +64,21 @@ def load_raw_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
     )
 
 
+def _measure_order(data) -> str | None:
+    """The array's actual memory layout ("C"/"F"), for libraries that expose
+    numpy-style contiguity flags. None for pandas/other formats with no
+    equivalent concept.
+    """
+    flags = getattr(data, "flags", None)
+    if flags is None:
+        return None
+    if flags["C_CONTIGUOUS"]:
+        return "C"
+    if flags["F_CONTIGUOUS"]:
+        return "F"
+    return None
+
+
 def _shape_desc(data) -> dict:
     desc = {"samples": data.shape[0]}
     if len(data.shape) == 2:
@@ -133,7 +148,9 @@ def preprocess_data(
     for subset_name in ("x_train", "x_test"):
         subset_description[subset_name] = {
             "format": implementation.data_library,
-            "order": data_params.order,
+            # Real datasets rarely force an order in the config, so fall back
+            # to measuring the array actually produced by preprocessing.
+            "order": data_params.order or _measure_order(data_dict[subset_name]),
             "dtype": data_params.dtype,
             **_shape_desc(data_dict[subset_name]),
         }
