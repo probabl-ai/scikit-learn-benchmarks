@@ -16,7 +16,7 @@ EXTRA_SCALES = [10, 40, 60]
 # scikit-learn#34903's description) - sweep low/high thread counts via env
 # var so the comparison actually exercises that axis instead of whatever
 # thread count happens to be the ambient default on the runner.
-BLAS_THREAD_COUNTS = [1, 4]
+BLAS_THREAD_COUNTS = [1, 4, None]
 
 
 def _is_target(case) -> bool:
@@ -41,8 +41,11 @@ def _extra_scale_cases() -> list[dict]:
     return cases
 
 
-def _with_blas_threads(case: dict, n_threads: int) -> dict:
+def _with_blas_threads(case: dict, n_threads: int | None) -> dict:
     bench = case.get("bench") or {}
+    env = {}
+    if n_threads is not None:
+        env["OPENBLAS_NUM_THREADS"] = str(n_threads)
     return {
         **case,
         "metadata": {**case.get("metadata", {}), "blas_num_threads": n_threads},
@@ -51,9 +54,7 @@ def _with_blas_threads(case: dict, n_threads: int) -> dict:
             "py_spy_profiling": False,
             "env": {
                 **(bench.get("env") or {}),
-                "OMP_NUM_THREADS": str(n_threads),
-                "OPENBLAS_NUM_THREADS": str(n_threads),
-                "MKL_NUM_THREADS": str(n_threads),
+                **env
             },
         },
     }
