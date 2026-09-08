@@ -226,6 +226,10 @@ body.with-preprocessing .speedup-view-preprocessing {
   cursor: pointer;
   font-weight: 600;
 }
+.detailed-results-title {
+  color: var(--muted);
+  font-weight: 600;
+}
 .detailed-results-table {
   margin-top: 12px;
 }
