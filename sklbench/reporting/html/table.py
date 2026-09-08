@@ -3,9 +3,10 @@ from __future__ import annotations
 import itertools
 import json
 import math
+from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
-from typing import Callable
+from typing import Any, Callable
 
 from ..envs import (
     effective_openmp_value,
@@ -84,6 +85,54 @@ def _profile_label(record: BenchmarkRecord | None) -> str | None:
     return "py-spy"
 
 
+def _failed_status(failed_case: dict) -> str:
+    return "timed out" if failed_case.get("return_code") == -9 else "failed"
+
+
+@dataclass(frozen=True)
+class RowInputs:
+    """Normalizes a live `MethodResult` and a failed `BenchmarkRecord` into
+    one shape, so every `ColumnSpec`/`ColumnGroupSpec` getter below is
+    written once and works for both (see `_method_result_inputs` /
+    `_failed_record_inputs`)."""
+
+    case: dict
+    software_hash: str
+    library: str
+    data_desc: dict
+    attributes: dict
+    status: str
+
+
+def _method_result_inputs(result: MethodResult) -> RowInputs:
+    return RowInputs(
+        case=result.case,
+        software_hash=result.software_hash,
+        library=result.implementation.library,
+        data_desc=result.data_desc or {},
+        attributes=result.attributes or {},
+        status="ok",
+    )
+
+
+def _failed_record_inputs(record: BenchmarkRecord) -> RowInputs:
+    generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {}) or {}
+    return RowInputs(
+        case=record.case,
+        software_hash=record.software_hash,
+        library=record.implementation.library,
+        # No run ever happened, so there's no measured data_desc - the
+        # config's own declared shape is the closest equivalent, and matches
+        # what a successful run of the same case would have reported.
+        data_desc={
+            "samples": generation_kwargs.get("n_samples"),
+            "features": generation_kwargs.get("n_features"),
+        },
+        attributes={},
+        status=_failed_status(record.failed_case or {}),
+    )
+
+
 def _result_params(case: dict) -> dict:
     return case.get("algorithm", {}).get("estimator_params", {}) or {}
 
@@ -95,13 +144,12 @@ def _result_params(case: dict) -> dict:
 HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
 
 
-def _row_hyperparams(case: dict, attributes: dict | None = None) -> dict:
-    params = _result_params(case)
-    attributes = attributes or {}
+def _row_hyperparams(inputs: RowInputs) -> dict:
+    params = _result_params(inputs.case)
     hyperparams = {}
     for name in HYPERPARAM_DISPLAY_ALLOWLIST:
         if name == "solver":
-            solver_values = attributes.get("solver")
+            solver_values = inputs.attributes.get("solver")
             if solver_values:
                 hyperparams["solver"] = solver_values[0]
                 continue
@@ -119,73 +167,168 @@ def default_comparison_key(result: MethodResult) -> str:
     )
 
 
-def _row_columns_kind(case: dict) -> str | None:
+def _row_columns_kind(inputs: RowInputs) -> str | None:
     """The synthetic tree datasets' column-type mix (e.g. "mix", "binary",
     "continuous", "long-tail") - only set in generation_kwargs for
     tree-based configs (see configs/synthetic_trees.py, hgb_scalability.py)."""
-    return case.get("data", {}).get("generation_kwargs", {}).get("columns")
+    return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
-def _row_order(case: dict, data_desc: dict | None = None) -> str | None:
+def _row_order(inputs: RowInputs) -> str | None:
     """The data's memory layout ("C" or "F"): the config-forced value where a
     config varies it (see configs/synthetic_linear.py's `order` field), else
     the measured layout of the loaded array (real datasets - see
     sklbench/runners/datasets/__init__.py's `_measure_order`)."""
-    order = case.get("data", {}).get("order")
+    order = inputs.case.get("data", {}).get("order")
     if order is not None:
         return order
-    return (data_desc or {}).get("order")
+    return inputs.data_desc.get("order")
 
 
-def _row_env(case: dict) -> dict:
+def _row_env(inputs: RowInputs) -> dict:
     """The `bench.env` vars this case ran with (e.g. a BLAS thread-count
     sweep via OMP_NUM_THREADS/OPENBLAS_NUM_THREADS - see
     configs/all_models_logistic_lbfgs_only.py) - kept under a top-level "env"
     key by `_case_without_bench` in matching.py, since the rest of "bench" is
     stripped from case identity before it ever reaches this table."""
-    return case.get("env", {}) or {}
+    return inputs.case.get("env", {}) or {}
 
 
-def _row_openmp(software_hash: str) -> str:
-    """Short "libgomp"/"libomp" label for the OpenMP runtime `software_hash`
+def _row_openmp(inputs: RowInputs) -> str:
+    """Short "libgomp"/"libomp" label for the OpenMP runtime this row's build
     links against - a build property rather than a case one, but only
     interesting once more than one OpenMP runtime shows up in the same
     table (e.g. comparing a `sklearn-dev` build against `sklearn-dev-libomp`
     - see configs/_implementations.py)."""
-    return openmp_runtime_short_label(software_hash)
+    return openmp_runtime_short_label(inputs.software_hash)
 
 
-def _row_active_wait_knobs(
-    case_env: dict, software_hash: str
-) -> tuple[str | None, str | None]:
-    """The effective GOMP_SPINCOUNT/KMP_BLOCKTIME busy-wait knobs for this
-    case: the case's own `bench.env` override if it set one, else the
-    build's own resolved ambient default (see
-    `sklbench.reporting.envs.effective_openmp_value`) - same
-    override-or-ambient logic the HGB scalability dashboards use to decide
-    `has_active_wait`. Only one of the two is ever set for a given build
-    (GOMP_SPINCOUNT is GNU libgomp only, KMP_BLOCKTIME is Intel/LLVM OpenMP
-    only), so an unrelated build simply reports None for the other."""
-    return (
-        effective_openmp_value(case_env, software_hash, "GOMP_SPINCOUNT"),
-        effective_openmp_value(case_env, software_hash, "KMP_BLOCKTIME"),
+def _row_gomp_spincount(inputs: RowInputs) -> str | None:
+    return effective_openmp_value(
+        inputs.case.get("env"), inputs.software_hash, "GOMP_SPINCOUNT"
     )
 
 
-def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
+def _row_kmp_blocktime(inputs: RowInputs) -> str | None:
+    return effective_openmp_value(
+        inputs.case.get("env"), inputs.software_hash, "KMP_BLOCKTIME"
+    )
+
+
+def _row_n_samples_for_max_bins(inputs: RowInputs) -> int | None:
+    declared = (
+        inputs.case.get("data", {}).get("generation_kwargs", {}).get("n_samples")
+    )
+    return declared if declared is not None else inputs.data_desc.get("samples")
+
+
+def _row_max_bins(inputs: RowInputs) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
     configs/synthetic_trees.py and append_max_bins_warning in matching.py).
     Empty for sklearn, which doesn't vary this param in these benchmarks."""
-    if library != "sklearnex":
+    if inputs.library != "sklearnex":
         return None
-    estimator_params = case.get("algorithm", {}).get("estimator_params", {})
+    estimator_params = inputs.case.get("algorithm", {}).get("estimator_params", {})
     if "max_bins" not in estimator_params:
         return "default"
+    n_samples = _row_n_samples_for_max_bins(inputs)
     if n_samples is not None and estimator_params["max_bins"] == n_samples:
         return "n_samples"
     return "default"
+
+
+@dataclass(frozen=True)
+class ColumnSpec:
+    """One column of the detailed-results table: `getter` extracts its raw
+    value from a row's normalized `RowInputs` (works uniformly for a live
+    result or a failed record). `show_if_varies` gates whether the column is
+    included at all: when True, it's only added once at least two distinct
+    (formatted) values appear across all rows - a column that's constant
+    for a whole table rarely earns its width. When False, the column always
+    shows once declared.
+
+    To add a case/software-derived column for a specific dashboard, add a
+    `ColumnSpec` to `COLUMNS` below - no changes needed anywhere else in this
+    module. A column needing external, call-time context instead (a URL
+    builder, per-method fit/predict state...) doesn't fit this shape; see the
+    bespoke fields built directly in `_new_row`/`detailed_results_table_html`."""
+
+    title: str
+    field: str
+    getter: Callable[[RowInputs], Any]
+    show_if_varies: bool = False
+    sorter: str = "string"
+
+
+COLUMNS: list[ColumnSpec] = [
+    ColumnSpec("columns", "columns", _row_columns_kind, show_if_varies=True),
+    ColumnSpec("order", "order", _row_order, show_if_varies=True),
+    ColumnSpec("max_bins", "max_bins", _row_max_bins, show_if_varies=True),
+    ColumnSpec("OpenMP", "openmp", _row_openmp, show_if_varies=True),
+    ColumnSpec(
+        "GOMP_SPINCOUNT", "gomp_spincount", _row_gomp_spincount, show_if_varies=True
+    ),
+    ColumnSpec(
+        "KMP_BLOCKTIME", "kmp_blocktime", _row_kmp_blocktime, show_if_varies=True
+    ),
+]
+
+
+@dataclass(frozen=True)
+class ColumnGroupSpec:
+    """One family of dynamically-named columns, one per key that varies
+    across rows (e.g. one column per hyperparameter, one per env var).
+    `getter` returns this row's whole `{key: raw_value}` dict; `allowed_keys`
+    restricts which keys are even considered (None = every key seen across
+    all rows). Every generated column is shown only where it varies - same
+    reasoning as `ColumnSpec.show_if_varies`, there's no "always show" mode
+    here since a group's whole point is "one column per *varying* key"."""
+
+    field_prefix: str
+    getter: Callable[[RowInputs], dict]
+    allowed_keys: list[str] | None = None
+
+
+COLUMN_GROUPS: list[ColumnGroupSpec] = [
+    ColumnGroupSpec("hp", _row_hyperparams, HYPERPARAM_DISPLAY_ALLOWLIST),
+    ColumnGroupSpec("env", _row_env),
+]
+
+
+def _base_row(
+    inputs: RowInputs,
+    *,
+    comparison_key: str,
+    variant: str,
+    n_samples: int | None,
+    n_features: int | None,
+    profile_url: str | None,
+    profile_url_label: str | None,
+    json_url: str | None,
+) -> dict:
+    row = {
+        "comparison_key": comparison_key,
+        "estimator": inputs.case.get("algorithm", {}).get("estimator", "unknown"),
+        "dataset": _dataset_name(inputs.case),
+        "variant": variant,
+        "n_samples": n_samples,
+        "n_features": n_features,
+        "fit_time": None,
+        "fit_speedup": None,
+        "predict_time": None,
+        "predict_speedup": None,
+        "profile_url": profile_url,
+        "profile_url_label": profile_url_label,
+        "json_url": json_url,
+        "status": inputs.status,
+    }
+    for spec in COLUMNS:
+        row[spec.field] = spec.getter(inputs)
+    for group in COLUMN_GROUPS:
+        row[f"__group_{group.field_prefix}"] = group.getter(inputs)
+    return row
 
 
 def _new_row(
@@ -195,46 +338,17 @@ def _new_row(
     json_url_fn: Callable[[Path], str | None],
     profile_url_fn: Callable[[Path], str | None],
 ) -> dict:
-    data_desc = result.data_desc or {}
-    n_samples = result.case.get("data", {}).get("generation_kwargs", {}).get(
-        "n_samples"
+    inputs = _method_result_inputs(result)
+    return _base_row(
+        inputs,
+        comparison_key=comparison_key,
+        variant=variant,
+        n_samples=inputs.data_desc.get("samples"),
+        n_features=inputs.data_desc.get("features"),
+        profile_url=_profile_url(result, profile_url_fn),
+        profile_url_label=_profile_label(result.record),
+        json_url=_record_json_url(result, json_url_fn),
     )
-    if n_samples is None:
-        n_samples = data_desc.get("samples")
-    gomp_spincount, kmp_blocktime = _row_active_wait_knobs(
-        result.case.get("env"), result.software_hash
-    )
-    row = {
-        "comparison_key": comparison_key,
-        "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
-        "dataset": _dataset_name(result.case),
-        "variant": variant,
-        "n_samples": data_desc.get("samples"),
-        "n_features": data_desc.get("features"),
-        "columns": _row_columns_kind(result.case),
-        "order": _row_order(result.case, data_desc),
-        "max_bins": _row_max_bins(
-            result.case, result.implementation.library, n_samples
-        ),
-        "openmp": _row_openmp(result.software_hash),
-        "gomp_spincount": gomp_spincount,
-        "kmp_blocktime": kmp_blocktime,
-        "fit_time": None,
-        "fit_speedup": None,
-        "predict_time": None,
-        "predict_speedup": None,
-        "profile_url": _profile_url(result, profile_url_fn),
-        "profile_url_label": _profile_label(result.record),
-        "json_url": _record_json_url(result, json_url_fn),
-        "hyperparams": _row_hyperparams(result.case, result.attributes),
-        "env": _row_env(result.case),
-        "status": "ok",
-    }
-    return row
-
-
-def _failed_status(failed_case: dict) -> str:
-    return "timed out" if failed_case.get("return_code") == -9 else "failed"
 
 
 def _failed_row_key(record: BenchmarkRecord, variant: str) -> str:
@@ -258,36 +372,17 @@ def _new_failed_row(
     comparison_key: str,
     json_url_fn: Callable[[Path], str | None],
 ) -> dict:
-    generation_kwargs = record.case.get("data", {}).get("generation_kwargs", {})
-    failed_case = record.failed_case or {}
-    gomp_spincount, kmp_blocktime = _row_active_wait_knobs(
-        record.case.get("env"), record.software_hash
+    inputs = _failed_record_inputs(record)
+    return _base_row(
+        inputs,
+        comparison_key=comparison_key,
+        variant=variant,
+        n_samples=inputs.data_desc.get("samples"),
+        n_features=inputs.data_desc.get("features"),
+        profile_url=None,
+        profile_url_label=None,
+        json_url=json_url_fn(record.record_path) if record.record_path else None,
     )
-    return {
-        "comparison_key": comparison_key,
-        "estimator": record.case.get("algorithm", {}).get("estimator", "unknown"),
-        "dataset": _dataset_name(record.case),
-        "variant": variant,
-        "n_samples": generation_kwargs.get("n_samples"),
-        "n_features": generation_kwargs.get("n_features"),
-        "columns": generation_kwargs.get("columns"),
-        "order": _row_order(record.case),
-        "max_bins": _row_max_bins(
-            record.case, record.implementation.library, generation_kwargs.get("n_samples")
-        ),
-        "openmp": _row_openmp(record.software_hash),
-        "gomp_spincount": gomp_spincount,
-        "kmp_blocktime": kmp_blocktime,
-        "fit_time": None,
-        "fit_speedup": None,
-        "predict_time": None,
-        "predict_speedup": None,
-        "profile_url": None,
-        "json_url": json_url_fn(record.record_path) if record.record_path else None,
-        "hyperparams": _row_hyperparams(record.case),
-        "env": _row_env(record.case),
-        "status": _failed_status(failed_case),
-    }
 
 
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
@@ -353,6 +448,10 @@ def _column(
     return column
 
 
+def _varies_across(rows: list[dict], field: str) -> bool:
+    return len({_format_value(row.get(field)) for row in rows}) > 1
+
+
 def detailed_results_table_html(
     category: str,
     matches_by_method: dict[str, list[Match]],
@@ -370,7 +469,6 @@ def detailed_results_table_html(
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
 ) -> str:
     rows_by_key: dict[str, dict] = {}
-    hyperparam_names = set(HYPERPARAM_DISPLAY_ALLOWLIST)
 
     resolve_baseline_label = (
         baseline_label if callable(baseline_label) else (lambda _result: baseline_label)
@@ -433,42 +531,34 @@ def detailed_results_table_html(
     if not rows_by_key:
         return ""
 
-    row_hyperparams = []
-    varying_hyperparam_names = []
-    for row in rows_by_key.values():
-        row_hyperparams.append(row["hyperparams"])
-
-    for name in sorted(hyperparam_names):
-        values = {
-            _format_value(hyperparams.get(name))
-            for hyperparams in row_hyperparams
+    # Every ColumnGroupSpec (hyperparams, env vars) expands into one
+    # Tabulator field per key that varies across rows - resolved once here,
+    # then applied uniformly when flattening each row below.
+    group_fields: dict[str, dict[str, str]] = {}
+    for group in COLUMN_GROUPS:
+        group_key = f"__group_{group.field_prefix}"
+        raw_dicts = [row[group_key] for row in rows_by_key.values()]
+        candidate_keys = (
+            group.allowed_keys
+            if group.allowed_keys is not None
+            else sorted({name for raw in raw_dicts for name in raw})
+        )
+        varying_names = [
+            name
+            for name in candidate_keys
+            if len({_format_value(raw.get(name)) for raw in raw_dicts}) > 1
+        ]
+        group_fields[group.field_prefix] = {
+            name: f"{group.field_prefix}_{index}"
+            for index, name in enumerate(varying_names)
         }
-        if len(values) > 1:
-            varying_hyperparam_names.append(name)
-
-    hyperparam_fields = {
-        name: f"hp_{index}" for index, name in enumerate(varying_hyperparam_names)
-    }
-
-    row_envs = [row["env"] for row in rows_by_key.values()]
-    env_names = {name for env in row_envs for name in env}
-    varying_env_names = [
-        name
-        for name in sorted(env_names)
-        if len({_format_value(env.get(name)) for env in row_envs}) > 1
-    ]
-    env_fields = {
-        name: f"env_{index}" for index, name in enumerate(varying_env_names)
-    }
 
     rows = []
     for row in rows_by_key.values():
-        hyperparams = row.pop("hyperparams")
-        for name, field in hyperparam_fields.items():
-            row[field] = _format_value(hyperparams.get(name))
-        env = row.pop("env")
-        for name, field in env_fields.items():
-            row[field] = _format_value(env.get(name))
+        for group in COLUMN_GROUPS:
+            raw = row.pop(f"__group_{group.field_prefix}")
+            for name, field in group_fields[group.field_prefix].items():
+                row[field] = _format_value(raw.get(name))
         rows.append(row)
 
     rows = sorted(
@@ -490,42 +580,17 @@ def detailed_results_table_html(
         _column("n_samples", "n_samples", header_filter=True, sorter="number"),
         _column("n_features", "n_features", header_filter=True, sorter="number"),
     ]
-    if any(row.get("columns") for row in rows):
+    for spec in COLUMNS:
+        if spec.show_if_varies and not _varies_across(rows, spec.field):
+            continue
         columns.append(
-            _column("columns", "columns", header_filter=True, sorter="string")
+            _column(spec.title, spec.field, header_filter=True, sorter=spec.sorter)
         )
-    if any(row.get("order") for row in rows):
-        columns.append(
-            _column("order", "order", header_filter=True, sorter="string")
+    for group in COLUMN_GROUPS:
+        columns.extend(
+            _column(name, field, header_filter=True, sorter="string")
+            for name, field in group_fields[group.field_prefix].items()
         )
-    if any(row.get("max_bins") for row in rows):
-        columns.append(
-            _column("max_bins", "max_bins", header_filter=True, sorter="string")
-        )
-    if len({row.get("openmp") for row in rows}) > 1:
-        columns.append(
-            _column("OpenMP", "openmp", header_filter=True, sorter="string")
-        )
-    if any(row.get("gomp_spincount") for row in rows):
-        columns.append(
-            _column(
-                "GOMP_SPINCOUNT", "gomp_spincount", header_filter=True, sorter="string"
-            )
-        )
-    if any(row.get("kmp_blocktime") for row in rows):
-        columns.append(
-            _column(
-                "KMP_BLOCKTIME", "kmp_blocktime", header_filter=True, sorter="string"
-            )
-        )
-    columns.extend(
-        _column(name, field, header_filter=True, sorter="string")
-        for name, field in hyperparam_fields.items()
-    )
-    columns.extend(
-        _column(name, field, header_filter=True, sorter="string")
-        for name, field in env_fields.items()
-    )
     if any(row["status"] != "ok" for row in rows):
         columns.append(
             _column("Status", "status", header_filter=True, sorter="string")
