@@ -1,26 +1,19 @@
 import json
-import logging
 import os
-import re
-import shutil
 import subprocess as sp
 import sys
 import tempfile
-from functools import lru_cache
 from pathlib import Path
 
 from ..config import Case, EstimatorCase, HPTuningCase
 from ..config.models.hptuning import resolve_outer_n_jobs
 
 
-logger = logging.getLogger(__name__)
-
 RUNNER_MODULES = {
     "estimator": "sklbench.runners.estimator",
     "hptuning": "sklbench.runners.hptuning",
 }
 PY_SPY_NO_CHILD_PROCESS_ERROR = "Error: No child process (os error 10)"
-NUMA_NODES_SYSFS = Path("/sys/devices/system/node")
 
 
 def runner_env(bench_case: Case) -> dict[str, str]:
@@ -84,48 +77,6 @@ def filter_py_spy_stderr(stderr: str) -> tuple[str, bool]:
     return "\n".join(filtered_lines).strip(), len(filtered_lines) != len(lines)
 
 
-@lru_cache(maxsize=1)
-def _numa_node_count() -> int:
-    """Number of NUMA nodes visible to this process, via sysfs.
-
-    The topology can't change while the orchestrator runs, so this is safe
-    to cache process-wide instead of re-reading sysfs for every case.
-    """
-    if not NUMA_NODES_SYSFS.is_dir():
-        return 1
-    return sum(1 for p in NUMA_NODES_SYSFS.iterdir() if re.fullmatch(r"node\d+", p.name)) or 1
-
-
-@lru_cache(maxsize=1)
-def _warn_numactl_missing() -> None:
-    # Cached so a machine without `numactl` only logs this once, not once
-    # per benchmark case.
-    logger.warning(
-        "Multiple NUMA nodes detected but `numactl` is not installed; "
-        "benchmark runs may show node-placement-driven variance."
-    )
-
-
-def numa_interleave_prefix() -> tuple[str, ...]:
-    """`numactl --interleave=all` prefix, when it can help.
-
-    On a multi-NUMA-node machine, a case's training data is first-touched
-    (and so physically placed) on whichever single node the data-generation
-    code happened to run on, then read back by BLAS/OpenMP threads spread
-    across every node - so wall time swings with which node the allocator
-    picked, independent of the code under test. Interleaving page
-    allocation across all nodes removes that placement lottery. Only
-    returned when there's more than one node to interleave across and
-    `numactl` is actually installed.
-    """
-    if _numa_node_count() <= 1:
-        return ()
-    if shutil.which("numactl") is None:
-        _warn_numactl_missing()
-        return ()
-    return ("numactl", "--interleave=all")
-
-
 def generate_runner_command(
     bench_case: Case,
     case_file: Path,
@@ -137,12 +88,6 @@ def generate_runner_command(
     command_prefix: list[str] = []
     if bench_case.bench.taskset is not None:
         command_prefix.extend(["taskset", "-c", str(bench_case.bench.taskset)])
-    else:
-        # A `taskset` case pins execution to a specific subset of cores (e.g.
-        # a scalability sweep modeling a single socket/node) - interleaving
-        # its memory across every node, including ones outside that subset,
-        # would fight that intent rather than just removing noise.
-        command_prefix.extend(numa_interleave_prefix())
 
     runner_command = [
         sys.executable,
