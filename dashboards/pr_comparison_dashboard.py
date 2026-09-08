@@ -249,7 +249,7 @@ if __name__ == "__main__":
         failed_records=failed_records_for_table,
         unmatched_base_results=unmatched_base_results,
         unmatched_candidate_results=unmatched_variant_results,
-        open=True,
+        collapsible=False,
         variant_column_title="Branch name",
         default_variant_filter=None if multi_env else build_label(env_groups[0][2]),
         json_url_fn=hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url),

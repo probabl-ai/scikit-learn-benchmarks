@@ -616,6 +616,7 @@ def detailed_results_table_html(
     unmatched_base_results: list[MethodResult] = (),
     unmatched_candidate_results: list[MethodResult] = (),
     open: bool = False,
+    collapsible: bool = True,
     variant_column_title: str = "Variant name",
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
@@ -751,10 +752,11 @@ def detailed_results_table_html(
     # `<details open>` alone doesn't fire a "toggle" event on page load, so
     # an eagerly-visible table needs the init call to run unconditionally
     # instead of waiting on that event - a real code-path difference, not
-    # just a markup attribute.
+    # just a markup attribute. A non-collapsible table is always eagerly
+    # visible for the same reason.
     script = (
         f"<script>{init_call}</script>"
-        if open
+        if open or not collapsible
         else f"""<script>
     document.currentScript.closest("details").addEventListener("toggle", (event) => {{
       if (!event.target.open) {{
@@ -764,11 +766,17 @@ def detailed_results_table_html(
     }}, {{once: true}});
   </script>"""
     )
-    return f"""<details class="detailed-results"{" open" if open else ""}>
-  <summary>Detailed results</summary>
-  <div class="detailed-results-toolbar" hidden>
+    body = f"""<div class="detailed-results-toolbar" hidden>
     <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row sort" aria-label="Clear row sort">x</button>
   </div>
   <div id="{table_id}" class="detailed-results-table"></div>
-  {script}
+  {script}"""
+    if not collapsible:
+        return f"""<div class="detailed-results">
+  <div class="detailed-results-title">Detailed results</div>
+  {body}
+</div>"""
+    return f"""<details class="detailed-results"{" open" if open else ""}>
+  <summary>Detailed results</summary>
+  {body}
 </details>"""
