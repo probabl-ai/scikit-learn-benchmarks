@@ -21,7 +21,14 @@ BLAS_THREAD_COUNTS = [1, 4]
 
 def _is_target(case) -> bool:
     solver = case.algorithm.estimator_params.get("solver", "lbfgs")
-    return case.algorithm.estimator == "LogisticRegression" and solver == "lbfgs"
+    if case.algorithm.estimator != "LogisticRegression" or solver != "lbfgs":
+        return False
+    # covtype's LogisticRegression case is too slow for this sweep's already
+    # wide (scale x thread-count) matrix, and isn't expected to be affected
+    # by the PR anyway (real_datasets.py doesn't pass Fortran-ordered X).
+    if case.data.dataset == "covtype":
+        return False
+    return True
 
 
 def _extra_scale_cases() -> list[dict]:
