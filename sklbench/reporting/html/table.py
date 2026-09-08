@@ -121,6 +121,21 @@ def _row_columns_kind(case: dict) -> str | None:
     return case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
+def _row_order(case: dict) -> str | None:
+    """The data's memory layout ("C" or "F") - only set where a config
+    varies it (see configs/synthetic_linear.py's `order` field)."""
+    return case.get("data", {}).get("order")
+
+
+def _row_env(case: dict) -> dict:
+    """The `bench.env` vars this case ran with (e.g. a BLAS thread-count
+    sweep via OMP_NUM_THREADS/OPENBLAS_NUM_THREADS - see
+    configs/all_models_logistic_lbfgs_only.py) - kept under a top-level "env"
+    key by `_case_without_bench` in matching.py, since the rest of "bench" is
+    stripped from case identity before it ever reaches this table."""
+    return case.get("env", {}) or {}
+
+
 def _row_max_bins(case: dict, library: str, n_samples: int | None) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
@@ -158,6 +173,7 @@ def _new_row(
         "n_samples": data_desc.get("samples"),
         "n_features": data_desc.get("features"),
         "columns": _row_columns_kind(result.case),
+        "order": _row_order(result.case),
         "max_bins": _row_max_bins(
             result.case, result.implementation.library, n_samples
         ),
@@ -169,6 +185,7 @@ def _new_row(
         "profile_url_label": _profile_label(result.record),
         "json_url": _record_json_url(result, json_url_fn),
         "hyperparams": _row_hyperparams(result.case, result.attributes),
+        "env": _row_env(result.case),
         "status": "ok",
     }
     return row
@@ -209,6 +226,7 @@ def _new_failed_row(
         "n_samples": generation_kwargs.get("n_samples"),
         "n_features": generation_kwargs.get("n_features"),
         "columns": generation_kwargs.get("columns"),
+        "order": _row_order(record.case),
         "max_bins": _row_max_bins(
             record.case, record.implementation.library, generation_kwargs.get("n_samples")
         ),
@@ -219,6 +237,7 @@ def _new_failed_row(
         "profile_url": None,
         "json_url": json_url_fn(record.record_path) if record.record_path else None,
         "hyperparams": _row_hyperparams(record.case),
+        "env": _row_env(record.case),
         "status": _failed_status(failed_case),
     }
 
@@ -382,11 +401,26 @@ def detailed_results_table_html(
     hyperparam_fields = {
         name: f"hp_{index}" for index, name in enumerate(varying_hyperparam_names)
     }
+
+    row_envs = [row["env"] for row in rows_by_key.values()]
+    env_names = {name for env in row_envs for name in env}
+    varying_env_names = [
+        name
+        for name in sorted(env_names)
+        if len({_format_value(env.get(name)) for env in row_envs}) > 1
+    ]
+    env_fields = {
+        name: f"env_{index}" for index, name in enumerate(varying_env_names)
+    }
+
     rows = []
     for row in rows_by_key.values():
         hyperparams = row.pop("hyperparams")
         for name, field in hyperparam_fields.items():
             row[field] = _format_value(hyperparams.get(name))
+        env = row.pop("env")
+        for name, field in env_fields.items():
+            row[field] = _format_value(env.get(name))
         rows.append(row)
 
     rows = sorted(
@@ -412,6 +446,10 @@ def detailed_results_table_html(
         columns.append(
             _column("columns", "columns", header_filter=True, sorter="string")
         )
+    if any(row.get("order") for row in rows):
+        columns.append(
+            _column("order", "order", header_filter=True, sorter="string")
+        )
     if any(row.get("max_bins") for row in rows):
         columns.append(
             _column("max_bins", "max_bins", header_filter=True, sorter="string")
@@ -419,6 +457,10 @@ def detailed_results_table_html(
     columns.extend(
         _column(name, field, header_filter=True, sorter="string")
         for name, field in hyperparam_fields.items()
+    )
+    columns.extend(
+        _column(name, field, header_filter=True, sorter="string")
+        for name, field in env_fields.items()
     )
     if any(row["status"] != "ok" for row in rows):
         columns.append(

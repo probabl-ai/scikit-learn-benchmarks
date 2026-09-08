@@ -23,6 +23,7 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models.py"): ARRAY_API_ENVS,
     Path("configs/all_models_linear.py"): ARRAY_API_ENVS,
     Path("configs/models_scalability.py"): GENERAL_ENVS,
+    Path("configs/all_models_logistic_lbfgs_only.py"): ARRAY_API_ENVS,
 }
 
 
