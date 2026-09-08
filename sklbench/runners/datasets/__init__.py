@@ -72,10 +72,15 @@ def _measure_order(data) -> str | None:
     flags = getattr(data, "flags", None)
     if flags is None:
         return None
-    if flags["C_CONTIGUOUS"]:
-        return "C"
-    if flags["F_CONTIGUOUS"]:
-        return "F"
+    try:
+        if flags["C_CONTIGUOUS"]:
+            return "C"
+        if flags["F_CONTIGUOUS"]:
+            return "F"
+    except (KeyError, TypeError):
+        # e.g. pandas' DataFrame.flags, which is an unrelated
+        # duplicate-labels object that also happens to be named "flags".
+        return None
     return None
 
 
