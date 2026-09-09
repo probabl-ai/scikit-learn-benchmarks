@@ -54,6 +54,22 @@ dashboards: dashboards/gen_hgb_dev_speedup_breakdown.py
   runner's job. Each dashboard is linked from the PR comment alongside the
   main comparison table.
 
+### Skipping the `main` re-benchmark
+
+Every push re-benchmarks scikit-learn `main` from scratch alongside the PR
+ref, even though `main` itself usually hasn't moved between two pushes on
+the same PR. Include `[skip main]` anywhere in the latest commit's message
+to skip re-benchmarking `main` and instead reuse the `main` results this
+runner's comparison last published, downloaded straight from its deployed
+site. This only affects `main`'s side of the comparison - the PR ref is
+always benchmarked fresh.
+
+If no such cached results are reachable yet (e.g. the first comparison on
+a PR/runner, or a previous run whose `main` benchmark never completed),
+`main` is benchmarked fresh anyway and a warning is logged in that run.
+The PR comment for each runner notes whether its `main` results were
+reused or freshly benchmarked.
+
 Only PRs opened by someone with write access to this repo (`OWNER`/`MEMBER`/
 `COLLABORATOR`) trigger the self-hosted benchmark run, and **the PR branch
 must be pushed directly to `scikit-learn-benchmarks`, not a personal fork**:

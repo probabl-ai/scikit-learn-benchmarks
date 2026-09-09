@@ -23,6 +23,7 @@ jobs:
       dashboards: ${{ steps.parse.outputs.dashboards }}
       sklearn_owner: ${{ steps.parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
+      skip_main: ${{ steps.skip_main.outputs.skip_main }}
     steps:
       - name: Check out repository (base, trusted)
         # Pinned to the base sha, not the PR head, so parsing always runs
@@ -58,6 +59,28 @@ jobs:
           pixi run --frozen -e reporting python scripts/parse_compare_directive.py \
             --body-file "$RUNNER_TEMP/pr_body.md" --github-output "$GITHUB_OUTPUT"
 
+      - name: Check for a [skip main] flag on the latest commit
+        # Fetched via the API rather than local `git log`, since this job's
+        # checkout is pinned to the base sha (see above) and a shallow
+        # checkout wouldn't have the PR head commit's object locally
+        # anyway. Matched case-insensitively against just the head commit's
+        # message, mirroring common "[skip ci]"-style conventions.
+        id: skip_main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          message=$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" |
+            pixi run --frozen -e reporting python3 -c "import json,sys; print(json.load(sys.stdin)['commit']['message'])")
+          if grep -qiF '[skip main]' <<< "$message"; then
+            echo "skip_main=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_main=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Reject fork PRs once a directive is present
         # pull_request runs withhold secrets and a write-scoped GITHUB_TOKEN
         # whenever the PR's head repo differs from the base repo,
@@ -79,6 +102,7 @@ jobs:
           DASHBOARDS: ${{ steps.parse.outputs.dashboards }}
           SKLEARN_OWNER: ${{ steps.parse.outputs.sklearn_owner }}
           SKLEARN_HEAD_REF: ${{ steps.parse.outputs.sklearn_head_ref }}
+          SKIP_MAIN: ${{ steps.skip_main.outputs.skip_main }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           {
@@ -94,6 +118,9 @@ jobs:
               echo "$runs_display"
               dashboards_display=$(python3 -c "import json,sys; print(', '.join(json.loads(sys.argv[1])))" "$DASHBOARDS")
               [ -n "$dashboards_display" ] && echo "Extra dashboards: $dashboards_display"
+              if [ "$SKIP_MAIN" = "true" ]; then
+                echo "\`[skip main]\` detected: reusing each runner's previously-published \`main\` results instead of re-benchmarking, if available."
+              fi
               echo "Results post as separate comments below as each runner finishes."
             fi
           } > "$RUNNER_TEMP/status.md"
@@ -137,6 +164,11 @@ jobs:
       THIS_RUNNER: ${{ matrix.runner }}
       SKLEARN_OWNER: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
       SKLEARN_HEAD_REF: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
+      # Set by gate_and_parse from a `[skip main]` flag on the PR's latest
+      # commit message. The "Restore cached main results" step below flips
+      # this back to 'false' (via $GITHUB_ENV) if no usable cache is found,
+      # so later steps always reflect what actually happened this run.
+      SKIP_MAIN: ${{ needs.gate_and_parse.outputs.skip_main }}
       # Deterministic from PR number + runner, so it's known before the
       # "Deploy to Cloudflare Pages" step actually publishes there - shared
       # by that step, the dashboard-generation steps (to link JSON/profile
@@ -219,6 +251,44 @@ jobs:
             [ -f "$dashboard" ] || { echo "::error::requested dashboard script not found: $dashboard" >&2; exit 1; }
           done < "$RUNNER_TEMP/dashboards.txt"
 
+      - name: Restore cached main results
+        # `[skip main]` (see COMPARISONS_PR.md and gate_and_parse's
+        # skip_main step) skips re-benchmarking scikit-learn `main` and
+        # instead downloads the `...:main` result files this same runner's
+        # site previously published - written by "Write main-results cache
+        # manifest" below on whichever run last actually benchmarked main
+        # (fresh or itself restored). Falls back to a fresh main run (by
+        # flipping SKIP_MAIN back to 'false' for the rest of this job) if no
+        # cache is reachable yet or it turns out to be empty, e.g. the very
+        # first comparison on this PR/runner, or a previous run whose main
+        # benchmark failed outright.
+        if: env.SKIP_MAIN == 'true'
+        run: |
+          manifest_url="$SKLBENCH_PR_COMPARE_SITE_URL/results-manifest-main.txt"
+          if ! curl -fsSL "$manifest_url" -o "$RUNNER_TEMP/main-manifest.txt"; then
+            echo "::warning::[skip main] requested but no cached main results are published yet at $manifest_url; benchmarking scikit-learn main fresh for this run."
+            echo "SKIP_MAIN=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [ ! -s "$RUNNER_TEMP/main-manifest.txt" ]; then
+            echo "::warning::[skip main] requested but the cached main-results manifest at $manifest_url is empty; benchmarking scikit-learn main fresh for this run."
+            echo "SKIP_MAIN=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          mkdir -p "$RESULTS_DIR"
+          while IFS= read -r relpath; do
+            [ -n "$relpath" ] || continue
+            dest="$RESULTS_DIR/$relpath"
+            mkdir -p "$(dirname "$dest")"
+            if ! curl -fsSL "$SKLBENCH_PR_COMPARE_SITE_URL/results/$relpath" -o "$dest"; then
+              echo "::warning::failed to download cached main result '$relpath'; benchmarking scikit-learn main fresh for this run."
+              rm -rf "$RESULTS_DIR"
+              echo "SKIP_MAIN=false" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done < "$RUNNER_TEMP/main-manifest.txt"
+          echo "Restored $(wc -l < "$RUNNER_TEMP/main-manifest.txt") cached main result file(s) from $SKLBENCH_PR_COMPARE_SITE_URL"
+
       - name: Run comparison benchmark
         # Reuses run.sh exactly as CONTRIBUTING.md's "Running Against
         # scikit-learn Branches" documents for a PR-vs-base comparison:
@@ -228,7 +298,9 @@ jobs:
         # runner, all accumulating into the same $RESULTS_DIR so one
         # dashboard covers all of them - mirrors run.sh's own
         # accumulate-status-and-continue pattern rather than aborting after
-        # the first failing tuple.
+        # the first failing tuple. When SKIP_MAIN is (still) 'true' at this
+        # point, the "main" env@owner:ref arg is omitted entirely and the
+        # cached results restored above stand in for it.
         continue-on-error: true
         run: |
           set -o pipefail
@@ -236,7 +308,9 @@ jobs:
           status=0
           while IFS=$'\t' read -r env config; do
             echo "=== env=$env config=$config ===" | tee -a "$RUNNER_TEMP/bench.log"
-            if ! ./run.sh "${env}@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}" "${env}@scikit-learn:main" \
+            env_specs=("${env}@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}")
+            [ "$SKIP_MAIN" = "true" ] || env_specs+=("${env}@scikit-learn:main")
+            if ! ./run.sh "${env_specs[@]}" \
                 --config "$config" --results-dir "$RESULTS_DIR" \
                 2>&1 | tee -a "$RUNNER_TEMP/bench.log"; then
               status=1
@@ -283,6 +357,19 @@ jobs:
             pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
               python "$GITHUB_WORKSPACE/$dashboard" --output-dir "$SITE_DIR"
           done < "$RUNNER_TEMP/dashboards.txt"
+
+      - name: Write main-results cache manifest
+        # Lists this run's `...:main` result files (fresh or themselves
+        # restored from a previous cache above) so a later run's "Restore
+        # cached main results" step can download exactly those files - see
+        # scripts/write_main_results_manifest.py. Written unconditionally
+        # (not gated on the benchmark step's success) so it still reflects
+        # main's data even when only the PR-branch side of this run failed.
+        working-directory: ${{ runner.temp }}/pr-compare
+        run: |
+          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
+            python "$GITHUB_WORKSPACE/scripts/write_main_results_manifest.py" \
+            --output "$SITE_DIR/results-manifest-main.txt"
 
       - name: Copy results to site
         # The whole results/ tree (records, profiles, software-envs,
@@ -348,6 +435,7 @@ jobs:
               echo
               echo "$dashboard_links"
               [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."
+              [ "$SKIP_MAIN" = "true" ] && echo "- \`main\` results reused from this runner's previous comparison (\`[skip main]\`); not re-benchmarked."
               echo
               echo "Full run: $run_url"
             } > "$RUNNER_TEMP/comment.md"
