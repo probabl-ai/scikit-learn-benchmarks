@@ -1,9 +1,4 @@
-from pathlib import Path
-import sys
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import dashboard_output_path
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )

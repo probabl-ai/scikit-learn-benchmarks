@@ -27,14 +27,10 @@ counterpart.
 """
 from html import escape
 import json
-from pathlib import Path
 import re
 from statistics import median
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     case_proc_bind,

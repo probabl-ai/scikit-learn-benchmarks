@@ -24,11 +24,6 @@ branch build and the `main` build it's meant to be compared against are two
 different `software_hash`es, so grouping by the exact hash would split them
 across tabs instead of landing them on the same page/plot.
 """
-from pathlib import Path
-import sys
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
 from dashboards.gen_hgb_scalability_breakdown import (
     HARDWARE_NAMES,
     PHASE_COLORS,
@@ -50,7 +45,7 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _workload_size,
     render_env_page,
 )
-from dashboards.output import dashboard_output_path
+from dashboards import dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     OPENMP_FAMILY_SHORT_LABELS,

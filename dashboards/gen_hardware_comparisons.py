@@ -20,12 +20,8 @@ for the variants folks actually reach for.
 """
 from dataclasses import replace
 from html import escape
-from pathlib import Path
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import dashboard_output_path
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,

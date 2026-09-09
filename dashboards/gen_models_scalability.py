@@ -38,13 +38,9 @@ no other `dashboards/gen_*.py` imports from it - see e.g.
 gen_hgb_scalability_breakdown.py).
 """
 from html import escape
-from pathlib import Path
 from statistics import median
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import dashboard_output_path
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,

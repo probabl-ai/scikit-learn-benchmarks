@@ -35,10 +35,7 @@ import math
 import os
 from pathlib import Path
 from statistics import median
-import sys
 from typing import Callable
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dashboards.gen_hgb_scalability_breakdown import (
     HARDWARE_NAMES,
@@ -55,7 +52,7 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _workload_name,
     _workload_size,
 )
-from dashboards.output import dashboard_output_dir
+from dashboards import dashboard_output_dir
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     is_sklearn_dev_build,

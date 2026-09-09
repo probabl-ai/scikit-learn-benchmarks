@@ -24,13 +24,9 @@ mismatch here means the pipeline itself is broken, not "no data yet".
 
 from html import escape
 import os
-from pathlib import Path
 import re
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_dir
+from dashboards import dashboard_output_dir
 from sklbench.reporting.utils import groupby, stable_json, without_keys
 from sklbench.reporting.matching import (
     append_iterations_warning,
