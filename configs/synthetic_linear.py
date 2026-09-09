@@ -4,6 +4,7 @@ from typing import Iterable
 
 #TODO: in utils or in _common? wierd overlap
 from _common import deterministic_random_choice
+from _numa import auto_numa_taskset
 
 
 ALGORITHM_VARIANTS = [
@@ -164,3 +165,31 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
     ]))
 
     return cases
+
+
+def with_numa_pinning(case: dict, numa_node: int = 0) -> dict:
+    """Pin `case` to one NUMA node's cores via `bench.taskset` (see
+    `_numa.py`).
+
+    These synthetic linear-model cases can be large and memory-bandwidth-
+    bound enough that wall time varies run to run by 30-55% depending on
+    which NUMA node the OS happens to place their data on and which cores
+    its threads land on (see
+    https://github.com/probabl-ai/scikit-learn-benchmarks/issues/80) - most
+    relevant for a before/after PR comparison, where that noise can look
+    like a regression. A no-op on a single-node machine, where pinning
+    would only discard cores for no benefit. Not applied by
+    `generate_cases()` itself - opt in per case, e.g.
+    `[with_numa_pinning(c) for c in generate_cases(implem)]` from a
+    PR-specific comparison config.
+    """
+    taskset = auto_numa_taskset(numa_node)
+    if taskset is None:
+        return case
+    bench = case.get("bench") or {}
+    if bench.get("taskset") is not None:
+        raise ValueError(
+            f"case already sets bench.taskset={bench['taskset']!r} - "
+            "with_numa_pinning would silently override it"
+        )
+    return {**case, "bench": {**bench, "taskset": taskset}}
