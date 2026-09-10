@@ -28,7 +28,7 @@ class HPTuning(Section):
     # is left to joblib's own oversubscription-avoiding default
     # (cpu_count() // outer_n_jobs), applied by passing this value straight
     # through to `joblib.parallel_config(inner_max_num_threads=...)`.
-    n_jobs: int | None = None
+    n_jobs: int = 1
     inner_max_num_threads: int | None = None
 
 
@@ -48,6 +48,6 @@ class HPTuningCase(BaseCase):
                 self.algorithm.estimator,
                 self.data.name(shortened=shortened),
                 f"n_iter_{self.hptuning.n_iter}",
-                f"outer_{resolve_outer_n_jobs(self.hptuning)}",
+                f"n_jobs{(self.hptuning.n_jobs)}",
             ]
         )
