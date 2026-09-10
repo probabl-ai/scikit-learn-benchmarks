@@ -6,7 +6,6 @@ import tempfile
 from pathlib import Path
 
 from ..config import Case, EstimatorCase, HPTuningCase
-from ..config.models.hptuning import resolve_outer_n_jobs
 
 
 RUNNER_MODULES = {
@@ -38,12 +37,11 @@ def _n_jobs(bench_case: Case) -> int:
     "use all cores" convention), so the py-spy rate policy below reacts to
     actual parallelism rather than the literal sentinel value.
     """
+    n_jobs = 1
     if isinstance(bench_case, EstimatorCase):
         n_jobs = bench_case.algorithm.estimator_params.get("n_jobs", 1)
     elif isinstance(bench_case, HPTuningCase):
-        n_jobs = resolve_outer_n_jobs(bench_case.hptuning)
-    else:
-        raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
+        n_jobs = None
     if not n_jobs or n_jobs <= 0:
         return os.cpu_count() or 1
     return n_jobs
