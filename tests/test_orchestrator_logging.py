@@ -14,6 +14,7 @@ def _args(tmp_path):
         config=["test"],
         no_system_telemetry=True,
         system_telemetry_interval=2.0,
+        system_telemetry_percpu=False,
     )
 
 

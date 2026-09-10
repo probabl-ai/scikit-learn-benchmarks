@@ -301,6 +301,7 @@ def orchestrate_benchmarks(
     system_monitor = SystemMonitor(
         results_root / "system-telemetry" / f"{hardware_hash}_{_timestamp()}.jsonl",
         interval=args.system_telemetry_interval,
+        percpu=args.system_telemetry_percpu,
     )
     if not args.no_system_telemetry:
         system_monitor.start()
