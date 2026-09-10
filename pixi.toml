@@ -201,6 +201,19 @@ torch = "*"
 [feature.skl-cpu.activation.env]
 SCIPY_ARRAY_API = "1"
 
+[feature.skl-mps]
+# Apple GPU (Metal) Array API, only meaningful on Apple Silicon.
+platforms = ["osx-arm64"]
+
+[feature.skl-mps.pypi-dependencies]
+array-api-compat = "*"
+# The plain PyPI wheel already includes MPS support on macOS - no separate
+# index needed, unlike the Linux/CUDA/CPU-only builds above.
+torch = "*"
+
+[feature.skl-mps.activation.env]
+SCIPY_ARRAY_API = "1"
+
 [feature.reporting.dependencies]
 scikit-learn = "1.9.*"
 jupyter = "*"
@@ -228,5 +241,6 @@ sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp", "numpy-conda"]
 skl-cpu = ["sklearn-pypi", "skl-cpu"]
 skl-intel = ["sklearn-pypi", "skl-intel"]
 skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
+skl-mps = ["sklearn-pypi", "skl-mps"]
 intel = ["intel", "numpy-conda"]
 reporting = ["reporting", "numpy-conda"]

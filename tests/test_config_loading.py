@@ -15,7 +15,7 @@ SKLEARN_ENVS = [
     "sklearn-dev",
 ]
 GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]
-ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia"]
+ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"]
 
 ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models_test.py"): ARRAY_API_ENVS,
@@ -92,6 +92,7 @@ def test_shipped_configs_generate_valid_cases(monkeypatch):
     # config *structure*.
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
+    monkeypatch.setattr("sklbench.config.utils._mps_gpu_available", lambda: True)
 
     config_paths = sorted(
         path for path in Path("configs").glob("*.py") if not path.name.startswith("_")
@@ -182,6 +183,11 @@ def _gpu_and_cpu_cases():
         {
             "algorithm": {"estimator": "Ridge"},
             "data": {"source": "make_regression"},
+            "implementation": {"library": "sklearn", "device": "mps"},
+        },
+        {
+            "algorithm": {"estimator": "Ridge"},
+            "data": {"source": "make_regression"},
             "implementation": {"library": "sklearnex", "device": "cpu"},
         },
         {
@@ -197,6 +203,7 @@ def test_filter_gpu_cases_drops_gpu_cases_without_matching_hardware(monkeypatch)
 
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: False)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: False)
+    monkeypatch.setattr("sklbench.config.utils._mps_gpu_available", lambda: False)
 
     kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
 
@@ -209,7 +216,8 @@ def test_filter_gpu_cases_keeps_gpu_cases_with_matching_hardware(monkeypatch):
 
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: False)
+    monkeypatch.setattr("sklbench.config.utils._mps_gpu_available", lambda: True)
 
     kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
 
-    assert [case["implementation"].get("device") for case in kept] == ["gpu", "cpu", None]
+    assert [case["implementation"].get("device") for case in kept] == ["gpu", "mps", "cpu", None]

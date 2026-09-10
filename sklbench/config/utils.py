@@ -94,6 +94,7 @@ _GPU_DEVICE_BACKENDS = {
     "gpu": "oneapi",
     "xpu": "oneapi",
     "cuda": "nvidia",
+    "mps": "mps",
 }
 
 
@@ -122,21 +123,33 @@ def _nvidia_gpu_available() -> bool:
         return False
 
 
+@lru_cache
+def _mps_gpu_available() -> bool:
+    try:
+        import torch
+    except (ImportError, ModuleNotFoundError):
+        return False
+    return torch.backends.mps.is_available()
+
+
 def _gpu_backend_available(backend: str) -> bool:
     # Dispatches by name (rather than a dict of function refs captured at
     # import time) so tests can monkeypatch `_oneapi_gpu_available` /
-    # `_nvidia_gpu_available` on this module and have it take effect here.
+    # `_nvidia_gpu_available` / `_mps_gpu_available` on this module and have
+    # it take effect here.
     if backend == "oneapi":
         return _oneapi_gpu_available()
     if backend == "nvidia":
         return _nvidia_gpu_available()
+    if backend == "mps":
+        return _mps_gpu_available()
     raise NotImplementedError(backend)
 
 
 def filter_gpu_cases_if_unavailable(cases):
     """Drop cases whose `implementation.device` targets a GPU backend
-    (oneAPI `gpu`/`xpu`, or NVIDIA `cuda`) that isn't actually present on
-    this machine.
+    (oneAPI `gpu`/`xpu`, NVIDIA `cuda`, or Apple `mps`) that isn't actually
+    present on this machine.
 
     Implementation selection (`configs/_implementations.py`) is keyed off
     `PIXI_ENVIRONMENT_NAME` alone, not detected hardware, so e.g. running the
