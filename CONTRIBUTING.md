@@ -14,11 +14,10 @@ The `sklearn-dev` environment (see ["Running Against scikit-learn
 Branches"](#running-against-scikit-learn-branches) below) depends on scikit-learn
 being checked out in a local path (`sklearn-src/`); running this script installs it.
 
-Install Git LFS before checking out or adding benchmark results. On Ubuntu/Debian:
+Install Git LFS before checking out or adding benchmark results:
 
 ```bash
-apt update
-apt install git-lfs
+pixi global install git-lfs
 git lfs install
 git lfs pull  # if you want to fetch all results locally
 ```
