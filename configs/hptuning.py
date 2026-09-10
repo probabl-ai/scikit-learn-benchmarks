@@ -1,22 +1,56 @@
 """
-Hyperparameter-tuning scalability cases: `RandomizedSearchCV` over a few
-real datasets already used by `configs/real_datasets.py`, tuning one linear
-model (LogisticRegression for the classification datasets, RidgeCV for the
-regression one) and HistGradientBoosting per dataset.
+Joblib-level-parallelism study: `RandomizedSearchCV` over a representative
+slice of `real_datasets.py`'s datasets, each paired with the same linear +
+tree-ensemble estimator `real_datasets.py` picked for it, plus its
+HistGradientBoosting counterpart (sklearn only - sklearnex has no
+accelerated HGB). Every case leaves `hptuning.outer_n_jobs`/`inner_n_jobs`
+unset, so the point isn't a hand-tuned parallelism split but the *default*
+one: outer defaults to `round(sqrt(physical_cores))` concurrent
+RandomizedSearchCV candidates (see
+`sklbench.config.models.hptuning.resolve_outer_n_jobs`), and each candidate
+is left to whatever its library defaults to on its own - RF/ET's own
+`n_jobs=1`, HGB's OpenMP thread pool, BLAS threads under
+Ridge/LogisticRegression - rather than something explicitly balanced
+against the outer level. That's the behavior worth measuring on a big
+many-core box (e.g. a GNR): whether those defaults compose into reasonable
+core usage or start oversubscribing.
 
-Datasets with many rows/high-cardinality categoricals are subsampled (via
-`hptuning.max_samples`) so each case's 14-point search finishes in well
-under a minute on a 14-physical-core box, at the default
-`outer_n_jobs = round(sqrt(physical_cores))` (see
-`sklbench.config.models.hptuning.resolve_outer_n_jobs`). `outer_n_jobs`/
-`inner_n_jobs` can be set explicitly per case to override that balance.
+Tree-ensemble `n_estimators` is fixed (not scaled by core count like
+`real_datasets.py`'s `N_JOBS * k`) precisely because `n_jobs` is left
+unset here - at 1 thread per candidate, a core-count-scaled forest would
+make a single candidate fit take as long as the whole `all_models.py` case
+it's drawn from. `max_samples` similarly bounds the larger datasets so a
+10-candidate x 3-fold search stays cheap even when only one candidate runs
+at a time.
+
+Real datasets are the 6 `hgb_scalability.py`'s `REAL_SCALING_DATASETS`
+already picked to span `real_datasets.py`'s size/categorical-content range,
+so this matrix stays a subsample of `all_models.py`'s rather than repeating
+its full dataset list. A handful of `make_classification`/`make_regression`
+synthetic shapes (narrow/wide, one pair per task) are mixed in alongside
+them, sized so a single search run lands in the same ~10s ballpark as the
+real-dataset cases above - see `SYNTHETIC_SPECS` for why that needs two
+differently-shaped datasets per spec rather than one shared shape.
 """
 
 import numpy as np
+import math
+
+from joblib import cpu_count
+from _implementations import implementations_for_pixi_env
 
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
+
+def sqrt_physical_cores(hptuning: HPTuning) -> int:
+    if hptuning.n_jobs is not None:
+        return hptuning.n_jobs
+    physical_cores = round(cpu_count(only_physical_cores=True))
+    return max(1, round(math.sqrt(physical_cores)))
+
+
 BENCH = {"n_runs": 3}
+N_ITER = 10
 
 # Keys are full pipeline param paths - "estimator__..." here since these
 # tune the model itself, not preprocessing (see the runner's
@@ -30,6 +64,9 @@ _HGB_PARAM_DISTRIBUTIONS = {
 }
 _HGB_PARAMS = {"early_stopping": False}
 
+_RIDGE_PARAM_DISTRIBUTIONS = {"estimator__alpha": list(np.logspace(-3, 3, 13))}
+_RIDGE_PARAMS = {}
+
 # Not "balanced": see `sklbench.config.utils` callers / repo notes - it
 # distorts calibration without moving ROC AUC.
 _LOGISTIC_REGRESSION_PARAMS = {"solver": "lbfgs", "max_iter": 1000}
@@ -38,98 +75,187 @@ _LOGISTIC_REGRESSION_PARAM_DISTRIBUTIONS = {
     "estimator__fit_intercept": [True, False],
 }
 
+# Shared by RandomForest{Classifier,Regressor}/ExtraTrees{Classifier,Regressor}:
+# same param names across all four.
+_TREE_PARAMS = {"n_estimators": 100}
+_TREE_PARAM_DISTRIBUTIONS = {
+    # Capped well below "unbounded": on the wider real datasets below
+    # (year_prediction_msd, 90 features), even max_depth=30 left a single RF
+    # candidate running past 240s at min_samples_leaf=1 - see the module
+    # docstring on cost control.
+    "estimator__max_depth": [3, 6, 10, 15],
+    "estimator__max_features": [0.3, 0.5, "sqrt"],
+    "estimator__min_samples_leaf": [1, 5, 10, 20],
+}
 
-def _case(
-    dataset: str,
-    estimator: str,
-    estimator_params: dict,
-    param_distributions: dict,
-    max_samples: int | None = None,
-) -> HPTuningCase:
+_ESTIMATOR_FAMILIES = {
+    "Ridge": (_RIDGE_PARAMS, _RIDGE_PARAM_DISTRIBUTIONS),
+    "LogisticRegression": (
+        _LOGISTIC_REGRESSION_PARAMS,
+        _LOGISTIC_REGRESSION_PARAM_DISTRIBUTIONS,
+    ),
+    "RandomForestClassifier": (_TREE_PARAMS, _TREE_PARAM_DISTRIBUTIONS),
+    "RandomForestRegressor": (_TREE_PARAMS, _TREE_PARAM_DISTRIBUTIONS),
+    "ExtraTreesClassifier": (_TREE_PARAMS, _TREE_PARAM_DISTRIBUTIONS),
+    "ExtraTreesRegressor": (_TREE_PARAMS, _TREE_PARAM_DISTRIBUTIONS),
+    "HistGradientBoostingClassifier": (_HGB_PARAMS, _HGB_PARAM_DISTRIBUTIONS),
+    "HistGradientBoostingRegressor": (_HGB_PARAMS, _HGB_PARAM_DISTRIBUTIONS),
+}
+
+_HGB_ESTIMATORS = {
+    "regression": "HistGradientBoostingRegressor",
+    "classification": "HistGradientBoostingClassifier",
+}
+
+# A spec is (linear_data, tree_data, linear_estimator, tree_estimator, task,
+# linear_max_samples, tree_max_samples). `tree_data`/`tree_max_samples` also
+# apply to the HGB case. Real-dataset specs below share one `data`/
+# `max_samples` across all three estimators (`_real_spec` duplicates it into
+# both slots); the synthetic ones don't, per-family costs diverge too much
+# on one shared dataset to land every estimator near the same wall time -
+# see `SYNTHETIC_SPECS`.
+
+
+def _real_spec(dataset: str, linear: str, tree: str, task: str, max_samples: int | None):
+    data = Data(dataset=dataset)
+    return (data, data, linear, tree, task, max_samples, max_samples)
+
+
+# Same 6 datasets as `hgb_scalability.py`'s `REAL_SCALING_DATASETS`, each
+# paired with the linear/tree estimator `real_datasets.py` uses for it there.
+DATASET_SPECS = [
+    _real_spec("ames_housing", "Ridge", "RandomForestRegressor", "regression", None),
+    _real_spec(
+        "amazon_employee_access",
+        "LogisticRegression", "RandomForestClassifier", "classification", 8000,
+    ),
+    _real_spec(
+        "kddcup09_churn",
+        "LogisticRegression", "RandomForestClassifier", "classification", 6000,
+    ),
+    _real_spec(
+        "year_prediction_msd", "Ridge", "RandomForestRegressor", "regression", 5000,
+    ),
+    _real_spec(
+        "covtype",
+        "LogisticRegression", "RandomForestClassifier", "classification", 15000,
+    ),
+    _real_spec(
+        "susy",
+        "LogisticRegression", "ExtraTreesClassifier", "classification", 15000,
+    ),
+]
+
+# Narrow/wide pair per task, plain numeric (no missing values, no
+# categoricals). Ridge/LogisticRegression need far more features than
+# RF/ET/HGB to reach a comparable wall time (measured: ~10-12s at
+# n_samples=30000/n_features=300 vs. RF at the same shape still running
+# past 240s at n_samples as low as 2000 - RF/ET's per-split cost scales
+# with feature count directly, unlike a single BLAS-backed lbfgs/Cholesky
+# solve) - hence the separate, much narrower `tree_data` per spec below
+# rather than one shared dataset.
+SYNTHETIC_SPECS = [
+    (
+        Data(
+            source="make_classification",
+            generation_kwargs={
+                "n_samples": 30000, "n_features": 300, "n_informative": 100, "n_classes": 2,
+            },
+        ),
+        Data(
+            source="make_classification",
+            generation_kwargs={
+                "n_samples": 5000, "n_features": 20, "n_informative": 10, "n_classes": 2,
+            },
+        ),
+        "LogisticRegression", "RandomForestClassifier", "classification", None, None,
+    ),
+    (
+        Data(
+            source="make_classification",
+            generation_kwargs={
+                "n_samples": 20000, "n_features": 400, "n_informative": 120, "n_classes": 2,
+            },
+        ),
+        Data(
+            source="make_classification",
+            generation_kwargs={
+                "n_samples": 4000, "n_features": 100, "n_informative": 20, "n_classes": 2,
+            },
+        ),
+        "LogisticRegression", "ExtraTreesClassifier", "classification", None, None,
+    ),
+    (
+        Data(
+            source="make_regression",
+            generation_kwargs={
+                "n_samples": 30000, "n_features": 300, "n_informative": 100, "noise": 0.1,
+            },
+        ),
+        Data(
+            source="make_regression",
+            generation_kwargs={
+                "n_samples": 5000, "n_features": 20, "n_informative": 10, "noise": 0.1,
+            },
+        ),
+        "Ridge", "RandomForestRegressor", "regression", None, None,
+    ),
+    (
+        Data(
+            source="make_regression",
+            generation_kwargs={
+                "n_samples": 20000, "n_features": 400, "n_informative": 120, "noise": 0.1,
+            },
+        ),
+        Data(
+            source="make_regression",
+            generation_kwargs={
+                "n_samples": 4000, "n_features": 100, "n_informative": 30, "noise": 0.1,
+            },
+        ),
+        "Ridge", "ExtraTreesRegressor", "regression", None, None,
+    ),
+]
+
+
+def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> HPTuningCase:
+    estimator_params, param_distributions = _ESTIMATOR_FAMILIES[estimator]
     return HPTuningCase(
         bench=BENCH,
         algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
-        data=Data(dataset=dataset),
+        data=data,
+        implementation=implem,
         hptuning=HPTuning(
             param_distributions=param_distributions,
+            n_iter=N_ITER,
             max_samples=max_samples,
+            n_jobs=round(cpu_count(only_physical_cores=True))
         ),
     )
 
 
 def generate_cases() -> list[HPTuningCase]:
+    # CPU-only, non-array-API implementations: the runner's preprocessing
+    # (plain numpy/pandas ColumnTransformer) isn't device- or
+    # array-API-aware, and thread-count defaults aren't a meaningful axis
+    # for GPU-offloaded work anyway.
+    implementations = [
+        implem
+        for implem in implementations_for_pixi_env()
+        if implem.get("data_library") is None and implem.get("device") in (None, "cpu")
+    ]
+
     cases = []
-
-    # ames_housing: regression, 1460 rows, mixed numeric/categorical with
-    # real missing values - small enough to use in full. RidgeCV already
-    # picks its own alpha internally (efficient built-in LOO-CV over a
-    # fixed, wide `alphas` grid, set below), so the outer RandomizedSearchCV
-    # instead tunes *preprocessing* hyperparameters - how the
-    # OneHotEncoder collapses rare/high-cardinality categories, and how
-    # numeric missing values are imputed.
-    cases.append(
-        _case(
-            "ames_housing",
-            "RidgeCV",
-            {"alphas": list(np.logspace(-4, 4, 19))},
-            {
-                "preprocessor__categorical__max_categories": [5, 10, 20, 50],
-                "preprocessor__categorical__min_frequency": [1, 2, 5, 10, 20],
-                "preprocessor__numeric__simpleimputer__strategy": ["mean", "median"],
-            },
-        )
-    )
-    cases.append(
-        _case(
-            "ames_housing",
-            "HistGradientBoostingRegressor",
-            _HGB_PARAMS,
-            _HGB_PARAM_DISTRIBUTIONS,
-        )
-    )
-
-    # amazon_employee_access: classification, 32769 rows, 9 all-categorical
-    # features (up to 7518 uniques) - subsampled to bound OneHotEncoder's
-    # output width and per-candidate fit time.
-    for estimator, estimator_params, param_distributions in [
-        (
-            "LogisticRegression",
-            _LOGISTIC_REGRESSION_PARAMS,
-            _LOGISTIC_REGRESSION_PARAM_DISTRIBUTIONS,
-        ),
-        ("HistGradientBoostingClassifier", _HGB_PARAMS, _HGB_PARAM_DISTRIBUTIONS),
-    ]:
-        cases.append(
-            _case(
-                "amazon_employee_access",
-                estimator,
-                estimator_params,
-                param_distributions,
-                max_samples=8000,
-            )
-        )
-
-    # kddcup09_churn: classification, 50000 rows, 207 columns (mostly
-    # numeric with heavy missingness, some high-cardinality categorical),
-    # ~7.3% positive rate - subsampled (stratified in `_subsample`) to
-    # bound both row count and the cost of imputing/encoding 207 columns
-    # per candidate fit.
-    for estimator, estimator_params, param_distributions in [
-        (
-            "LogisticRegression",
-            _LOGISTIC_REGRESSION_PARAMS,
-            _LOGISTIC_REGRESSION_PARAM_DISTRIBUTIONS,
-        ),
-        ("HistGradientBoostingClassifier", _HGB_PARAMS, _HGB_PARAM_DISTRIBUTIONS),
-    ]:
-        cases.append(
-            _case(
-                "kddcup09_churn",
-                estimator,
-                estimator_params,
-                param_distributions,
-                max_samples=6000,
-            )
-        )
+    for (
+        linear_data, tree_data, linear_estimator, tree_estimator, task,
+        linear_max_samples, tree_max_samples,
+    ) in DATASET_SPECS + SYNTHETIC_SPECS:
+        for implem in implementations:
+            cases.append(_case(linear_data, linear_estimator, implem, linear_max_samples))
+            cases.append(_case(tree_data, tree_estimator, implem, tree_max_samples))
+            if implem["library"] == "sklearn":
+                cases.append(
+                    _case(tree_data, _HGB_ESTIMATORS[task], implem, tree_max_samples)
+                )
 
     return cases

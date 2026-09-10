@@ -9,6 +9,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import RandomizedSearchCV, ShuffleSplit, train_test_split
@@ -17,7 +18,6 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.utils.parallel import Parallel, delayed
 
 from ..config import HPTuningCase
-from ..config.models.hptuning import resolve_outer_n_jobs
 from .datasets import load_raw_data
 from .datasets.preprocessing import HGBCategoricalCapper
 from .estimator.loading import get_context, get_estimator
@@ -77,7 +77,22 @@ def _subsample(X, y, n_classes: int | None, max_samples: int | None, random_stat
 
 
 def _default_scoring(n_classes: int | None) -> str:
-    return "roc_auc" if n_classes is not None else "r2"
+    if n_classes is None:
+        return "r2"
+    return "roc_auc" if n_classes == 2 else "roc_auc_ovr"
+
+
+def _raw_xy(raw_data: dict):
+    """`load_raw_data` returns `{"x", "y"}` for a loaded dataset (the whole
+    thing, unsplit) but `{"x_train", "x_test", "y_train", "y_test"}` for
+    synthetic data (already split - see `generate_synthetic_data`). This
+    runner doesn't use a held-out test set at all (`best_score_` comes from
+    `search`'s own CV folds), so for synthetic data only the train half is
+    used, same size as `data.generation_kwargs["n_samples"]`.
+    """
+    if "x" in raw_data:
+        return raw_data["x"], raw_data["y"]
+    return raw_data["x_train"], raw_data["y_train"]
 
 
 def run_hptuning(case: HPTuningCase) -> dict:
@@ -85,13 +100,20 @@ def run_hptuning(case: HPTuningCase) -> dict:
     n_classes = data_description.get("n_classes")
     hptuning = case.hptuning
 
+    raw_x, raw_y = _raw_xy(raw_data)
     X, y = _subsample(
-        raw_data["x"],
-        np.asarray(raw_data["y"]),
+        raw_x,
+        np.asarray(raw_y),
         n_classes,
         hptuning.max_samples,
         hptuning.random_state,
     )
+    if not hasattr(X, "iloc"):
+        # `make_column_selector` (used by `_build_preprocessor`) requires a
+        # DataFrame - synthetic sources (`make_classification`/
+        # `make_regression`/the `make_trees_*` family without `as_frame`)
+        # return a plain ndarray.
+        X = pd.DataFrame(X)
 
     pipeline = _build_pipeline(case)
     # Keys are full pipeline param paths (e.g. "estimator__C" to tune the
@@ -106,25 +128,24 @@ def run_hptuning(case: HPTuningCase) -> dict:
         test_size=hptuning.cv_test_size,
         random_state=hptuning.random_state,
     )
-    outer_n_jobs = resolve_outer_n_jobs(hptuning)
 
     with (
         get_context(case.implementation),
         joblib.parallel_config(
             backend=hptuning.joblib_backend,
-            inner_max_num_threads=hptuning.inner_n_jobs,
+            inner_max_num_threads=hptuning.inner_max_num_threads,
         ),
     ):
         # Warm up the worker pool so its startup cost isn't attributed to
         # the timed search below.
-        Parallel(n_jobs=outer_n_jobs)(delayed(lambda: None)() for _ in range(outer_n_jobs))
+        Parallel(n_jobs=hptuning.n_jobs)(delayed(lambda: None)() for _ in range(hptuning.n_jobs))
 
         search = RandomizedSearchCV(
             pipeline,
             param_distributions,
             n_iter=hptuning.n_iter,
             cv=cv,
-            n_jobs=outer_n_jobs,
+            n_jobs=hptuning.n_jobs,
             scoring=scoring,
             error_score="raise",
             random_state=hptuning.random_state,
@@ -141,8 +162,6 @@ def run_hptuning(case: HPTuningCase) -> dict:
         "duration_s": duration_s,
         "scoring": scoring,
         "best_score": float(search.best_score_),
-        "outer_n_jobs": outer_n_jobs,
-        "inner_n_jobs": hptuning.inner_n_jobs,
     }
 
 

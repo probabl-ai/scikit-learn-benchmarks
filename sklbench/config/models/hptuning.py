@@ -28,15 +28,8 @@ class HPTuning(Section):
     # is left to joblib's own oversubscription-avoiding default
     # (cpu_count() // outer_n_jobs), applied by passing this value straight
     # through to `joblib.parallel_config(inner_max_num_threads=...)`.
-    outer_n_jobs: int | None = None
-    inner_n_jobs: int | None = None
-
-
-def resolve_outer_n_jobs(hptuning: HPTuning) -> int:
-    if hptuning.outer_n_jobs is not None:
-        return hptuning.outer_n_jobs
-    physical_cores = cpu_count(only_physical_cores=True)
-    return max(1, round(math.sqrt(physical_cores)))
+    n_jobs: int | None = None
+    inner_max_num_threads: int | None = None
 
 
 class HPTuningCase(BaseCase):
