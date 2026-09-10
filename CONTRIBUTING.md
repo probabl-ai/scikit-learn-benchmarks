@@ -24,7 +24,8 @@ git lfs pull  # if you want to fetch all results locally
 ```
 
 Then you should be able to run `pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py`.
-It will take a few dozen seconds.
+It will take a few dozen seconds and create a few results under `results/`.
+Run `git clean results/ -fd` to delete those.
 
 You'll see a warning:
 
