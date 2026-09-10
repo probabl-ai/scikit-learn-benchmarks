@@ -124,25 +124,12 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     case that already carries its own algorithm/data (e.g. from
     `real_datasets.py`), without touching those sections.
 
-    The explicit OMP_NUM_THREADS is still needed even with our joblib fork
-    (github.com/cakedev0/joblib@vendor-loky-cpu-affinity-physical, which
-    vendors github.com/cakedev0/loky@cpu_affinity_physical) wired into pixi.toml:
-    sklearn's `_openmp_helpers.pyx` picks its default OpenMP thread count via
-    `joblib.cpu_count(only_physical_cores=True)`, and without OMP_NUM_THREADS
-    that defaults to every logical CPU in the taskset (2x oversubscription
-    with `with_siblings=True`, since the fix doesn't take effect in ~half the
-    pixi envs - see below). Setting it explicitly makes fit time correct
-    everywhere regardless of which joblib is active.
-
-    The fork only reaches environments where scikit-learn/joblib come from
-    PyPI/source (sklearn-pypi, sklearn-dev, skl-cpu, skl-intel, skl-nvidia,
-    default): there, `[pypi-dependencies].joblib` overrides the vendored
-    loky's physical-core-under-affinity detection. In environments where
-    scikit-learn is a conda-forge package (intel, reporting, and the
-    sklearn-cf-* / BLAS-backend-comparison envs), joblib is pulled in
-    transitively as a conda package, and pixi refuses to override a
-    conda-selected package with a PyPI git dependency of the same name -
-    so those keep using upstream joblib's affinity-blind cpu_count().
+    The explicit OMP_NUM_THREADS is needed regardless: sklearn's
+    `_openmp_helpers.pyx` picks its default OpenMP thread count via
+    `joblib.cpu_count(only_physical_cores=True)`, which is blind to CPU
+    affinity, so without OMP_NUM_THREADS it defaults to every logical CPU in
+    the taskset (2x oversubscription with `with_siblings=True`). Setting it
+    explicitly makes fit time correct everywhere.
     """
 
     bench = {

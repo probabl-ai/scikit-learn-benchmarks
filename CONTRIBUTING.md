@@ -5,32 +5,49 @@ and reporting scripts for the published scikit-learn benchmark dashboards.
 
 ## Setup
 
-Install pixi (>= 0.75): `curl -fsSL https://pixi.sh/install.sh | sh`
 
-If you have an old pixi, you can self-update: `pixi self-update`.
+### Pre-requisites
 
-First clone the repo, then from the repo root run `scripts/setup_sklearn_ref.sh --ref main`.
+Install pixi (>= 0.75): 
+
+```bash
+curl -fsSL https://pixi.sh/install.sh | sh
+```
+
+Or if you have an old pixi, you can self-update:
+```bash
+pixi self-update 
+```
+
+Install Git LFS before cloning:
+```
+pixi global install git-lfs
+git lfs install
+```
+
+Then clone the repo (`git lfs pull` afterwards if you want to fetch all results locally).
+
+
+Then from the repo root run:
+
+```bash
+./scripts/setup_sklearn_ref.sh --ref main
+```
+
 The `sklearn-dev` environment (see ["Running Against scikit-learn
 Branches"](#running-against-scikit-learn-branches) below) depends on scikit-learn
 being checked out in a local path (`sklearn-src/`); running this script installs it.
 
-Install Git LFS before checking out or adding benchmark results:
+Then you test your environnment by running:
 
 ```bash
-pixi global install git-lfs
-git lfs install
-git lfs pull  # if you want to fetch all results locally
+pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py --results-dir ./results/tests/
 ```
 
-Then you should be able to run `pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py`.
-It will take a few dozen seconds and create a few results under `results/`.
-Run `git clean results/ -fd` to delete those.
+It will take a few dozen seconds and create a few results under `results/tests` (git ignored).
 
-You'll see a warning:
 
-`WARN PyPI requirement: joblib as a Git dependency is currently not supported because it is already selected as a conda package`
-
-That's expected (and hopefully soon to be removed once https://github.com/joblib/loky/pull/651 is merged & released).
+## Architecture
 
 The project uses Pixi environments:
 - `sklearn-pypi`: vanilla scikit-learn
@@ -45,8 +62,6 @@ The project uses Pixi environments:
 - `sklearn-dev-libomp`: same scikit-learn git checkout as `sklearn-dev`, but
   with LLVM/Intel `libomp` runtime.
 
-
-## Architecture
 
 The repository is split into a few layers:
 

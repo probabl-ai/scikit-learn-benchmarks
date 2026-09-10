@@ -303,8 +303,7 @@ def orchestrate_benchmarks(
         interval=args.system_telemetry_interval,
         percpu=args.system_telemetry_percpu,
     )
-    if not args.no_system_telemetry:
-        system_monitor.start()
+    system_monitor.start()
 
     n_cases = len(bench_cases)
     try:
