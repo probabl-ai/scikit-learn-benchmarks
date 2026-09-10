@@ -41,8 +41,8 @@ def add_orchestrator_arguments(
         action="store_true",
         help=(
             "Disable the background system telemetry sampler (CPU load, "
-            "per-core frequency, temperature) that otherwise runs for the "
-            "whole session and writes to results/system-telemetry/."
+            "frequency, temperature) that otherwise runs for the whole "
+            "session and writes to results/system-telemetry/."
         ),
     )
     parser.add_argument(
@@ -50,6 +50,18 @@ def add_orchestrator_arguments(
         type=float,
         default=2.0,
         help="Seconds between system telemetry samples (default: 2.0).",
+    )
+    parser.add_argument(
+        "--system-telemetry-percpu",
+        dest="system_telemetry_percpu",
+        default=False,
+        action="store_true",
+        help=(
+            "Record cpu_percent/cpu_freq_mhz/temperatures_c as one value "
+            "per CPU (or per sensor) instead of a single scalar. Off by "
+            "default since a per-core sample every couple of seconds is a "
+            "lot of telemetry volume on many-core machines."
+        ),
     )
     parser.add_argument(
         "--validate-only",

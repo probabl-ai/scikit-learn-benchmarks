@@ -9,19 +9,30 @@ import psutil
 logger = logging.getLogger(__name__)
 
 
-def _sample_temperatures_c() -> dict[str, float]:
-    """Flatten `psutil.sensors_temperatures()` into `{"chip:label": celsius}`.
+def _sample_temperatures_c(percpu: bool) -> dict[str, float] | float | None:
+    """`psutil.sensors_temperatures()`, flattened to `{"chip:label": celsius}`
+    when `percpu`, or the single hottest reading otherwise.
+
+    Some platforms report one sensor per physical core (e.g. Linux
+    `coretemp`), which on a many-core machine is exactly the kind of
+    per-core blowup `percpu=False` exists to avoid. Max rather than average:
+    what matters for diagnosing throttling/thermal issues is the hottest
+    spot, not a system-wide mean that dilutes it across dozens of sensors.
 
     Not available on every platform (e.g. macOS, some containers/VMs), so
-    every step here is best-effort and returns `{}` rather than raising.
+    every step here is best-effort and returns `{}`/`None` rather than
+    raising.
     """
     get_temperatures = getattr(psutil, "sensors_temperatures", None)
     if get_temperatures is None:
-        return {}
+        return {} if percpu else None
     try:
         chips = get_temperatures()
     except Exception:
-        return {}
+        return {} if percpu else None
+    if not percpu:
+        readings = [reading.current for readings in chips.values() for reading in readings]
+        return max(readings) if readings else None
     temperatures = {}
     for chip_name, readings in chips.items():
         for index, reading in enumerate(readings):
@@ -30,19 +41,23 @@ def _sample_temperatures_c() -> dict[str, float]:
     return temperatures
 
 
-def _sample_cpu_freq_mhz() -> list[float] | None:
+def _sample_cpu_freq_mhz(percpu: bool) -> list[float] | float | None:
     try:
-        per_cpu = psutil.cpu_freq(percpu=True)
+        cpu_freq = psutil.cpu_freq(percpu=percpu)
     except Exception:
         return None
-    if not per_cpu:
+    if not cpu_freq:
         return None
-    return [freq.current for freq in per_cpu]
+    if percpu:
+        return [freq.current for freq in cpu_freq]
+    return cpu_freq.current
 
 
-def _sample_load_avg() -> list[float] | None:
+def _sample_load_avg() -> float | None:
+    """1-minute load average. The 5/15-minute figures are redundant given
+    how often this sampler already runs (every few seconds by default)."""
     try:
-        return list(psutil.getloadavg())
+        return psutil.getloadavg()[0]
     except (AttributeError, OSError):
         return None
 
@@ -69,7 +84,6 @@ def _sample_memory() -> dict | None:
         "used_percent": virtual_memory.percent,
         "available_mb": virtual_memory.available / 2**20,
         "swap_used_percent": swap_memory.percent,
-        "swap_used_mb": swap_memory.used / 2**20,
     }
 
 
@@ -77,6 +91,12 @@ class SystemMonitor:
     """Background sampler (CPU load/frequency/temperature, system-wide
     RAM/swap) that runs for the whole orchestrator session rather than
     being scoped to one case's fit/predict call.
+
+    `percpu` controls whether cpu_percent/cpu_freq_mhz/temperatures_c are
+    recorded as one value per CPU (or per sensor) or collapsed to a single
+    scalar. Per-core defaults to off: on a machine with hundreds of cores,
+    a per-core sample every couple of seconds for a whole session is a lot
+    of telemetry volume for little diagnostic value.
 
     A pathological repeat (e.g. a laptop hybrid P/E-core scheduling stall)
     can be buried inside a single subprocess call that the per-case JSON
@@ -86,9 +106,10 @@ class SystemMonitor:
     suspicious repeat's timestamp instead of having to reproduce it live.
     """
 
-    def __init__(self, output_path: Path, interval: float = 2.0):
+    def __init__(self, output_path: Path, interval: float = 2.0, percpu: bool = False):
         self._output_path = output_path
         self._interval = interval
+        self._percpu = percpu
         self.case_index: int | None = None
         self.case_name: str | None = None
         self._stop_event = threading.Event()
@@ -135,18 +156,18 @@ class SystemMonitor:
             "case_name": self.case_name,
         }
         try:
-            sample["cpu_percent"] = psutil.cpu_percent(percpu=True, interval=None)
+            sample["cpu_percent"] = psutil.cpu_percent(percpu=self._percpu, interval=None)
         except Exception:
             pass
-        cpu_freq_mhz = _sample_cpu_freq_mhz()
+        cpu_freq_mhz = _sample_cpu_freq_mhz(self._percpu)
         if cpu_freq_mhz is not None:
             sample["cpu_freq_mhz"] = cpu_freq_mhz
-        temperatures_c = _sample_temperatures_c()
-        if temperatures_c:
+        temperatures_c = _sample_temperatures_c(self._percpu)
+        if temperatures_c is not None and temperatures_c != {}:
             sample["temperatures_c"] = temperatures_c
         load_avg = _sample_load_avg()
         if load_avg is not None:
-            sample["load_avg"] = load_avg
+            sample["load_avg_1min"] = load_avg
         memory = _sample_memory()
         if memory is not None:
             sample["memory"] = memory
@@ -155,8 +176,9 @@ class SystemMonitor:
     def _run(self) -> None:
         # Primes psutil's internal per-call delta baseline so the first
         # real sample reflects usage since monitoring started rather than
-        # since interpreter startup.
-        psutil.cpu_percent(percpu=True, interval=None)
+        # since interpreter startup. psutil tracks percpu and aggregate
+        # baselines separately, so this must prime the same mode used below.
+        psutil.cpu_percent(percpu=self._percpu, interval=None)
         with self._output_path.open("a", encoding="utf-8") as fp:
             while not self._stop_event.wait(self._interval):
                 try:
