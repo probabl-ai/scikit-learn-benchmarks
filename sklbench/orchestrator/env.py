@@ -404,7 +404,9 @@ def get_hardware_info() -> dict:
             value = cpu_info.pop(key)
             if key in fields_map:
                 cpu_info[fields_map[key]] = value
-        cpu_info["flags"] = " ".join(cpu_info["flags"])
+        # py-cpuinfo only populates x86 CPUID feature flags; ARM chips (e.g.
+        # Apple Silicon) have no "flags" key at all.
+        cpu_info["flags"] = " ".join(cpu_info.get("flags", []))
         cpu_info["physical_cores"] = joblib.cpu_count(only_physical_cores=True)
         result["CPU"] = cpu_info
         logger.info(f"CPU name: {cpu_info['name']}")
