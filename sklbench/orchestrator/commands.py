@@ -5,6 +5,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import psutil
+
 from ..config import Case, EstimatorCase, HPTuningCase
 
 
@@ -75,6 +77,19 @@ def filter_py_spy_stderr(stderr: str) -> tuple[str, bool]:
     return "\n".join(filtered_lines).strip(), len(filtered_lines) != len(lines)
 
 
+def pin_process_affinity(pid: int, cores: list[int]) -> None:
+    """Pin process `pid` to `cores` (CPU ids).
+
+    Uses `psutil`, which sets the same OS-level affinity mask on both Linux
+    and Windows - unlike the `taskset` CLI it replaces, which is Linux-only.
+    No-op on macOS, where `psutil.Process.cpu_affinity` is unsupported.
+    """
+    try:
+        psutil.Process(pid).cpu_affinity(cores)
+    except NotImplementedError:
+        pass
+
+
 def generate_runner_command(
     bench_case: Case,
     case_file: Path,
@@ -83,10 +98,6 @@ def generate_runner_command(
     py_spy_output: Path | None = None,
     cprofile_output: Path | None = None,
 ) -> list[str]:
-    command_prefix: list[str] = []
-    if bench_case.bench.taskset is not None:
-        command_prefix.extend(["taskset", "-c", str(bench_case.bench.taskset)])
-
     runner_command = [
         sys.executable,
         "-m",
@@ -104,7 +115,7 @@ def generate_runner_command(
 
     if py_spy_output is not None:
         native_flag = ["--native"] if bench_case.bench.py_spy_native else []
-        return command_prefix + [
+        return [
             "py-spy",
             "record",
             *native_flag,
@@ -117,7 +128,7 @@ def generate_runner_command(
             "--",
         ] + runner_command
 
-    return command_prefix + runner_command
+    return runner_command
 
 
 def parse_runner_jsonl(output_jsonl: Path) -> list[dict]:
@@ -159,22 +170,28 @@ def run_runner_from_case(
             py_spy_output,
             cprofile_output,
         )
+        proc = sp.Popen(
+            command,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE,
+            encoding="utf-8",
+            env=runner_env(bench_case),
+        )
+        if bench_case.bench.cpu_affinity is not None:
+            # Pin right after spawn, before the process's own CPU-bound work
+            # starts - see `pin_process_affinity`.
+            pin_process_affinity(proc.pid, bench_case.bench.cpu_affinity)
         try:
-            result = sp.run(
-                command,
-                stdout=sp.PIPE,
-                stderr=sp.PIPE,
-                encoding="utf-8",
-                timeout=bench_time_limit,
-                env=runner_env(bench_case),
-            )
-            return_code = result.returncode
-            stdout = result.stdout.strip()
-            stderr = result.stderr.strip()
-        except sp.TimeoutExpired as exc:
+            stdout, stderr = proc.communicate(timeout=bench_time_limit)
+            return_code = proc.returncode
+            stdout = stdout.strip()
+            stderr = stderr.strip()
+        except sp.TimeoutExpired:
+            proc.kill()
+            stdout, stderr = proc.communicate()
             return_code = -9
-            stdout = (exc.stdout or "").strip()
-            stderr = (exc.stderr or "").strip()
+            stdout = stdout.strip()
+            stderr = stderr.strip()
             timeout_message = f"Runner exceeded time limit ({bench_time_limit:.1f} seconds)."
             stderr = f"{stderr}\n{timeout_message}".strip()
 

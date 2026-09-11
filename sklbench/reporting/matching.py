@@ -302,7 +302,7 @@ def _runs_to_values(runs: list[dict]) -> dict:
 
 def _case_without_bench(raw_case: dict) -> dict:
     """Strips the "bench" section (run mechanics: n_runs, time_limit,
-    taskset, profiling flags - none of which should affect case identity or
+    cpu_affinity, profiling flags - none of which should affect case identity or
     be shown in reports) while keeping `bench.env` under a top-level "env"
     key. Env vars are the one bench.* field that can change what's actually
     measured (e.g. a BLAS thread-count sweep via

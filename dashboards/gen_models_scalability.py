@@ -67,7 +67,7 @@ HARDWARE_NAMES = {
 # only yields it `if is_tree and has_smt_cores`).
 SMT_NOTES = {
     "534824": (
-        "\"with SMT\" tasksets both logical siblings of each selected "
+        "\"with SMT\" pins both logical siblings of each selected "
         "physical core; \"without SMT\" restricts to one logical thread "
         "per physical core. This hardware has SMT (simultaneous "
         "multithreading, aka hyper-threading): twice as many logical "

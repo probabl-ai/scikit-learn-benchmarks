@@ -4,7 +4,7 @@ from typing import Iterable
 
 #TODO: in utils or in _common? wierd overlap
 from _common import deterministic_random_choice
-from _numa import auto_numa_taskset
+from _numa import auto_numa_cpu_affinity
 
 
 ALGORITHM_VARIANTS = [
@@ -168,7 +168,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
 
 
 def with_numa_pinning(case: dict, numa_node: int = 0) -> dict:
-    """Pin `case` to one NUMA node's cores via `bench.taskset` (see
+    """Pin `case` to one NUMA node's cores via `bench.cpu_affinity` (see
     `_numa.py`).
 
     These synthetic linear-model cases can be large and memory-bandwidth-
@@ -183,13 +183,13 @@ def with_numa_pinning(case: dict, numa_node: int = 0) -> dict:
     `[with_numa_pinning(c) for c in generate_cases(implem)]` from a
     PR-specific comparison config.
     """
-    taskset = auto_numa_taskset(numa_node)
-    if taskset is None:
+    cpu_affinity = auto_numa_cpu_affinity(numa_node)
+    if cpu_affinity is None:
         return case
     bench = case.get("bench") or {}
-    if bench.get("taskset") is not None:
+    if bench.get("cpu_affinity") is not None:
         raise ValueError(
-            f"case already sets bench.taskset={bench['taskset']!r} - "
+            f"case already sets bench.cpu_affinity={bench['cpu_affinity']!r} - "
             "with_numa_pinning would silently override it"
         )
-    return {**case, "bench": {**bench, "taskset": taskset}}
+    return {**case, "bench": {**bench, "cpu_affinity": cpu_affinity}}

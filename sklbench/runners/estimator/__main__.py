@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def detected_core_counts() -> dict:
     """Cores joblib sees under the process's current CPU affinity (e.g. a
-    benchmark case's `taskset`, applied once for the whole runner
+    benchmark case's `cpu_affinity`, applied once for the whole runner
     subprocess). Fixed for the life of the process - call this once per case
     run, not once per timed call: it can't differ between `fit` and
     `predict`, or between repeats of the same case.
@@ -41,7 +41,7 @@ def detected_core_counts() -> dict:
     from CPU affinity rather than from the OS's own core count - see
     https://github.com/joblib/loky/pull/651. So on hybrid/SMT hardware,
     `n_detected_physical_cores` is inflated to the logical count whenever a
-    case's `taskset` includes both siblings of a physical core (e.g. the
+    case's `cpu_affinity` includes both siblings of a physical core (e.g. the
     `with_siblings=True` cases in `models_scalability.py`/
     `hgb_scalability.py`). Not currently read by any dashboard/reporting
     code - just recorded here - so this is silently wrong metadata rather

@@ -8,14 +8,14 @@ stacked bar per workload, x-axis = thread count, segments = phase.
 Deliberately reads raw `read_benchmark_records()` instead of
 `read_all_results()`: `MethodResult.case`/`full_match_key` strip the `bench`
 key, so thread count (which for this config only lives in
-`bench.taskset`/`bench.env.OMP_NUM_THREADS`, not in `case`) isn't part of
-the de-dup identity - `read_all_results()` collapses every thread-count
+`bench.cpu_affinity`/`bench.env.OMP_NUM_THREADS`, not in `case`) isn't part
+of the de-dup identity - `read_all_results()` collapses every thread-count
 variant of a workload down to whichever ran last. `BenchmarkRecord.case`
 strips `bench` for the same reason, so thread count is instead read straight
 from `bench.env.OMP_NUM_THREADS` in the record's raw JSON (via
 `record.record_path`) - the requested thread count, not an affinity-derived
 guess, since some configs (e.g. `hgb_scaling_laptop.py`) set
-`OMP_NUM_THREADS` without a matching `taskset`.
+`OMP_NUM_THREADS` without matching `cpu_affinity`.
 
 Excludes `sklearn-dev*` builds - those are one-off scikit-learn git-checkout
 builds (a specific commit/PR branch, see CONTRIBUTING.md's

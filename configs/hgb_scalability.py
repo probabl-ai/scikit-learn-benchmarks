@@ -1,6 +1,6 @@
 from math import sqrt
 
-from _scaling import get_n_cores_list, has_hybrid_cores, taskset_for_physical_cores
+from _scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
 from real_datasets import generate_cases as generate_real_dataset_cases
 
 
@@ -128,8 +128,8 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     `_openmp_helpers.pyx` picks its default OpenMP thread count via
     `joblib.cpu_count(only_physical_cores=True)`, which is blind to CPU
     affinity, so without OMP_NUM_THREADS it defaults to every logical CPU in
-    the taskset (2x oversubscription with `with_siblings=True`). Setting it
-    explicitly makes fit time correct everywhere.
+    the affinity set (2x oversubscription with `with_siblings=True`). Setting
+    it explicitly makes fit time correct everywhere.
     """
 
     bench = {
@@ -148,7 +148,7 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     }
 
     if not has_hybrid_cores():
-        bench["taskset"] = taskset_for_physical_cores(thread_count, with_siblings=True)
+        bench["cpu_affinity"] = cpu_affinity_for_physical_cores(thread_count, with_siblings=True)
 
     return {
         **case,

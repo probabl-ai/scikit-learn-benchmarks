@@ -2,8 +2,15 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 from sklbench.config import Algorithm, Bench, Data, HPTuningCase
-from sklbench.orchestrator.commands import generate_runner_command, runner_env
+from sklbench.orchestrator import commands
+from sklbench.orchestrator.commands import (
+    generate_runner_command,
+    pin_process_affinity,
+    runner_env,
+)
 
 
 def _hptuning_case(**kwargs):
@@ -59,3 +66,33 @@ def test_runner_env_merges_bench_env_on_top_of_ambient_environment(monkeypatch):
 
     assert env["OMP_NUM_THREADS"] == "128"
     assert env["PATH"] == os.environ["PATH"]
+
+
+def test_pin_process_affinity_sets_the_given_core_list(monkeypatch):
+    calls = []
+
+    class FakeProcess:
+        def __init__(self, pid):
+            calls.append(pid)
+
+        def cpu_affinity(self, cores):
+            calls.append(cores)
+
+    monkeypatch.setattr(commands.psutil, "Process", FakeProcess)
+
+    pin_process_affinity(1234, [0, 1, 3])
+
+    assert calls == [1234, [0, 1, 3]]
+
+
+def test_pin_process_affinity_is_a_noop_when_unsupported(monkeypatch):
+    class FakeProcess:
+        def __init__(self, pid):
+            pass
+
+        def cpu_affinity(self, cores):
+            raise NotImplementedError
+
+    monkeypatch.setattr(commands.psutil, "Process", FakeProcess)
+
+    pin_process_affinity(1234, [0, 1])

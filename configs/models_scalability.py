@@ -12,21 +12,22 @@ clustering estimator:
 
 Cases/hyperparameters are pulled straight from `real_datasets.py` (filtered
 to these exact (estimator, dataset) pairs) rather than duplicated here, then
-swept across thread count (`taskset_for_physical_cores`, same pattern as
+swept across thread count (`cpu_affinity_for_physical_cores`, same pattern as
 `hgb_scalability.py`/`trees_scaling.py`) and crossed with every plain-CPU
 implementation for the active Pixi environment (`sklearn`, and
 `sklearnex-cpu` under `intel`) via `implementations_for_pixi_env` - no
-array-API and no sklearnex-gpu implementations, since `taskset`-based thread
-pinning isn't a meaningful axis for GPU-offloaded/array-API-dispatched work.
+array-API and no sklearnex-gpu implementations, since CPU-affinity-based
+thread pinning isn't a meaningful axis for GPU-offloaded/array-API-dispatched
+work.
 
 RandomForestClassifier/ExtraTreesClassifier's `n_jobs` (baked into
 `real_datasets.py` as a fixed fraction of *this* machine's core count) is
 overridden to -1 here, so joblib parallelism actually follows the swept
-thread count via `taskset` affinity. Ridge/LogisticRegression/KMeans don't
-take an `n_jobs` estimator param: their thread count instead follows purely
-from BLAS respecting the `taskset` affinity. See `_with_scaling_bench` for
-the per-estimator `with_siblings`/`OMP_NUM_THREADS` handling - it isn't
-uniform across estimators here.
+thread count via `cpu_affinity` pinning. Ridge/LogisticRegression/KMeans
+don't take an `n_jobs` estimator param: their thread count instead follows
+purely from BLAS respecting the `cpu_affinity` pinning. See
+`_with_scaling_bench` for the per-estimator `with_siblings`/`OMP_NUM_THREADS`
+handling - it isn't uniform across estimators here.
 
 covtype's LogisticRegression case (Nystroem, 100 components) is ~48s/fit at
 `real_datasets.py`'s default ~465K-row train split (see its comment there);
@@ -38,7 +39,7 @@ train sizes.
 """
 from _common import _merge_dicts
 from _implementations import implementations_for_pixi_env
-from _scaling import get_n_cores_list, taskset_for_physical_cores, has_hybrid_cores
+from _scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
 from real_datasets import generate_cases as generate_real_dataset_cases
 
 
@@ -101,14 +102,14 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     combo.
 
     `with_siblings` (whether both hyperthread siblings of each selected
-    physical core go into the taskset, vs. just one) only matters for the
-    tree cases: they're the only ones with an explicit `n_jobs=-1`, which
-    resolves via joblib's plain (not `only_physical_cores`-aware)
+    physical core go into the `cpu_affinity` set, vs. just one) only matters
+    for the tree cases: they're the only ones with an explicit `n_jobs=-1`,
+    which resolves via joblib's plain (not `only_physical_cores`-aware)
     `cpu_count()` - so `with_siblings=True` there would let joblib spawn
     ~2x the intended thread count on hyperthreaded hardware. That's exactly
     the axis worth comparing directly for RF/ET, so both variants are
     yielded (tagged via `metadata["with_siblings"]`, since `bench` - where
-    the taskset itself lives - is stripped from case identity elsewhere,
+    `cpu_affinity` itself lives - is stripped from case identity elsewhere,
     e.g. `dashboards/gen_hgb_scalability_breakdown.py`). Every other
     estimator here (Ridge/LogisticRegression/KMeans) has no `n_jobs`, so
     `with_siblings=True` unconditionally, same as `hgb_scalability.py`.
@@ -117,7 +118,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     in Cython (like HistGradientBoosting), so it's the only one that needs
     `OMP_NUM_THREADS` set explicitly to make thread count follow the sweep
     (Ridge/LogisticRegression/RF/ET rely on BLAS/`n_jobs` respecting the
-    `taskset` affinity alone). sklearn's
+    `cpu_affinity` pinning alone). sklearn's
     KMeans is also skipped above 128 threads - see `real_datasets.py`'s
     `KMEANS_BENCH` for the OpenBLAS crash this avoids; not applied to
     sklearnex, whose threading isn't OpenMP/OMP_NUM_THREADS-driven.
@@ -126,8 +127,8 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     is_kmeans = case["algorithm"]["estimator"] == "KMeans"
     is_tree = case["algorithm"]["estimator"] in TREE_ESTIMATORS
     has_smt_cores = (
-        taskset_for_physical_cores(cores_count, True)
-        != taskset_for_physical_cores(cores_count, False)
+        cpu_affinity_for_physical_cores(cores_count, True)
+        != cpu_affinity_for_physical_cores(cores_count, False)
     )
 
     if is_sklearn and is_kmeans and cores_count > 128:
@@ -151,7 +152,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
                 **case["bench"],
                 "n_runs": n_runs,
                 "env": env,
-                "taskset": taskset_for_physical_cores(cores_count, with_siblings=True),
+                "cpu_affinity": cpu_affinity_for_physical_cores(cores_count, with_siblings=True),
             },
         }
     )

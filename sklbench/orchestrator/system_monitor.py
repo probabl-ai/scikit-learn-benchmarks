@@ -66,10 +66,11 @@ def _sample_memory() -> dict | None:
     """System-wide (not per-process) RAM/swap usage.
 
     Deliberately system-wide rather than the orchestrator process's own RSS:
-    the actual benchmarked work runs in a separate `taskset`d subprocess (see
-    `commands.py`), so the orchestrator's own memory use wouldn't reflect it
-    anyway. A 2s cadence can't catch a brief peak the way a per-call
-    high-frequency profiler could, but a large allocation or a
+    the actual benchmarked work runs in a separate subprocess, pinned via
+    `bench.cpu_affinity` (see `commands.py`), so the orchestrator's own
+    memory use wouldn't reflect it anyway. A 2s cadence can't catch a brief
+    peak the way a per-call high-frequency profiler could, but a large
+    allocation or a
     swap-thrashing machine stays visibly elevated for multiple samples in a
     row - active swapping in particular is a plausible cause of the kind of
     >100x wall time blowups this monitor exists to help diagnose, and this
