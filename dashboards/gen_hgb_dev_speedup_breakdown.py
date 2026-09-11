@@ -56,12 +56,14 @@ from dashboards import dashboard_output_dir
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     is_sklearn_dev_build,
+    FLAMEGRAPH_VIEWER_BASE_URL,
     hosted_viewer_url_fn,
     JSON_VIEWER_BASE_URL,
     json_viewer_url,
     openmp_runtime_family,
     OPENMP_FAMILY_SHORT_LABELS,
     proc_bind_label_suffix,
+    profile_viewer_url,
     read_env,
     SKLEARN_DEV_PIXI_ENV,
     software_build_name,
@@ -71,6 +73,7 @@ from sklbench.reporting.envs import (
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
+    detailed_results_table_html,
     HARDWARE_TEMPLATE,
     SOFTWARE_TEMPLATE,
     format_duration_ms,
@@ -79,7 +82,17 @@ from sklbench.reporting.html import (
     render_software_tabs,
     variant_color_map,
 )
-from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
+from sklbench.reporting.matching import (
+    append_iterations_warning,
+    BenchmarkRecord,
+    date_range,
+    find_matches,
+    MatchWarning,
+    method_results_from_records,
+    MethodResult,
+    read_benchmark_records,
+)
+from sklbench.reporting.utils import groupby
 
 
 # `_phase_breakdown_ms()` already carries the wall-clock fit time as
@@ -103,6 +116,14 @@ def _base_build(builds) -> str | None:
     whichever fork/remote a branch comparison was run against (see
     CONTRIBUTING.md's `env@owner:ref` workflow)."""
     return next((build for build in builds if build.rsplit(":", 1)[-1] == "main"), None)
+
+
+def _detailed_result_matches(
+    base_res: MethodResult, candidate: MethodResult
+) -> tuple[bool, list[MatchWarning]]:
+    warnings = []
+    append_iterations_warning(base_res, candidate, warnings)
+    return base_res.minimal_match_key == candidate.minimal_match_key, warnings
 
 
 def _workload_data(
@@ -290,7 +311,9 @@ def _software_summary(
 
 
 def render_hardware_page(
-    records: list[BenchmarkRecord], json_url_fn: Callable[[Path], str]
+    records: list[BenchmarkRecord],
+    json_url_fn: Callable[[Path], str],
+    profile_url_fn: Callable[[Path], str],
 ) -> str:
     if not records:
         return '<section class="empty">No instrumented HGB results for this hardware.</section>'
@@ -367,12 +390,42 @@ def render_hardware_page(
         variant_colors=variant_colors,
     )
 
+    # Per-case fit/predict speedup table, same shape as
+    # pr_comparison_dashboard.py's - built from the same instrumented-HGB
+    # records already loaded above rather than a fresh read_all_results(),
+    # since that's exactly the case population this branch comparison ran.
+    base_method_results = method_results_from_records(by_build[base_build])
+    detailed_matches = [
+        match
+        for variant_build in variant_builds
+        for match in find_matches(
+            base_method_results,
+            method_results_from_records(by_build[variant_build]),
+            _detailed_result_matches,
+        )
+    ]
+    matches_by_method = groupby(detailed_matches, lambda match: match.matched_result.method)
+    table_html = detailed_results_table_html(
+        "hgb",
+        matches_by_method,
+        baseline_label=base_build,
+        variant_label=lambda result: software_build_name(result.software_hash),
+        collapsible=False,
+        variant_column_title="Branch name",
+        default_variant_filter=variant_builds[0] if len(variant_builds) == 1 else None,
+        json_url_fn=json_url_fn,
+        profile_url_fn=profile_url_fn,
+    )
+
     plotted_records = [record for build_records in by_build.values() for record in build_records]
     rows = [
         DATE_RANGE_TEMPLATE.render(**date_range(plotted_records)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", records[0].hardware_hash))),
         software_tabs,
         grid,
+        f'<section class="panel"><h2>Detailed results</h2>{table_html}</section>'
+        if table_html
+        else '<section class="empty">No comparable benchmark cases for the detailed table.</section>',
     ]
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
@@ -424,9 +477,10 @@ if __name__ == "__main__":
     # where the GitHub-raw-URL fallback is correct.
     site_base_url = os.environ.get("SKLBENCH_PR_COMPARE_SITE_URL", "").rstrip("/") or None
     json_url_fn = hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url)
+    profile_url_fn = hosted_viewer_url_fn(FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url)
 
     pages = [
-        (_env_label(*key), render_hardware_page(env_records, json_url_fn))
+        (_env_label(*key), render_hardware_page(env_records, json_url_fn, profile_url_fn))
         for key, env_records in sorted(
             by_env.items(),
             key=lambda item: (_hardware_sort_index(item[0][0]), _env_label(*item[0])),

@@ -39,7 +39,10 @@ def _format_value(value):
 
 def _dataset_name(case: dict) -> str:
     data = case.get("data", {})
-    return data.get("dataset") or data.get("source") or "unknown"
+    # `id` is a synthetic workload's short name (e.g. "XS"/"S"/"S-thin" -
+    # see configs/hgb_scalability.py), preferred over the generic "unknown"
+    # a synthetic case would otherwise get since it has no `dataset`/`source`.
+    return data.get("id") or data.get("dataset") or data.get("source") or "unknown"
 
 
 def _row_key(result: MethodResult, variant: str) -> str:
