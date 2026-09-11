@@ -82,14 +82,15 @@ def pin_process_affinity(pid: int, cores: list[int]) -> None:
 
     Uses `psutil`, which sets the same OS-level affinity mask on both Linux
     and Windows - unlike the `taskset` CLI it replaces, which is Linux-only.
-    No-op on macOS: `psutil.Process` doesn't even define `cpu_affinity`
-    there (raising `AttributeError`, not `NotImplementedError` - confirmed
-    on the macOS CI runner, see macos-setup-check.yml).
+    Not supported on macOS: `psutil.Process` doesn't even define
+    `cpu_affinity` there, so this raises `AttributeError` rather than
+    silently no-op'ing (macOS has no underlying API to pin a process to a
+    specific core in the first place - see `psutil.Process.cpu_affinity`'s
+    own docs). Configs that set `bench.cpu_affinity` are responsible for not
+    doing so on platforms where it isn't supported, e.g.
+    `configs/all_models_test.py`'s `sys.platform != "darwin"` guard.
     """
-    try:
-        psutil.Process(pid).cpu_affinity(cores)
-    except (AttributeError, NotImplementedError):
-        pass
+    psutil.Process(pid).cpu_affinity(cores)
 
 
 def generate_runner_command(

@@ -85,28 +85,19 @@ def test_pin_process_affinity_sets_the_given_core_list(monkeypatch):
     assert calls == [1234, [0, 1, 3]]
 
 
-def test_pin_process_affinity_is_a_noop_when_not_implemented(monkeypatch):
-    class FakeProcess:
-        def __init__(self, pid):
-            pass
-
-        def cpu_affinity(self, cores):
-            raise NotImplementedError
-
-    monkeypatch.setattr(commands.psutil, "Process", FakeProcess)
-
-    pin_process_affinity(1234, [0, 1])
-
-
-def test_pin_process_affinity_is_a_noop_on_macos_where_the_method_is_absent(monkeypatch):
+def test_pin_process_affinity_raises_where_unsupported(monkeypatch):
     # On macOS, psutil.Process doesn't define cpu_affinity at all (it's only
     # added to the class on Linux/Windows/FreeBSD) - accessing it raises
-    # AttributeError, not NotImplementedError. Confirmed on the macOS CI
-    # runner (macos-setup-check.yml).
+    # AttributeError. pin_process_affinity must not swallow this: configs
+    # setting bench.cpu_affinity are responsible for not doing so on
+    # unsupported platforms (see configs/all_models_test.py), not the other
+    # way around - confirmed the hard way on the macOS CI runner
+    # (macos-setup-check.yml), which crashed until that guard was added.
     class FakeProcess:
         def __init__(self, pid):
             pass
 
     monkeypatch.setattr(commands.psutil, "Process", FakeProcess)
 
-    pin_process_affinity(1234, [0, 1])
+    with pytest.raises(AttributeError):
+        pin_process_affinity(1234, [0, 1])
