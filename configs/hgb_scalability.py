@@ -1,3 +1,4 @@
+import sys
 from math import sqrt
 
 from _scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
@@ -147,7 +148,7 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
         "py_spy_profiling": False,
     }
 
-    if not has_hybrid_cores():
+    if not has_hybrid_cores() and sys.platform != "darwin":
         bench["cpu_affinity"] = cpu_affinity_for_physical_cores(thread_count, with_siblings=True)
 
     return {
