@@ -50,7 +50,6 @@ def sqrt_physical_cores(hptuning: HPTuning) -> int:
 
 
 BENCH = {"n_runs": 3}
-N_ITER = 10
 
 # Keys are full pipeline param paths - "estimator__..." here since these
 # tune the model itself, not preprocessing (see the runner's
@@ -220,6 +219,9 @@ SYNTHETIC_SPECS = [
 
 def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> HPTuningCase:
     estimator_params, param_distributions = _ESTIMATOR_FAMILIES[estimator]
+    n_jobs = round(math.sqrt(cpu_count(only_physical_cores=True)))
+    # at least 10 iterations, and a multiple of n_jobs:
+    n_iter = min(n_jobs * k for k in range(3, 100) if n_jobs * k > 10)
     return HPTuningCase(
         bench=BENCH,
         algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
@@ -227,9 +229,9 @@ def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> 
         implementation=implem,
         hptuning=HPTuning(
             param_distributions=param_distributions,
-            n_iter=N_ITER,
+            n_iter=n_iter,
             max_samples=max_samples,
-            n_jobs=round(cpu_count(only_physical_cores=True))
+            n_jobs=n_jobs
         ),
     )
 
