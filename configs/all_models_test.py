@@ -52,7 +52,12 @@ def generate_cases() -> list[dict]:
     for case, bench in zip(cases, benchs):
         case.setdefault('bench', {})
         case['bench'] |= bench
-        case['bench'].setdefault('time_limit', 4)
+        # 4s was too tight even for the first of these trivial synthetic
+        # cases on a GitHub-hosted macOS runner: one-time interpreter/import
+        # cold-start cost there (measured 3-11s across runs) can exceed it on
+        # its own, before any actual fitting. 10s gives headroom without
+        # making this "small exploratory matrix" meaningfully slower.
+        case['bench'].setdefault('time_limit', 10)
     disable_profiling_for_array_api_gpu_cases(cases)
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
