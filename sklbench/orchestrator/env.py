@@ -2,6 +2,7 @@ import importlib
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from functools import lru_cache
@@ -104,9 +105,13 @@ def get_openmp_runtime_info() -> dict:
 
 def _check_output(command: list[str], cwd: str | Path | None = None) -> str | None:
     """Run a metadata command and return None when it cannot be collected."""
+    # shutil.which resolves e.g. "git" to "git.exe" on Windows: shell=False
+    # means no PATHEXT-style extension resolution, so the bare name 404s
+    # there (WinError 2) otherwise.
+    resolved_command = [shutil.which(command[0]) or command[0], *command[1:]]
     try:
         return subprocess.check_output(
-            command,
+            resolved_command,
             cwd=cwd,
             shell=False,
             stderr=subprocess.DEVNULL,
@@ -238,7 +243,10 @@ def get_software_info() -> dict:
     result["pixi_environment_name"] = pixi_environment_name
     pixi_list = subprocess.check_output(
         [
-            "pixi",
+            # Not just "pixi": shell=False means no PATHEXT-style extension
+            # resolution, so a bare "pixi" 404s on Windows (WinError 2),
+            # where the executable is actually named pixi.exe.
+            shutil.which("pixi") or "pixi",
             "list",
             "--manifest-path",
             pixi_project_root,
@@ -404,7 +412,9 @@ def get_hardware_info() -> dict:
             value = cpu_info.pop(key)
             if key in fields_map:
                 cpu_info[fields_map[key]] = value
-        cpu_info["flags"] = " ".join(cpu_info["flags"])
+        # py-cpuinfo only populates x86 CPUID feature flags; ARM chips (e.g.
+        # Apple Silicon) have no "flags" key at all.
+        cpu_info["flags"] = " ".join(cpu_info.get("flags", []))
         cpu_info["physical_cores"] = joblib.cpu_count(only_physical_cores=True)
         result["CPU"] = cpu_info
         logger.info(f"CPU name: {cpu_info['name']}")

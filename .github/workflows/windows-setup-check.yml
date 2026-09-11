@@ -1,0 +1,74 @@
+name: Windows Setup Check
+
+# Runs (most of) the "Setup" steps from CONTRIBUTING.md on a GitHub-hosted
+# Windows (win-64) runner, to catch portability regressions (e.g. pixi.toml
+# platforms, PyPI wheels missing for win-64) that a Linux dev machine /
+# self-hosted runner would never surface. Manual dispatch only for now -
+# this is a smoke test, not part of the regular CI gate.
+#
+# Uses bash throughout (Git for Windows, bundled on GitHub-hosted Windows
+# runners) rather than PowerShell, matching CONTRIBUTING.md's own commands -
+# Windows contributors are assumed to have Git Bash or WSL available too, so
+# there's no separate native-shell setup path to maintain.
+#
+# Skips CONTRIBUTING.md's `./scripts/setup_sklearn_ref.sh --ref main` step
+# (full scikit-learn clone + from-source compile into sklearn-dev) - too
+# heavy for this smoke test; sklearn-pypi below is what actually exercises
+# win-64 wheel availability.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  setup:
+    # windows-2025 is the current (non-deprecated) GitHub-hosted Windows
+    # image; see https://github.com/actions/runner-images for the label ->
+    # OS mapping. Pinned rather than `windows-latest` so this keeps testing
+    # a known image even as `-latest` migrates across Windows/VS versions.
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        # CONTRIBUTING.md installs Git LFS before cloning so the smudge
+        # filter is in place for whoever actually needs the LFS content;
+        # this smoke test never reads results/, so skip the pull.
+        with:
+          lfs: false
+
+      - name: Install pixi
+        # CONTRIBUTING.md > Setup > Pre-requisites. The installer reports
+        # $HOME/.pixi/bin as an MSYS/Git-Bash path (e.g.
+        # /c/Users/runneradmin/.pixi/bin) - fine for bash-run steps below,
+        # but $GITHUB_PATH feeds the runner's native Windows PATH, which
+        # doesn't understand that syntax at all. Code that resolves
+        # executables via native Windows APIs instead of going through bash
+        # (e.g. Python's subprocess.check_output(shell=False), see
+        # sklbench/orchestrator/env.py) would then silently fail to find
+        # pixi - convert to a native path with cygpath first.
+        run: |
+          curl -fsSL https://pixi.sh/install.sh | sh
+          echo "$(cygpath -w "$HOME/.pixi/bin")" >> "$GITHUB_PATH"
+
+      - name: Install Git LFS
+        # CONTRIBUTING.md > Setup > Pre-requisites.
+        run: |
+          pixi global install git-lfs
+          git lfs install
+
+      - name: Smoke-test the sklearn-pypi environment
+        # CONTRIBUTING.md > Setup. --frozen: trust pixi.lock as-is instead of
+        # re-verifying the whole workspace lock is fresh, which would
+        # canonicalize every environment's path dependencies - including
+        # sklearn-dev's local scikit-learn checkout, which doesn't exist on
+        # this runner (the setup_sklearn_ref.sh step is skipped here).
+        run: |
+          pixi run --frozen -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/

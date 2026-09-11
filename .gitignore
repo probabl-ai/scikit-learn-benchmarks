@@ -18,6 +18,9 @@ sklearn-src/
 # Dataset cache produced by sklbench
 data_cache/
 
+# Rehearsal/test results from CONTRIBUTING.md's environment check
+results/tests/
+
 _site/
 dashboards/*.html
 

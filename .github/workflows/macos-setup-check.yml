@@ -1,0 +1,57 @@
+name: macOS Setup Check
+
+# Runs (most of) the "Setup" steps from CONTRIBUTING.md on a GitHub-hosted
+# macOS (Apple Silicon / osx-arm64) runner, to catch portability regressions
+# (e.g. pixi.toml platforms, PyPI wheels missing for osx-arm64) that a Linux
+# dev machine / self-hosted runner would never surface. Manual dispatch only
+# for now - this is a smoke test, not part of the regular CI gate.
+#
+# Skips CONTRIBUTING.md's `./scripts/setup_sklearn_ref.sh --ref main` step
+# (full scikit-learn clone + from-source compile into sklearn-dev) - too
+# heavy for this smoke test; sklearn-pypi below is what actually exercises
+# osx-arm64 wheel availability.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    # macos-15 is the current (non-deprecated) GitHub-hosted Apple Silicon
+    # image; see https://github.com/actions/runner-images for the label ->
+    # architecture mapping. Pinned rather than `macos-latest` so this keeps
+    # testing osx-arm64 even if `-latest` moves to a different architecture.
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        # CONTRIBUTING.md installs Git LFS before cloning so the smudge
+        # filter is in place for whoever actually needs the LFS content;
+        # this smoke test never reads results/, so skip the pull.
+        with:
+          lfs: false
+
+      - name: Install pixi
+        # CONTRIBUTING.md > Setup > Pre-requisites.
+        run: |
+          curl -fsSL https://pixi.sh/install.sh | sh
+          echo "$HOME/.pixi/bin" >> "$GITHUB_PATH"
+
+      - name: Install Git LFS
+        # CONTRIBUTING.md > Setup > Pre-requisites.
+        run: |
+          pixi global install git-lfs
+          git lfs install
+
+      - name: Smoke-test the sklearn-pypi environment
+        # CONTRIBUTING.md > Setup. --frozen: trust pixi.lock as-is instead of
+        # re-verifying the whole workspace lock is fresh, which would
+        # canonicalize every environment's path dependencies - including
+        # sklearn-dev's local scikit-learn checkout, which doesn't exist on
+        # this runner (the setup_sklearn_ref.sh step is skipped here).
+        run: |
+          pixi run --frozen -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/

@@ -4,6 +4,8 @@ channels = ["conda-forge"]
 requires-pixi = ">=0.75"
 platforms = [
     "linux-64",
+    "osx-arm64",
+    "win-64",
     { name = "linux-64-cuda-12-9", platform = "linux-64", cuda = "12.9" },
 ]
 
@@ -19,12 +21,16 @@ pydantic = "*"
 pytest = "*"
 
 [pypi-dependencies]
+# `dpctl` is not here: it only ships manylinux x86_64 wheels, so pinning it
+# for every environment would block non-Linux platforms. It's only actually
+# used (with graceful ImportError fallback - see sklbench/config/utils.py and
+# sklbench/orchestrator/env.py) for Intel GPU/oneAPI detection, so it's
+# declared directly in the `intel`/`skl-intel` features instead, the only
+# ones where it's needed (it's also a transitive `dpnp` dependency there).
 scikit-learn-benchmarks = { path = ".", editable = true }
 openml = ">=0.15.1"
-dpctl = "*"
 nvidia-ml-py = "*"
 py-spy = "*"
-joblib = { git = "https://github.com/cakedev0/joblib.git", branch = "vendor-loky-cpu-affinity-physical" }
 
 [feature.sklearn-pypi.pypi-dependencies]
 scikit-learn = "==1.9.*"
@@ -70,6 +76,12 @@ liblapack = { version = "*", build = "*_openblas" }
 libopenblas = { version = "*", build = "*openmp*" }
 scikit-learn = "1.9.*"
 
+[feature.sklearn-openblas-pthreads-kmp-llvm]
+# The libgomp->libomp compat symlink build below is Linux-only (see the
+# dependency comment); macOS already links OpenMP against libomp directly,
+# so this redirect doesn't apply there.
+platforms = ["linux-64"]
+
 [feature.sklearn-openblas-pthreads-kmp-llvm.dependencies]
 # `_openmp_mutex=*_kmp_llvm` ships a `libgomp.so.1 -> libomp.so` compat
 # symlink, so sklearn's libgomp-linked OpenMP calls get transparently
@@ -113,6 +125,10 @@ scikit-learn = { path = "sklearn-src", editable = true }
 # (since-deleted) toolchain if the build isn't isolated to begin with.
 no-build-isolation = ["scikit-learn"]
 
+[feature.sklearn-dev-libomp]
+# Same Linux-only reasoning as `sklearn-openblas-pthreads-kmp-llvm` above.
+platforms = ["linux-64"]
+
 [feature.sklearn-dev-libomp.dependencies]
 # Same `_openmp_mutex=*_kmp_llvm` redirect as
 # `sklearn-openblas-pthreads-kmp-llvm` above: it ships a
@@ -123,12 +139,17 @@ no-build-isolation = ["scikit-learn"]
 # source is built or which BLAS it links against.
 _openmp_mutex = { version = "*", build = "*_kmp_llvm" }
 
+[feature.intel]
+# scikit-learn-intelex-gpu and the oneAPI stack it pulls in are Linux-only.
+platforms = ["linux-64"]
+
 [feature.intel.dependencies]
 scikit-learn = "1.8.*"
 setuptools = "<82"
 
 [feature.intel.pypi-dependencies]
 array-api-compat = "*"
+dpctl = "*"
 dpnp = "*"
 scikit-learn-intelex-gpu = "*"
 
@@ -149,10 +170,15 @@ torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
 [feature.skl-nvidia.activation.env]
 SCIPY_ARRAY_API = "1"
 
+[feature.skl-intel]
+# The XPU torch/triton builds and dpnp's oneAPI stack are Linux-only.
+platforms = ["linux-64"]
+
 [feature.skl-intel.dependencies]
 setuptools = "<82"
 
 [feature.skl-intel.pypi-dependencies]
+dpctl = "*"
 dpnp = "*"
 triton-xpu = { version = "*", index = "https://download.pytorch.org/whl/xpu" }
 torch = { version = ">=2.13.0", index = "https://download.pytorch.org/whl/xpu" }
@@ -162,9 +188,35 @@ SCIPY_ARRAY_API = "1"
 
 [feature.skl-cpu.pypi-dependencies]
 array-api-compat = "*"
+
+[feature.skl-cpu.target.linux.pypi-dependencies]
+# PyTorch only publishes a separate slim "+cpu" build (no bundled CUDA) to
+# this index for Linux/Windows; macOS has no CUDA variant to begin with, so
+# its plain PyPI wheel (below) is already CPU/MPS-only - see
+# feature.skl-cpu.target.osx-arm64.pypi-dependencies.
 torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 
+[feature.skl-cpu.target.win-64.pypi-dependencies]
+# Same slim CPU-only PyTorch build as target.linux above - see its comment.
+torch = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
+
+[feature.skl-cpu.target.osx-arm64.pypi-dependencies]
+torch = "*"
+
 [feature.skl-cpu.activation.env]
+SCIPY_ARRAY_API = "1"
+
+[feature.skl-mps]
+# Apple GPU (Metal) Array API, only meaningful on Apple Silicon.
+platforms = ["osx-arm64"]
+
+[feature.skl-mps.pypi-dependencies]
+array-api-compat = "*"
+# The plain PyPI wheel already includes MPS support on macOS - no separate
+# index needed, unlike the Linux/CUDA/CPU-only builds above.
+torch = "*"
+
+[feature.skl-mps.activation.env]
 SCIPY_ARRAY_API = "1"
 
 [feature.reporting.dependencies]
@@ -194,5 +246,6 @@ sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp", "numpy-conda"]
 skl-cpu = ["sklearn-pypi", "skl-cpu"]
 skl-intel = ["sklearn-pypi", "skl-intel"]
 skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
+skl-mps = ["sklearn-pypi", "skl-mps"]
 intel = ["intel", "numpy-conda"]
 reporting = ["reporting", "numpy-conda"]

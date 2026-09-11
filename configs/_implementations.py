@@ -42,6 +42,16 @@ ARRAY_API_INTEL_IMPLEMENTATIONS = [
 ]
 
 
+ARRAY_API_MPS_IMPLEMENTATIONS = [
+    {
+        "library": "sklearn",
+        "device": "mps",
+        "data_library": "torch",
+        "sklearn_context": {"array_api_dispatch": True},
+    }
+]
+
+
 ARRAY_API_NVIDIA_IMPLEMENTATIONS = [
     {
         "library": "sklearn",
@@ -93,6 +103,7 @@ PIXI_TO_IMPLEMENTATIONS = {
     "skl-cpu": ARRAY_API_CPU_IMPLEMENTATIONS,
     "skl-intel": ARRAY_API_INTEL_IMPLEMENTATIONS,
     "skl-nvidia": ARRAY_API_NVIDIA_IMPLEMENTATIONS,
+    "skl-mps": ARRAY_API_MPS_IMPLEMENTATIONS,
     "intel": [SKLEARNEX_CPU_IMPLEMENTATION, SKLEARNEX_GPU_IMPLEMENTATION],
 }
 

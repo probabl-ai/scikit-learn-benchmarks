@@ -17,7 +17,7 @@ usage() {
     echo "                   checked out on BRANCH and for it to be up to date with" >&2
     echo "                   its remote tracking branch." >&2
     echo "" >&2
-    echo "  Example: $0 sklearn-pypi intel --config configs/all_models_test.py" >&2
+    echo "  Example: $0 sklearn-pypi intel --config configs/smoke_check_test.py" >&2
     echo "  Example: $0 '[all]' --config configs/all_models.py --runner both" >&2
     echo "  Example: $0 '[all]' --config configs/all_models.py --branch my-feature" >&2
 }

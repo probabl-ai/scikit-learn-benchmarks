@@ -5,8 +5,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+import psutil
+
 from ..config import Case, EstimatorCase, HPTuningCase
-from ..config.models.hptuning import resolve_outer_n_jobs
 
 
 RUNNER_MODULES = {
@@ -38,12 +39,11 @@ def _n_jobs(bench_case: Case) -> int:
     "use all cores" convention), so the py-spy rate policy below reacts to
     actual parallelism rather than the literal sentinel value.
     """
+    n_jobs = 1
     if isinstance(bench_case, EstimatorCase):
         n_jobs = bench_case.algorithm.estimator_params.get("n_jobs", 1)
     elif isinstance(bench_case, HPTuningCase):
-        n_jobs = resolve_outer_n_jobs(bench_case.hptuning)
-    else:
-        raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
+        n_jobs = None
     if not n_jobs or n_jobs <= 0:
         return os.cpu_count() or 1
     return n_jobs
@@ -77,6 +77,22 @@ def filter_py_spy_stderr(stderr: str) -> tuple[str, bool]:
     return "\n".join(filtered_lines).strip(), len(filtered_lines) != len(lines)
 
 
+def pin_process_affinity(pid: int, cores: list[int]) -> None:
+    """Pin process `pid` to `cores` (CPU ids).
+
+    Uses `psutil`, which sets the same OS-level affinity mask on both Linux
+    and Windows - unlike the `taskset` CLI it replaces, which is Linux-only.
+    Not supported on macOS: `psutil.Process` doesn't even define
+    `cpu_affinity` there, so this raises `AttributeError` rather than
+    silently no-op'ing (macOS has no underlying API to pin a process to a
+    specific core in the first place - see `psutil.Process.cpu_affinity`'s
+    own docs). Configs that set `bench.cpu_affinity` are responsible for not
+    doing so on platforms where it isn't supported, e.g.
+    `configs/smoke_check_test.py`'s `sys.platform != "darwin"` guard.
+    """
+    psutil.Process(pid).cpu_affinity(cores)
+
+
 def generate_runner_command(
     bench_case: Case,
     case_file: Path,
@@ -85,10 +101,6 @@ def generate_runner_command(
     py_spy_output: Path | None = None,
     cprofile_output: Path | None = None,
 ) -> list[str]:
-    command_prefix: list[str] = []
-    if bench_case.bench.taskset is not None:
-        command_prefix.extend(["taskset", "-c", str(bench_case.bench.taskset)])
-
     runner_command = [
         sys.executable,
         "-m",
@@ -106,7 +118,7 @@ def generate_runner_command(
 
     if py_spy_output is not None:
         native_flag = ["--native"] if bench_case.bench.py_spy_native else []
-        return command_prefix + [
+        return [
             "py-spy",
             "record",
             *native_flag,
@@ -119,7 +131,7 @@ def generate_runner_command(
             "--",
         ] + runner_command
 
-    return command_prefix + runner_command
+    return runner_command
 
 
 def parse_runner_jsonl(output_jsonl: Path) -> list[dict]:
@@ -161,22 +173,28 @@ def run_runner_from_case(
             py_spy_output,
             cprofile_output,
         )
+        proc = sp.Popen(
+            command,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE,
+            encoding="utf-8",
+            env=runner_env(bench_case),
+        )
+        if bench_case.bench.cpu_affinity is not None:
+            # Pin right after spawn, before the process's own CPU-bound work
+            # starts - see `pin_process_affinity`.
+            pin_process_affinity(proc.pid, bench_case.bench.cpu_affinity)
         try:
-            result = sp.run(
-                command,
-                stdout=sp.PIPE,
-                stderr=sp.PIPE,
-                encoding="utf-8",
-                timeout=bench_time_limit,
-                env=runner_env(bench_case),
-            )
-            return_code = result.returncode
-            stdout = result.stdout.strip()
-            stderr = result.stderr.strip()
-        except sp.TimeoutExpired as exc:
+            stdout, stderr = proc.communicate(timeout=bench_time_limit)
+            return_code = proc.returncode
+            stdout = stdout.strip()
+            stderr = stderr.strip()
+        except sp.TimeoutExpired:
+            proc.kill()
+            stdout, stderr = proc.communicate()
             return_code = -9
-            stdout = (exc.stdout or "").strip()
-            stderr = (exc.stderr or "").strip()
+            stdout = stdout.strip()
+            stderr = stderr.strip()
             timeout_message = f"Runner exceeded time limit ({bench_time_limit:.1f} seconds)."
             stderr = f"{stderr}\n{timeout_message}".strip()
 

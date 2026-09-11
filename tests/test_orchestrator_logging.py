@@ -12,7 +12,6 @@ def _args(tmp_path):
         results_dir=str(tmp_path),
         exit_on_error=False,
         config=["test"],
-        no_system_telemetry=True,
         system_telemetry_interval=2.0,
         system_telemetry_percpu=False,
     )

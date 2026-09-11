@@ -49,24 +49,24 @@ def test_numa_node_count_defaults_to_one_without_sysfs(numa, tmp_path, monkeypat
     assert numa.numa_node_count() == 1
 
 
-def test_taskset_for_numa_node_reads_cpulist(numa, tmp_path, monkeypatch):
+def test_cpu_affinity_for_numa_node_reads_cpulist(numa, tmp_path, monkeypatch):
     fake_root = _make_fake_numa_sysfs(tmp_path, {3: "0-21,172-193"})
     monkeypatch.setattr(numa, "NUMA_NODES_SYSFS", fake_root)
 
-    assert numa.taskset_for_numa_node(3) == "0-21,172-193"
+    assert numa.cpu_affinity_for_numa_node(3) == [*range(0, 22), *range(172, 194)]
 
 
-def test_auto_numa_taskset_is_none_on_a_single_node_host(numa, tmp_path, monkeypatch):
+def test_auto_numa_cpu_affinity_is_none_on_a_single_node_host(numa, tmp_path, monkeypatch):
     fake_root = _make_fake_numa_sysfs(tmp_path, {0: "0-343"})
     monkeypatch.setattr(numa, "NUMA_NODES_SYSFS", fake_root)
 
-    assert numa.auto_numa_taskset() is None
+    assert numa.auto_numa_cpu_affinity() is None
 
 
-def test_auto_numa_taskset_pins_to_the_requested_node_on_a_multi_node_host(
+def test_auto_numa_cpu_affinity_pins_to_the_requested_node_on_a_multi_node_host(
     numa, tmp_path, monkeypatch
 ):
     fake_root = _make_fake_numa_sysfs(tmp_path, {0: "0-21", 1: "22-43"})
     monkeypatch.setattr(numa, "NUMA_NODES_SYSFS", fake_root)
 
-    assert numa.auto_numa_taskset(node=1) == "22-43"
+    assert numa.auto_numa_cpu_affinity(node=1) == list(range(22, 44))
