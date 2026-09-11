@@ -82,11 +82,13 @@ def pin_process_affinity(pid: int, cores: list[int]) -> None:
 
     Uses `psutil`, which sets the same OS-level affinity mask on both Linux
     and Windows - unlike the `taskset` CLI it replaces, which is Linux-only.
-    No-op on macOS, where `psutil.Process.cpu_affinity` is unsupported.
+    No-op on macOS: `psutil.Process` doesn't even define `cpu_affinity`
+    there (raising `AttributeError`, not `NotImplementedError` - confirmed
+    on the macOS CI runner, see macos-setup-check.yml).
     """
     try:
         psutil.Process(pid).cpu_affinity(cores)
-    except NotImplementedError:
+    except (AttributeError, NotImplementedError):
         pass
 
 
