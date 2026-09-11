@@ -39,6 +39,10 @@ def generate_cases() -> list[dict]:
         {'n_runs': 1, 'py_spy_profiling': True},
         {'n_runs': 1, 'py_spy_profiling': True, 'py_spy_native': False},
         {'n_runs': 1, 'py_spy_profiling': False, 'cprofile_profiling': True},
+        # Exercises bench.cpu_affinity end to end (pinned via psutil in
+        # sklbench/orchestrator/commands.py) - a no-op on macOS, where
+        # psutil.Process.cpu_affinity is unsupported.
+        {'n_runs': 1, 'py_spy_profiling': False, 'cpu_affinity': [0]},
     ] + [{'n_runs': 1, 'py_spy_profiling': False}] * len(cases)
     for case, bench in zip(cases, benchs):
         case.setdefault('bench', {})
