@@ -128,11 +128,17 @@ def ames_housing(implem: dict):
     # Same case, tagged for the "test" exploratory matrix
     # (configs/all_models_test.py): this dataset is only ~2900 rows to begin
     # with, so - unlike nytimes_256's old "test"-tier entry - no extra
-    # subsampling is needed to keep it near-instant.
+    # subsampling is needed to keep it near-instant. The row count is tiny,
+    # but unlike the other "test"-tier cases (raw numeric arrays), this one's
+    # "linear" preprocessing (impute + one-hot across Ames's ~40 categorical
+    # columns) plus per-process import overhead was measured to occasionally
+    # clear all_models_test.py's default 4s time_limit on slower/CI hardware
+    # - bump it here instead of raising that shared default for every case.
     yield {
         "estimator": "Ridge",
         "estimator_params": {"alpha": 1.0},
         "tier": "test",
+        "bench": {"time_limit": 15},
     }
     # RandomForestRegressor, trees/ordinal: test R2 0.89
     yield {
