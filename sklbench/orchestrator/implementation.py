@@ -389,14 +389,18 @@ def _run_all_cases(
                     if profile_return_code == 0:
                         _gzip_file(raw_profile_path, profile_path)
 
-                if profile_return_code == -9 and not bench_case.bench.cprofile_profiling:
-                    # py-spy timed out - cProfile doesn't share its ptrace/
-                    # scheduler-churn failure modes, so fall back to it for
-                    # this case instead of losing the profile entirely.
+                if profile_return_code != 0 and not bench_case.bench.cprofile_profiling:
+                    # py-spy failed - could be a timeout (-9), or py-spy
+                    # simply not usable here (e.g. on macOS, `--native` is
+                    # unsupported outright and plain py-spy requires root).
+                    # cProfile doesn't share any of py-spy's failure modes,
+                    # so fall back to it for this case instead of losing the
+                    # profile entirely / failing the whole run over a
+                    # profiler-only problem.
                     _log_failed_case(
                         bench_case,
                         profile_failed_case,
-                        stage="Profiling benchmark (py-spy timed out, falling back to cProfile)",
+                        stage="Profiling benchmark (py-spy failed, falling back to cProfile)",
                         return_code=profile_return_code,
                     )
                     profile_return_code, profile_failed_case = _run_cprofile_pass(
