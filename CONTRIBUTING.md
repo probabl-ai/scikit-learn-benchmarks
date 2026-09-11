@@ -38,7 +38,7 @@ The `sklearn-dev` environment (see ["Running Against scikit-learn
 Branches"](#running-against-scikit-learn-branches) below) depends on scikit-learn
 being checked out in a local path (`sklearn-src/`); running this script installs it.
 
-Then you test your environnment by running:
+Then you can test your environnment by running:
 
 ```bash
 pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py --results-dir ./results/tests/
