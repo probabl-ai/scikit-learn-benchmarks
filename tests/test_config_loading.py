@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from sklbench.config import EstimatorCase, HPTuningCase, load_cases_from_script
+from sklbench.config import BaseCase, EstimatorCase, HPTuningCase, load_cases_from_script
 
 
 SKLEARN_ENVS = [
@@ -22,6 +22,11 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
     Path("configs/models_scalability.py"): GENERAL_ENVS,
+    # hptuning.py only ever selects non-array-API (no data_library),
+    # CPU-or-unset-device implementations - the array-API-only envs
+    # (skl-cpu/skl-intel/skl-nvidia/skl-mps) would filter down to zero
+    # implementations and produce no cases.
+    Path("configs/hptuning.py"): GENERAL_ENVS,
 }
 
 
@@ -111,7 +116,7 @@ def test_shipped_configs_generate_valid_cases(monkeypatch):
             cases = load_cases_from_script(path)
 
             assert cases
-            assert all(isinstance(case, EstimatorCase) for case in cases)
+            assert all(isinstance(case, BaseCase) for case in cases)
 
 
 def test_env_sensitive_configs_require_pixi_environment(monkeypatch):
