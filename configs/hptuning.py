@@ -217,23 +217,26 @@ SYNTHETIC_SPECS = [
 ]
 
 
-def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> HPTuningCase:
+def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> list[HPTuningCase]:
+    cases = []
     estimator_params, param_distributions = _ESTIMATOR_FAMILIES[estimator]
-    n_jobs = round(math.sqrt(cpu_count(only_physical_cores=True)))
-    # at least 10 iterations, and a multiple of n_jobs:
-    n_iter = min(n_jobs * k for k in range(3, 100) if n_jobs * k > 10)
-    return HPTuningCase(
-        bench=BENCH,
-        algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
-        data=data,
-        implementation=implem,
-        hptuning=HPTuning(
-            param_distributions=param_distributions,
-            n_iter=n_iter,
-            max_samples=max_samples,
-            n_jobs=n_jobs
-        ),
-    )
+    n_cores = cpu_count(only_physical_cores=True)
+    for n_jobs in [1, round(math.sqrt(n_cores)), n_cores // 2]:
+        # at least 10 iterations, and a multiple of n_jobs:
+        n_iter = min(n_jobs * k for k in range(3, 11) if n_jobs * k >= 10)
+        cases.append(HPTuningCase(
+            bench=BENCH,
+            algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
+            data=data,
+            implementation=implem,
+            hptuning=HPTuning(
+                param_distributions=param_distributions,
+                n_iter=n_iter,
+                max_samples=max_samples,
+                n_jobs=n_jobs
+            ),
+        ))
+    return cases
 
 
 def generate_cases() -> list[HPTuningCase]:
@@ -253,10 +256,10 @@ def generate_cases() -> list[HPTuningCase]:
         linear_max_samples, tree_max_samples,
     ) in DATASET_SPECS + SYNTHETIC_SPECS:
         for implem in implementations:
-            cases.append(_case(linear_data, linear_estimator, implem, linear_max_samples))
-            cases.append(_case(tree_data, tree_estimator, implem, tree_max_samples))
+            cases.extend(_case(linear_data, linear_estimator, implem, linear_max_samples))
+            cases.extend(_case(tree_data, tree_estimator, implem, tree_max_samples))
             if implem["library"] == "sklearn":
-                cases.append(
+                cases.extend(
                     _case(tree_data, _HGB_ESTIMATORS[task], implem, tree_max_samples)
                 )
 
