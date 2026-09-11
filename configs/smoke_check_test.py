@@ -6,6 +6,7 @@ from _implementations import implementations_for_pixi_env
 from synthetic_trees import generate_cases as generate_tree_cases
 from synthetic_linear import generate_cases as generate_linear_cases
 from real_datasets import generate_cases as generate_real_cases
+from hgb_scalability import generate_xs_cases as generate_hgb_scaling_cases
 
 from sklbench.config.utils import (
     filter_array_api_supported_cases_if_needed,
@@ -36,6 +37,12 @@ def generate_cases() -> list[dict]:
         cases += generate_tree_cases(implem, tier='test')
         cases += generate_linear_cases(implem, tier='test')
         cases += generate_real_cases(implem, max_tier='test')
+
+    # Not looped over `implementations` above: hgb_scalability.py's cases are
+    # always plain sklearn (its thread-scaling/cpu_affinity sweep isn't an
+    # array-API concept), so one copy exercises that path regardless of
+    # which Pixi environment this config is running under.
+    cases += generate_hgb_scaling_cases()
 
     benchs = [
         {'n_runs': 1, 'py_spy_profiling': True},

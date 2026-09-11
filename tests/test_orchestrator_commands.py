@@ -52,7 +52,7 @@ def test_pin_process_affinity_raises_where_unsupported(monkeypatch):
     # added to the class on Linux/Windows/FreeBSD) - accessing it raises
     # AttributeError. pin_process_affinity must not swallow this: configs
     # setting bench.cpu_affinity are responsible for not doing so on
-    # unsupported platforms (see configs/all_models_test.py), not the other
+    # unsupported platforms (see configs/smoke_check_test.py), not the other
     # way around - confirmed the hard way on the macOS CI runner
     # (macos-setup-check.yml), which crashed until that guard was added.
     class FakeProcess:

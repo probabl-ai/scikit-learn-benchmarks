@@ -111,5 +111,5 @@ scikit-learn setup complete
 
 Run benchmarks with:
 
-  pixi run -e '$pixi_env' python -m sklbench --config configs/all_models_test.py
+  pixi run -e '$pixi_env' python -m sklbench --config configs/smoke_check_test.py
 EOF

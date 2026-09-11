@@ -18,7 +18,7 @@ GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]
 ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"]
 
 ENV_SENSITIVE_CONFIGS = {
-    Path("configs/all_models_test.py"): ARRAY_API_ENVS,
+    Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
     Path("configs/models_scalability.py"): GENERAL_ENVS,
@@ -123,24 +123,32 @@ def test_env_sensitive_configs_require_pixi_environment(monkeypatch):
     monkeypatch.delenv("PIXI_ENVIRONMENT_NAME", raising=False)
 
     with pytest.raises(ValueError, match="PIXI_ENVIRONMENT_NAME is not set"):
-        load_cases_from_script("configs/all_models_test.py")
+        load_cases_from_script("configs/smoke_check_test.py")
 
 
 def test_env_sensitive_configs_reject_unknown_pixi_environment(monkeypatch):
     monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "unknown")
 
     with pytest.raises(ValueError, match="Unsupported PIXI_ENVIRONMENT_NAME"):
-        load_cases_from_script("configs/all_models_test.py")
+        load_cases_from_script("configs/smoke_check_test.py")
 
 
 def test_all_models_configs_support_array_api_pixi_environments(monkeypatch):
     monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "skl-cpu")
 
-    cases = load_cases_from_script("configs/all_models_test.py")
+    cases = load_cases_from_script("configs/smoke_check_test.py")
 
     assert cases
     assert all(isinstance(case, EstimatorCase) for case in cases)
-    assert all(case.implementation.is_array_api() for case in cases)
+    # hgb_scalability.py's cases (metadata.benchmark_type == "scaling") are
+    # always plain sklearn regardless of Pixi environment - its
+    # thread-scaling/cpu_affinity sweep isn't an array-API concept - so
+    # they're excluded from this assertion.
+    non_scaling_cases = [
+        case for case in cases if case.metadata.get("benchmark_type") != "scaling"
+    ]
+    assert non_scaling_cases
+    assert all(case.implementation.is_array_api() for case in non_scaling_cases)
 
 
 def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():

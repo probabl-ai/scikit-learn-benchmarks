@@ -54,4 +54,4 @@ jobs:
         # sklearn-dev's local scikit-learn checkout, which doesn't exist on
         # this runner (the setup_sklearn_ref.sh step is skipped here).
         run: |
-          pixi run --frozen -e sklearn-pypi python -m sklbench --config configs/all_models_test.py --results-dir ./results/tests/
+          pixi run --frozen -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/

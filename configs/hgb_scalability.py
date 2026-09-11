@@ -201,6 +201,22 @@ def _real_dataset_cases() -> list[dict]:
     ]
 
 
+XS_WORKLOAD = next(workload for workload in WORKLOADS if workload["name"] == "XS")
+
+
+def generate_xs_cases() -> list[dict]:
+    """The "XS" (smallest) workload's cases only, one per available thread
+    count - reused by configs/smoke_check_test.py to exercise the
+    thread-scaling / cpu_affinity bench path without pulling in this file's
+    full workload x thread-count sweep."""
+    return [
+        _case(XS_WORKLOAD, task, columns_kind, thread_count)
+        for task in TASKS
+        for columns_kind in COLUMNS_KINDS
+        for thread_count in get_n_cores_list()
+    ]
+
+
 def generate_cases() -> list[dict]:
     return [
         _case(workload, task, columns_kind, thread_count)

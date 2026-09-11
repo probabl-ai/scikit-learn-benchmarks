@@ -41,7 +41,7 @@ being checked out in a local path (`sklearn-src/`); running this script installs
 Then you can test your environnment by running:
 
 ```bash
-pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py --results-dir ./results/tests/
+pixi run -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/
 ```
 
 It will take a few dozen seconds and create a few results under `results/tests` (git ignored).
@@ -97,7 +97,7 @@ Most case changes should start in `configs/synthetic_trees.py`,
 `configs/synthetic_linear.py`, or `configs/real_datasets.py`, depending on the
 workload.
 
-Use `configs/all_models_test.py` for the current small exploratory matrix.
+Use `configs/smoke_check_test.py` for the current small exploratory matrix.
 Use `configs/all_models_fast.py` when working on a broader but still
 reasonably fast matrix. Both cover Array API Pixi environments as well as
 plain sklearn/sklearnex ones.
@@ -108,7 +108,7 @@ Preview and validate a config by importing it directly:
 pixi run -e sklearn-pypi python - <<'PY'
 from sklbench.config import load_cases_from_script
 
-cases = load_cases_from_script("configs/all_models_test.py")
+cases = load_cases_from_script("configs/smoke_check_test.py")
 print(len(cases))
 print(cases[0])
 PY
@@ -123,7 +123,7 @@ case can be compared to a baseline by the dashboard matching logic.
 Run the default scikit-learn configuration:
 
 ```bash
-pixi run -e sklearn-pypi python -m sklbench --config configs/all_models_test.py
+pixi run -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py
 ```
 
 `run.sh` runs the same `python -m sklbench` invocation across one or more
@@ -159,7 +159,7 @@ path.
 ```bash
 scripts/setup_sklearn_ref.sh --ref main
 
-pixi run -e sklearn-dev python -m sklbench --config configs/all_models_test.py
+pixi run -e sklearn-dev python -m sklbench --config configs/smoke_check_test.py
 ```
 
 Run the same config against a branch from a fork by changing only the remote and
@@ -171,7 +171,7 @@ scripts/setup_sklearn_ref.sh \
   --remote https://github.com/some-user/scikit-learn.git \
   --ref my-perf-branch
 
-pixi run -e sklearn-dev python -m sklbench --config configs/all_models_test.py
+pixi run -e sklearn-dev python -m sklbench --config configs/smoke_check_test.py
 ```
 
 Only one scikit-learn ref is checked out at a time. Switching back to a

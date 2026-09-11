@@ -125,7 +125,7 @@ def ames_housing(implem: dict):
         "estimator": "Ridge",
         "estimator_params": {"alpha": 1.0},
     }
-    # Same case, tagged for the "test" exploratory matrix (configs/all_models_test.py):
+    # Same case, tagged for the "test" exploratory matrix (configs/smoke_check_test.py):
     yield {
         "estimator": "Ridge",
         "estimator_params": {"alpha": 1.0},

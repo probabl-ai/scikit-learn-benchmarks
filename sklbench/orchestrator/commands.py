@@ -88,7 +88,7 @@ def pin_process_affinity(pid: int, cores: list[int]) -> None:
     specific core in the first place - see `psutil.Process.cpu_affinity`'s
     own docs). Configs that set `bench.cpu_affinity` are responsible for not
     doing so on platforms where it isn't supported, e.g.
-    `configs/all_models_test.py`'s `sys.platform != "darwin"` guard.
+    `configs/smoke_check_test.py`'s `sys.platform != "darwin"` guard.
     """
     psutil.Process(pid).cpu_affinity(cores)
 
