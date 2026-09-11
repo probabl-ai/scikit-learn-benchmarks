@@ -45,10 +45,18 @@ jobs:
           lfs: false
 
       - name: Install pixi
-        # CONTRIBUTING.md > Setup > Pre-requisites.
+        # CONTRIBUTING.md > Setup > Pre-requisites. The installer reports
+        # $HOME/.pixi/bin as an MSYS/Git-Bash path (e.g.
+        # /c/Users/runneradmin/.pixi/bin) - fine for bash-run steps below,
+        # but $GITHUB_PATH feeds the runner's native Windows PATH, which
+        # doesn't understand that syntax at all. Code that resolves
+        # executables via native Windows APIs instead of going through bash
+        # (e.g. Python's subprocess.check_output(shell=False), see
+        # sklbench/orchestrator/env.py) would then silently fail to find
+        # pixi - convert to a native path with cygpath first.
         run: |
           curl -fsSL https://pixi.sh/install.sh | sh
-          echo "$HOME/.pixi/bin" >> "$GITHUB_PATH"
+          echo "$(cygpath -w "$HOME/.pixi/bin")" >> "$GITHUB_PATH"
 
       - name: Install Git LFS
         # CONTRIBUTING.md > Setup > Pre-requisites.
