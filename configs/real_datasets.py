@@ -125,6 +125,15 @@ def ames_housing(implem: dict):
         "estimator": "Ridge",
         "estimator_params": {"alpha": 1.0},
     }
+    # Same case, tagged for the "test" exploratory matrix
+    # (configs/all_models_test.py): this dataset is only ~2900 rows to begin
+    # with, so - unlike nytimes_256's old "test"-tier entry - no extra
+    # subsampling is needed to keep it near-instant.
+    yield {
+        "estimator": "Ridge",
+        "estimator_params": {"alpha": 1.0},
+        "tier": "test",
+    }
     # RandomForestRegressor, trees/ordinal: test R2 0.89
     yield {
         "estimator": "RandomForestRegressor",
@@ -634,15 +643,6 @@ def nytimes_256(implem: dict):
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 100},
         "tier": "normal",
-        "bench": KMEANS_BENCH,
-    }
-    # Small subsample via split_kwargs: a near-instant sanity-check case for
-    # validating the config wiring, not a realistic workload.
-    yield {
-        "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 5},
-        "split_kwargs": {"train_size": 2000, "test_size": 200},
-        "tier": "test",
         "bench": KMEANS_BENCH,
     }
 
