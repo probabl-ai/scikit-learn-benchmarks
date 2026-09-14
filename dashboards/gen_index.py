@@ -10,6 +10,7 @@ DASHBOARDS = [
     # TODO: scikit-learn versions comparison (start when? => at least 1.8; intermediate commits?)
     # longitudinal plots: to be ran once in a while
     ("HGB thread-scalability breakdown", "hgb_scaling.html"),
+    ("hptuning outer-parallelism scalability", "hptuning_scalability.html"),
 ]
 
 
