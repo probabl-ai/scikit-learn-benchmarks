@@ -544,6 +544,10 @@ def _add_result_method(
     row = rows.setdefault(
         key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
     )
+    # Globally unique per row (fit/predict merge into the same row above) -
+    # lets a table-row click pin the exact clicked row first among rows
+    # sharing its comparison_key (see matchFirstSorter in templates.py).
+    row["row_id"] = key
     method = result.method
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
@@ -663,9 +667,9 @@ def detailed_results_table_html(
 
     for record, variant in failed_records:
         key = _failed_row_key(record, variant)
-        rows_by_key[key] = _new_failed_row(
-            record, variant, comparison_key(record), json_url_fn
-        )
+        row = _new_failed_row(record, variant, comparison_key(record), json_url_fn)
+        row["row_id"] = key
+        rows_by_key[key] = row
 
     # Results whose counterpart failed never appear in `matches_by_method`
     # (find_matches only pairs up results that both succeeded) - add them here so
