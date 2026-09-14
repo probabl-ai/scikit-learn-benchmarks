@@ -90,15 +90,11 @@ BASE_TEMPLATE = Template("""<!doctype html>
       });
     }
 
-    function sklbenchInitTable(tableId, rows, columns, resetButtonId, defaultHeaderFilters) {
+    function sklbenchInitTable(tableId, rows, columns, defaultHeaderFilters) {
       if (window.sklbenchTables[tableId]) {
         window.sklbenchTables[tableId].redraw(true);
         return;
       }
-      const resetButton = document.getElementById(resetButtonId);
-      const resetToolbar = resetButton
-        ? resetButton.closest(".detailed-results-toolbar")
-        : null;
       const initialSort = [
         {column: "estimator", dir: "asc"},
         {column: "dataset", dir: "asc"},
@@ -133,15 +129,9 @@ BASE_TEMPLATE = Template("""<!doctype html>
           ([field, value]) => ({field, value})
         ),
       });
-      if (resetToolbar && defaultHeaderFilters && Object.keys(defaultHeaderFilters).length) {
-        resetToolbar.hidden = false;
-      }
       const applyMatchSort = (comparisonKey) => {
         matchSortKey = comparisonKey;
         table.setSort([{column: "comparison_key", dir: "asc"}]);
-        if (resetToolbar) {
-          resetToolbar.hidden = false;
-        }
       };
       table.on("rowClick", (event, row) => {
         if (event.target.closest("a, button")) {
@@ -153,15 +143,6 @@ BASE_TEMPLATE = Template("""<!doctype html>
         }
         applyMatchSort(comparisonKey);
       });
-      if (resetButton) {
-        resetButton.addEventListener("click", () => {
-          matchSortKey = null;
-          table.setSort(initialSort);
-          if (resetToolbar) {
-            resetToolbar.hidden = true;
-          }
-        });
-      }
       // Exposed so a click on a matching speed-up plot point
       // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
       // builds asynchronously - table.setSort isn't safe to call until
