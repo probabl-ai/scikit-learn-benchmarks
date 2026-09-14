@@ -751,13 +751,12 @@ def detailed_results_table_html(
         columns.append(_spec_column_dict(spec, title=title))
 
     table_id = f"detailed-results-{next(table_ids)}"
-    reset_button_id = f"{table_id}-reset"
     default_header_filters = (
         {"variant": default_variant_filter} if default_variant_filter else {}
     )
     init_call = (
         f'sklbenchInitTable("{table_id}", {_safe_json(rows)}, '
-        f'{_safe_json(columns)}, "{reset_button_id}", {_safe_json(default_header_filters)});'
+        f'{_safe_json(columns)}, {_safe_json(default_header_filters)});'
     )
     # `<details open>` alone doesn't fire a "toggle" event on page load, so
     # an eagerly-visible table needs the init call to run unconditionally
@@ -776,10 +775,7 @@ def detailed_results_table_html(
     }}, {{once: true}});
   </script>"""
     )
-    body = f"""<div class="detailed-results-toolbar" hidden>
-    <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row sort" aria-label="Clear row sort">x</button>
-  </div>
-  <div id="{table_id}" class="detailed-results-table"></div>
+    body = f"""<div id="{table_id}" class="detailed-results-table"></div>
   {script}"""
     if not collapsible:
         return f"""<div class="detailed-results">
