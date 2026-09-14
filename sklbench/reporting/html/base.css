@@ -236,6 +236,17 @@ body.with-preprocessing .speedup-view-preprocessing {
 .detailed-results-table .tabulator-row {
   cursor: pointer;
 }
+.detailed-results-table .tabulator-row.row-just-matched {
+  animation: row-just-matched-flash 1s ease-out;
+}
+@keyframes row-just-matched-flash {
+  from {
+    background-color: rgba(40, 100, 200, 0.35);
+  }
+  to {
+    background-color: transparent;
+  }
+}
 .speedup-positive {
   color: #18794e;
   font-weight: 600;
