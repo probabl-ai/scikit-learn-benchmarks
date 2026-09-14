@@ -71,6 +71,7 @@ def _subsample(X, y, n_classes: int | None, max_samples: int | None, random_stat
         y,
         train_size=max_samples,
         random_state=random_state,
+        shuffle=True,
         stratify=y if n_classes is not None else None,
     )
     return X, y
@@ -110,9 +111,7 @@ def run_hptuning(case: HPTuningCase) -> dict:
     )
     if not hasattr(X, "iloc"):
         # `make_column_selector` (used by `_build_preprocessor`) requires a
-        # DataFrame - synthetic sources (`make_classification`/
-        # `make_regression`/the `make_trees_*` family without `as_frame`)
-        # return a plain ndarray.
+        # DataFrame - synthetic sources return a plain ndarray.
         X = pd.DataFrame(X)
 
     pipeline = _build_pipeline(case)
@@ -123,11 +122,6 @@ def run_hptuning(case: HPTuningCase) -> dict:
     # its own internal tuning, like RidgeCV's alpha).
     param_distributions = hptuning.param_distributions
     scoring = hptuning.scoring or _default_scoring(n_classes)
-    cv = ShuffleSplit(
-        n_splits=hptuning.cv_n_splits,
-        test_size=hptuning.cv_test_size,
-        random_state=hptuning.random_state,
-    )
 
     with (
         get_context(case.implementation),
@@ -144,7 +138,7 @@ def run_hptuning(case: HPTuningCase) -> dict:
             pipeline,
             param_distributions,
             n_iter=hptuning.n_iter,
-            cv=cv,
+            cv=hptuning.cv_n_splits,
             n_jobs=hptuning.n_jobs,
             scoring=scoring,
             error_score="raise",

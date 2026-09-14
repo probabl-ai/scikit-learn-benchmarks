@@ -4,24 +4,28 @@ slice of `real_datasets.py`'s datasets, each paired with the same linear +
 tree-ensemble estimator `real_datasets.py` picked for it, plus its
 HistGradientBoosting counterpart (sklearn only - sklearnex has no
 accelerated HGB). Every case leaves `hptuning.outer_n_jobs`/`inner_n_jobs`
-unset, so the point isn't a hand-tuned parallelism split but the *default*
-one: outer defaults to `round(sqrt(physical_cores))` concurrent
-RandomizedSearchCV candidates (see
-`sklbench.config.models.hptuning.resolve_outer_n_jobs`), and each candidate
-is left to whatever its library defaults to on its own - RF/ET's own
-`n_jobs=1`, HGB's OpenMP thread pool, BLAS threads under
-Ridge/LogisticRegression - rather than something explicitly balanced
-against the outer level. That's the behavior worth measuring on a big
-many-core box (e.g. a GNR): whether those defaults compose into reasonable
-core usage or start oversubscribing.
+unset, so the outer split is the *default* one: outer defaults to
+`round(sqrt(physical_cores))` concurrent RandomizedSearchCV candidates (see
+`sklbench.config.models.hptuning.resolve_outer_n_jobs`). Each candidate is
+left to saturate all cores on its own, same as a practitioner running it
+standalone would - RF/ET get an explicit `n_jobs=-1` (their own library
+default is serial, `n_jobs=1`, so this is a deliberate choice rather than a
+left-alone default, but matches the HGB/BLAS candidates below, which do
+saturate all cores by their own defaults: HGB's OpenMP thread pool, BLAS
+threads under Ridge/LogisticRegression) - rather than something explicitly
+balanced against the outer level. That's the behavior worth measuring on a
+big many-core box (e.g. a GNR): whether outer parallelism and each
+candidate's own full-core usage compose into reasonable core usage or start
+oversubscribing.
 
 Tree-ensemble `n_estimators` is fixed (not scaled by core count like
-`real_datasets.py`'s `N_JOBS * k`) precisely because `n_jobs` is left
-unset here - at 1 thread per candidate, a core-count-scaled forest would
-make a single candidate fit take as long as the whole `all_models.py` case
-it's drawn from. `max_samples` similarly bounds the larger datasets so a
-10-candidate x 3-fold search stays cheap even when only one candidate runs
-at a time.
+`real_datasets.py`'s `N_JOBS * k`): with `n_jobs=-1` on the estimator
+itself, a candidate fit already parallelizes over all available cores, so
+scaling `n_estimators` by core count on top of that would conflate "more
+trees" with "the same trees, fit faster" - fixing it isolates the
+outer/inner composition question this config is about. `max_samples`
+similarly bounds the larger datasets so a 10-candidate x 3-fold search
+stays cheap even when only one candidate runs at a time.
 
 Real datasets are the 6 `hgb_scalability.py`'s `REAL_SCALING_DATASETS`
 already picked to span `real_datasets.py`'s size/categorical-content range,
@@ -38,6 +42,7 @@ import math
 
 from joblib import cpu_count
 from _implementations import implementations_for_pixi_env
+from _scaling import get_n_cores_list
 
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
@@ -75,14 +80,16 @@ _LOGISTIC_REGRESSION_PARAM_DISTRIBUTIONS = {
 }
 
 # Shared by RandomForest{Classifier,Regressor}/ExtraTrees{Classifier,Regressor}:
-# same param names across all four.
-_TREE_PARAMS = {"n_estimators": 100}
+# same param names across all four. n_jobs=-1 overrides the library default
+# (serial) so a candidate saturates all cores on its own, same as the
+# HGB/BLAS candidates it's compared against - see the module docstring.
+_TREE_PARAMS = {"n_estimators": 374, "n_jobs": -1}
 _TREE_PARAM_DISTRIBUTIONS = {
     # Capped well below "unbounded": on the wider real datasets below
     # (year_prediction_msd, 90 features), even max_depth=30 left a single RF
     # candidate running past 240s at min_samples_leaf=1 - see the module
     # docstring on cost control.
-    "estimator__max_depth": [3, 6, 10, 15],
+    "estimator__max_depth": [7, 10, 15, None],
     "estimator__max_features": [0.3, 0.5, "sqrt"],
     "estimator__min_samples_leaf": [1, 5, 10, 20],
 }
@@ -221,9 +228,18 @@ def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> 
     cases = []
     estimator_params, param_distributions = _ESTIMATOR_FAMILIES[estimator]
     n_cores = cpu_count(only_physical_cores=True)
-    for n_jobs in [1, round(math.sqrt(n_cores)), n_cores // 2]:
-        # at least 10 iterations, and a multiple of n_jobs:
-        n_iter = min(n_jobs * k for k in range(3, 11) if n_jobs * k >= 10)
+    # Log-spaced (1, 2, 4, ..., n_cores // 2) rather than the coarse
+    # [1, sqrt(n_cores), n_cores // 2] this used to sweep - that jumped
+    # straight from a handful of outer workers to the noisiest,
+    # overhead-dominated end of the range with no points in between to see
+    # the degradation happen. Stops at n_cores // 2, same ceiling as
+    # before, to leave the other half of the machine for the inner
+    # parallelism each candidate now also uses (`_TREE_PARAMS`'s
+    # `n_jobs=-1`, HGB's own thread pool, BLAS threads) - see the module
+    # docstring.
+    for n_jobs in get_n_cores_list(max_n_cores=n_cores // 2):
+        # at least 5 iterations, and a multiple of n_jobs:
+        n_iter = max(5, 2 * n_jobs)
         cases.append(HPTuningCase(
             bench=BENCH,
             algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
@@ -232,6 +248,7 @@ def _case(data: Data, estimator: str, implem: dict, max_samples: int | None) -> 
             hptuning=HPTuning(
                 param_distributions=param_distributions,
                 n_iter=n_iter,
+                cv_n_splits=3,
                 max_samples=max_samples,
                 n_jobs=n_jobs
             ),
@@ -259,8 +276,11 @@ def generate_cases() -> list[HPTuningCase]:
             cases.extend(_case(linear_data, linear_estimator, implem, linear_max_samples))
             cases.extend(_case(tree_data, tree_estimator, implem, tree_max_samples))
             if implem["library"] == "sklearn":
-                cases.extend(
-                    _case(tree_data, _HGB_ESTIMATORS[task], implem, tree_max_samples)
-                )
+                pass
+                # XXX: skip HGB for now, not very interesting before scaling issues are
+                # fixed
+                # cases.extend(
+                #     _case(tree_data, _HGB_ESTIMATORS[task], implem, tree_max_samples)
+                # )
 
     return cases
