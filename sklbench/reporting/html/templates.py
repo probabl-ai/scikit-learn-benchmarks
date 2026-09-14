@@ -231,6 +231,23 @@ BASE_TEMPLATE = Template("""<!doctype html>
     }
     document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
 
+    // Each chart's inline Plotly.newPlot() call runs synchronously while the
+    // page is still parsing, so it can bake in a stale width from before the
+    // surrounding CSS grid has settled into its final column sizes (visible
+    // as an oversized/clipped first chart until something - a tab switch, a
+    // window resize - happens to trigger Plotly.Plots.resize). Re-measure
+    // every chart once immediately after full page load to catch that case
+    // without waiting on a user-triggered resize.
+    window.addEventListener("load", () => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+          if (chart.offsetParent !== null) {
+            Plotly.Plots.resize(chart);
+          }
+        });
+      });
+    });
+
     function sklbenchRelativeTime(isoString, nowMs) {
       const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
       if (seconds < 60) {
