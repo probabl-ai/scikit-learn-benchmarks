@@ -544,6 +544,10 @@ def _add_result_method(
     row = rows.setdefault(
         key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
     )
+    # Globally unique per row (fit/predict merge into the same row above) -
+    # lets a table-row click pin the exact clicked row first among rows
+    # sharing its comparison_key (see matchFirstSorter in templates.py).
+    row["row_id"] = key
     method = result.method
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
@@ -663,9 +667,9 @@ def detailed_results_table_html(
 
     for record, variant in failed_records:
         key = _failed_row_key(record, variant)
-        rows_by_key[key] = _new_failed_row(
-            record, variant, comparison_key(record), json_url_fn
-        )
+        row = _new_failed_row(record, variant, comparison_key(record), json_url_fn)
+        row["row_id"] = key
+        rows_by_key[key] = row
 
     # Results whose counterpart failed never appear in `matches_by_method`
     # (find_matches only pairs up results that both succeeded) - add them here so
@@ -751,13 +755,12 @@ def detailed_results_table_html(
         columns.append(_spec_column_dict(spec, title=title))
 
     table_id = f"detailed-results-{next(table_ids)}"
-    reset_button_id = f"{table_id}-reset"
     default_header_filters = (
         {"variant": default_variant_filter} if default_variant_filter else {}
     )
     init_call = (
         f'sklbenchInitTable("{table_id}", {_safe_json(rows)}, '
-        f'{_safe_json(columns)}, "{reset_button_id}", {_safe_json(default_header_filters)});'
+        f'{_safe_json(columns)}, {_safe_json(default_header_filters)});'
     )
     # `<details open>` alone doesn't fire a "toggle" event on page load, so
     # an eagerly-visible table needs the init call to run unconditionally
@@ -776,10 +779,7 @@ def detailed_results_table_html(
     }}, {{once: true}});
   </script>"""
     )
-    body = f"""<div class="detailed-results-toolbar" hidden>
-    <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row sort" aria-label="Clear row sort">x</button>
-  </div>
-  <div id="{table_id}" class="detailed-results-table"></div>
+    body = f"""<div id="{table_id}" class="detailed-results-table"></div>
   {script}"""
     if not collapsible:
         return f"""<div class="detailed-results">

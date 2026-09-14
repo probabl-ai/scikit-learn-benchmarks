@@ -125,13 +125,18 @@ def _current_results_ref() -> str:
 
 
 def github_raw_url(path: Path | str) -> str:
-    # raw.githubusercontent.com, not github.com/{repo}/raw/{ref}/{path}: the
-    # latter 404s for refs outside branches/commits/tags, e.g. the
-    # `refs/pull/<n>/merge` ref GITHUB_REF holds on `pull_request`-triggered
-    # workflow runs (see pr-comparison.yml), which is exactly the ref PR
-    # comparison dashboards resolve to here.
+    # media.githubusercontent.com/media/{repo}/{ref}/{path}, not
+    # github.com/{repo}/raw/{ref}/{path}: the latter 404s for refs outside
+    # branches/commits/tags, e.g. the `refs/pull/<n>/merge` ref GITHUB_REF
+    # holds on `pull_request`-triggered workflow runs (see pr-comparison.yml),
+    # which is exactly the ref PR comparison dashboards resolve to here.
+    # Also not raw.githubusercontent.com/{repo}/{ref}/{path}: `results/**` is
+    # Git-LFS-tracked (see .gitattributes), and raw.githubusercontent.com
+    # serves the LFS pointer text file instead of the actual file content for
+    # LFS-tracked paths. media.githubusercontent.com is GitHub's LFS media
+    # endpoint and resolves refs the same way, but serves real file bytes.
     path = Path(path).as_posix().lstrip("/")
-    return f"https://raw.githubusercontent.com/{RESULTS_REPOSITORY}/{_current_results_ref()}/{path}"
+    return f"https://media.githubusercontent.com/media/{RESULTS_REPOSITORY}/{_current_results_ref()}/{path}"
 
 
 def external_viewer_url(viewer_base_url: str, target_url: str) -> str:

@@ -90,15 +90,11 @@ BASE_TEMPLATE = Template("""<!doctype html>
       });
     }
 
-    function sklbenchInitTable(tableId, rows, columns, resetButtonId, defaultHeaderFilters) {
+    function sklbenchInitTable(tableId, rows, columns, defaultHeaderFilters) {
       if (window.sklbenchTables[tableId]) {
         window.sklbenchTables[tableId].redraw(true);
         return;
       }
-      const resetButton = document.getElementById(resetButtonId);
-      const resetToolbar = resetButton
-        ? resetButton.closest(".detailed-results-toolbar")
-        : null;
       const initialSort = [
         {column: "estimator", dir: "asc"},
         {column: "dataset", dir: "asc"},
@@ -110,10 +106,29 @@ BASE_TEMPLATE = Template("""<!doctype html>
       // clicking a column header to sort by something else naturally
       // supersedes it.
       let matchSortKey = null;
-      const matchFirstSorter = (a, b) => {
+      // Set only for a table-row click (row.getData().row_id is unique per
+      // row - see table.py's _row_key/_add_result_method) so that specific
+      // row sorts first among same-comparison_key siblings. A plot-point
+      // click has no single row to pin, so this stays null and rows sharing
+      // matchSortKey fall back to the row_id tiebreaker for a deterministic
+      // (not "whatever Tabulator does for ties") order.
+      let matchedRowId = null;
+      const matchFirstSorter = (a, b, aRow, bRow) => {
         const aMatches = a === matchSortKey ? 0 : 1;
         const bMatches = b === matchSortKey ? 0 : 1;
-        return aMatches - bMatches;
+        if (aMatches !== bMatches) {
+          return aMatches - bMatches;
+        }
+        if (aMatches === 0 && matchedRowId) {
+          const aIsClicked = aRow.getData().row_id === matchedRowId;
+          const bIsClicked = bRow.getData().row_id === matchedRowId;
+          if (aIsClicked !== bIsClicked) {
+            return aIsClicked ? -1 : 1;
+          }
+        }
+        const aId = aRow.getData().row_id || "";
+        const bId = bRow.getData().row_id || "";
+        return aId < bId ? -1 : aId > bId ? 1 : 0;
       };
       const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
         if (column.field === "comparison_key") {
@@ -133,15 +148,32 @@ BASE_TEMPLATE = Template("""<!doctype html>
           ([field, value]) => ({field, value})
         ),
       });
-      if (resetToolbar && defaultHeaderFilters && Object.keys(defaultHeaderFilters).length) {
-        resetToolbar.hidden = false;
-      }
-      const applyMatchSort = (comparisonKey) => {
+      // Briefly flashes every row sharing comparisonKey (the ones
+      // applyMatchSort just brought to the top) so it's visible they moved.
+      // Re-triggers cleanly even if the previous flash hasn't finished: the
+      // class is dropped and a reflow forced before re-adding it, since
+      // re-adding an already-present class wouldn't restart the CSS
+      // animation in base.css.
+      const highlightMatches = (comparisonKey) => {
+        table.getRows().forEach((row) => {
+          if (row.getData().comparison_key !== comparisonKey) {
+            return;
+          }
+          const el = row.getElement();
+          if (!el) {
+            return;
+          }
+          el.classList.remove("row-just-matched");
+          void el.offsetWidth;
+          el.classList.add("row-just-matched");
+          setTimeout(() => el.classList.remove("row-just-matched"), 1000);
+        });
+      };
+      const applyMatchSort = (comparisonKey, rowId) => {
         matchSortKey = comparisonKey;
+        matchedRowId = rowId || null;
         table.setSort([{column: "comparison_key", dir: "asc"}]);
-        if (resetToolbar) {
-          resetToolbar.hidden = false;
-        }
+        requestAnimationFrame(() => highlightMatches(comparisonKey));
       };
       table.on("rowClick", (event, row) => {
         if (event.target.closest("a, button")) {
@@ -151,17 +183,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
         if (!comparisonKey) {
           return;
         }
-        applyMatchSort(comparisonKey);
+        applyMatchSort(comparisonKey, row.getData().row_id);
       });
-      if (resetButton) {
-        resetButton.addEventListener("click", () => {
-          matchSortKey = null;
-          table.setSort(initialSort);
-          if (resetToolbar) {
-            resetToolbar.hidden = true;
-          }
-        });
-      }
       // Exposed so a click on a matching speed-up plot point
       // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
       // builds asynchronously - table.setSort isn't safe to call until
