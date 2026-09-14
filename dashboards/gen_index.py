@@ -3,13 +3,9 @@ from sklbench.reporting.html import BASE_TEMPLATE
 
 
 DASHBOARDS = [
-    ("Software/implementations comparison", "per_hardware.html"),
-    ("Builds comparison", "builds_comparison.html"),
-    ("Hardware comparison", "hardware_comparisons.html"),
-    ("Model thread-scalability", "models_scalability.html"),
-    # TODO: scikit-learn versions comparison (start when? => at least 1.8; intermediate commits?)
-    # longitudinal plots: to be ran once in a while
     ("HGB thread-scalability breakdown", "hgb_scaling.html"),
+    ("[dev] HGB thread-scalability breakdown", "hgb_dev_scaling.html"),
+    ("[dev] HGB speed-up breakdown", "hgb_speedup_breakdown.html"),
 ]
 
 

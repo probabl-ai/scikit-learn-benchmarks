@@ -61,6 +61,7 @@ from sklbench.reporting.matching import (
 HARDWARE_NAMES = {
     "3b5e61": "Laptop",
     "534824": "Intel GNR",  # TODO: re-rerun
+    "b281b2": "Apple M4",
 }
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
