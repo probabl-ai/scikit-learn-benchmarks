@@ -30,7 +30,7 @@ import json
 import re
 from statistics import median
 
-from dashboards import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     case_proc_bind,
@@ -58,10 +58,7 @@ from sklbench.reporting.matching import (
 )
 
 
-HARDWARE_NAMES = {
-    "3b5e61": "Laptop",
-    "534824": "Intel GNR",  # TODO: re-rerun
-}
+# TODO: re-rerun 534824 (High-end Intel server) results.
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
 # cost first, so their band stays a constant height and the phases that

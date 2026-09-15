@@ -52,7 +52,7 @@ from html import escape
 import json
 from statistics import mean, median
 
-from dashboards import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -65,11 +65,6 @@ from sklbench.reporting.html import (
 )
 from sklbench.reporting.matching import BenchmarkRecord, Implementation, date_range, read_benchmark_records
 
-
-HARDWARE_NAMES = {
-    "534824": "Intel GNR",
-    "3b5e61": "Intel laptop",
-}
 
 ENV_ORDER = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
 ENV_COLORS = variant_color_map(ENV_ORDER)

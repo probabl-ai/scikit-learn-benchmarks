@@ -1,4 +1,4 @@
-from dashboards import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
@@ -28,10 +28,6 @@ from sklbench.reporting.html import (
 )
 
 
-HARDWARE_NAMES = {
-    "3b5e61": "Intel laptop with B390 GPU",
-    "534824": "Intel GNR 172 CPU cores",
-}
 BASE_IMPLEMENTATION = "sklearn"
 
 

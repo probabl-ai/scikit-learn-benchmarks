@@ -5,9 +5,6 @@ and reporting scripts for the published scikit-learn benchmark dashboards.
 
 ## Setup
 
-
-### Pre-requisites
-
 Install pixi (>= 0.75): 
 
 ```bash
@@ -25,7 +22,9 @@ pixi global install git-lfs
 git lfs install
 ```
 
-Then clone the repo (`git lfs pull` afterwards if you want to fetch all results locally).
+Then clone the repo. Use `git lfs pull` afterwards **if** you want to fetch all
+results locally (see more details in ["Previewing Dashboards
+Locally"](#previewing-dashboards-locally))
 
 
 Then from the repo root run:
@@ -45,7 +44,6 @@ pixi run -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py
 ```
 
 It will take a few dozen seconds and create a few results under `results/tests` (git ignored).
-
 
 ## Architecture
 
@@ -205,8 +203,15 @@ PR description on this repo is documented separately, in [COMPARISONS_PR.md](COM
 
 ## Previewing Dashboards Locally
 
-During dashboard development, use the watcher to regenerate pages whenever
-`results/`, `sklbench/reporting/`, or `dashboards/` changes:
+By default, `results/` stays checked out as Git LFS pointer files (small text
+stubs) rather than actual JSON/gzip content, so a plain clone or `git pull`
+never downloads the full results history. Pull the content you actually need
+with `git lfs pull`. `git lfs pull` only fetches content for the ref you
+currently have checked out; switching branches and needing another commit's results
+means re-running it there.
+
+Then run the watcher to generate pages, and regenerate then
+whenever `results/`, `sklbench/reporting/`, or `dashboards/` changes:
 
 ```bash
 pixi run -e reporting python watch_dashboards.py
@@ -214,12 +219,9 @@ pixi run -e reporting python watch_dashboards.py
 
 ## Publishing New Results
 
-Before committing results, make sure lfs is set-up:
-
-```bash
-git lfs install
-git lfs pull
-```
+Make sure lfs is set up (`git lfs install`, see ["Setup"](#setup) above).
+You don't need to pull existing results first, only the new files you add
+matter.
 
 Run the relevant benchmarks, then inspect the generated files:
 
@@ -247,6 +249,13 @@ dashboards automatically.
 
 `results/*.json` and `results/**/*.json` are tracked through Git LFS via
 `.gitattributes`. Do not bypass LFS for benchmark results.
+
+`.lfsconfig` sets `fetchexclude = *` so clones and plain `git lfs
+pull`/`fetch` don't download `results/` content by default (to protect the
+repo's LFS quota) - see ["Fetching Result Files"](#fetching-result-files).
+CI workflows pass their own `--include`, but `-I` alone only overrides
+`fetchinclude` - `fetchexclude = *` from `.lfsconfig` still applies and blocks
+everything, so those workflows must also pass `--exclude ""` to clear it.
 
 **Cloud machines can have high tail variability**, especially for scaling studies
 and short workloads. Prefer stable local/dedicated hardware when deciding whether
