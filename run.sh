@@ -9,7 +9,7 @@ usage() {
     echo "  environment given. Environments are the leading arguments, up to" >&2
     echo "  the first one starting with '-'; everything from there on is" >&2
     echo "  passed through to sklbench." >&2
-    echo "  Example: $0 sklearn-pypi intel --config configs/all_models_test.py" >&2
+    echo "  Example: $0 sklearn-pypi intel --config configs/smoke_check_test.py" >&2
     echo "" >&2
     echo "  An environment may instead be given as env@owner:ref, e.g." >&2
     echo "  sklearn-dev@cakedev0:hgb/use_threads_if. Before running sklbench" >&2

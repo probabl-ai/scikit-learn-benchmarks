@@ -8,14 +8,14 @@ stacked bar per workload, x-axis = thread count, segments = phase.
 Deliberately reads raw `read_benchmark_records()` instead of
 `read_all_results()`: `MethodResult.case`/`full_match_key` strip the `bench`
 key, so thread count (which for this config only lives in
-`bench.taskset`/`bench.env.OMP_NUM_THREADS`, not in `case`) isn't part of
-the de-dup identity - `read_all_results()` collapses every thread-count
+`bench.cpu_affinity`/`bench.env.OMP_NUM_THREADS`, not in `case`) isn't part
+of the de-dup identity - `read_all_results()` collapses every thread-count
 variant of a workload down to whichever ran last. `BenchmarkRecord.case`
 strips `bench` for the same reason, so thread count is instead read straight
 from `bench.env.OMP_NUM_THREADS` in the record's raw JSON (via
 `record.record_path`) - the requested thread count, not an affinity-derived
 guess, since some configs (e.g. `hgb_scaling_laptop.py`) set
-`OMP_NUM_THREADS` without a matching `taskset`.
+`OMP_NUM_THREADS` without matching `cpu_affinity`.
 
 Excludes `sklearn-dev*` builds - those are one-off scikit-learn git-checkout
 builds (a specific commit/PR branch, see CONTRIBUTING.md's
@@ -27,14 +27,10 @@ counterpart.
 """
 from html import escape
 import json
-from pathlib import Path
 import re
 from statistics import median
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     case_proc_bind,
@@ -62,10 +58,7 @@ from sklbench.reporting.matching import (
 )
 
 
-HARDWARE_NAMES = {
-    "534824": "Intel GNR",  # TODO: re-rerun
-    "3b5e61": "Laptop",
-}
+# TODO: re-rerun 534824 (High-end Intel server) results.
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
 # cost first, so their band stays a constant height and the phases that
@@ -487,6 +480,15 @@ def _env_label(hardware_hash: str, software_hash: str, active_wait: bool, proc_b
     )
 
 
+def _hardware_sort_index(hardware_hash: str) -> int:
+    """Position in HARDWARE_NAMES (laptop first), so tabs group by hardware
+    in that order even though labels are otherwise sorted alphabetically."""
+    try:
+        return list(HARDWARE_NAMES).index(hardware_hash)
+    except ValueError:
+        return len(HARDWARE_NAMES)
+
+
 if __name__ == "__main__":
     records = _dedup_latest(
         [
@@ -513,7 +515,7 @@ if __name__ == "__main__":
         )
         for (hardware_hash, software_hash, active_wait, proc_bind), env_records in sorted(
             by_env.items(),
-            key=lambda item: _env_label(*item[0]),
+            key=lambda item: (_hardware_sort_index(item[0][0]), _env_label(*item[0])),
         )
     ]
 

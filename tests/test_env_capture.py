@@ -51,13 +51,49 @@ OPENMP DISPLAY ENVIRONMENT END
     assert command == [
         sys.executable,
         "-c",
-        "from sklearn.utils._openmp_helpers import _openmp_parallelism_enabled",
+        "from sklearn.utils._openmp_helpers import _openmp_effective_n_threads; "
+        "_openmp_effective_n_threads()",
     ]
     assert kwargs["env"]["OMP_DISPLAY_ENV"] == "VERBOSE"
     assert kwargs["env"]["OMP_NUM_THREADS"] == "2"
     assert kwargs["capture_output"] is True
     assert kwargs["check"] is False
     assert kwargs["text"] is True
+
+
+def test_check_output_resolves_the_executable_via_shutil_which(monkeypatch):
+    # shell=False means no PATHEXT-style extension resolution, so a bare
+    # "git" 404s on Windows (WinError 2), where the executable is actually
+    # named git.exe - _check_output resolves it up front instead.
+    calls = []
+
+    def fake_which(name):
+        return f"C:\\Program Files\\Git\\bin\\{name}.exe"
+
+    def fake_check_output(command, **kwargs):
+        calls.append(command)
+        return "abc123\n"
+
+    monkeypatch.setattr(env.shutil, "which", fake_which)
+    monkeypatch.setattr(env.subprocess, "check_output", fake_check_output)
+
+    result = env._check_output(["git", "rev-parse", "HEAD"])
+
+    assert result == "abc123"
+    assert calls == [["C:\\Program Files\\Git\\bin\\git.exe", "rev-parse", "HEAD"]]
+
+
+def test_check_output_falls_back_to_the_bare_name_when_which_finds_nothing(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(env.shutil, "which", lambda name: None)
+    monkeypatch.setattr(
+        env.subprocess, "check_output", lambda command, **kwargs: calls.append(command) or "x"
+    )
+
+    env._check_output(["git", "rev-parse", "HEAD"])
+
+    assert calls == [["git", "rev-parse", "HEAD"]]
 
 
 def test_git_info_for_path_ignores_benchmark_repo_root(tmp_path, monkeypatch):
@@ -77,6 +113,45 @@ def test_git_info_for_path_ignores_benchmark_repo_root(tmp_path, monkeypatch):
     monkeypatch.setattr(env, "_check_output", fake_check_output)
 
     assert env._git_info_for_path(module_file) is None
+
+
+def test_get_oneapi_devices_via_intel_env_falls_back_when_pixi_project_root_unset(
+    monkeypatch,
+):
+    monkeypatch.delenv("PIXI_PROJECT_ROOT", raising=False)
+    assert env._get_oneapi_devices_via_intel_env() == {}
+
+
+def test_get_oneapi_devices_via_intel_env_falls_back_when_the_subprocess_fails(
+    monkeypatch,
+):
+    monkeypatch.setenv("PIXI_PROJECT_ROOT", "/repo")
+    monkeypatch.setattr(env, "_check_output", lambda command: None)
+    assert env._get_oneapi_devices_via_intel_env() == {}
+
+
+def test_get_oneapi_devices_via_intel_env_parses_the_subprocess_output(monkeypatch):
+    monkeypatch.setenv("PIXI_PROJECT_ROOT", "/repo")
+    calls = []
+
+    def fake_check_output(command):
+        calls.append(command)
+        return '{"level_zero:gpu:0": {"name": "Intel(R) Arc(TM) B390 GPU"}}'
+
+    monkeypatch.setattr(env, "_check_output", fake_check_output)
+
+    assert env._get_oneapi_devices_via_intel_env() == {
+        "level_zero:gpu:0": {"name": "Intel(R) Arc(TM) B390 GPU"}
+    }
+    (command,) = calls
+    assert command[:6] == [
+        "pixi",
+        "run",
+        "--manifest-path",
+        "/repo",
+        "--environment",
+        "intel",
+    ]
 
 
 def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
@@ -100,9 +175,6 @@ def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
         if command == ["git", "status", "--porcelain", "--untracked-files=no"]:
             assert cwd == sklearn_root
             return ""
-        if command == ["git", "describe", "--tags", "--always", "--dirty"]:
-            assert cwd == sklearn_root
-            return "abc123"
         if command == ["git", "remote", "get-url", "origin"]:
             assert cwd == sklearn_root
             return "git@github.com:scikit-learn/scikit-learn.git"
@@ -114,6 +186,5 @@ def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
         "commit": "abc123",
         "dirty": False,
         "branch": "feature",
-        "describe": "abc123",
         "remote": "git@github.com:scikit-learn/scikit-learn.git",
     }

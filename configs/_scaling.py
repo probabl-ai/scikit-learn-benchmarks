@@ -55,24 +55,22 @@ def has_hybrid_cores() -> bool:
     )
 
 
-def taskset_for_physical_cores(n_cores: int, with_siblings: bool = False) -> str:
+def cpu_affinity_for_physical_cores(n_cores: int, with_siblings: bool = False) -> list[int]:
     # If n_cores == 1 and the first physical core has two logical CPUs,
-    # this returns both logical CPU ids, for instance "0,1".
+    # this returns both logical CPU ids, for instance [0, 1].
     if n_cores < 1:
         raise ValueError("n_cores must be at least 1")
     cpu_groups = _logical_cpus_by_physical_core()
     if with_siblings:
         # I think this should be the good way, but it doesn't work well
         # with joblib
-        selected_cpus = [
+        return [
             cpu_id
             for cpu_group in cpu_groups[:n_cores]
             for cpu_id in cpu_group
         ]
-    else:
-        selected_cpus = [
-            cpu_group[0]
-            for cpu_group in cpu_groups[:n_cores]
-        ]
-    return ",".join(str(cpu_id) for cpu_id in selected_cpus)
+    return [
+        cpu_group[0]
+        for cpu_group in cpu_groups[:n_cores]
+    ]
 

@@ -27,7 +27,7 @@ class Section(BaseModel):
 class Bench(Section):
     n_runs: int = 10
     time_limit: float = 600
-    taskset: str | int | None = None
+    cpu_affinity: list[int] | None = None
     env: dict[str, str] | None = None
     py_spy_profiling: bool = Field(default_factory=_py_spy_profiling_default)
     py_spy_native: bool = True

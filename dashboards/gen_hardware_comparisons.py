@@ -20,12 +20,8 @@ for the variants folks actually reach for.
 """
 from dataclasses import replace
 from html import escape
-from pathlib import Path
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -59,10 +55,6 @@ from sklbench.reporting.matching import (
 from sklbench.reporting.utils import stable_json, without_keys
 
 
-HARDWARE_NAMES = {
-    "3b5e61": "Intel laptop",
-    "534824": "Intel GNR 172 CPU cores",
-}
 BASELINE_HARDWARE_HASH = "3b5e61"
 CANDIDATE_HARDWARE_HASH = "534824"
 BASELINE_LABEL = HARDWARE_NAMES[BASELINE_HARDWARE_HASH]

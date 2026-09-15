@@ -1,9 +1,4 @@
-from pathlib import Path
-import sys
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
@@ -34,10 +29,6 @@ from sklbench.reporting.html import (
 )
 
 
-HARDWARE_NAMES = {
-    "534824": "Intel GNR 172 CPU cores",
-    "3b5e61": "Intel laptop with B390 GPU",
-}
 BASE_IMPLEMENTATION = "sklearn"
 PREPROCESSING_TOGGLE_HTML = (
     '<section class="panel">'
