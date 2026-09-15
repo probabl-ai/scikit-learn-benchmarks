@@ -16,6 +16,7 @@
 
 import logging
 import warnings
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,23 @@ import pandas as pd
 from ...config import EstimatorCase
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache
+def _torch_max_precision_float_dtype(device: str | None):
+    """Highest-precision float dtype `device` actually supports.
+
+    Some devices (e.g. Apple's MPS) don't support float64 at all - this
+    mirrors what sklearn's own array API dispatch uses to pick a dtype,
+    generic across devices rather than hardcoding a MPS special case.
+    Cached per device: probing it (see array_api_compat's `dtypes()`)
+    creates throwaway tensors, and this is called on every preprocessing
+    repeat.
+    """
+    from sklearn.externals.array_api_compat import torch as xp_torch
+    from sklearn.utils._array_api import _max_precision_float_dtype
+
+    return _max_precision_float_dtype(xp_torch, device)
 
 
 def _torch_dtype(dtype: str | None):
@@ -90,16 +108,16 @@ def convert_data(
         return dpnp.array(data, dtype=dtype, order=order, device=device)
     elif dformat == "torch":
         import torch
-        from sklearn.externals.array_api_compat import torch as xp_torch
-        from sklearn.utils._array_api import _max_precision_float_dtype
 
         kwargs = {"device": device} if device is not None else {}
         torch_dtype = _torch_dtype(dtype)
+        if torch_dtype is None and getattr(data, "dtype", None) == np.float64:
+            # dtype="preserve"/None: torch would otherwise infer float64 from
+            # `data`'s own dtype - resolve it explicitly so the device-support
+            # check below still applies.
+            torch_dtype = torch.float64
         if torch_dtype == torch.float64:
-            # Some devices (e.g. Apple's MPS) don't support float64 at all -
-            # downcast to whatever precision the device actually supports,
-            # the same way sklearn's own array API dispatch does.
-            torch_dtype = _max_precision_float_dtype(xp_torch, device)
+            torch_dtype = _torch_max_precision_float_dtype(device)
         if torch_dtype is not None:
             kwargs["dtype"] = torch_dtype
         return torch.asarray(data, **kwargs)
