@@ -135,6 +135,9 @@ TASK_TO_ESTIMATOR_SUFFIXES = {
     "manifold": ["TSNE"],
     "search": ["NearestNeighbors"],
     "utility": ["BasicStatistics", "Covariance"],
+    # transformers with no `predict`: `run_case_once` times `transform`
+    # instead for this task (see `sklbench.runners.estimator.__main__`).
+    "encoding": ["Encoder"],
 }
 
 
