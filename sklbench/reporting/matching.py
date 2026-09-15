@@ -331,7 +331,17 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
             continue
 
         with open(result_path, "r") as f:
-            result_file = json.load(f)
+            content = f.read()
+        try:
+            result_file = json.loads(content)
+        except json.JSONDecodeError as e:
+            if content.startswith("version https://git-lfs.github.com/spec/"):
+                raise RuntimeError(
+                    f"{result_path} is an unfetched Git LFS pointer, not the "
+                    "actual result file. You likely forgot to `git lfs pull` "
+                    "(see CONTRIBUTING.md > Previewing Dashboards Locally)."
+                ) from e
+            raise
 
         hardware_hash = result_file["hardware_hash"]
         software_hash = result_file["software_hash"]
