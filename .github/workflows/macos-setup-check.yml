@@ -55,3 +55,12 @@ jobs:
         # this runner (the setup_sklearn_ref.sh step is skipped here).
         run: |
           pixi run --frozen -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/
+
+      - name: Smoke-test the skl-mps environment
+        # Only environment that actually exercises the MPS (Apple GPU) Array
+        # API backend - see feature.skl-mps in pixi.toml. This runner has a
+        # real Apple GPU (macos-15 is Apple Silicon, see the runs-on comment
+        # above), so torch.backends.mps cases aren't filtered out by
+        # filter_gpu_cases_if_unavailable() the way they would be elsewhere.
+        run: |
+          pixi run --frozen -e skl-mps python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/
