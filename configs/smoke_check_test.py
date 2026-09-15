@@ -62,9 +62,12 @@ def generate_cases() -> list[dict]:
         # 4s was too tight even for the first of these trivial synthetic
         # cases on a GitHub-hosted macOS runner: one-time interpreter/import
         # cold-start cost there (measured 3-11s across runs) can exceed it on
-        # its own, before any actual fitting. 10s gives headroom without
-        # making this "small exploratory matrix" meaningfully slower.
-        case['bench'].setdefault('time_limit', 10)
+        # its own, before any actual fitting. 10s wasn't enough either once
+        # MPS cases (skl-mps) are in the mix: first-use Metal shader/kernel
+        # JIT-compilation adds its own cold-start on top, past the 10s
+        # budget. 20s gives headroom for that too without making this "small
+        # exploratory matrix" meaningfully slower.
+        case['bench'].setdefault('time_limit', 20)
     disable_profiling_for_array_api_gpu_cases(cases)
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
