@@ -7,10 +7,9 @@ from .models import (
     Bench,
     Data,
     EstimatorCase,
+    HPTuning,
+    HPTuningCase,
     Implementation,
-    PipelineCase,
-    PipelineData,
-    PipelineRun,
 )
 
 __all__ = [
@@ -20,10 +19,9 @@ __all__ = [
     "Case",
     "Data",
     "EstimatorCase",
+    "HPTuning",
+    "HPTuningCase",
     "Implementation",
-    "PipelineCase",
-    "PipelineData",
-    "PipelineRun",
     "load_cases_from_script",
     "validate_case",
 ]

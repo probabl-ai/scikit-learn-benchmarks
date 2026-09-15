@@ -24,15 +24,9 @@ mismatch here means the pipeline itself is broken, not "no data yet".
 
 from html import escape
 import os
-from pathlib import Path
 import re
-import shutil
-import sys
-from typing import Callable
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_dir
+from dashboards import dashboard_output_dir
 from sklbench.reporting.utils import groupby, stable_json, without_keys
 from sklbench.reporting.matching import (
     append_iterations_warning,
@@ -47,7 +41,7 @@ from sklbench.reporting.matching import (
 from sklbench.reporting.envs import (
     FLAMEGRAPH_VIEWER_BASE_URL,
     JSON_VIEWER_BASE_URL,
-    external_viewer_url,
+    hosted_viewer_url_fn,
     json_viewer_url,
     profile_viewer_url,
     read_env,
@@ -134,37 +128,6 @@ def _sklearn_commit_url(software_hash: str) -> str | None:
     return f"https://github.com/{owner}/{repo}/commit/{commit}"
 
 
-def _hosted_url_fn(
-    viewer_base_url: str,
-    fallback: Callable[[Path], str],
-    site_base_url: str | None,
-    output_dir: Path,
-):
-    """Build a `json_url_fn`/`profile_url_fn` for `detailed_results_table_html`.
-
-    PR-comparison results are ephemeral (never committed to `results/`, see
-    .github/workflows/pr-comparison.yml), so `json_viewer_url`/
-    `profile_viewer_url`'s GitHub-raw-URL links 404 - the underlying file
-    doesn't exist at any repo ref. When the CI job tells us where this run's
-    site will be deployed (`SKLBENCH_PR_COMPARE_SITE_URL`), copy each
-    referenced record/profile file into the site output directory instead
-    and link the viewer at that to-be-deployed copy. Without a known site URL
-    (e.g. a local ephemeral results/ dir), fall back to the normal
-    GitHub-raw-URL link rather than fail outright.
-    """
-
-    def build(record_path: Path) -> str | None:
-        if site_base_url is None:
-            return fallback(record_path)
-        dest = output_dir / record_path
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(record_path, dest)
-        hosted_url = f"{site_base_url}/{record_path.as_posix()}"
-        return external_viewer_url(viewer_base_url, hosted_url)
-
-    return build
-
-
 def _first_source(results: list[MethodResult], failed: list[BenchmarkRecord]):
     """A software_hash to source a build's scikit-learn commit link from -
     handles the (unlikely but possible) case where every case for one side
@@ -230,12 +193,6 @@ if __name__ == "__main__":
 
     multi_env = len(env_groups) > 1
 
-    def build_label(build_name: str) -> str:
-        """Branch label, env-qualified only when more than one env is being
-        compared - keeps the common single-env case's labels unchanged."""
-        label = _branch_label(build_name)
-        return f"{label} [{_env_of(build_name)}]" if multi_env else label
-
     matches = []
     unmatched_base_results = []
     unmatched_variant_results = []
@@ -262,8 +219,8 @@ if __name__ == "__main__":
             r for record in variant_failed for r in base_by_case_key.get(_case_key(record.case), [])
         )
 
-        failed_records_for_table.extend((record, build_label(base_build)) for record in base_failed)
-        failed_records_for_table.extend((record, build_label(variant_build)) for record in variant_failed)
+        failed_records_for_table.extend((record, _branch_label(base_build)) for record in base_failed)
+        failed_records_for_table.extend((record, _branch_label(variant_build)) for record in variant_failed)
 
     matches_by_method = groupby(matches, lambda match: match.matched_result.method)
 
@@ -277,19 +234,17 @@ if __name__ == "__main__":
     table_html = detailed_results_table_html(
         "all",
         matches_by_method,
-        baseline_label=lambda result: build_label(software_build_name(result.software_hash)),
-        variant_label=lambda result: build_label(software_build_name(result.software_hash)),
+        baseline_label=lambda result: _branch_label(software_build_name(result.software_hash)),
+        variant_label=lambda result: _branch_label(software_build_name(result.software_hash)),
         failed_records=failed_records_for_table,
         unmatched_base_results=unmatched_base_results,
         unmatched_candidate_results=unmatched_variant_results,
-        open=True,
+        collapsible=False,
         variant_column_title="Branch name",
-        default_variant_filter=None if multi_env else build_label(env_groups[0][2]),
-        json_url_fn=_hosted_url_fn(
-            JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url, output_dir
-        ),
-        profile_url_fn=_hosted_url_fn(
-            FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url, output_dir
+        default_variant_filter=None if multi_env else _branch_label(env_groups[0][2]),
+        json_url_fn=hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url),
+        profile_url_fn=hosted_viewer_url_fn(
+            FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url
         ),
     )
 
@@ -304,7 +259,7 @@ if __name__ == "__main__":
     commit_links = []
     for env, base_build, variant_build in env_groups:
         for build_name in (base_build, variant_build):
-            label = escape(build_label(build_name))
+            label = escape(_branch_label(build_name))
             commit_url = commit_urls[build_name]
             if commit_url is None:
                 commit_links.append(f"<li>{label}: <span class=\"muted\">commit unknown</span></li>")

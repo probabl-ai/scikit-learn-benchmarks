@@ -9,10 +9,10 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .models import BaseCase, EstimatorCase, PipelineCase
+from .models import BaseCase, EstimatorCase, HPTuningCase
 
 
-Case = EstimatorCase | PipelineCase
+Case = EstimatorCase | HPTuningCase
 
 
 def _json_normalize(value: Any, context: str) -> Any:
@@ -23,7 +23,7 @@ def _json_normalize(value: Any, context: str) -> Any:
 
 
 def validate_case(case: dict | BaseCase) -> Case:
-    if isinstance(case, (EstimatorCase, PipelineCase)):
+    if isinstance(case, (EstimatorCase, HPTuningCase)):
         _json_normalize(case.json_dict(), "case")
         return case
     if isinstance(case, BaseCase):
@@ -33,9 +33,17 @@ def validate_case(case: dict | BaseCase) -> Case:
 
     normalized_input = _json_normalize(case, "case")
     try:
+        # Both case types can carry "algorithm"/"implementation" keys, so
+        # "hptuning" (only HPTuningCase has it) must be checked first.
+        if "hptuning" in normalized_input:
+            return HPTuningCase.model_validate(normalized_input)
         if "algorithm" in normalized_input or "implementation" in normalized_input:
             return EstimatorCase.model_validate(normalized_input)
-        return PipelineCase.model_validate(normalized_input)
+        raise ValueError(
+            "Unable to infer case type: expected an 'algorithm' or "
+            "'implementation' key (EstimatorCase) or an 'hptuning' key "
+            "(HPTuningCase)"
+        )
     except ValidationError as exc:
         raise ValueError(str(exc)) from exc
 

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..config import Case, EstimatorCase, PipelineCase
+from ..config import Case, EstimatorCase, HPTuningCase
 from .commands import run_runner_from_case
 from .env import get_environment_info
 from .system_monitor import SystemMonitor
@@ -227,15 +227,11 @@ def save_benchmark_record(
 
 
 def _load_case_dataset(bench_case: Case) -> tuple[int | None, int | None]:
-    if isinstance(bench_case, EstimatorCase):
-        from ..runners.datasets import load_raw_data as load_data
+    if isinstance(bench_case, (EstimatorCase, HPTuningCase)):
+        from ..runners.datasets import load_raw_data
 
-        raw_data, _ = load_data(bench_case)
+        raw_data, _ = load_raw_data(bench_case)
         x = raw_data.get("x", raw_data.get("x_train"))
-    elif isinstance(bench_case, PipelineCase):
-        from ..runners.pipeline import load_data
-
-        x, _ = load_data(bench_case)
     else:
         raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
     if x is None:
@@ -305,9 +301,9 @@ def orchestrate_benchmarks(
     system_monitor = SystemMonitor(
         results_root / "system-telemetry" / f"{hardware_hash}_{_timestamp()}.jsonl",
         interval=args.system_telemetry_interval,
+        percpu=args.system_telemetry_percpu,
     )
-    if not args.no_system_telemetry:
-        system_monitor.start()
+    system_monitor.start()
 
     n_cases = len(bench_cases)
     try:
@@ -393,14 +389,18 @@ def _run_all_cases(
                     if profile_return_code == 0:
                         _gzip_file(raw_profile_path, profile_path)
 
-                if profile_return_code == -9 and not bench_case.bench.cprofile_profiling:
-                    # py-spy timed out - cProfile doesn't share its ptrace/
-                    # scheduler-churn failure modes, so fall back to it for
-                    # this case instead of losing the profile entirely.
+                if profile_return_code != 0 and not bench_case.bench.cprofile_profiling:
+                    # py-spy failed - could be a timeout (-9), or py-spy
+                    # simply not usable here (e.g. on macOS, `--native` is
+                    # unsupported outright and plain py-spy requires root).
+                    # cProfile doesn't share any of py-spy's failure modes,
+                    # so fall back to it for this case instead of losing the
+                    # profile entirely / failing the whole run over a
+                    # profiler-only problem.
                     _log_failed_case(
                         bench_case,
                         profile_failed_case,
-                        stage="Profiling benchmark (py-spy timed out, falling back to cProfile)",
+                        stage="Profiling benchmark (py-spy failed, falling back to cProfile)",
                         return_code=profile_return_code,
                     )
                     profile_return_code, profile_failed_case = _run_cprofile_pass(

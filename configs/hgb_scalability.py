@@ -1,6 +1,7 @@
+import sys
 from math import sqrt
 
-from _scaling import get_n_cores_list, has_hybrid_cores, taskset_for_physical_cores
+from _scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
 from real_datasets import generate_cases as generate_real_dataset_cases
 
 
@@ -124,25 +125,12 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     case that already carries its own algorithm/data (e.g. from
     `real_datasets.py`), without touching those sections.
 
-    The explicit OMP_NUM_THREADS is still needed even with our joblib fork
-    (github.com/cakedev0/joblib@vendor-loky-cpu-affinity-physical, which
-    vendors github.com/cakedev0/loky@cpu_affinity_physical) wired into pixi.toml:
-    sklearn's `_openmp_helpers.pyx` picks its default OpenMP thread count via
-    `joblib.cpu_count(only_physical_cores=True)`, and without OMP_NUM_THREADS
-    that defaults to every logical CPU in the taskset (2x oversubscription
-    with `with_siblings=True`, since the fix doesn't take effect in ~half the
-    pixi envs - see below). Setting it explicitly makes fit time correct
-    everywhere regardless of which joblib is active.
-
-    The fork only reaches environments where scikit-learn/joblib come from
-    PyPI/source (sklearn-pypi, sklearn-dev, skl-cpu, skl-intel, skl-nvidia,
-    default): there, `[pypi-dependencies].joblib` overrides the vendored
-    loky's physical-core-under-affinity detection. In environments where
-    scikit-learn is a conda-forge package (intel, reporting, and the
-    sklearn-cf-* / BLAS-backend-comparison envs), joblib is pulled in
-    transitively as a conda package, and pixi refuses to override a
-    conda-selected package with a PyPI git dependency of the same name -
-    so those keep using upstream joblib's affinity-blind cpu_count().
+    The explicit OMP_NUM_THREADS is needed regardless: sklearn's
+    `_openmp_helpers.pyx` picks its default OpenMP thread count via
+    `joblib.cpu_count(only_physical_cores=True)`, which is blind to CPU
+    affinity, so without OMP_NUM_THREADS it defaults to every logical CPU in
+    the affinity set (2x oversubscription with `with_siblings=True`). Setting
+    it explicitly makes fit time correct everywhere.
     """
 
     bench = {
@@ -160,8 +148,8 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
         "py_spy_profiling": False,
     }
 
-    if not has_hybrid_cores():
-        bench["taskset"] = taskset_for_physical_cores(thread_count, with_siblings=True)
+    if not has_hybrid_cores() and sys.platform != "darwin":
+        bench["cpu_affinity"] = cpu_affinity_for_physical_cores(thread_count, with_siblings=True)
 
     return {
         **case,
@@ -209,6 +197,22 @@ def _real_dataset_cases() -> list[dict]:
     return [
         _with_thread_count(case, thread_count)
         for case in hgb_cases
+        for thread_count in get_n_cores_list()
+    ]
+
+
+XS_WORKLOAD = next(workload for workload in WORKLOADS if workload["name"] == "XS")
+
+
+def generate_xs_cases() -> list[dict]:
+    """The "XS" (smallest) workload's cases only, one per available thread
+    count - reused by configs/smoke_check_test.py to exercise the
+    thread-scaling / cpu_affinity bench path without pulling in this file's
+    full workload x thread-count sweep."""
+    return [
+        _case(XS_WORKLOAD, task, columns_kind, thread_count)
+        for task in TASKS
+        for columns_kind in COLUMNS_KINDS
         for thread_count in get_n_cores_list()
     ]
 

@@ -3,20 +3,34 @@ import subprocess as sp
 import sys
 from argparse import Namespace
 
-from sklbench.config import Bench, PipelineCase
+from sklbench.config import Algorithm, Bench, Data, HPTuningCase
 from sklbench.orchestrator import implementation
 
 
 def _args(tmp_path):
-    return Namespace(results_dir=str(tmp_path), exit_on_error=False)
+    return Namespace(
+        results_dir=str(tmp_path),
+        exit_on_error=False,
+        config=["test"],
+        system_telemetry_interval=2.0,
+        system_telemetry_percpu=False,
+    )
+
+
+def _hptuning_case(**kwargs):
+    return HPTuningCase(
+        algorithm=Algorithm(estimator="Ridge"),
+        data=Data(source="make_regression"),
+        **kwargs,
+    )
 
 
 def test_orchestrate_benchmarks_logs_subprocess_failure(tmp_path, monkeypatch, caplog):
-    case = PipelineCase(bench=Bench(py_spy_profiling=False))
+    case = _hptuning_case(bench=Bench(py_spy_profiling=False))
     failed_case = {
         "case": case.json_dict(),
         "return_code": 2,
-        "command": [sys.executable, "-m", "sklbench.runners.pipeline"],
+        "command": [sys.executable, "-m", "sklbench.runners.hptuning"],
         "logs": {"stdout": "partial output", "stderr": "runner exploded"},
     }
 
@@ -43,7 +57,7 @@ def test_orchestrate_benchmarks_logs_subprocess_failure(tmp_path, monkeypatch, c
 
 
 def test_orchestrate_benchmarks_logs_setup_failure(tmp_path, monkeypatch, caplog):
-    case = PipelineCase(bench=Bench(py_spy_profiling=False))
+    case = _hptuning_case(bench=Bench(py_spy_profiling=False))
 
     def fake_run_runner_from_case(bench_case):
         raise sp.SubprocessError("unable to start runner")

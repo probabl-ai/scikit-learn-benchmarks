@@ -48,7 +48,10 @@ jobs:
 
       - name: Pull needed LFS objects
         run: |
-          git lfs pull --include "results/records/**,results/hardware-envs/**,results/software-envs/**"
+          # -X "" clears .lfsconfig's `fetchexclude = *`: -I alone only
+          # overrides fetchinclude, so without this the exclude-everything
+          # default still wins and no objects are actually downloaded.
+          git lfs pull --include "results/records/**,results/hardware-envs/**,results/software-envs/**" --exclude ""
 
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6

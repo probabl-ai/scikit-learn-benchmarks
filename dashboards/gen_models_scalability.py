@@ -38,13 +38,9 @@ no other `dashboards/gen_*.py` imports from it - see e.g.
 gen_hgb_scalability_breakdown.py).
 """
 from html import escape
-from pathlib import Path
 from statistics import median
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -58,11 +54,6 @@ from sklbench.reporting.html import (
 from sklbench.reporting.matching import MethodResult, date_range, read_all_results
 
 
-HARDWARE_NAMES = {
-    "534824": "Intel GNR",
-    "3b5e61": "Intel laptop",
-}
-
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
 # module docstring and `SIBLINGS_LABELS`) - this explains that legend where
 # it's meaningful (GNR, which actually has SMT siblings to compare) and
@@ -71,7 +62,7 @@ HARDWARE_NAMES = {
 # only yields it `if is_tree and has_smt_cores`).
 SMT_NOTES = {
     "534824": (
-        "\"with SMT\" tasksets both logical siblings of each selected "
+        "\"with SMT\" pins both logical siblings of each selected "
         "physical core; \"without SMT\" restricts to one logical thread "
         "per physical core. This hardware has SMT (simultaneous "
         "multithreading, aka hyper-threading): twice as many logical "
@@ -320,7 +311,12 @@ if __name__ == "__main__":
     ]
     hardware_hashes = sorted(
         {result.hardware_hash for result in results},
-        key=lambda hardware_hash: HARDWARE_NAMES.get(hardware_hash, hardware_hash),
+        key=lambda hardware_hash: (
+            list(HARDWARE_NAMES).index(hardware_hash)
+            if hardware_hash in HARDWARE_NAMES
+            else len(HARDWARE_NAMES),
+            HARDWARE_NAMES.get(hardware_hash, hardware_hash),
+        ),
     )
     hardware_pages = [
         (

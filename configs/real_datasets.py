@@ -125,6 +125,13 @@ def ames_housing(implem: dict):
         "estimator": "Ridge",
         "estimator_params": {"alpha": 1.0},
     }
+    # Same case, tagged for the "test" exploratory matrix (configs/smoke_check_test.py):
+    yield {
+        "estimator": "Ridge",
+        "estimator_params": {"alpha": 1.0},
+        "tier": "test",
+        "bench": {"time_limit": 30},
+    }
     # RandomForestRegressor, trees/ordinal: test R2 0.89
     yield {
         "estimator": "RandomForestRegressor",
@@ -634,15 +641,6 @@ def nytimes_256(implem: dict):
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 100},
         "tier": "normal",
-        "bench": KMEANS_BENCH,
-    }
-    # Small subsample via split_kwargs: a near-instant sanity-check case for
-    # validating the config wiring, not a realistic workload.
-    yield {
-        "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 5},
-        "split_kwargs": {"train_size": 2000, "test_size": 200},
-        "tier": "test",
         "bench": KMEANS_BENCH,
     }
 

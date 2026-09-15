@@ -7,7 +7,6 @@ Looks for a fenced code block:
     ```sklbench-compare
     sklearn_ref: cakedev0:ridge/optim_cholesky
     runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
-    dashboards: dashboards/gen_hgb_dev_speedup_breakdown.py
     ```
 
 `sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
@@ -34,11 +33,11 @@ each tuple) only makes sense for those.
 
 `dashboards` is optional: a comma/whitespace-separated list of
 `dashboards/gen_<name>.py` paths - one of this repo's own `gen_*.py`
-dashboard generators (e.g. gen_hgb_dev_speedup_breakdown.py), run once per
-runner against that runner's full accumulated ephemeral results/, alongside
-the always-generated pr_comparison.html table. Unlike `runs`'s `config`
-entries, there's no per-runner/per-env split here - the same dashboard list
-applies to every runner's job.
+dashboard generators, run once per runner against that runner's full
+accumulated ephemeral results/, alongside the always-generated
+pr_comparison.html table. Unlike `runs`'s `config` entries, there's no
+per-runner/per-env split here - the same dashboard list applies to every
+runner's job.
 
 Validates its `key: value` lines and writes outcomes to $GITHUB_OUTPUT
 rather than communicating via exit code, so the calling workflow can branch
