@@ -1,5 +1,8 @@
-from dashboards import dashboard_output_path
-from sklbench.reporting.html import BASE_TEMPLATE
+from html import escape
+
+from dashboards import HARDWARE_NAMES, dashboard_output_path
+from sklbench.reporting.envs import read_env, summarize_hardware_env
+from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_software_tabs
 
 
 DASHBOARDS = [
@@ -12,6 +15,20 @@ DASHBOARDS = [
     ("HGB thread-scalability breakdown", "hgb_scaling.html"),
     ("hptuning outer-parallelism scalability", "hptuning_scalability.html"),
 ]
+
+
+def _hardware_overview_html() -> str:
+    badges = [
+        f"<h3>{escape(name)}</h3>"
+        + HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hardware_hash)))
+        for hardware_hash, name in HARDWARE_NAMES.items()
+    ]
+    return f"""
+    <section class="panel">
+      <h2>Benchmark hardware</h2>
+      {render_software_tabs(badges)}
+    </section>
+    """
 
 
 if __name__ == "__main__":
@@ -29,7 +46,8 @@ if __name__ == "__main__":
                 {links}
               </ul>
             </section>
-            """
+            """,
+            _hardware_overview_html(),
         ],
     )
 

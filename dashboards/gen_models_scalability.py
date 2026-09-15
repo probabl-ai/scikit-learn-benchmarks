@@ -40,7 +40,7 @@ gen_hgb_scalability_breakdown.py).
 from html import escape
 from statistics import median
 
-from dashboards import dashboard_output_path
+from dashboards import HARDWARE_NAMES, dashboard_output_path
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -53,11 +53,6 @@ from sklbench.reporting.html import (
 )
 from sklbench.reporting.matching import MethodResult, date_range, read_all_results
 
-
-HARDWARE_NAMES = {
-    "3b5e61": "Intel laptop",
-    "534824": "Intel GNR",
-}
 
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
 # module docstring and `SIBLINGS_LABELS`) - this explains that legend where
