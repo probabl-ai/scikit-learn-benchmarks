@@ -253,7 +253,9 @@ dashboards automatically.
 `.lfsconfig` sets `fetchexclude = *` so clones and plain `git lfs
 pull`/`fetch` don't download `results/` content by default (to protect the
 repo's LFS quota) - see ["Fetching Result Files"](#fetching-result-files).
-CI workflows already pass their own `--include` and are unaffected.
+CI workflows pass their own `--include`, but `-I` alone only overrides
+`fetchinclude` - `fetchexclude = *` from `.lfsconfig` still applies and blocks
+everything, so those workflows must also pass `--exclude ""` to clear it.
 
 **Cloud machines can have high tail variability**, especially for scaling studies
 and short workloads. Prefer stable local/dedicated hardware when deciding whether
