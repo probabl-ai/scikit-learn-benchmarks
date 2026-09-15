@@ -90,9 +90,16 @@ def convert_data(
         return dpnp.array(data, dtype=dtype, order=order, device=device)
     elif dformat == "torch":
         import torch
+        from sklearn.externals.array_api_compat import torch as xp_torch
+        from sklearn.utils._array_api import _max_precision_float_dtype
 
         kwargs = {"device": device} if device is not None else {}
         torch_dtype = _torch_dtype(dtype)
+        if torch_dtype == torch.float64:
+            # Some devices (e.g. Apple's MPS) don't support float64 at all -
+            # downcast to whatever precision the device actually supports,
+            # the same way sklearn's own array API dispatch does.
+            torch_dtype = _max_precision_float_dtype(xp_torch, device)
         if torch_dtype is not None:
             kwargs["dtype"] = torch_dtype
         return torch.asarray(data, **kwargs)
