@@ -37,10 +37,10 @@ it's not implemented).
 """
 
 import numpy as np
+import math
 
 from joblib import cpu_count
 from _implementations import implementations_for_pixi_env
-from _scaling import get_n_cores_list
 
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
@@ -107,10 +107,17 @@ REAL_DATASET_CASES = [
         {"skip_libraries": ("sklearnex",)},
     ),
     (
-        # Already standardized, all-numeric, no missing values (see
-        # real_datasets.py's susy case) - no preprocessing needed, so
-        # preprocessing_kind is left unset (raw passthrough).
-        ("susy", 300_000),
+        ("susy", None),
+        "Ridge",
+        {   # search space:
+            "estimator": {
+                "alpha": list(np.logspace(-3, 3, 13)),
+            }
+        },
+        {"scoring": "r2"},
+    ),
+    (
+        ("year_prediction_msd", 50_000, "linear"),
         "Ridge",
         {   # search space:
             "estimator": {
@@ -119,20 +126,6 @@ REAL_DATASET_CASES = [
         }
     ),
     (
-        # All-numeric; "linear" here is only about getting the same
-        # SplineTransformer feature expansion real_datasets.py's Ridge case
-        # uses, not categorical encoding.
-        ("year_prediction_msd", 30_000, "linear"),
-        "Ridge",
-        {   # search space:
-            "estimator": {
-                "alpha": list(np.logspace(-3, 3, 13)),
-            }
-        }
-    ),
-    (
-        # All-categorical, ~33k rows: fast, ~sub-second fits (see
-        # real_datasets.py's amazon_employee_access case).
         ("amazon_employee_access", None, "linear"),
         "LogisticRegression",
         {   # search space:
@@ -145,10 +138,7 @@ REAL_DATASET_CASES = [
         }
     ),
     (
-        # Already standardized, no preprocessing needed (see the Ridge/susy
-        # case above). Subsampled to land fits in the ~1-5s range rather
-        # than amazon_employee_access's sub-second one.
-        ("susy", 200_000),
+        ("susy", 500_000),
         "LogisticRegression",
         {   # search space:
             "estimator": {
@@ -159,11 +149,37 @@ REAL_DATASET_CASES = [
             }
         }
     ),
-    # HGB (sklearn only - see hptuning.py's module docstring). Needs
-    # preprocessing_kind="hgb" explicitly - the runner has no
-    # estimator-based special-casing, and ames_housing/kddcup09_churn have
-    # categorical columns well past HGB's native 255-category limit
-    # (kddcup09_churn's worst is 15415 uniques - see its loader docstring).
+    # KMeans (scored on silhouette)
+    (
+        ("road_network_points", None),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [5, 10, 15, 20],
+            }
+        }
+    ),
+    (
+        ("sift", None),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [5, 10, 15, 20],
+            }
+        }
+    ),
+    (
+        # Downsampled so a many-cluster search still lands near ~5s/fit
+        # (nytimes_256 is 290k rows full-size - see real_datasets.py).
+        ("nytimes_256", 50_000),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [50, 100, 200],
+            }
+        }
+    ),
+    # HGB
     (
         ("ames_housing", None, "hgb"),
         "HistGradientBoostingRegressor",
@@ -211,38 +227,6 @@ REAL_DATASET_CASES = [
         },
         {"skip_libraries": ("sklearnex",)},
     ),
-    # KMeans (scored on silhouette - see
-    # sklbench.runners.hptuning._silhouette_scorer; n_clusters is the
-    # search dimension here rather than a per-dataset fixed pick):
-    (
-        ("road_network_points", None),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [5, 10, 15, 20],
-            }
-        }
-    ),
-    (
-        ("sift", None),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [5, 10, 15, 20],
-            }
-        }
-    ),
-    (
-        # Downsampled so a many-cluster search still lands near ~5s/fit
-        # (nytimes_256 is 290k rows full-size - see real_datasets.py).
-        ("nytimes_256", 50_000),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [50, 100, 200],
-            }
-        }
-    ),
 ]
 
 
@@ -270,22 +254,32 @@ def _case(
     search_space: dict,
     implementations: list[dict],
     skip_libraries: tuple[str, ...],
+    scoring: str | None,
 ) -> list[HPTuningCase]:
     estimator_params, param_distributions = _split_search_space(search_space)
-    scoring = "silhouette" if estimator == "KMeans" else None
+    if scoring is None:
+        # `hptuning`'s own auto-scoring (see `_default_scoring`) picks
+        # roc_auc*/r2 off the *dataset*'s n_classes, regardless of
+        # estimator - wrong whenever a case deliberately pairs a regressor
+        # with a classification-labeled dataset (e.g. Ridge/susy below),
+        # hence the explicit `options={"scoring": ...}` override for those.
+        scoring = "silhouette" if estimator == "KMeans" else None
     data = Data(dataset=dataset, preprocessing_kind=preprocessing_kind)
     n_cores = cpu_count(only_physical_cores=True)
+    n_cores_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
+    n_iter = n_cores
+    if n_cores == 16:
+        n_cores_list = [4, 8, 16]
+    elif n_cores == 172:
+        n_iter = 86
+        n_cores_list = [11, 22, 43, 86]
 
     cases = []
     for implem in implementations:
         if implem["library"] in skip_libraries:
             continue
-        # Log-spaced (1, 2, 4, ..., n_cores // 2) outer RandomizedSearchCV
-        # parallelism - see hptuning.py's `_case` for why this shape (not
-        # e.g. a coarse [1, sqrt(n_cores), n_cores // 2]) and why it stops
-        # at n_cores // 2.
-        for n_jobs in get_n_cores_list(max_n_cores=n_cores // 2):
-            n_iter = max(5, 2 * n_jobs)  # at least 5 iterations, a multiple of n_jobs
+
+        for n_jobs in n_cores_list:
             cases.append(HPTuningCase(
                 bench=BENCH,
                 algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
@@ -298,16 +292,14 @@ def _case(
                     max_samples=max_samples,
                     n_jobs=n_jobs,
                     scoring=scoring,
+                    random_state=3198,
                 ),
             ))
     return cases
 
 
 def generate_cases() -> list[HPTuningCase]:
-    # CPU-only, non-array-API implementations - same rationale as
-    # hptuning.py's generate_cases: the runner's preprocessing isn't
-    # device- or array-API-aware, and thread-count defaults aren't a
-    # meaningful axis for GPU-offloaded work anyway.
+    # CPU-only, non-array-API implementations
     implementations = [
         implem
         for implem in implementations_for_pixi_env()
@@ -320,11 +312,12 @@ def generate_cases() -> list[HPTuningCase]:
         preprocessing_kind = preprocessing_kind[0] if preprocessing_kind else None
         options = rest[0] if rest else {}
         skip_libraries = options.get("skip_libraries", ())
+        scoring = options.get("scoring")
 
         for estimator in estimators if isinstance(estimators, list) else [estimators]:
             cases.extend(_case(
                 dataset, max_samples, preprocessing_kind, estimator, search_space,
-                implementations, skip_libraries,
+                implementations, skip_libraries, scoring,
             ))
 
     return cases
