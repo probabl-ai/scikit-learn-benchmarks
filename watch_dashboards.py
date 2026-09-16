@@ -77,10 +77,6 @@ def _changed_paths(
     return [path for path in paths if before.get(path) != after.get(path)]
 
 
-def _generator_scripts() -> list[Path]:
-    return sorted(Path("dashboards").glob("gen_*.py"))
-
-
 def _lfs_pointer_files() -> list[Path]:
     results_root = Path("results")
     if not results_root.exists():
@@ -135,23 +131,13 @@ def _generate(output_dir: Path) -> bool:
     _pull_lfs_pointers(_lfs_pointer_files())
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    scripts = _generator_scripts()
-    if not scripts:
-        print("No dashboards/gen_*.py scripts found.", file=sys.stderr)
-        return False
 
-    print(f"Regenerating {len(scripts)} dashboards into {output_dir}...", flush=True)
-    for script in scripts:
-        command = [
-            sys.executable,
-            str(script),
-            "--output-dir",
-            str(output_dir),
-        ]
-        result = subprocess.run(command, text=True)
-        if result.returncode != 0:
-            print(f"{script} failed with exit code {result.returncode}.", file=sys.stderr)
-            return False
+    print(f"Regenerating dashboards into {output_dir}...", flush=True)
+    command = [sys.executable, "dashboards/index.py", "--output-dir", str(output_dir)]
+    result = subprocess.run(command, text=True)
+    if result.returncode != 0:
+        print(f"dashboards/index.py failed with exit code {result.returncode}.", file=sys.stderr)
+        return False
     print("Dashboard regeneration complete.", flush=True)
     return True
 

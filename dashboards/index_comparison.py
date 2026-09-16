@@ -1,15 +1,18 @@
-"""Simple table-based before/after comparison between a PR branch's
-sklearn-dev build and the scikit-learn `main` sklearn-dev baseline, both
-benchmarked on the same self-hosted runner in one CI job.
+"""Entry point for .github/workflows/pr-comparison.yml: a table-based
+before/after comparison between a PR branch's sklearn-dev build and the
+scikit-learn `main` sklearn-dev baseline, both benchmarked on the same
+self-hosted runner in one CI job.
 
-Deliberately named without the "gen_" prefix the other dashboards/gen_*.py
-scripts share, so it's excluded from the loops that regenerate every
-gen_*.py dashboard from the repo's full committed results/ (dashboard-pages.yml,
-dashboard-preview-build.yml, watch_dashboards.py, CONTRIBUTING.md's local
-preview instructions) - this script's `results/` is instead an ephemeral,
-CI-produced directory (see .github/workflows/pr-comparison.yml) containing
-only the two runs being compared, and it would fail loudly if pointed at
-the real one (see below).
+Separate entry point from dashboards/index.py (the full dashboard site,
+generated from the repo's full committed results/) because this script's
+`results/` is instead an ephemeral, CI-produced directory (see
+.github/workflows/pr-comparison.yml) containing only the two runs being
+compared, and it would fail loudly if pointed at the real one (see below).
+By default `__main__` below only generates this comparison table; to also
+publish one of this repo's other dashboards/gen_*.py dashboards against
+that same ephemeral results/ for a given PR-comparison run, add a
+`module.generate(output_dir)` call there for it (see the commented-out
+example) and include that edit in the PR.
 
 Unlike those other dashboards, there's exactly one hardware_hash, and
 exactly one base + one variant sklearn-dev build per pixi env being
@@ -308,3 +311,11 @@ if __name__ == "__main__":
     output = output_dir / "pr_comparison.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")
+
+    # To publish one of dashboards/gen_*.py's other dashboards alongside this
+    # comparison table for this PR-comparison run (against the same ephemeral
+    # results/ this script just read), import and call its generate() here,
+    # e.g.:
+    #
+    # from dashboards import gen_hgb_scalability_breakdown
+    # gen_hgb_scalability_breakdown.generate(output_dir)

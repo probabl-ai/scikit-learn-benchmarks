@@ -143,7 +143,7 @@ def external_viewer_url(viewer_base_url: str, target_url: str) -> str:
     """Wrap `target_url` for one of the `*_VIEWER_BASE_URL` viewer apps.
     Exposed (not just used internally by `json_viewer_url`/`profile_viewer_url`
     below) so callers with a `target_url` that isn't a `github_raw_url` -
-    e.g. pr_comparison_dashboard.py linking to files it copied onto the
+    e.g. dashboards/index_comparison.py linking to files it copied onto the
     ephemeral Cloudflare Pages site instead - can still reuse the query-string
     format the viewer apps expect."""
     return f"{viewer_base_url}?url={quote(target_url, safe='')}"

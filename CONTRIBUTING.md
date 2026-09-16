@@ -76,9 +76,13 @@ The repository is split into a few layers:
       helpers. Except the initial results-matching work, it's fully vibe-coded.
 - `results/`: captured benchmark outputs and environment metadata, tracked
   with Git LFS.
-- `dashboards/gen_*.py`: dashboard entry points. Each script reads `results/`
-  and writes one HTML page. Fully vibe-coded.
-- `.github/workflows/`: CI. `dashboard-pages.yml` runs all `dashboards/gen_*.py`
+- `dashboards/index.py`: sole entry point for the full dashboard site. It
+  generates the index page and calls each `dashboards/gen_*.py` module's
+  `generate()`; those modules read `results/` and write one HTML page each,
+  but aren't run directly. `dashboards/index_comparison.py` is the separate
+  entry point for `pr-comparison.yml`'s ephemeral, per-PR results (see
+  COMPARISONS_PR.md). Fully vibe-coded.
+- `.github/workflows/`: CI. `dashboard-pages.yml` runs `dashboards/index.py`
   on pushes to `main`; `dashboard-preview-build.yml`/`dashboard-preview-deploy.yml`
   build and deploy a preview dashboard per results PR; `pr-comparison.yml` and
   `run-benchmarks.yml` drive the benchmark-running workflows.

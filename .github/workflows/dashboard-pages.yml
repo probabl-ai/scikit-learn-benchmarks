@@ -63,14 +63,14 @@ jobs:
       - name: Generate dashboards
         run: |
           mkdir -p _site
-          for script in dashboards/gen_*.py; do
-            # --frozen: without it, `pixi run` re-verifies the whole
-            # workspace lockfile is up to date, which canonicalizes every
-            # environment's path dependencies - including sklearn-dev's
-            # local scikit-learn checkout (sklearn-src), which doesn't exist
-            # on this runner. See the setup-pixi `frozen: true` note above.
-            pixi run --frozen -e reporting python "$script" --output-dir _site
-          done
+          # --frozen: without it, `pixi run` re-verifies the whole
+          # workspace lockfile is up to date, which canonicalizes every
+          # environment's path dependencies - including sklearn-dev's
+          # local scikit-learn checkout (sklearn-src), which doesn't exist
+          # on this runner. See the setup-pixi `frozen: true` note above.
+          # dashboards/index.py is the sole dashboard-site entry point - it
+          # generates every dashboard plus the index page itself.
+          pixi run --frozen -e reporting python dashboards/index.py --output-dir _site
 
       - name: Check out persisted dashboard snapshots
         # deploy-pages replaces the whole site on every run, so snapshots

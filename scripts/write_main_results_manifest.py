@@ -6,11 +6,11 @@ the previously-deployed site instead of re-benchmarking scikit-learn `main`
 
 Only files belonging to a `...:main` build are listed, never the PR
 branch's own (which changes every push and would otherwise get reused as a
-stale second build by pr_comparison_dashboard.py, which expects exactly one
-base + one variant build per env).
+stale second build by dashboards/index_comparison.py, which expects exactly
+one base + one variant build per env).
 
 Must be run with `results/` (relative to cwd) as the same benchmark results
-directory pr_comparison_dashboard.py reads - see that script's module
+directory dashboards/index_comparison.py reads - see that script's module
 docstring and .github/workflows/pr-comparison.yml's RESULTS_DIR comment.
 """
 

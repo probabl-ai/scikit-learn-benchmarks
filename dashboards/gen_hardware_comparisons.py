@@ -27,8 +27,9 @@ from dataclasses import dataclass, replace
 from html import escape
 from itertools import permutations
 import json
+from pathlib import Path
 
-from dashboards import GPU_NAMES, HARDWARE_NAMES, dashboard_output_path
+from dashboards import GPU_NAMES, HARDWARE_NAMES
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -517,7 +518,7 @@ def render_selector(all_results: list[MethodResult]) -> str:
     """
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     all_results = [
         _drop_metrics_and_reliability_signals(result)
         for result in read_all_results()
@@ -529,6 +530,6 @@ if __name__ == "__main__":
         rows=[render_selector(all_results)],
     )
 
-    output = dashboard_output_path("hardware_comparisons.html")
+    output = output_dir / "hardware_comparisons.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")
