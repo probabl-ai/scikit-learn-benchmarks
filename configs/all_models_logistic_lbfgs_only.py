@@ -18,6 +18,12 @@ EXTRA_SCALES = [10, 40, 60]
 # thread count happens to be the ambient default on the runner.
 BLAS_THREAD_COUNTS = [1, 4, None]
 
+# The PR's effect is specific to F-order X (see LinearModelLoss.loss_gradient's
+# GEMV). Force both orders explicitly on every case - including real datasets,
+# which real_datasets.py otherwise loads as C-order - so the sweep covers the
+# PR's affected path (F) and its unaffected control (C).
+DATA_ORDERS = ["C", "F"]
+
 
 def _is_target(case) -> bool:
     solver = case.algorithm.estimator_params.get("solver", "lbfgs")
@@ -60,6 +66,10 @@ def _with_blas_threads(case: dict, n_threads: int | None) -> dict:
     }
 
 
+def _with_order(case: dict, order: str) -> dict:
+    return {**case, "data": {**case.get("data", {}), "order": order}}
+
+
 def generate_cases() -> list[dict]:
     # all_models.generate_cases() returns EstimatorCase objects, not plain
     # dicts, despite its own type hint - its last filtering step
@@ -73,7 +83,8 @@ def generate_cases() -> list[dict]:
     cases.extend(_extra_scale_cases())
 
     return [
-        _with_blas_threads(case, n_threads)
+        _with_blas_threads(_with_order(case, order), n_threads)
         for case in cases
+        for order in DATA_ORDERS
         for n_threads in BLAS_THREAD_COUNTS
     ]
