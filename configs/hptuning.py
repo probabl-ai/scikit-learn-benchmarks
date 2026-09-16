@@ -125,36 +125,6 @@ REAL_DATASET_CASES = [
             }
         }
     ),
-    # KMeans (scored on silhouette)
-    (
-        ("road_network_points", None),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [5, 10, 15, 20],
-            }
-        }
-    ),
-    (
-        ("sift", None),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [5, 10, 15, 20],
-            }
-        }
-    ),
-    (
-        # Downsampled so a many-cluster search still lands near ~5s/fit
-        # (nytimes_256 is 290k rows full-size - see real_datasets.py).
-        ("nytimes_256", 50_000),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [50, 100, 200],
-            }
-        }
-    ),
     # HGB
     (
         ("ames_housing", None, "hgb"),
@@ -205,6 +175,39 @@ REAL_DATASET_CASES = [
     ),
 ]
 
+
+KMEANS_CASES = [
+    # KMeans (scored on silhouette); SKIPPED FOR NOW;
+    (
+        ("road_network_points", None),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [5, 10, 15, 20],
+            }
+        }
+    ),
+    (
+        ("sift", None),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [5, 10, 15, 20],
+            }
+        }
+    ),
+    (
+        # Downsampled so a many-cluster search still lands near ~5s/fit
+        # (nytimes_256 is 290k rows full-size - see real_datasets.py).
+        ("nytimes_256", 50_000),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [50, 100, 200],
+            }
+        }
+    ),
+]
 
 def _split_search_space(search_space: dict) -> tuple[dict, dict]:
     _FAMILY_PREFIXES = {"estimator": "estimator__", "encoder": "preprocessor__encoder__"}
