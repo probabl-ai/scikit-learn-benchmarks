@@ -100,6 +100,7 @@ class RowInputs:
     case: dict
     software_hash: str
     library: str
+    category: str
     data_desc: dict
     attributes: dict
     status: str
@@ -110,6 +111,7 @@ def _method_result_inputs(result: MethodResult) -> RowInputs:
         case=result.case,
         software_hash=result.software_hash,
         library=result.implementation.library,
+        category=result.category,
         data_desc=result.data_desc or {},
         attributes=result.attributes or {},
         status="ok",
@@ -122,6 +124,7 @@ def _failed_record_inputs(record: BenchmarkRecord) -> RowInputs:
         case=record.case,
         software_hash=record.software_hash,
         library=record.implementation.library,
+        category=record.category,
         # No run ever happened, so there's no measured data_desc - the
         # config's own declared shape is the closest equivalent, and matches
         # what a successful run of the same case would have reported.
@@ -255,8 +258,10 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
     configs/synthetic_trees.py and append_max_bins_warning in matching.py).
-    Empty for sklearn, which doesn't vary this param in these benchmarks."""
-    if inputs.library != "sklearnex":
+    Empty for sklearn (doesn't vary this param) and for non-tree estimators
+    (max_bins isn't a thing for them, same "tree-based" split MethodResult
+    uses for `is_sklearnex_tree`)."""
+    if inputs.library != "sklearnex" or inputs.category != "tree-based":
         return None
     estimator_params = inputs.case.get("algorithm", {}).get("estimator_params", {})
     if "max_bins" not in estimator_params:
@@ -329,6 +334,24 @@ def _status_column_visible(rows: list[dict]) -> bool:
     return any(row["status"] != "ok" for row in rows)
 
 
+def _omp_column_visible(field: str) -> Callable[[list[dict]], bool]:
+    """OpenMP/OMP-active-wait columns only mean anything for HGB's own
+    thread pool (see `_row_openmp`/`_row_omp_active_wait`) - showing them for
+    a table of, say, Ridge results would just be noise from whatever build
+    happened to run alongside. Visible only once the table has an HGB row
+    *and* the value varies across those HGB rows."""
+
+    def _visible(rows: list[dict]) -> bool:
+        hgb_rows = [
+            row
+            for row in rows
+            if str(row.get("estimator", "")).startswith("HistGradientBoosting")
+        ]
+        return bool(hgb_rows) and _varies_across(hgb_rows, field)
+
+    return _visible
+
+
 @dataclass(frozen=True)
 class ColumnGroupSpec:
     """One family of dynamically-named columns, one per key that varies
@@ -377,12 +400,14 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
     ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
     ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
-    ColumnSpec("OpenMP", "openmp", _row_openmp, ColumnVisibility.IF_VARIES),
+    ColumnSpec(
+        "OpenMP", "openmp", _row_openmp, custom_show=_omp_column_visible("openmp")
+    ),
     ColumnSpec(
         "OMP active wait",
         "omp_active_wait",
         _row_omp_active_wait,
-        ColumnVisibility.IF_VARIES,
+        custom_show=_omp_column_visible("omp_active_wait"),
     ),
     ColumnGroupSpec("hp", _row_hyperparams, HYPERPARAM_DISPLAY_ALLOWLIST),
     ColumnGroupSpec("env", _row_env),

@@ -274,9 +274,11 @@ if __name__ == "__main__":
         record for record in read_failed_records()
         if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
     ]
+    hardware_hashes_with_results = {res.hardware_hash for res in results}
     hardware_pages = [
         (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
         for hardware_hash, hardware_name in HARDWARE_NAMES.items()
+        if hardware_hash in hardware_hashes_with_results
     ]
 
     html = BASE_TEMPLATE.render(rows=[

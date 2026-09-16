@@ -480,6 +480,25 @@ def summarize_software_env(
     return out
 
 
+# Launch price (USD) and year of commercialization for the CPUs/GPUs seen in
+# results/hardware-envs/*.json. Not reported by py-cpuinfo/oneAPI, so hand-maintained
+# here, keyed by the exact name string those tools report. Most of these chips are
+# OEM-only (never sold as a standalone boxed/tray part), so "price" is the launch
+# price of the cheapest laptop/system that shipped with it, matching the actual
+# machine (laptop vs. server) each hash represents, rather than a per-chip price.
+HARDWARE_COMMERCIAL_INFO = {
+    "Intel(R) Core(TM) i3-7020U CPU @ 2.30GHz": {"price_usd": 281, "release_year": 2018},
+    "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
+    "Apple M4": {"price_usd": 1_599, "release_year": 2024},
+    "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    "Intel(R) Arc(TM) B390 GPU": {"price_usd": 2_399, "release_year": 2026},
+}
+
+
+def _commercial_info(name: str) -> dict:
+    return HARDWARE_COMMERCIAL_INFO.get(name, {"price_usd": None, "release_year": None})
+
+
 def summarize_hardware_env(env: dict):
     # same for hardware, but independant of implem
     cpu = env.get("CPU", {})
@@ -490,17 +509,21 @@ def summarize_hardware_env(env: dict):
     if drivers == {"level_zero", "opencl"}:
         gpus = {k: v for k, v in gpus.items() if k.startswith("level_zero")}
 
+    cpu_name = cpu.get("name", "?")
+
     return {
-        "cpu_name": cpu.get("name", "?"),
+        "cpu_name": cpu_name,
         "architecture": cpu.get("architecture", "?"),
         "logical_cpus": cpu.get("logical_cpus", "?"),
         "physical_cores": cpu.get("physical_cores", "?"),
         "ram_gb": env.get("RAM size[GB]", "?"),
+        **_commercial_info(cpu_name),
         "gpus": [
             {
                 "id": device_id,
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
+                **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()
         ],

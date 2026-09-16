@@ -9,9 +9,15 @@ from pathlib import Path
 # meant to be readable by non-hardware-specialists (relative age/power),
 # not model numbers or vendor codenames.
 HARDWARE_NAMES = {
-    "3b5e61": "Modern Intel laptop with GPU",
+    "3b5e61": "Modern Intel laptop",
     "534824": "High-end Intel server",
     "be1055": "Low-end Intel laptop",
+    "b281b2": "Apple M4",
+}
+
+GPU_NAMES = {
+    "3b5e61": "Modern Intel laptop GPU",
+    "b281b2": "Apple M4 GPU",
 }
 
 

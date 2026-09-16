@@ -364,13 +364,16 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
       <p>{{ cpu_name }}</p>
       <p class="muted">{{ architecture }}, {{ physical_cores }} physical cores, {{ logical_cpus }} logical CPUs</p>
       <p class="muted">{{ ram_gb }} GB RAM</p>
+      {% if price_usd %}
+      <p class="muted">${{ "{:,}".format(price_usd) }}, released {{ release_year }}</p>
+      {% endif %}
     </div>
     <div>
       <h3>GPU(s)</h3>
       {% if gpus %}
       <ul class="compact">
       {% for gpu in gpus %}
-        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB)</span></li>
+        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB{% if gpu.price_usd %}, ${{ "{:,}".format(gpu.price_usd) }}, released {{ gpu.release_year }}{% endif %})</span></li>
       {% endfor %}
       </ul>
       {% else %}
