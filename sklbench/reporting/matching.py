@@ -580,11 +580,18 @@ def has_cpu_fallback_warning(result: MethodResult) -> bool:
     return (
         "fallback from xpu to cpu" in text
         or ("aten op fallback" in text and "cpu" in text)
+        # pytorch's MPS backend (see PYTORCH_ENABLE_MPS_FALLBACK in
+        # pixi.toml) prints this - only once per unsupported op per process
+        # (TORCH_WARN_ONCE), not once per repeat - whenever an op it doesn't
+        # implement for MPS silently runs on the CPU instead, e.g.
+        # "The operator 'aten::linalg_svd' is not currently supported on
+        # the MPS backend and will fall back to run on the CPU."
+        or "not currently supported on the mps backend" in text
     )
 
 
 def append_cpu_fallback_warning(result: MethodResult, warnings: list):
-    if result.implementation.device not in {"cuda", "gpu", "xpu"}:
+    if result.implementation.device not in {"cuda", "gpu", "xpu", "mps"}:
         return
     if has_cpu_fallback_warning(result):
         warnings.append(CPU_FALLBACK_WARNING)

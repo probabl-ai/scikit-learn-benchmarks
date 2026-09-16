@@ -63,9 +63,7 @@ jobs:
       - name: Generate dashboards
         run: |
           mkdir -p _site
-          for script in dashboards/gen_*.py; do
-            pixi run --frozen -e reporting python "$script" --output-dir _site
-          done
+          pixi run --frozen -e reporting python dashboards/index.py --output-dir _site
 
       - name: Write preview metadata
         # PR number and head SHA only, read from the trusted event payload

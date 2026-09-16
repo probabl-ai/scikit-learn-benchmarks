@@ -50,9 +50,10 @@ name, shape), not just (estimator, dataset name).
 """
 from html import escape
 import json
+from pathlib import Path
 from statistics import mean, median
 
-from dashboards import HARDWARE_NAMES, dashboard_output_path
+from dashboards import HARDWARE_NAMES
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -377,7 +378,7 @@ def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> 
     return "".join(sections)
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     records = _dedup_latest(
         [record for record in read_benchmark_records() if _is_hptuning(record)]
     )
@@ -402,6 +403,6 @@ if __name__ == "__main__":
         title="hptuning outer-parallelism scalability",
         rows=[render_hardware_tabs(hardware_pages)],
     )
-    output = dashboard_output_path("hptuning_scalability.html")
+    output = output_dir / "hptuning_scalability.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

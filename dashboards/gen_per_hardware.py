@@ -1,4 +1,6 @@
-from dashboards import HARDWARE_NAMES, dashboard_output_path
+from pathlib import Path
+
+from dashboards import HARDWARE_NAMES
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
@@ -265,7 +267,7 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     results = [
         res for res in read_all_results()
         if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
@@ -274,9 +276,11 @@ if __name__ == "__main__":
         record for record in read_failed_records()
         if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
     ]
+    hardware_hashes_with_results = {res.hardware_hash for res in results}
     hardware_pages = [
         (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
         for hardware_hash, hardware_name in HARDWARE_NAMES.items()
+        if hardware_hash in hardware_hashes_with_results
     ]
 
     html = BASE_TEMPLATE.render(rows=[
@@ -284,6 +288,6 @@ if __name__ == "__main__":
         render_hardware_tabs(hardware_pages),
     ])
 
-    output = dashboard_output_path("per_hardware.html")
+    output = output_dir / "per_hardware.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

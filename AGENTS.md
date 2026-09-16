@@ -14,9 +14,13 @@
   dashboard HTML when `results/`, `sklbench/reporting/`, or `dashboards/` changes. Do not
   start a second watcher unless explicitly asked; use one-shot generator runs or
   `py_compile` only when a validation check is useful.
-- Dashboard entry points live in `dashboards/gen_*.py`, read benchmark data from
-  `results/`, and should write HTML through `dashboards/output.py` so
-  `--output-dir` works with the watcher and publishing workflow.
+- `dashboards/index.py` is the sole entry point for the full dashboard site
+  (pushes to `main`, PR previews, local `watch_dashboards.py`);
+  `dashboards/index_comparison.py` is the separate entry point for PR
+  comparison runs (see COMPARISONS_PR.md). Each other `dashboards/gen_*.py`
+  module reads benchmark data from `results/` and exposes a
+  `generate(output_dir)` function that these two call - it is not run
+  directly and takes no `--output-dir` of its own.
 - `sklbench/` is the local benchmark package. Changes under `sklbench/` belong
   to this repository.
 - Do not spend time preserving or normalizing LF vs CRLF line endings in this

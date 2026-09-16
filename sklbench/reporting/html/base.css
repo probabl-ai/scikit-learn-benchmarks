@@ -176,6 +176,34 @@ body.with-preprocessing .speedup-view-default {
 body.with-preprocessing .speedup-view-preprocessing {
   display: block;
 }
+.hw-compare-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.hw-compare-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hw-compare-row select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--text);
+  min-width: 220px;
+}
+.hw-compare-vs {
+  color: var(--muted);
+  font-weight: 600;
+  padding-bottom: 7px;
+}
 .plot-subtitle {
   margin: -6px 0 8px;
   font-size: 12px;

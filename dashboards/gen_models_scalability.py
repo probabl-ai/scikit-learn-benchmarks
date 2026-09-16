@@ -38,9 +38,10 @@ no other `dashboards/gen_*.py` imports from it - see e.g.
 gen_hgb_scalability_breakdown.py).
 """
 from html import escape
+from pathlib import Path
 from statistics import median
 
-from dashboards import HARDWARE_NAMES, dashboard_output_path
+from dashboards import HARDWARE_NAMES
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -305,7 +306,7 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
     return "".join(sections)
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     results = [
         result for result in read_all_results() if _is_models_scalability_result(result)
     ]
@@ -330,6 +331,6 @@ if __name__ == "__main__":
         title="Model thread-scalability",
         rows=[render_hardware_tabs(hardware_pages)],
     )
-    output = dashboard_output_path("models_scalability.html")
+    output = output_dir / "models_scalability.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

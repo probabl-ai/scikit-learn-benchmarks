@@ -4,12 +4,10 @@ import pytest
 
 from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
-    hgb_preprocessing,
-    linear_preprocessor,
+    PREPROCESSINGS,
     split_and_preprocess_data,
     split_data,
     train_test_split_wrapper,
-    trees_preprocessor,
 )
 
 # Ames Housing (`ames_housing` loader, openml id 42165): real dataset with both
@@ -120,10 +118,10 @@ def test_trees_preprocessor_encodes_real_categorical_columns(housing_data, encod
 
 
 def test_trees_preprocessor_one_hot_expands_more_columns_than_ordinal(housing_data):
-    ordinal_x_train, _ = trees_preprocessor(
+    ordinal_x_train, _ = PREPROCESSINGS["trees"](
         housing_data["x"], housing_data["x"], housing_data["y"], encoding="ordinal"
     )
-    one_hot_x_train, _ = trees_preprocessor(
+    one_hot_x_train, _ = PREPROCESSINGS["trees"](
         housing_data["x"], housing_data["x"], housing_data["y"], encoding="one-hot"
     )
 
@@ -131,7 +129,7 @@ def test_trees_preprocessor_one_hot_expands_more_columns_than_ordinal(housing_da
 
 
 def test_hgb_preprocessing_preserves_original_column_names(housing_data):
-    x_train, x_test = hgb_preprocessing(
+    x_train, x_test = PREPROCESSINGS["hgb"](
         housing_data["x"], housing_data["x"], housing_data["y"]
     )
 
@@ -140,7 +138,7 @@ def test_hgb_preprocessing_preserves_original_column_names(housing_data):
 
 
 def test_hgb_preprocessing_encodes_categoricals_as_category_dtype(housing_data):
-    x_train, x_test = hgb_preprocessing(
+    x_train, x_test = PREPROCESSINGS["hgb"](
         housing_data["x"], housing_data["x"], housing_data["y"]
     )
 
@@ -155,7 +153,7 @@ def test_hgb_preprocessing_encodes_categoricals_as_category_dtype(housing_data):
 def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
     housing_data,
 ):
-    x_train, x_test = linear_preprocessor(
+    x_train, x_test = PREPROCESSINGS["linear"](
         housing_data["x"], housing_data["x"], housing_data["y"], nystroem=None
     )
 
@@ -167,7 +165,7 @@ def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
 
 def test_linear_preprocessor_requires_y_train_for_target_encoding(housing_data):
     with pytest.raises(ValueError):
-        linear_preprocessor(
+        PREPROCESSINGS["linear"](
             housing_data["x"], housing_data["x"], None, nystroem=None
         )
 
