@@ -49,7 +49,7 @@ def _category_of(case: dict) -> str:
 
 def is_scaling_benchmark(result: "MethodResult | BenchmarkRecord") -> bool:
     """Results from a config meant for its own thread/size scaling dashboard
-    (e.g. `configs/hgb_scaling.py`) rather than for the general per-hardware,
+    (e.g. `configs/hgb_scalability.py`) rather than for the general per-hardware,
     build, or hardware comparison dashboards."""
     return result.benchmark_type == "scaling"
 
@@ -152,7 +152,7 @@ class MethodResult:
     software_hash: str
     method: str  # fit/predict
     timestamp_recorded: datetime
-    case: dict  # case without the "bench" key
+    case: dict  # case without "bench" (its "env" is kept, see _case_without_bench)
     times: list[float]  # in ms
     data_desc: dict
     metrics: dict[str, dict[str, list[Any]]]
@@ -300,6 +300,23 @@ def _runs_to_values(runs: list[dict]) -> dict:
     return values
 
 
+def _case_without_bench(raw_case: dict) -> dict:
+    """Strips the "bench" section (run mechanics: n_runs, time_limit,
+    cpu_affinity, profiling flags - none of which should affect case identity or
+    be shown in reports) while keeping `bench.env` under a top-level "env"
+    key. Env vars are the one bench.* field that can change what's actually
+    measured (e.g. a BLAS thread-count sweep via
+    OMP_NUM_THREADS/OPENBLAS_NUM_THREADS - see
+    configs/all_models_logistic_lbfgs_only.py), so they need to keep taking
+    part in case matching (`MethodResult.minimal_match_key`/`full_match_key`)
+    and be displayable (see `_row_env` in `sklbench/reporting/html/table.py`)."""
+    env = (raw_case.get("bench") or {}).get("env") or {}
+    case = without_keys(raw_case, excluded_names={"bench"})
+    if env:
+        case["env"] = env
+    return case
+
+
 def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
     """
     Read one-record-per-case benchmark files from `path`, defaulting to ./results/.
@@ -314,7 +331,17 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
             continue
 
         with open(result_path, "r") as f:
-            result_file = json.load(f)
+            content = f.read()
+        try:
+            result_file = json.loads(content)
+        except json.JSONDecodeError as e:
+            if content.startswith("version https://git-lfs.github.com/spec/"):
+                raise RuntimeError(
+                    f"{result_path} is an unfetched Git LFS pointer, not the "
+                    "actual result file. You likely forgot to `git lfs pull` "
+                    "(see CONTRIBUTING.md > Previewing Dashboards Locally)."
+                ) from e
+            raise
 
         hardware_hash = result_file["hardware_hash"]
         software_hash = result_file["software_hash"]
@@ -332,7 +359,7 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 hardware_hash=hardware_hash,
                 software_hash=software_hash,
                 timestamp_recorded=timestamp,
-                case=without_keys(result_file["case"], excluded_names={"bench"}),
+                case=_case_without_bench(result_file["case"]),
                 runs=result_file.get("results", []),
                 record_path=result_path,
                 profile_path=profile_path,
@@ -553,11 +580,18 @@ def has_cpu_fallback_warning(result: MethodResult) -> bool:
     return (
         "fallback from xpu to cpu" in text
         or ("aten op fallback" in text and "cpu" in text)
+        # pytorch's MPS backend (see PYTORCH_ENABLE_MPS_FALLBACK in
+        # pixi.toml) prints this - only once per unsupported op per process
+        # (TORCH_WARN_ONCE), not once per repeat - whenever an op it doesn't
+        # implement for MPS silently runs on the CPU instead, e.g.
+        # "The operator 'aten::linalg_svd' is not currently supported on
+        # the MPS backend and will fall back to run on the CPU."
+        or "not currently supported on the mps backend" in text
     )
 
 
 def append_cpu_fallback_warning(result: MethodResult, warnings: list):
-    if result.implementation.device not in {"cuda", "gpu", "xpu"}:
+    if result.implementation.device not in {"cuda", "gpu", "xpu", "mps"}:
         return
     if has_cpu_fallback_warning(result):
         warnings.append(CPU_FALLBACK_WARNING)

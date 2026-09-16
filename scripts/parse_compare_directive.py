@@ -6,7 +6,7 @@ Looks for a fenced code block:
 
     ```sklbench-compare
     sklearn_ref: cakedev0:ridge/optim_cholesky
-    runs: configs/hgb_scaling.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
+    runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
     ```
 
 `sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
@@ -25,12 +25,16 @@ classified by set membership, not position); a `#`-joined entry only ever
 has one trailing `config` token, since that's the only field whose values
 aren't drawn from a fixed set. Omitted `runner` defaults to `both`
 (intel-laptop and intel-gnr); omitted `env` defaults to `sklearn-dev`. So
-`configs/hgb_scaling.py` alone runs that config on both runners under
-sklearn-dev - the same as the single-config, no-envs directives from before
-this list syntax existed. `env` must be a pixi environment that
+`configs/hgb_scalability.py` alone runs that config on both runners under
+sklearn-dev. `env` must be a pixi environment that
 path-depends on `sklearn-src` (see pixi.toml) - currently `sklearn-dev` and
 `sklearn-dev-libomp` - since run.sh's `env@owner:ref` spec (used to run
 each tuple) only makes sense for those.
+
+Publishing one of this repo's other dashboards/gen_*.py dashboards
+alongside the always-generated pr_comparison.html table is a code change to
+dashboards/index_comparison.py (see that file), not a directive key - so
+there's no `dashboards:` key here.
 
 Validates its `key: value` lines and writes outcomes to $GITHUB_OUTPUT
 rather than communicating via exit code, so the calling workflow can branch

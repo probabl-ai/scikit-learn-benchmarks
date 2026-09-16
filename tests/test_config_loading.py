@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from sklbench.config import EstimatorCase, PipelineCase, load_cases_from_script
+from sklbench.config import BaseCase, EstimatorCase, HPTuningCase, load_cases_from_script
 
 
 SKLEARN_ENVS = [
@@ -15,14 +15,19 @@ SKLEARN_ENVS = [
     "sklearn-dev",
 ]
 GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]
-ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia"]
+ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"]
 
 ENV_SENSITIVE_CONFIGS = {
-    Path("configs/all_models_test.py"): ARRAY_API_ENVS,
+    Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
-    Path("configs/all_models_scaling.py"): GENERAL_ENVS,
     Path("configs/all_models_ridge_only.py"): ARRAY_API_ENVS,
+    Path("configs/models_scalability.py"): GENERAL_ENVS,
+    # hptuning.py only ever selects non-array-API (no data_library),
+    # CPU-or-unset-device implementations - the array-API-only envs
+    # (skl-cpu/skl-intel/skl-nvidia/skl-mps) would filter down to zero
+    # implementations and produce no cases.
+    Path("configs/hptuning.py"): GENERAL_ENVS,
 }
 
 
@@ -30,11 +35,16 @@ def test_load_cases_from_script_accepts_model_instances(tmp_path):
     config = tmp_path / "config.py"
     config.write_text(
         """
-from sklbench.config import PipelineCase
+from sklbench.config import Algorithm, Data, HPTuningCase
 
 
 def generate_cases():
-    return [PipelineCase()]
+    return [
+        HPTuningCase(
+            algorithm=Algorithm(estimator="Ridge"),
+            data=Data(source="make_regression"),
+        )
+    ]
 """,
         encoding="utf-8",
     )
@@ -42,7 +52,7 @@ def generate_cases():
     cases = load_cases_from_script(config)
 
     assert len(cases) == 1
-    assert isinstance(cases[0], PipelineCase)
+    assert isinstance(cases[0], HPTuningCase)
 
 
 def test_load_cases_from_script_accepts_estimator_dict(tmp_path):
@@ -81,11 +91,14 @@ def test_shipped_configs_generate_valid_cases(monkeypatch):
     # environment it supports, including GPU-only ones (skl-intel,
     # skl-nvidia) - independent of whether the machine actually running the
     # test has that GPU hardware. `filter_gpu_cases_if_unavailable` (see
-    # test_filter_gpu_cases_if_unavailable_*) is what makes that hardware
-    # check environment-dependent for real runs; pretend a GPU is always
-    # present here so this test keeps validating config *structure*.
+    # test_filter_gpu_cases_drops_gpu_cases_without_matching_hardware and
+    # test_filter_gpu_cases_keeps_gpu_cases_with_matching_hardware below) is
+    # what makes that hardware check environment-dependent for real runs;
+    # pretend a GPU is always present here so this test keeps validating
+    # config *structure*.
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
+    monkeypatch.setattr("sklbench.config.utils._mps_gpu_available", lambda: True)
 
     config_paths = sorted(
         path for path in Path("configs").glob("*.py") if not path.name.startswith("_")
@@ -104,31 +117,39 @@ def test_shipped_configs_generate_valid_cases(monkeypatch):
             cases = load_cases_from_script(path)
 
             assert cases
-            assert all(isinstance(case, EstimatorCase) for case in cases)
+            assert all(isinstance(case, BaseCase) for case in cases)
 
 
 def test_env_sensitive_configs_require_pixi_environment(monkeypatch):
     monkeypatch.delenv("PIXI_ENVIRONMENT_NAME", raising=False)
 
     with pytest.raises(ValueError, match="PIXI_ENVIRONMENT_NAME is not set"):
-        load_cases_from_script("configs/all_models_test.py")
+        load_cases_from_script("configs/smoke_check_test.py")
 
 
 def test_env_sensitive_configs_reject_unknown_pixi_environment(monkeypatch):
     monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "unknown")
 
     with pytest.raises(ValueError, match="Unsupported PIXI_ENVIRONMENT_NAME"):
-        load_cases_from_script("configs/all_models_test.py")
+        load_cases_from_script("configs/smoke_check_test.py")
 
 
 def test_all_models_configs_support_array_api_pixi_environments(monkeypatch):
     monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "skl-cpu")
 
-    cases = load_cases_from_script("configs/all_models_test.py")
+    cases = load_cases_from_script("configs/smoke_check_test.py")
 
     assert cases
     assert all(isinstance(case, EstimatorCase) for case in cases)
-    assert all(case.implementation.is_array_api() for case in cases)
+    # hgb_scalability.py's cases (metadata.benchmark_type == "scaling") are
+    # always plain sklearn regardless of Pixi environment - its
+    # thread-scaling/cpu_affinity sweep isn't an array-API concept - so
+    # they're excluded from this assertion.
+    non_scaling_cases = [
+        case for case in cases if case.metadata.get("benchmark_type") != "scaling"
+    ]
+    assert non_scaling_cases
+    assert all(case.implementation.is_array_api() for case in non_scaling_cases)
 
 
 def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
@@ -176,6 +197,11 @@ def _gpu_and_cpu_cases():
         {
             "algorithm": {"estimator": "Ridge"},
             "data": {"source": "make_regression"},
+            "implementation": {"library": "sklearn", "device": "mps"},
+        },
+        {
+            "algorithm": {"estimator": "Ridge"},
+            "data": {"source": "make_regression"},
             "implementation": {"library": "sklearnex", "device": "cpu"},
         },
         {
@@ -191,6 +217,7 @@ def test_filter_gpu_cases_drops_gpu_cases_without_matching_hardware(monkeypatch)
 
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: False)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: False)
+    monkeypatch.setattr("sklbench.config.utils._mps_gpu_available", lambda: False)
 
     kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
 
@@ -203,7 +230,8 @@ def test_filter_gpu_cases_keeps_gpu_cases_with_matching_hardware(monkeypatch):
 
     monkeypatch.setattr("sklbench.config.utils._oneapi_gpu_available", lambda: True)
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: False)
+    monkeypatch.setattr("sklbench.config.utils._mps_gpu_available", lambda: True)
 
     kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
 
-    assert [case["implementation"].get("device") for case in kept] == ["gpu", "cpu", None]
+    assert [case["implementation"].get("device") for case in kept] == ["gpu", "mps", "cpu", None]

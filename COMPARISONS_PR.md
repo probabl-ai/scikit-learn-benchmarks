@@ -7,7 +7,7 @@ somewhere in the PR description:
 
 ```sklbench-compare
 sklearn_ref: cakedev0:ridge/optim_cholesky
-runs: configs/hgb_scaling.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
+runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
 ```
 
 - `sklearn_ref` (required): the scikit-learn fork owner and branch/ref to
@@ -28,8 +28,8 @@ runs: configs/hgb_scaling.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
     both sides of the `sklearn_ref` vs `main` comparison for this entry.
     Defaults to `sklearn-dev` when omitted.
 
-  So `configs/hgb_scaling.py` alone runs that config on both runners under
-  `sklearn-dev` (the original, single-config/single-env behavior).
+  So `configs/hgb_scalability.py` alone runs that config on both runners under
+  `sklearn-dev`.
   `intel-gnr#sklearn-dev-libomp#configs/pipeline.py` runs only on `intel-gnr`,
   building both `main` and the PR ref under `sklearn-dev-libomp`, to isolate
   e.g. an OpenMP-runtime effect the way CONTRIBUTING.md's `run.sh` example
@@ -39,6 +39,29 @@ runs: configs/hgb_scaling.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
   results dir before it generates its one dashboard - so results from the
   same machine always land in the same dashboard, with an env/branch filter
   column to tell entries apart when more than one env is involved.
+
+To also publish one of this repo's other `dashboards/gen_*.py` dashboards
+against a run's accumulated results, alongside the always-generated
+before/after table, add a call to it from `dashboards/index_comparison.py`'s
+`__main__` (see that file) and include the edit in your PR - useful when
+`runs` includes a config whose results a more specialized existing
+dashboard reads better than the generic table.
+
+### Skipping the `main` re-benchmark
+
+Every push re-benchmarks scikit-learn `main` from scratch alongside the PR
+ref, even though `main` itself usually hasn't moved between two pushes on
+the same PR. Include `[skip main]` anywhere in the latest commit's message
+to skip re-benchmarking `main` and instead reuse the `main` results this
+runner's comparison last published, downloaded straight from its deployed
+site. This only affects `main`'s side of the comparison - the PR ref is
+always benchmarked fresh.
+
+If no such cached results are reachable yet (e.g. the first comparison on
+a PR/runner, or a previous run whose `main` benchmark never completed),
+`main` is benchmarked fresh anyway and a warning is logged in that run.
+The PR comment for each runner notes whether its `main` results were
+reused or freshly benchmarked.
 
 Only PRs opened by someone with write access to this repo (`OWNER`/`MEMBER`/
 `COLLABORATOR`) trigger the self-hosted benchmark run, and **the PR branch

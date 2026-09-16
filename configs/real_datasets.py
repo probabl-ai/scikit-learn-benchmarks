@@ -12,7 +12,7 @@ but kept as pandas `category` dtype, so HGB still uses its native
 categorical split rather than treating them as plain ordinals). Tuned the
 same way as the other models, with `early_stopping=False` fixed during the
 search - the goal is a realistic-but-fixed-cost HGB config, since
-`configs/hgb_scaling.py` reuses these exact cases (filtered to HGB only) for
+`configs/hgb_scalability.py` reuses these exact cases (filtered to HGB only) for
 its thread-scaling sweep, where a variable iteration count per thread count
 would confound the scaling measurement.
 
@@ -29,6 +29,7 @@ case each, run at library-default hyperparameters aside from `n_clusters`:
 unlike the linear/tree cases above, the interesting axis here is
 n_samples/n_clusters, not per-model hyperparameter tuning.
 """
+import os
 from typing import Callable, Iterable
 from math import floor
 
@@ -38,14 +39,21 @@ from sklbench.config.utils import select_logistic_regression_solver
 
 BENCH = {"n_runs": 1, "py_spy_profiling": False}
 
-# KMeans crashes (segfault / heap corruption) on this repo's many-core
-# machines when OpenMP spins up as many threads as there are cores, during
-# joblib/OpenMP nested parallelism - see
-# https://github.com/OpenMathLib/OpenBLAS/issues/5958. Cap it below that.
-KMEANS_BENCH = {"env": 
-    {"OMP_NUM_THREADS": "128"} if cpu_count(only_physical_cores=True) > 128
-    else {}
-}
+# KMeans crashes (segfault / heap corruption / OpenBLAS "too many memory
+# regions") on this repo's many-core machines: OpenBLAS's PyPI-wheel builds
+# (the "sklearn-pypi" pixi env) are precompiled with a hard 128-thread table,
+# use the pthreads backend, and default to spinning up one thread per
+# *logical* CPU - see https://github.com/OpenMathLib/OpenBLAS/issues/5958.
+# Cap it below that. OMP_NUM_THREADS alone doesn't reach this pool (it's not
+# OpenMP-threaded), hence the separate OPENBLAS_NUM_THREADS; other envs'
+# OpenBLAS builds aren't affected by this, so it's only set there to avoid
+# needlessly throttling their thread usage.
+_KMEANS_ENV = {}
+if cpu_count() > 128:
+    _KMEANS_ENV["OMP_NUM_THREADS"] = "128"
+    if os.environ.get("PIXI_ENVIRONMENT_NAME") == "sklearn-pypi":
+        _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "128"
+KMEANS_BENCH = {"env": _KMEANS_ENV}
 
 N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
 # RF/ET n_estimators below are `max(<tuned floor>, N_JOBS * 3)`: use at least
@@ -116,6 +124,13 @@ def ames_housing(implem: dict):
     yield {
         "estimator": "Ridge",
         "estimator_params": {"alpha": 1.0},
+    }
+    # Same case, tagged for the "test" exploratory matrix (configs/smoke_check_test.py):
+    yield {
+        "estimator": "Ridge",
+        "estimator_params": {"alpha": 1.0},
+        "tier": "test",
+        "bench": {"time_limit": 30},
     }
     # RandomForestRegressor, trees/ordinal: test R2 0.89
     yield {
@@ -288,12 +303,12 @@ def covtype(implem: dict):
     }
     if implem["library"] == "sklearn":
         # HistGradientBoostingClassifier, hgb/native-categorical: ROC AUC
-        # (OVR, weighted) 0.992
+        # (OVR, weighted) 0.995.
         yield {
             "estimator": "HistGradientBoostingClassifier",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 100,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
@@ -334,12 +349,12 @@ def susy(implem: dict):
     if implem["library"] == "sklearn":
         # HistGradientBoostingClassifier, hgb (no categorical columns, so
         # this is a no-op passthrough - kept for consistency with the other
-        # cases below): ROC AUC 0.878
+        # cases below): ROC AUC 0.876.
         yield {
             "estimator": "HistGradientBoostingClassifier",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 70,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
@@ -380,13 +395,13 @@ def year_prediction_msd(implem: dict):
     }
     if implem["library"] == "sklearn":
         # HistGradientBoostingRegressor, hgb (no categorical columns): test
-        # R2 0.314 - better than both Ridge and RandomForest above, though
+        # R2 0.304 - better than both Ridge and RandomForest above, though
         # still firmly in "inherently hard task" territory like they are.
         yield {
             "estimator": "HistGradientBoostingRegressor",
             "estimator_params": {
                 "learning_rate": 0.070,
-                "max_iter": 200,
+                "max_iter": 100,
                 "max_leaf_nodes": 127,
                 "min_samples_leaf": 5,
                 "l2_regularization": 0.05,
@@ -626,15 +641,6 @@ def nytimes_256(implem: dict):
         "estimator": "KMeans",
         "estimator_params": {"n_clusters": 100},
         "tier": "normal",
-        "bench": KMEANS_BENCH,
-    }
-    # Small subsample via split_kwargs: a near-instant sanity-check case for
-    # validating the config wiring, not a realistic workload.
-    yield {
-        "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 5},
-        "split_kwargs": {"train_size": 2000, "test_size": 200},
-        "tier": "test",
         "bench": KMEANS_BENCH,
     }
 

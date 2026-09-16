@@ -24,7 +24,7 @@ import re
 import sys
 
 ENV_HEADER_RE = re.compile(r"^=== pixi run(?: --\S+)* -e (\S+) .* ===\s*$")
-PROGRESS_RE = re.compile(r"^\[sklbench\] (\d+)/(\d+) ")
+PROGRESS_RE = re.compile(r"^\[\d{2}:\d{2}:\d{2}\] (\d+)/(\d+) ")
 FAILURE_RE = re.compile(
     r"WARNING - sklbench\.orchestrator\.implementation - "
     r"(?:Benchmark|Profiling benchmark|Benchmark setup) failed for '[^']*' "

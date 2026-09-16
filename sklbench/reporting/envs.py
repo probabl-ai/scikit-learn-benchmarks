@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+from typing import Callable
 from urllib.parse import quote
 
 from .matching import Implementation
@@ -23,9 +24,9 @@ def read_env(kind: str, hash: str):
 # results from all of them report implementation.short_name == "sklearn".
 # Dashboards that compare implementations against a single sklearn baseline
 # should restrict to this one to avoid ambiguous matches.
-# "sklearn" was the pixi environment's name before the 2026-08-13 pixi.toml
-# rename to "sklearn-pypi"; results captured before that rename still record
-# the old name, so both must match.
+# Older result files record the pixi environment name as "sklearn"; newer
+# ones use "sklearn-pypi". Both must match so historical results are still
+# picked up.
 VANILLA_SKLEARN_PIXI_ENVS = {"sklearn", "sklearn-pypi"}
 
 
@@ -124,18 +125,25 @@ def _current_results_ref() -> str:
 
 
 def github_raw_url(path: Path | str) -> str:
+    # media.githubusercontent.com/media/{repo}/{ref}/{path}, not
+    # github.com/{repo}/raw/{ref}/{path}: the latter 404s for refs outside
+    # branches/commits/tags, e.g. the `refs/pull/<n>/merge` ref GITHUB_REF
+    # holds on `pull_request`-triggered workflow runs (see pr-comparison.yml),
+    # which is exactly the ref PR comparison dashboards resolve to here.
+    # Also not raw.githubusercontent.com/{repo}/{ref}/{path}: `results/**` is
+    # Git-LFS-tracked (see .gitattributes), and raw.githubusercontent.com
+    # serves the LFS pointer text file instead of the actual file content for
+    # LFS-tracked paths. media.githubusercontent.com is GitHub's LFS media
+    # endpoint and resolves refs the same way, but serves real file bytes.
     path = Path(path).as_posix().lstrip("/")
-    return (
-        f"https://github.com/{RESULTS_REPOSITORY}/raw/{_current_results_ref()}/"
-        f"{path}"
-    )
+    return f"https://media.githubusercontent.com/media/{RESULTS_REPOSITORY}/{_current_results_ref()}/{path}"
 
 
 def external_viewer_url(viewer_base_url: str, target_url: str) -> str:
     """Wrap `target_url` for one of the `*_VIEWER_BASE_URL` viewer apps.
     Exposed (not just used internally by `json_viewer_url`/`profile_viewer_url`
     below) so callers with a `target_url` that isn't a `github_raw_url` -
-    e.g. pr_comparison_dashboard.py linking to files it copied onto the
+    e.g. dashboards/index_comparison.py linking to files it copied onto the
     ephemeral Cloudflare Pages site instead - can still reuse the query-string
     format the viewer apps expect."""
     return f"{viewer_base_url}?url={quote(target_url, safe='')}"
@@ -152,6 +160,35 @@ def profile_viewer_url(path: Path | str) -> str:
 def software_env_json_url(software_hash: str) -> str:
     raw_url = github_raw_url(f"results/software-envs/{software_hash}.json")
     return f"{JSON_VIEWER_BASE_URL}?url={quote(raw_url, safe='')}"
+
+
+def hosted_viewer_url_fn(
+    viewer_base_url: str,
+    fallback: Callable[[Path], str],
+    site_base_url: str | None,
+) -> Callable[[Path], str]:
+    """Build a `json_url_fn`/`profile_url_fn` (see `summarize_software_env`,
+    `detailed_results_table_html`) for results that may be ephemeral (never
+    committed to `results/`, e.g. PR-comparison runs - see
+    .github/workflows/pr-comparison.yml), where `json_viewer_url`/
+    `profile_viewer_url`'s GitHub-raw-URL links would 404 since the
+    underlying file doesn't exist at any repo ref. When the CI job tells us
+    where this run's site will be deployed (`SKLBENCH_PR_COMPARE_SITE_URL`),
+    link the viewer straight at that to-be-deployed path instead - the whole
+    `results/` tree is copied onto the site wholesale by a CI step (see
+    pr-comparison.yml's "Copy results to site"), so no copying needs to
+    happen here. Without a known site URL (e.g. a local ephemeral results/
+    dir), fall back to the normal GitHub-raw-URL link rather than fail
+    outright.
+    """
+
+    def build(record_path: Path) -> str | None:
+        if site_base_url is None:
+            return fallback(record_path)
+        hosted_url = f"{site_base_url}/{record_path.as_posix()}"
+        return external_viewer_url(viewer_base_url, hosted_url)
+
+    return build
 
 
 # Packages this benchmark suite can build from an arbitrary git checkout
@@ -258,6 +295,23 @@ def openmp_runtime_family(software_hash: str) -> str:
     return _openmp_runtime_family(info) if info else "unknown OpenMP runtime"
 
 
+# Short labels for `openmp_runtime_family`'s values, for compact display
+# (table columns, tab labels) - shared so every dashboard/table using this
+# renders the same "libgomp"/"libomp" wording.
+OPENMP_FAMILY_SHORT_LABELS = {
+    "GNU libgomp": "libgomp",
+    "Intel/LLVM OpenMP": "libomp",
+}
+
+
+def openmp_runtime_short_label(software_hash: str) -> str:
+    """`openmp_runtime_family(software_hash)`, shortened via
+    `OPENMP_FAMILY_SHORT_LABELS` (falls back to the full family string for
+    "unknown OpenMP runtime")."""
+    family = openmp_runtime_family(software_hash)
+    return OPENMP_FAMILY_SHORT_LABELS.get(family, family)
+
+
 def _openmp_env_value(info: dict, var_name: str) -> str | None:
     for key, value in info.items():
         if key == var_name or key.endswith(f" {var_name}"):
@@ -320,6 +374,22 @@ def active_wait_label_suffix(active_wait: bool) -> str:
     return "" if active_wait else " (no active wait)"
 
 
+def case_proc_bind(case_env: dict | None) -> str | None:
+    """A case's explicit `OMP_PROC_BIND` override (`bench.env`), or `None` if
+    it didn't set one - same "only the explicit override, no ambient-default
+    fallback" rule as `_openmp_summary`'s OMP_PROC_BIND line, since the
+    build's own captured value isn't a meaningful default for thread
+    affinity."""
+    return (case_env or {}).get("OMP_PROC_BIND")
+
+
+def proc_bind_label_suffix(proc_bind: str | None) -> str:
+    """The shared tab-label suffix for a case's explicit `OMP_PROC_BIND`
+    override (`case_proc_bind`), distinguishing it from the default
+    (unset/ambient) proc-bind behavior."""
+    return f" (proc_bind={proc_bind})" if proc_bind is not None else ""
+
+
 def _openmp_summary(env: dict, case_env: dict | None = None) -> list[str]:
     info = env.get("openmp_runtime_info")
     if not info:
@@ -380,6 +450,7 @@ def summarize_software_env(
     *,
     software_hash: str | None = None,
     case_env: dict | None = None,
+    json_url_fn: Callable[[Path], str] | None = None,
 ):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
@@ -400,10 +471,32 @@ def summarize_software_env(
         "openmp": _openmp_summary(env, case_env),
     }
     if software_hash is not None:
-        out["software_env_json_url"] = software_env_json_url(software_hash)
+        record_path = Path(f"results/software-envs/{software_hash}.json")
+        out["software_env_json_url"] = (
+            json_url_fn(record_path) if json_url_fn is not None else software_env_json_url(software_hash)
+        )
     if implementation.library == "sklearn" and implementation.data_library:
         out["array_api_docs_url"] = "https://scikit-learn.org/stable/modules/array_api.html"
     return out
+
+
+# Launch price (USD) and year of commercialization for the CPUs/GPUs seen in
+# results/hardware-envs/*.json. Not reported by py-cpuinfo/oneAPI, so hand-maintained
+# here, keyed by the exact name string those tools report. Most of these chips are
+# OEM-only (never sold as a standalone boxed/tray part), so "price" is the launch
+# price of the cheapest laptop/system that shipped with it, matching the actual
+# machine (laptop vs. server) each hash represents, rather than a per-chip price.
+HARDWARE_COMMERCIAL_INFO = {
+    "Intel(R) Core(TM) i3-7020U CPU @ 2.30GHz": {"price_usd": 281, "release_year": 2018},
+    "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
+    "Apple M4": {"price_usd": 1_599, "release_year": 2024},
+    "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    "Intel(R) Arc(TM) B390 GPU": {"price_usd": 2_399, "release_year": 2026},
+}
+
+
+def _commercial_info(name: str) -> dict:
+    return HARDWARE_COMMERCIAL_INFO.get(name, {"price_usd": None, "release_year": None})
 
 
 def summarize_hardware_env(env: dict):
@@ -416,17 +509,21 @@ def summarize_hardware_env(env: dict):
     if drivers == {"level_zero", "opencl"}:
         gpus = {k: v for k, v in gpus.items() if k.startswith("level_zero")}
 
+    cpu_name = cpu.get("name", "?")
+
     return {
-        "cpu_name": cpu.get("name", "?"),
+        "cpu_name": cpu_name,
         "architecture": cpu.get("architecture", "?"),
         "logical_cpus": cpu.get("logical_cpus", "?"),
         "physical_cores": cpu.get("physical_cores", "?"),
         "ram_gb": env.get("RAM size[GB]", "?"),
+        **_commercial_info(cpu_name),
         "gpus": [
             {
                 "id": device_id,
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
+                **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()
         ],

@@ -12,9 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..config import Case, EstimatorCase, PipelineCase
+from ..config import Case, EstimatorCase, HPTuningCase
 from .commands import run_runner_from_case
 from .env import get_environment_info
+from .system_monitor import SystemMonitor
 
 logger = logging.getLogger(__name__)
 _UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -52,8 +53,38 @@ def _truncate_log(log: str) -> str:
     return f"... truncated ...\n{log[-_MAX_LOG_CHARS:]}"
 
 
-def _print_progress_line(index: int, total: int, case_name: str) -> None:
-    print(f"[sklbench] {index}/{total} {case_name}", file=sys.stderr)
+def _extract_shape(rows: list[dict] | None) -> tuple[int | None, int | None]:
+    if not rows:
+        return None, None
+    data_desc = rows[0].get("data_desc")
+    if not isinstance(data_desc, dict):
+        return None, None
+    if "n_samples" in data_desc:
+        return data_desc.get("n_samples"), data_desc.get("n_features")
+    fit_desc = data_desc.get("fit")
+    if isinstance(fit_desc, dict):
+        return fit_desc.get("samples"), fit_desc.get("features")
+    return None, None
+
+
+def _print_progress_line(
+    index: int,
+    total: int,
+    case_name: str,
+    duration_s: float,
+    n_samples: int | None,
+    n_features: int | None,
+) -> None:
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    shape = (
+        f"{n_samples} x {n_features}"
+        if n_samples is not None and n_features is not None
+        else "? x ?"
+    )
+    print(
+        f"[{timestamp}] {index}/{total} {case_name} {shape} - took {duration_s:.0f}s",
+        file=sys.stderr,
+    )
 
 
 def _warmup(duration_s: float = 30) -> None:
@@ -173,6 +204,7 @@ def save_benchmark_record(
     failed_case: dict | None,
     hardware_hash: str,
     software_hash: str,
+    system_telemetry: list[dict] | None = None,
 ):
     record_path.parent.mkdir(parents=True, exist_ok=True)
     record = {
@@ -182,18 +214,30 @@ def save_benchmark_record(
         "results": rows,
         "failed_case": failed_case,
     }
+    if system_telemetry:
+        # Only the samples that fell within this case's own wall-clock
+        # window (see `SystemMonitor.samples_between`) - omitted entirely
+        # rather than an empty list when there are none, so a boring
+        # sub-second case's record doesn't carry the key at all. The
+        # complete, uninterrupted session log still lives in
+        # results/system-telemetry/ regardless of what's embedded here.
+        record["system_telemetry"] = system_telemetry
     with record_path.open("x", encoding="utf-8") as fp:
         json.dump(record, fp, indent=4)
 
 
-def _load_case_dataset(bench_case: Case) -> None:
-    if isinstance(bench_case, EstimatorCase):
-        from ..runners.datasets import load_raw_data as load_data
-    elif isinstance(bench_case, PipelineCase):
-        from ..runners.pipeline import load_data
+def _load_case_dataset(bench_case: Case) -> tuple[int | None, int | None]:
+    if isinstance(bench_case, (EstimatorCase, HPTuningCase)):
+        from ..runners.datasets import load_raw_data
+
+        raw_data, _ = load_raw_data(bench_case)
+        x = raw_data.get("x", raw_data.get("x_train"))
     else:
         raise TypeError(f"Unsupported case type: {type(bench_case)!r}")
-    load_data(bench_case)
+    if x is None:
+        return None, None
+    n_features = x.shape[1] if len(x.shape) == 2 else None
+    return x.shape[0], n_features
 
 
 def load_datasets_only(bench_cases: list[Case], args) -> int:
@@ -206,15 +250,24 @@ def load_datasets_only(bench_cases: list[Case], args) -> int:
     n_cases = len(bench_cases)
     for index, bench_case in enumerate(bench_cases, start=1):
         case_name = bench_case.name(shortened=True)
+        case_start = time.monotonic()
+        n_samples, n_features = None, None
         try:
-            _load_case_dataset(bench_case)
+            n_samples, n_features = _load_case_dataset(bench_case)
         except Exception as exc:
             return_code = -1
             logger.warning(f"Failed to load dataset for {case_name!r}: {exc!r}")
             if args.exit_on_error:
                 break
         finally:
-            _print_progress_line(index, n_cases, case_name)
+            _print_progress_line(
+                index,
+                n_cases,
+                case_name,
+                time.monotonic() - case_start,
+                n_samples,
+                n_features,
+            )
     return return_code
 
 
@@ -245,7 +298,42 @@ def orchestrate_benchmarks(
     records_dir = results_root / "records"
     profiles_dir = results_root / "profiles"
 
+    system_monitor = SystemMonitor(
+        results_root / "system-telemetry" / f"{hardware_hash}_{_timestamp()}.jsonl",
+        interval=args.system_telemetry_interval,
+        percpu=args.system_telemetry_percpu,
+    )
+    system_monitor.start()
+
     n_cases = len(bench_cases)
+    try:
+        return_code = _run_all_cases(
+            bench_cases,
+            args,
+            return_code,
+            records_dir,
+            profiles_dir,
+            hardware_hash,
+            software_hash,
+            n_cases,
+            system_monitor,
+        )
+    finally:
+        system_monitor.stop()
+    return return_code
+
+
+def _run_all_cases(
+    bench_cases: list[Case],
+    args,
+    return_code: int,
+    records_dir: Path,
+    profiles_dir: Path,
+    hardware_hash: str,
+    software_hash: str,
+    n_cases: int,
+    system_monitor: SystemMonitor,
+) -> int:
     for index, bench_case in enumerate(bench_cases, start=1):
         basename = _case_basename(bench_case)
         record_path = records_dir / f"{basename}.json"
@@ -253,6 +341,10 @@ def orchestrate_benchmarks(
         record_saved = False
         cprofile_already_run = False
         case_name = bench_case.name(shortened=True)
+        system_monitor.set_current_case(index, case_name)
+        case_start = time.monotonic()
+        case_start_wall = datetime.now(timezone.utc)
+        rows = None
         try:
             normal_run_start = time.monotonic()
             bench_return_code, rows, failed_case = run_runner_from_case(bench_case)
@@ -264,6 +356,9 @@ def orchestrate_benchmarks(
                 failed_case,
                 hardware_hash,
                 software_hash,
+                system_telemetry=system_monitor.samples_between(
+                    case_start_wall, datetime.now(timezone.utc)
+                ),
             )
             record_saved = True
             if bench_return_code != 0:
@@ -294,14 +389,18 @@ def orchestrate_benchmarks(
                     if profile_return_code == 0:
                         _gzip_file(raw_profile_path, profile_path)
 
-                if profile_return_code == -9 and not bench_case.bench.cprofile_profiling:
-                    # py-spy timed out - cProfile doesn't share its ptrace/
-                    # scheduler-churn failure modes, so fall back to it for
-                    # this case instead of losing the profile entirely.
+                if profile_return_code != 0 and not bench_case.bench.cprofile_profiling:
+                    # py-spy failed - could be a timeout (-9), or py-spy
+                    # simply not usable here (e.g. on macOS, `--native` is
+                    # unsupported outright and plain py-spy requires root).
+                    # cProfile doesn't share any of py-spy's failure modes,
+                    # so fall back to it for this case instead of losing the
+                    # profile entirely / failing the whole run over a
+                    # profiler-only problem.
                     _log_failed_case(
                         bench_case,
                         profile_failed_case,
-                        stage="Profiling benchmark (py-spy timed out, falling back to cProfile)",
+                        stage="Profiling benchmark (py-spy failed, falling back to cProfile)",
                         return_code=profile_return_code,
                     )
                     profile_return_code, profile_failed_case = _run_cprofile_pass(
@@ -387,5 +486,13 @@ def orchestrate_benchmarks(
             if args.exit_on_error:
                 break
         finally:
-            _print_progress_line(index, n_cases, case_name)
+            n_samples, n_features = _extract_shape(rows)
+            _print_progress_line(
+                index,
+                n_cases,
+                case_name,
+                time.monotonic() - case_start,
+                n_samples,
+                n_features,
+            )
     return return_code

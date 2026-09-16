@@ -1,9 +1,6 @@
 from pathlib import Path
-import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
-from dashboards.output import dashboard_output_path
+from dashboards import HARDWARE_NAMES
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
@@ -33,10 +30,6 @@ from sklbench.reporting.html import (
 )
 
 
-HARDWARE_NAMES = {
-    "534824": "Intel GNR 172 CPU cores",
-    "3b5e61": "Intel laptop with B390 GPU",
-}
 BASE_IMPLEMENTATION = "sklearn"
 
 
@@ -50,8 +43,8 @@ def is_array_api_variant(result: MethodResult | BenchmarkRecord) -> bool:
 
 def is_sklearn_dev_variant(result: MethodResult | BenchmarkRecord) -> bool:
     """`sklearn-dev`/`sklearn-dev-libomp`/... builds get their own dedicated
-    branch-vs-branch dashboards (gen_sklearn_dev_comparison.py,
-    gen_hgb_speedup_breakdown.py) rather than being folded in here as more
+    branch-vs-branch dashboards (gen_hgb_dev_scalability_breakdown.py,
+    gen_hgb_dev_speedup_breakdown.py) rather than being folded in here as more
     build variants."""
     return is_sklearn_dev_build(software_build_name(result.software_hash))
 
@@ -254,7 +247,7 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     results = [
         res for res in read_all_results()
         if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
@@ -263,9 +256,11 @@ if __name__ == "__main__":
         record for record in read_failed_records()
         if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
     ]
+    hardware_hashes_with_results = {res.hardware_hash for res in results}
     hardware_pages = [
         (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
         for hardware_hash, hardware_name in HARDWARE_NAMES.items()
+        if hardware_hash in hardware_hashes_with_results
     ]
 
     html = BASE_TEMPLATE.render(
@@ -275,6 +270,6 @@ if __name__ == "__main__":
         ],
     )
 
-    output = dashboard_output_path("builds_comparison.html")
+    output = output_dir / "builds_comparison.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

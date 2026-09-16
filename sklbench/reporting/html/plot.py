@@ -259,30 +259,6 @@ def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
     return None
 
 
-def _log_size(entry) -> float | None:
-    """log2(n_samples * n_features) for a Match or `_FailedMatch`, used by
-    `_size_jitter` to spread same-column points by dataset size. Synthetic
-    datasets carry n_samples/n_features in generation_kwargs; real datasets
-    only have them in data_desc."""
-    result = entry.matched_result
-    generation_kwargs = result.case.get("data", {}).get("generation_kwargs", {})
-    n_samples = generation_kwargs.get("n_samples")
-    n_features = generation_kwargs.get("n_features")
-    if n_samples is None or n_features is None:
-        data_desc = (
-            result.data_desc
-            if hasattr(result, "data_desc")
-            else _record_fit_data_desc(result)
-        ) or {}
-        if n_samples is None:
-            n_samples = data_desc.get("samples")
-        if n_features is None:
-            n_features = data_desc.get("features")
-    if not n_samples or not n_features:
-        return None
-    return math.log2(n_samples * n_features)
-
-
 def _data_hover_lines(data: dict, data_desc: dict | None) -> list[str]:
     lines = _hover_lines(data)
     dimensions_line = _real_dataset_dimensions_line(data, data_desc)
@@ -344,24 +320,12 @@ def _failed_hover_text(record: BenchmarkRecord) -> str:
     )
 
 
-# Spacing between adjacent x_variant columns (e.g. the w/wo max_bins tree
-# columns) - doubled from the original 0.14 so those columns stay clearly
-# separated once points within a column are spread by SIZE_JITTER_WIDTH.
-_VARIANT_OFFSET_STEP = 0.28
-
-# Max x-axis spread applied within a column by dataset size (see
-# `_size_jitter`) - matches the original (pre-doubling) w/wo max_bins gap.
-SIZE_JITTER_WIDTH = 0.14
-
-
 def _variant_offsets(variants: list[str]) -> dict[str, float]:
     if len(variants) <= 1:
         return {variant: 0 for variant in variants}
+    step = 0.14
     center = (len(variants) - 1) / 2
-    return {
-        variant: (index - center) * _VARIANT_OFFSET_STEP
-        for index, variant in enumerate(variants)
-    }
+    return {variant: (index - center) * step for index, variant in enumerate(variants)}
 
 
 def variant_color_map(variants: list[str]) -> dict[str, str]:
@@ -378,6 +342,7 @@ def phase_breakdown_plot_html(
     phase_colors: dict[str, str],
     phase_labels: dict[str, str] | None = None,
     x_title: str = "threads",
+    series_order: list[str] | None = None,
 ) -> str:
     """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
     count), one bar per `points` entry. Each point is
@@ -385,40 +350,66 @@ def phase_breakdown_plot_html(
     optional `"x_label"` overriding `str(x)` as the tick label (e.g. to show
     an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
     drives sort order. Legend is disabled on every trace - callers render one
-    shared legend across a grid of these (see dashboards/gen_hgb_scaling.py)
-    rather than repeating it per small multiple."""
+    shared legend across a grid of these (see dashboards/gen_hgb_scalability_breakdown.py)
+    rather than repeating it per small multiple.
+
+    A point may also carry a `"series"` label (e.g. a build being compared
+    against another, see gen_hgb_dev_scalability_breakdown.py) - when more
+    than one distinct series is present, each `x` position gets one
+    side-by-side bar per series (`offsetgroup` per series, stacked manually
+    via each trace's `base` since `barmode="overlay"` doesn't stack on its
+    own), ordered left-to-right by `series_order` (defaults to alphabetical).
+    X-axis ticks stay plain `x`/`x_label` values either way - the series
+    only affects a bar's left/right position at a given tick, not the tick
+    itself. A single series (the common case, `"series"` absent everywhere)
+    renders exactly as before - one plain stacked bar per `x`."""
     if phase_labels is None:
         phase_labels = {phase: phase for phase in phase_order}
     chart_id = f"phase-breakdown-{next(chart_ids)}"
     points = sorted(points, key=lambda point: point["x"])
-    x_values = [str(point.get("x_label", point["x"])) for point in points]
+    series_values = {point.get("series") for point in points if point.get("series") is not None}
+    multi_series = len(series_values) > 1
+    if multi_series and series_order is None:
+        series_order = sorted(series_values)
 
     fig = go.Figure()
-    for phase in phase_order:
-        y_values = [point["phases"].get(phase, 0.0) for point in points]
-        totals = [point["total_ms"] for point in points]
-        fig.add_trace(
-            go.Bar(
-                name=phase_labels[phase],
-                x=x_values,
-                y=y_values,
-                marker={"color": phase_colors[phase]},
-                showlegend=False,
-                # Duration is pre-formatted in Python (hovertemplate's own
-                # %{y:.3g} can't apply format_duration_ms's ms/s unit
-                # switch), so it rides along in customdata next to the share.
-                customdata=[
-                    (format_duration_ms(y), _phase_share(y, total))
-                    for y, total in zip(y_values, totals)
-                ],
-                hovertemplate=(
-                    f"{phase_labels[phase]}: "
-                    "%{customdata[0]} (%{customdata[1]:.0%})<extra></extra>"
-                ),
-            )
+    for series in series_order if multi_series else [None]:
+        series_points = (
+            [point for point in points if point.get("series") == series]
+            if multi_series
+            else points
         )
+        x_values = [str(point.get("x_label", point["x"])) for point in series_points]
+        cumulative_ms = [0.0] * len(series_points)
+        for phase in phase_order:
+            y_values = [point["phases"].get(phase, 0.0) for point in series_points]
+            totals = [point["total_ms"] for point in series_points]
+            fig.add_trace(
+                go.Bar(
+                    name=phase_labels[phase],
+                    x=x_values,
+                    y=y_values,
+                    base=list(cumulative_ms) if multi_series else None,
+                    offsetgroup=series if multi_series else None,
+                    marker={"color": phase_colors[phase]},
+                    showlegend=False,
+                    # Duration is pre-formatted in Python (hovertemplate's own
+                    # %{y:.3g} can't apply format_duration_ms's ms/s unit
+                    # switch), so it rides along in customdata next to the share.
+                    customdata=[
+                        (format_duration_ms(y), _phase_share(y, total))
+                        for y, total in zip(y_values, totals)
+                    ],
+                    hovertemplate=(
+                        (f"{series}<br>" if multi_series else "")
+                        + f"{phase_labels[phase]}: "
+                        "%{customdata[0]} (%{customdata[1]:.0%})<extra></extra>"
+                    ),
+                )
+            )
+            cumulative_ms = [total + y for total, y in zip(cumulative_ms, y_values)]
     fig.update_layout(
-        barmode="stack",
+        barmode="overlay" if multi_series else "stack",
         xaxis={"type": "category", "title": x_title},
         yaxis={"title": "time (ms)", "rangemode": "tozero"},
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
@@ -496,6 +487,11 @@ def scaling_line_plot_html(
                     f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}{y_unit}"
                     "%{customdata}<extra></extra>"
                 ),
+                # A single series has nothing to contrast its label against
+                # (e.g. hardware with no SMT cores never gets a "without
+                # SMT" counterpart - see gen_models_scalability.py), so its
+                # legend entry would just be noise.
+                showlegend=len(series) > 1,
             )
         )
     for label, points in sorted((reference_lines or {}).items()):
@@ -790,27 +786,6 @@ def _x_variant(match: Match) -> str:
     return f"{variant} / {max_bins_label}"
 
 
-def _size_jitter(entries: list) -> dict[int, float]:
-    """Map each entry's `_log_size` to an x-axis nudge within its column,
-    linearly across [-SIZE_JITTER_WIDTH/2, SIZE_JITTER_WIDTH/2] over the
-    full range of dataset sizes present, so same-column points for
-    differently sized datasets don't land exactly on top of each other.
-    Keyed by id() since Match/_FailedMatch aren't hashable/comparable."""
-    log_sizes = {id(entry): _log_size(entry) for entry in entries}
-    known = [value for value in log_sizes.values() if value is not None]
-    if len(known) < 2 or min(known) == max(known):
-        return {key: 0.0 for key in log_sizes}
-    lo, hi = min(known), max(known)
-    return {
-        key: (
-            0.0
-            if value is None
-            else (value - lo) / (hi - lo) * SIZE_JITTER_WIDTH - SIZE_JITTER_WIDTH / 2
-        )
-        for key, value in log_sizes.items()
-    }
-
-
 def speedup_plot_html(
     matches: list[Match],
     *,
@@ -849,7 +824,6 @@ def speedup_plot_html(
         key=variant_sort_key,
     )
     offsets = _variant_offsets(x_variants)
-    jitter = _size_jitter(matches)
 
     grouped: dict[str, list[Match]] = {}
     for match in matches:
@@ -911,7 +885,6 @@ def speedup_plot_html(
                     x=[
                         estimator_positions[_estimator_name(match)]
                         + offsets[x_variant(match)]
-                        + jitter[id(match)]
                         for match in variant_matches
                     ],
                     y=[math.log2(match.speedup) for match in variant_matches],
