@@ -10,56 +10,27 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer, make_column_selector
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import RandomizedSearchCV, ShuffleSplit, train_test_split
-from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.metrics import silhouette_score
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from sklearn.pipeline import Pipeline
 from sklearn.utils.parallel import Parallel, delayed
 
 from ..config import HPTuningCase
 from .datasets import load_raw_data
-from .datasets.preprocessing import HGBCategoricalCapper
+from .datasets.preprocessing import PREPROCESSORS
 from .estimator.loading import get_context, get_estimator
 
 logger = logging.getLogger(__name__)
-
-# HistGradientBoosting* handles pandas `category` columns and missing
-# values natively, so it skips the ColumnTransformer below entirely; every
-# other estimator this runner supports needs numeric, imputed input.
-_NATIVE_CATEGORICAL_ESTIMATORS = {
-    "HistGradientBoostingClassifier",
-    "HistGradientBoostingRegressor",
-}
-
-
-def _build_preprocessor(estimator_name: str):
-    if estimator_name in _NATIVE_CATEGORICAL_ESTIMATORS:
-        return HGBCategoricalCapper()
-    return ColumnTransformer(
-        transformers=[
-            (
-                "categorical",
-                OneHotEncoder(
-                    handle_unknown="infrequent_if_exist",
-                    max_categories=20,
-                    min_frequency=5,
-                ),
-                make_column_selector(dtype_include=["category", "object"]),
-            ),
-            (
-                "numeric",
-                make_pipeline(SimpleImputer(strategy="median"), StandardScaler()),
-                make_column_selector(dtype_include=["number"]),
-            ),
-        ]
-    )
 
 
 def _build_pipeline(case: HPTuningCase) -> Pipeline:
     estimator_class = get_estimator(case.implementation.library, case.algorithm.estimator)
     estimator = estimator_class(**case.algorithm.estimator_params)
-    preprocessor = _build_preprocessor(case.algorithm.estimator)
+    preprocessing_kind = case.data.preprocessing_kind
+    preprocessor = (
+        "passthrough" if preprocessing_kind is None
+        else PREPROCESSORS[preprocessing_kind]()
+    )
     return Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
 
 
@@ -81,6 +52,30 @@ def _default_scoring(n_classes: int | None) -> str:
     if n_classes is None:
         return "r2"
     return "roc_auc" if n_classes == 2 else "roc_auc_ovr"
+
+
+def _silhouette_scorer(estimator, X, y=None) -> float:
+    """Clustering cases (KMeans) have no real `y` to score against - the
+    clustering loaders return a dummy all-zero one (see e.g.
+    `load_road_network_points`) - and no builtin sklearn scorer name covers
+    unsupervised clustering, hence this callable instead. Scores in the
+    same (preprocessed) space the estimator actually clustered in, not raw
+    `X`. Silhouette needs >=2 clusters to be defined; a degenerate
+    single-cluster candidate (possible with `n_clusters` close to a CV
+    fold's size) scores the worst possible value instead of raising.
+    """
+    X_transformed = estimator[:-1].transform(X)
+    labels = estimator[-1].predict(X_transformed)
+    if len(set(labels)) < 2:
+        return -1.0
+    return silhouette_score(X_transformed, labels)
+
+
+# `hptuning.scoring` (a plain str, so it round-trips through the JSON case
+# file) resolves through this before reaching RandomizedSearchCV: a name in
+# here becomes the matching callable, anything else (a builtin sklearn
+# scorer name, or None resolved by `_default_scoring`) passes through as-is.
+_SPECIAL_SCORERS = {"silhouette": _silhouette_scorer}
 
 
 def _raw_xy(raw_data: dict):
@@ -110,7 +105,7 @@ def run_hptuning(case: HPTuningCase) -> dict:
         hptuning.random_state,
     )
     if not hasattr(X, "iloc"):
-        # `make_column_selector` (used by `_build_preprocessor`) requires a
+        # `make_column_selector` (used by the `PREPROCESSORS` builders) requires a
         # DataFrame - synthetic sources return a plain ndarray.
         X = pd.DataFrame(X)
 
@@ -122,6 +117,7 @@ def run_hptuning(case: HPTuningCase) -> dict:
     # its own internal tuning, like RidgeCV's alpha).
     param_distributions = hptuning.param_distributions
     scoring = hptuning.scoring or _default_scoring(n_classes)
+    scorer = _SPECIAL_SCORERS.get(scoring, scoring)
 
     with (
         get_context(case.implementation),
@@ -140,7 +136,7 @@ def run_hptuning(case: HPTuningCase) -> dict:
             n_iter=hptuning.n_iter,
             cv=hptuning.cv_n_splits,
             n_jobs=hptuning.n_jobs,
-            scoring=scoring,
+            scoring=scorer,
             error_score="raise",
             random_state=hptuning.random_state,
         )

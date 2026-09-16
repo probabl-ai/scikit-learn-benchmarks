@@ -161,7 +161,6 @@ def build_transfer_to_device(
     )
 
 
-@preprocessor_to_preprocessing
 def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
     """`transfer_to_device` (see `build_transfer_to_device`), when given, is
     placed last."""
@@ -202,7 +201,6 @@ def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
     return make_pipeline(preprocessor, transfer_to_device)
 
 
-@preprocessor_to_preprocessing
 def linear_preprocessor(
     nystroem = None,
     passthrough_columns = (),
@@ -298,11 +296,11 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
     never hit, while it still gets to use its native categorical
     splitting/missing-value handling on those columns.
 
-    A proper `fit`/`transform` transformer (rather than a plain function
-    like the other `PREPROCESSINGS` entries) so it can also be dropped into
-    a `sklearn.pipeline.Pipeline` and refit per CV fold -
-    `sklbench.runners.hptuning` does exactly that; `hgb_preprocessing`
-    below fits it once, on a fixed train split, instead.
+    A proper `fit`/`transform` transformer, so besides `hgb_preprocessor`
+    below (fit once, on a fixed train split, like the other
+    `PREPROCESSORS` entries), it can also be dropped directly into a
+    `sklearn.pipeline.Pipeline` and refit per CV fold -
+    `sklbench.runners.hptuning` does exactly that.
     """
 
     def fit(self, X, y=None):
@@ -343,26 +341,24 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
         return X
 
 
-def hgb_preprocessing(X_train, X_test, y_train=None, transfer_to_device=None):
-    """Not built via `preprocessor_to_preprocessing`: `HGBCategoricalCapper`
-    takes a single array per call (`fit`/`transform`), so it's applied to
-    X_train/X_test as plain code here rather than through a pipeline;
-    `transfer_to_device` is placed last, after that.
-    """
+def hgb_preprocessor(
+    transfer_to_device = None,
+):
+    capper = HGBCategoricalCapper()
+    if transfer_to_device is None:
+        return capper
+    else:
+        return make_pipeline(capper, transfer_to_device)
 
-    capper = HGBCategoricalCapper().fit(X_train, y_train)
-    X_train = capper.transform(X_train)
-    X_test = capper.transform(X_test)
 
-    if transfer_to_device is not None:
-        X_train = transfer_to_device.fit_transform(X_train)
-        X_test = transfer_to_device.transform(X_test)
-
-    return X_train, X_test
+PREPROCESSORS = {
+    'trees': trees_preprocessor,
+    'linear': linear_preprocessor,
+    'hgb': hgb_preprocessor,    
+}
 
 
 PREPROCESSINGS = {
-    'trees': trees_preprocessor,
-    'linear': linear_preprocessor,
-    'hgb': hgb_preprocessing,
+    k: preprocessor_to_preprocessing(v)
+    for k, v in PREPROCESSORS.items()
 }
