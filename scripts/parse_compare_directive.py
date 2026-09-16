@@ -7,7 +7,6 @@ Looks for a fenced code block:
     ```sklbench-compare
     sklearn_ref: cakedev0:ridge/optim_cholesky
     runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
-    dashboards: dashboards/gen_hgb_dev_speedup_breakdown.py
     ```
 
 `sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
@@ -32,13 +31,10 @@ path-depends on `sklearn-src` (see pixi.toml) - currently `sklearn-dev` and
 `sklearn-dev-libomp` - since run.sh's `env@owner:ref` spec (used to run
 each tuple) only makes sense for those.
 
-`dashboards` is optional: a comma/whitespace-separated list of
-`dashboards/gen_<name>.py` paths - one of this repo's own `gen_*.py`
-dashboard generators (e.g. gen_hgb_dev_speedup_breakdown.py), run once per
-runner against that runner's full accumulated ephemeral results/, alongside
-the always-generated pr_comparison.html table. Unlike `runs`'s `config`
-entries, there's no per-runner/per-env split here - the same dashboard list
-applies to every runner's job.
+Publishing one of this repo's other dashboards/gen_*.py dashboards
+alongside the always-generated pr_comparison.html table is a code change to
+dashboards/index_comparison.py (see that file), not a directive key - so
+there's no `dashboards:` key here.
 
 Validates its `key: value` lines and writes outcomes to $GITHUB_OUTPUT
 rather than communicating via exit code, so the calling workflow can branch
@@ -67,10 +63,8 @@ DEFAULT_RUNNER_TOKEN = "both"
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.
 VALID_SKLEARN_SRC_ENVS = {"sklearn-dev", "sklearn-dev-libomp"}
 DEFAULT_SKLEARN_SRC_ENV = "sklearn-dev"
-DASHBOARD_RE = re.compile(r"^dashboards/gen_[A-Za-z0-9_-]+\.py$")
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
-OPTIONAL_KEYS = {"dashboards"}
-KNOWN_KEYS = REQUIRED_KEYS | OPTIONAL_KEYS
+KNOWN_KEYS = REQUIRED_KEYS
 
 
 class Malformed(Exception):
@@ -156,25 +150,11 @@ def parse_fields(block: str) -> dict:
             if runner not in runners:
                 runners.append(runner)
 
-    dashboards: list[str] = []
-    if "dashboards" in fields:
-        dashboard_entries = [t for t in re.split(r"[,\s]+", fields["dashboards"]) if t]
-        if not dashboard_entries:
-            raise Malformed("dashboards key is present but empty")
-        for entry in dashboard_entries:
-            if not DASHBOARD_RE.match(entry) or ".." in entry.split("/"):
-                raise Malformed(
-                    f"dashboard {entry!r} must look like 'dashboards/gen_<name>.py'"
-                )
-            if entry not in dashboards:
-                dashboards.append(entry)
-
     return {
         "sklearn_owner": sklearn_owner,
         "sklearn_head_ref": sklearn_head_ref,
         "runs": runs,
         "runners": runners,
-        "dashboards": dashboards,
     }
 
 
@@ -215,7 +195,6 @@ def main() -> int:
     write_output(args.github_output, "sklearn_head_ref", parsed["sklearn_head_ref"])
     write_output(args.github_output, "runs", json.dumps(parsed["runs"]))
     write_output(args.github_output, "runners", json.dumps(parsed["runners"]))
-    write_output(args.github_output, "dashboards", json.dumps(parsed["dashboards"]))
     return 0
 
 

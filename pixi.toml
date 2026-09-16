@@ -218,6 +218,10 @@ torch = "*"
 
 [feature.skl-mps.activation.env]
 SCIPY_ARRAY_API = "1"
+# Falls back to CPU for ops PyTorch hasn't implemented on the MPS backend,
+# instead of erroring - same flag scikit-learn's own CI sets for its
+# macOS arm64 array API job (sklearn-src/.github/workflows/unit-tests.yml).
+PYTORCH_ENABLE_MPS_FALLBACK = "1"
 
 [feature.reporting.dependencies]
 scikit-learn = "1.9.*"

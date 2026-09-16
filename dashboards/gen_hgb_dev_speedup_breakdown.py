@@ -52,7 +52,6 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _workload_name,
     _workload_size,
 )
-from dashboards import dashboard_output_dir
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     is_sklearn_dev_build,
@@ -449,7 +448,7 @@ def _env_label(hardware_hash: str, openmp_family: str, active_wait: bool, proc_b
     )
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     records = _dedup_latest(
         [record for record in read_benchmark_records() if _is_instrumented_hgb(record)]
     )
@@ -468,7 +467,6 @@ if __name__ == "__main__":
     # `main` to compare against, but an empty tab for a combo that was never
     # a branch-comparison run in the first place (e.g. libomp/MKL-only
     # combos) is just noise.
-    output_dir = dashboard_output_dir()
     # Set by .github/workflows/pr-comparison.yml's "Generate comparison
     # dashboard" step - PR-comparison results are ephemeral (never committed
     # to `results/`), so the plain GitHub-raw-URL links `summarize_software_env`

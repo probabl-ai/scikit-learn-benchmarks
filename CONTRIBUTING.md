@@ -5,9 +5,6 @@ and reporting scripts for the published scikit-learn benchmark dashboards.
 
 ## Setup
 
-
-### Pre-requisites
-
 Install pixi (>= 0.75): 
 
 ```bash
@@ -25,7 +22,9 @@ pixi global install git-lfs
 git lfs install
 ```
 
-Then clone the repo (`git lfs pull` afterwards if you want to fetch all results locally).
+Then clone the repo. Use `git lfs pull` afterwards **if** you want to fetch all
+results locally (see more details in ["Previewing Dashboards
+Locally"](#previewing-dashboards-locally))
 
 
 Then from the repo root run:
@@ -45,7 +44,6 @@ pixi run -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py
 ```
 
 It will take a few dozen seconds and create a few results under `results/tests` (git ignored).
-
 
 ## Architecture
 
@@ -78,9 +76,13 @@ The repository is split into a few layers:
       helpers. Except the initial results-matching work, it's fully vibe-coded.
 - `results/`: captured benchmark outputs and environment metadata, tracked
   with Git LFS.
-- `dashboards/gen_*.py`: dashboard entry points. Each script reads `results/`
-  and writes one HTML page. Fully vibe-coded.
-- `.github/workflows/`: CI. `dashboard-pages.yml` runs all `dashboards/gen_*.py`
+- `dashboards/index.py`: sole entry point for the full dashboard site. It
+  generates the index page and calls each `dashboards/gen_*.py` module's
+  `generate()`; those modules read `results/` and write one HTML page each,
+  but aren't run directly. `dashboards/index_comparison.py` is the separate
+  entry point for `pr-comparison.yml`'s ephemeral, per-PR results (see
+  COMPARISONS_PR.md). Fully vibe-coded.
+- `.github/workflows/`: CI. `dashboard-pages.yml` runs `dashboards/index.py`
   on pushes to `main`; `dashboard-preview-build.yml`/`dashboard-preview-deploy.yml`
   build and deploy a preview dashboard per results PR; `pr-comparison.yml` and
   `run-benchmarks.yml` drive the benchmark-running workflows.
@@ -205,8 +207,15 @@ PR description on this repo is documented separately, in [COMPARISONS_PR.md](COM
 
 ## Previewing Dashboards Locally
 
-During dashboard development, use the watcher to regenerate pages whenever
-`results/`, `sklbench/reporting/`, or `dashboards/` changes:
+By default, `results/` stays checked out as Git LFS pointer files (small text
+stubs) rather than actual JSON/gzip content, so a plain clone or `git pull`
+never downloads the full results history. Pull the content you actually need
+with `git lfs pull`. `git lfs pull` only fetches content for the ref you
+currently have checked out; switching branches and needing another commit's results
+means re-running it there.
+
+Then run the watcher to generate pages, and regenerate then
+whenever `results/`, `sklbench/reporting/`, or `dashboards/` changes:
 
 ```bash
 pixi run -e reporting python watch_dashboards.py
@@ -214,12 +223,9 @@ pixi run -e reporting python watch_dashboards.py
 
 ## Publishing New Results
 
-Before committing results, make sure lfs is set-up:
-
-```bash
-git lfs install
-git lfs pull
-```
+Make sure lfs is set up (`git lfs install`, see ["Setup"](#setup) above).
+You don't need to pull existing results first, only the new files you add
+matter.
 
 Run the relevant benchmarks, then inspect the generated files:
 
@@ -247,6 +253,13 @@ dashboards automatically.
 
 `results/*.json` and `results/**/*.json` are tracked through Git LFS via
 `.gitattributes`. Do not bypass LFS for benchmark results.
+
+`.lfsconfig` sets `fetchexclude = *` so clones and plain `git lfs
+pull`/`fetch` don't download `results/` content by default (to protect the
+repo's LFS quota) - see ["Fetching Result Files"](#fetching-result-files).
+CI workflows pass their own `--include`, but `-I` alone only overrides
+`fetchinclude` - `fetchexclude = *` from `.lfsconfig` still applies and blocks
+everything, so those workflows must also pass `--exclude ""` to clear it.
 
 **Cloud machines can have high tail variability**, especially for scaling studies
 and short workloads. Prefer stable local/dedicated hardware when deciding whether

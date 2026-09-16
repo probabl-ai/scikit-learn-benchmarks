@@ -331,7 +331,17 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
             continue
 
         with open(result_path, "r") as f:
-            result_file = json.load(f)
+            content = f.read()
+        try:
+            result_file = json.loads(content)
+        except json.JSONDecodeError as e:
+            if content.startswith("version https://git-lfs.github.com/spec/"):
+                raise RuntimeError(
+                    f"{result_path} is an unfetched Git LFS pointer, not the "
+                    "actual result file. You likely forgot to `git lfs pull` "
+                    "(see CONTRIBUTING.md > Previewing Dashboards Locally)."
+                ) from e
+            raise
 
         hardware_hash = result_file["hardware_hash"]
         software_hash = result_file["software_hash"]
@@ -570,11 +580,18 @@ def has_cpu_fallback_warning(result: MethodResult) -> bool:
     return (
         "fallback from xpu to cpu" in text
         or ("aten op fallback" in text and "cpu" in text)
+        # pytorch's MPS backend (see PYTORCH_ENABLE_MPS_FALLBACK in
+        # pixi.toml) prints this - only once per unsupported op per process
+        # (TORCH_WARN_ONCE), not once per repeat - whenever an op it doesn't
+        # implement for MPS silently runs on the CPU instead, e.g.
+        # "The operator 'aten::linalg_svd' is not currently supported on
+        # the MPS backend and will fall back to run on the CPU."
+        or "not currently supported on the mps backend" in text
     )
 
 
 def append_cpu_fallback_warning(result: MethodResult, warnings: list):
-    if result.implementation.device not in {"cuda", "gpu", "xpu"}:
+    if result.implementation.device not in {"cuda", "gpu", "xpu", "mps"}:
         return
     if has_cpu_fallback_warning(result):
         warnings.append(CPU_FALLBACK_WARNING)

@@ -103,6 +103,7 @@ class RowInputs:
     case: dict
     software_hash: str
     library: str
+    category: str
     data_desc: dict
     attributes: dict
     status: str
@@ -113,6 +114,7 @@ def _method_result_inputs(result: MethodResult) -> RowInputs:
         case=result.case,
         software_hash=result.software_hash,
         library=result.implementation.library,
+        category=result.category,
         data_desc=result.data_desc or {},
         attributes=result.attributes or {},
         status="ok",
@@ -125,6 +127,7 @@ def _failed_record_inputs(record: BenchmarkRecord) -> RowInputs:
         case=record.case,
         software_hash=record.software_hash,
         library=record.implementation.library,
+        category=record.category,
         # No run ever happened, so there's no measured data_desc - the
         # config's own declared shape is the closest equivalent, and matches
         # what a successful run of the same case would have reported.
@@ -156,6 +159,19 @@ def _row_hyperparams(inputs: RowInputs) -> dict:
             solver_values = inputs.attributes.get("solver")
             if solver_values:
                 hyperparams["solver"] = solver_values[0]
+                continue
+            estimator = inputs.case.get("algorithm", {}).get("estimator")
+            if inputs.library == "sklearnex" and estimator == "Ridge":
+                # sklearnex's Ridge never records a fitted `solver_` (unlike
+                # stock sklearn), and its oneDAL fit path only ever runs for
+                # the requested "auto" solver, solving via oneDAL's "norm_eq"
+                # algorithm - the same normal-equations approach sklearn's
+                # own "cholesky" solver uses. A `solver` value's presence
+                # here would mean sklearnex fell back to stock sklearn for at
+                # least one repeat (see `MethodResult.is_sklearnex_fallback`),
+                # which does record it - so its absence means every repeat
+                # took the oneDAL path.
+                hyperparams["solver"] = "cholesky"
                 continue
         if name in params:
             hyperparams[name] = params[name]
@@ -258,8 +274,10 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
     configs/synthetic_trees.py and append_max_bins_warning in matching.py).
-    Empty for sklearn, which doesn't vary this param in these benchmarks."""
-    if inputs.library != "sklearnex":
+    Empty for sklearn (doesn't vary this param) and for non-tree estimators
+    (max_bins isn't a thing for them, same "tree-based" split MethodResult
+    uses for `is_sklearnex_tree`)."""
+    if inputs.library != "sklearnex" or inputs.category != "tree-based":
         return None
     estimator_params = inputs.case.get("algorithm", {}).get("estimator_params", {})
     if "max_bins" not in estimator_params:
@@ -332,6 +350,24 @@ def _status_column_visible(rows: list[dict]) -> bool:
     return any(row["status"] != "ok" for row in rows)
 
 
+def _omp_column_visible(field: str) -> Callable[[list[dict]], bool]:
+    """OpenMP/OMP-active-wait columns only mean anything for HGB's own
+    thread pool (see `_row_openmp`/`_row_omp_active_wait`) - showing them for
+    a table of, say, Ridge results would just be noise from whatever build
+    happened to run alongside. Visible only once the table has an HGB row
+    *and* the value varies across those HGB rows."""
+
+    def _visible(rows: list[dict]) -> bool:
+        hgb_rows = [
+            row
+            for row in rows
+            if str(row.get("estimator", "")).startswith("HistGradientBoosting")
+        ]
+        return bool(hgb_rows) and _varies_across(hgb_rows, field)
+
+    return _visible
+
+
 @dataclass(frozen=True)
 class ColumnGroupSpec:
     """One family of dynamically-named columns, one per key that varies
@@ -380,12 +416,14 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
     ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
     ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
-    ColumnSpec("OpenMP", "openmp", _row_openmp, ColumnVisibility.IF_VARIES),
+    ColumnSpec(
+        "OpenMP", "openmp", _row_openmp, custom_show=_omp_column_visible("openmp")
+    ),
     ColumnSpec(
         "OMP active wait",
         "omp_active_wait",
         _row_omp_active_wait,
-        ColumnVisibility.IF_VARIES,
+        custom_show=_omp_column_visible("omp_active_wait"),
     ),
     ColumnGroupSpec("hp", _row_hyperparams, HYPERPARAM_DISPLAY_ALLOWLIST),
     ColumnGroupSpec("env", _row_env),
@@ -547,6 +585,10 @@ def _add_result_method(
     row = rows.setdefault(
         key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
     )
+    # Globally unique per row (fit/predict merge into the same row above) -
+    # lets a table-row click pin the exact clicked row first among rows
+    # sharing its comparison_key (see matchFirstSorter in templates.py).
+    row["row_id"] = key
     method = result.method
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
@@ -666,9 +708,9 @@ def detailed_results_table_html(
 
     for record, variant in failed_records:
         key = _failed_row_key(record, variant)
-        rows_by_key[key] = _new_failed_row(
-            record, variant, comparison_key(record), json_url_fn
-        )
+        row = _new_failed_row(record, variant, comparison_key(record), json_url_fn)
+        row["row_id"] = key
+        rows_by_key[key] = row
 
     # Results whose counterpart failed never appear in `matches_by_method`
     # (find_matches only pairs up results that both succeeded) - add them here so
@@ -754,13 +796,12 @@ def detailed_results_table_html(
         columns.append(_spec_column_dict(spec, title=title))
 
     table_id = f"detailed-results-{next(table_ids)}"
-    reset_button_id = f"{table_id}-reset"
     default_header_filters = (
         {"variant": default_variant_filter} if default_variant_filter else {}
     )
     init_call = (
         f'sklbenchInitTable("{table_id}", {_safe_json(rows)}, '
-        f'{_safe_json(columns)}, "{reset_button_id}", {_safe_json(default_header_filters)});'
+        f'{_safe_json(columns)}, {_safe_json(default_header_filters)});'
     )
     # `<details open>` alone doesn't fire a "toggle" event on page load, so
     # an eagerly-visible table needs the init call to run unconditionally
@@ -779,10 +820,7 @@ def detailed_results_table_html(
     }}, {{once: true}});
   </script>"""
     )
-    body = f"""<div class="detailed-results-toolbar" hidden>
-    <button id="{reset_button_id}" class="row-filter-reset" type="button" title="Clear row sort" aria-label="Clear row sort">x</button>
-  </div>
-  <div id="{table_id}" class="detailed-results-table"></div>
+    body = f"""<div id="{table_id}" class="detailed-results-table"></div>
   {script}"""
     if not collapsible:
         return f"""<div class="detailed-results">

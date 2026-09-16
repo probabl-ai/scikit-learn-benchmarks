@@ -27,10 +27,11 @@ counterpart.
 """
 from html import escape
 import json
+from pathlib import Path
 import re
 from statistics import median
 
-from dashboards import dashboard_output_path
+from dashboards import HARDWARE_NAMES
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     case_proc_bind,
@@ -58,11 +59,7 @@ from sklbench.reporting.matching import (
 )
 
 
-HARDWARE_NAMES = {
-    "3b5e61": "Laptop",
-    "534824": "Intel GNR",  # TODO: re-rerun
-    "b281b2": "Apple M4",
-}
+# TODO: re-rerun 534824 (High-end Intel server) results.
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
 # cost first, so their band stays a constant height and the phases that
@@ -493,7 +490,7 @@ def _hardware_sort_index(hardware_hash: str) -> int:
         return len(HARDWARE_NAMES)
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     records = _dedup_latest(
         [
             record
@@ -527,6 +524,6 @@ if __name__ == "__main__":
         title="HGB fit-time breakdown (thread scalability)",
         rows=[render_hardware_tabs(pages)],
     )
-    output = dashboard_output_path("hgb_scaling.html")
+    output = output_dir / "hgb_scaling.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

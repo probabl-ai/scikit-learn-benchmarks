@@ -125,20 +125,25 @@ def _current_results_ref() -> str:
 
 
 def github_raw_url(path: Path | str) -> str:
-    # raw.githubusercontent.com, not github.com/{repo}/raw/{ref}/{path}: the
-    # latter 404s for refs outside branches/commits/tags, e.g. the
-    # `refs/pull/<n>/merge` ref GITHUB_REF holds on `pull_request`-triggered
-    # workflow runs (see pr-comparison.yml), which is exactly the ref PR
-    # comparison dashboards resolve to here.
+    # media.githubusercontent.com/media/{repo}/{ref}/{path}, not
+    # github.com/{repo}/raw/{ref}/{path}: the latter 404s for refs outside
+    # branches/commits/tags, e.g. the `refs/pull/<n>/merge` ref GITHUB_REF
+    # holds on `pull_request`-triggered workflow runs (see pr-comparison.yml),
+    # which is exactly the ref PR comparison dashboards resolve to here.
+    # Also not raw.githubusercontent.com/{repo}/{ref}/{path}: `results/**` is
+    # Git-LFS-tracked (see .gitattributes), and raw.githubusercontent.com
+    # serves the LFS pointer text file instead of the actual file content for
+    # LFS-tracked paths. media.githubusercontent.com is GitHub's LFS media
+    # endpoint and resolves refs the same way, but serves real file bytes.
     path = Path(path).as_posix().lstrip("/")
-    return f"https://raw.githubusercontent.com/{RESULTS_REPOSITORY}/{_current_results_ref()}/{path}"
+    return f"https://media.githubusercontent.com/media/{RESULTS_REPOSITORY}/{_current_results_ref()}/{path}"
 
 
 def external_viewer_url(viewer_base_url: str, target_url: str) -> str:
     """Wrap `target_url` for one of the `*_VIEWER_BASE_URL` viewer apps.
     Exposed (not just used internally by `json_viewer_url`/`profile_viewer_url`
     below) so callers with a `target_url` that isn't a `github_raw_url` -
-    e.g. pr_comparison_dashboard.py linking to files it copied onto the
+    e.g. dashboards/index_comparison.py linking to files it copied onto the
     ephemeral Cloudflare Pages site instead - can still reuse the query-string
     format the viewer apps expect."""
     return f"{viewer_base_url}?url={quote(target_url, safe='')}"
@@ -475,6 +480,25 @@ def summarize_software_env(
     return out
 
 
+# Launch price (USD) and year of commercialization for the CPUs/GPUs seen in
+# results/hardware-envs/*.json. Not reported by py-cpuinfo/oneAPI, so hand-maintained
+# here, keyed by the exact name string those tools report. Most of these chips are
+# OEM-only (never sold as a standalone boxed/tray part), so "price" is the launch
+# price of the cheapest laptop/system that shipped with it, matching the actual
+# machine (laptop vs. server) each hash represents, rather than a per-chip price.
+HARDWARE_COMMERCIAL_INFO = {
+    "Intel(R) Core(TM) i3-7020U CPU @ 2.30GHz": {"price_usd": 281, "release_year": 2018},
+    "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
+    "Apple M4": {"price_usd": 1_599, "release_year": 2024},
+    "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    "Intel(R) Arc(TM) B390 GPU": {"price_usd": 2_399, "release_year": 2026},
+}
+
+
+def _commercial_info(name: str) -> dict:
+    return HARDWARE_COMMERCIAL_INFO.get(name, {"price_usd": None, "release_year": None})
+
+
 def summarize_hardware_env(env: dict):
     # same for hardware, but independant of implem
     cpu = env.get("CPU", {})
@@ -485,17 +509,21 @@ def summarize_hardware_env(env: dict):
     if drivers == {"level_zero", "opencl"}:
         gpus = {k: v for k, v in gpus.items() if k.startswith("level_zero")}
 
+    cpu_name = cpu.get("name", "?")
+
     return {
-        "cpu_name": cpu.get("name", "?"),
+        "cpu_name": cpu_name,
         "architecture": cpu.get("architecture", "?"),
         "logical_cpus": cpu.get("logical_cpus", "?"),
         "physical_cores": cpu.get("physical_cores", "?"),
         "ram_gb": env.get("RAM size[GB]", "?"),
+        **_commercial_info(cpu_name),
         "gpus": [
             {
                 "id": device_id,
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
+                **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()
         ],

@@ -24,6 +24,8 @@ branch build and the `main` build it's meant to be compared against are two
 different `software_hash`es, so grouping by the exact hash would split them
 across tabs instead of landing them on the same page/plot.
 """
+from pathlib import Path
+
 from dashboards.gen_hgb_scalability_breakdown import (
     HARDWARE_NAMES,
     PHASE_COLORS,
@@ -45,7 +47,6 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _workload_size,
     render_env_page,
 )
-from dashboards import dashboard_output_path
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     OPENMP_FAMILY_SHORT_LABELS,
@@ -226,7 +227,7 @@ def render_env_page_comparison(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
-if __name__ == "__main__":
+def generate(output_dir: Path) -> None:
     records = _dedup_latest(
         [
             record
@@ -262,6 +263,6 @@ if __name__ == "__main__":
         title="HGB fit-time breakdown (thread scalability, sklearn-dev)",
         rows=[render_hardware_tabs(pages)],
     )
-    output = dashboard_output_path("hgb_dev_scaling.html")
+    output = output_dir / "hgb_dev_scaling.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

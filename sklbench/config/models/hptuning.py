@@ -13,7 +13,6 @@ class HPTuning(Section):
     param_distributions: JsonDict = Field(default_factory=dict)
     n_iter: int = 14
     cv_n_splits: int = 3
-    cv_test_size: float = 0.2
     random_state: int = 42
     # None picks "roc_auc" for classification datasets (data.name()'s
     # n_classes is set) and "r2" otherwise - see `_default_scoring` in the

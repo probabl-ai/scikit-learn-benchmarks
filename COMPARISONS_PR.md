@@ -8,7 +8,6 @@ somewhere in the PR description:
 ```sklbench-compare
 sklearn_ref: cakedev0:ridge/optim_cholesky
 runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
-dashboards: dashboards/gen_hgb_dev_speedup_breakdown.py
 ```
 
 - `sklearn_ref` (required): the scikit-learn fork owner and branch/ref to
@@ -40,19 +39,16 @@ dashboards: dashboards/gen_hgb_dev_speedup_breakdown.py
   results dir before it generates its one dashboard - so results from the
   same machine always land in the same dashboard, with an env/branch filter
   column to tell entries apart when more than one env is involved.
-- `dashboards` (optional): a comma/whitespace-separated list of this repo's
-  own `dashboards/gen_*.py` generators (e.g.
-  `dashboards/gen_hgb_dev_speedup_breakdown.py`), each run once per
-  self-hosted runner against that runner's full accumulated results, right
-  alongside the always-generated before/after table. Useful when `runs`
-  includes a config whose results a more specialized existing dashboard
-  reads better than the generic table - e.g. an HGB PR run under
-  `configs/hgb_scalability.py` (instrumented) reads more clearly through
-  `gen_hgb_dev_speedup_breakdown.py`'s per-phase speed-up breakdown than
-  through the generic per-case table alone. Unlike `runs`, there's no
-  per-runner/per-env split: the same dashboard list is generated for every
-  runner's job. Each dashboard is linked from the PR comment alongside the
-  main comparison table.
+
+To also publish one of this repo's other `dashboards/gen_*.py` dashboards
+against a run's accumulated results, alongside the always-generated
+before/after table, add a call to it from `dashboards/index_comparison.py`'s
+`__main__` (see that file) and include the edit in your PR - useful when
+`runs` includes a config whose results a more specialized existing
+dashboard reads better than the generic table (e.g. an HGB PR run under
+`configs/hgb_scalability.py` (instrumented) reads more clearly through
+`gen_hgb_dev_speedup_breakdown.py`'s per-phase speed-up breakdown than
+through the generic per-case table alone).
 
 ### Skipping the `main` re-benchmark
 

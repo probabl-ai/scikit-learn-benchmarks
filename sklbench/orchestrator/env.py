@@ -276,11 +276,67 @@ def get_software_info() -> dict:
     return result
 
 
+_ONEAPI_DEVICE_SCRIPT = """
+import json
+import dpctl
+
+print(json.dumps({
+    device.filter_string: {
+        "name": device.name,
+        "vendor": device.vendor,
+        "type": str(device.device_type).split(".")[1],
+        "driver version": device.driver_version,
+        "memory size[GB]": round(device.global_mem_size / 2**30),
+    }
+    for device in dpctl.get_devices()
+}))
+"""
+
+
+def _get_oneapi_devices_via_intel_env() -> dict:
+    """Query oneAPI devices from the `intel` pixi environment's `dpctl`.
+
+    `dpctl` is only installed in the `intel`/`skl-intel` pixi features (kept
+    out of the base environment so it doesn't block macOS, which has no
+    manylinux wheel for it - see pixi.toml). Whether it's importable directly
+    from `get_oneapi_devices()` therefore depends on which pixi environment
+    happens to be running the orchestrator, not on the actual GPU hardware -
+    running the exact same benchmark from e.g. `sklearn-pypi` instead of
+    `intel` would otherwise report no GPU and mint a new `hardware_hash` for
+    hardware that hasn't changed (see 3b5e61/6ca5ca in results/hardware-envs).
+    Shelling out to `intel` keeps device detection consistent across
+    environments; it's a no-op (returns {}) wherever that environment can't
+    be solved, e.g. on macOS or Windows.
+    """
+    pixi_project_root = os.environ.get("PIXI_PROJECT_ROOT")
+    if pixi_project_root is None:
+        return {}
+    output = _check_output(
+        [
+            "pixi",
+            "run",
+            "--manifest-path",
+            pixi_project_root,
+            "--environment",
+            "intel",
+            "--frozen",
+            "python",
+            "-c",
+            _ONEAPI_DEVICE_SCRIPT,
+        ]
+    )
+    if output is None:
+        return {}
+    try:
+        return json.loads(output)
+    except json.JSONDecodeError:
+        return {}
+
+
 def get_oneapi_devices() -> pd.DataFrame:
     try:
         import dpctl
 
-        devices = dpctl.get_devices()
         devices = {
             device.filter_string: {
                 "name": device.name,
@@ -289,13 +345,15 @@ def get_oneapi_devices() -> pd.DataFrame:
                 "driver version": device.driver_version,
                 "memory size[GB]": round(device.global_mem_size / 2**30),
             }
-            for device in devices
+            for device in dpctl.get_devices()
         }
-        if len(devices) > 0:
-            return pd.DataFrame(devices).T
-        logger.warning("dpctl device table is empty")
     except (ImportError, ModuleNotFoundError):
-        logger.warning("dpctl can not be imported")
+        logger.warning('dpctl can not be imported directly, retrying via the "intel" pixi environment')
+        devices = _get_oneapi_devices_via_intel_env()
+
+    if len(devices) > 0:
+        return pd.DataFrame(devices).T
+    logger.warning("dpctl device table is empty")
     return pd.DataFrame({"type": []})
 
 
