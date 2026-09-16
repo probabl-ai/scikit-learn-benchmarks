@@ -1,9 +1,5 @@
 """
-RandomizedSearchCV cases over a shorter, hand-picked list of real datasets
-than `hptuning.py`'s DATASET_SPECS/SYNTHETIC_SPECS matrix, with an actual
-search space per (dataset, estimator) pair instead of one shared search
-space per estimator family - meant to produce more realistic, more varied
-hptuning data points than `hptuning.py`.
+RandomizedSearchCV cases over a short, hand-picked list of real datasets:
 
 Each `REAL_DATASET_CASES` entry is:
 
@@ -14,26 +10,6 @@ Each `REAL_DATASET_CASES` entry is:
         options,                         # optional: {"skip_libraries": (...)}
     )
 
-`preprocessing_kind` selects a preprocessing pipeline from
-`sklbench.runners.datasets.preprocessing`'s `PREPROCESSORS` - the same
-builders `real_datasets.py`'s estimator cases use - via
-`sklbench.runners.hptuning._build_pipeline`; there's no runner-side default
-or estimator-based special-casing (HGB included), so a dataset with
-categorical columns needs one set: `"trees"` below for RandomForest/
-ExtraTrees, `"linear"` for Ridge/LogisticRegression, `"hgb"` for
-HistGradientBoosting* (caps categorical cardinality to what HGB's native
-splitting accepts - see `HGBCategoricalCapper`). Left unset (None), the
-estimator sees the raw, unencoded columns - only correct for
-already-numeric/already-preprocessed data (e.g. susy below).
-
-`search_space` keys are pipeline step families ("estimator" ->
-`estimator__...`, "encoder" -> `preprocessor__encoder__...` - the latter is
-`trees_preprocessor`'s ColumnTransformer step name, so it only resolves to
-anything when `preprocessing_kind="trees"`), each holding
-`{param_name: value}`. A list value is a search dimension (goes to
-`hptuning.param_distributions`); anything else is a fixed param (only
-supported for "estimator" - `encoder` has no fixed-param case below, so
-it's not implemented).
 """
 
 import numpy as np
