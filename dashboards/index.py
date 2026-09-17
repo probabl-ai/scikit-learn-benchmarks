@@ -23,6 +23,23 @@ from sklbench.reporting.envs import read_env, summarize_hardware_env
 from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_software_tabs
 
 
+ABOUT_HTML = """<section class="panel">
+  <p>This site tracks scikit-learn's performance across hardware, software
+  builds, and accelerated backends, to make trade-offs visible: which
+  workloads benefit from scikit-learn-intelex or an Array API backend, which
+  results are directly comparable to the plain scikit-learn baseline, and
+  where a different BLAS/OpenMP build or a different machine actually
+  changes anything. Each dashboard below isolates one of those variables
+  (implementation, build, or hardware) while holding the others fixed, or
+  looks at how a single fit scales with more CPU cores &mdash; see each
+  dashboard's own intro for specifics on how to read it. In short, as of the
+  latest full run: <code>scikit-learn-intelex</code> on Intel CPUs is the
+  most consistently fast option today, especially for tree-based model
+  fitting; other backends and builds help in narrower, more workload-specific
+  cases.</p>
+</section>"""
+
+
 DASHBOARDS = [
     ("Software/implementations comparison", gen_per_hardware, "per_hardware.html"),
     ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
@@ -62,6 +79,7 @@ if __name__ == "__main__":
     html = BASE_TEMPLATE.render(
         title="sklbench dashboards",
         rows=[
+            ABOUT_HTML,
             f"""
             <section class="panel">
               <h2>Dashboards</h2>

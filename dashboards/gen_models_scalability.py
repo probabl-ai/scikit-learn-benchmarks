@@ -58,6 +58,26 @@ from sklbench.reporting.matching import (
 )
 
 
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard asks a narrower question than the others: given a single
+  <code>.fit()</code> call, how does its wall-clock time change as it's
+  allowed more CPU cores? Each tab is a machine; each row is one
+  (estimator, dataset) pair with its dataset shape and fixed hyperparameters
+  noted above it; each column is a swept software environment; the dashed
+  line is the "perfect scalability" reference for tree models, so how far the
+  real curve falls short of it reads directly off the plot (log/log axes,
+  since fit time and core count both span orders of magnitude). RandomForest
+  and ExtraTrees additionally split into "with SMT"/"without SMT" lines where
+  the hardware has hyper-threading. In the latest full run, tree ensembles
+  scale the best with more cores &mdash; especially under
+  <code>scikit-learn-intelex</code>, reaching roughly 50-60% parallel
+  efficiency at the highest core counts tested &mdash; while linear-model fit
+  (Ridge, LogisticRegression) barely benefits from extra cores under stock or
+  MKL BLAS threading, and KMeans can get slower, not faster, past a certain
+  core count. Watch for curves that flatten or turn upward, not just the fit
+  time at 1 core.</p>
+</section>"""
+
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
 # module docstring and `SIBLINGS_LABELS`) - this explains that legend where
 # it's meaningful (GNR, which actually has SMT siblings to compare) and
@@ -336,7 +356,7 @@ def generate(output_dir: Path) -> None:
 
     html = BASE_TEMPLATE.render(
         title="Model thread-scalability",
-        rows=[render_hardware_tabs(hardware_pages)],
+        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "models_scalability.html"
     output.write_text(html)

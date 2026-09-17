@@ -31,6 +31,22 @@ from sklbench.reporting.html import (
 
 
 BASE_IMPLEMENTATION = "sklearn"
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard holds the implementation fixed (plain scikit-learn) and
+  varies only the <em>build</em> &mdash; the BLAS/OpenMP runtime a given pixi
+  environment links against (e.g. conda-forge's MKL or one of its
+  libgomp/libomp OpenBLAS builds) &mdash; against the PyPI wheel build as the
+  baseline. Array API and scikit-learn-intelex variants, and one-off
+  <code>sklearn-dev</code> git-checkout builds, are excluded (see the other
+  dashboards for those). Read each cell like
+  <a href="per_hardware.html">the software/implementations dashboard</a>: fit
+  or predict speed-up (log-scale y-axis) per estimator category, one line per
+  build. In the latest full run, most alternative builds land within a few
+  percent of the PyPI baseline for tree-based models &mdash; BLAS/OpenMP
+  choice mostly doesn't matter there &mdash; except MKL, which gives
+  BLAS-bound linear-model fitting a consistent real speed-up (commonly in the
+  1.3-1.5x range).</p>
+</section>"""
 
 
 def is_other_library_build(result: MethodResult | BenchmarkRecord) -> bool:
@@ -269,6 +285,7 @@ def generate(output_dir: Path) -> None:
     html = BASE_TEMPLATE.render(
         title="sklbench builds comparison dashboard",
         rows=[
+            ABOUT_HTML,
             render_hardware_tabs(hardware_pages),
         ],
     )

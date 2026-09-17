@@ -65,6 +65,22 @@ from sklbench.reporting.matching import (
 from sklbench.reporting.utils import stable_json, without_keys
 
 
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard isolates the effect of <em>hardware</em>: pick a baseline
+  and a comparison machine (CPU-vs-CPU or GPU-vs-GPU only &mdash; the two
+  dropdowns only ever offer pairs that actually share comparable results) and
+  it matches up every build/implementation present on both sides, so a
+  speed-up here is attributable to the machine, not to a different software
+  stack. Each cell is fit or predict speed-up (log-scale y-axis) per
+  estimator category, one line per shared build/implementation label. In the
+  latest full run, raw hardware doesn't always predict the winner: the modern
+  Intel laptop and the high-end Intel server run at close to parity across
+  the board, while the low-end Intel laptop trails both by roughly 3-5x, and
+  Apple's M4 CPU tends to edge out the Intel machines on the shared
+  <code>sklearn-pypi</code> baseline.</p>
+</section>"""
+
+
 BASE_IMPLEMENTATION = "sklearn"
 CATEGORIES = ["linear", "tree-based", "clustering"]
 METHODS = ["fit", "predict"]
@@ -550,7 +566,7 @@ def generate(output_dir: Path) -> None:
 
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
-        rows=[render_selector(all_results)],
+        rows=[ABOUT_HTML, render_selector(all_results)],
     )
 
     output = output_dir / "hardware_comparisons.html"

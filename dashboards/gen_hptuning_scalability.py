@@ -92,6 +92,28 @@ CPU_METRIC = "CPU utilization (%)"
 SOURCE_CONFIGS = ["configs/hptuning.py"]
 SOURCE_ENVS = ENV_ORDER
 
+ABOUT_HTML = """<section class="panel">
+  <p>RandomizedSearchCV nests two levels of parallelism: its own outer
+  <code>n_jobs</code> dispatching candidates, and whatever each candidate
+  does with its own threads internally (RF/ET's explicit inner
+  <code>n_jobs=-1</code>, HGB's OpenMP pool, BLAS threads under Ridge/
+  LogisticRegression). This dashboard sweeps outer <code>n_jobs</code> to see
+  whether that combination scales, stalls, or fights itself. Tabs are one per
+  hardware; each small multiple is one (estimator, dataset) pair, x-axis =
+  outer <code>n_jobs</code> (log scale), y-axis = mean seconds per individual
+  <code>.fit()</code> call across the whole search, one colored line per
+  environment, marker size = mean CPU utilization. A line dropping roughly
+  &prop; 1/n_jobs is ideal scaling; flat means extra outer workers buy
+  nothing; rising means outer parallelism is actively hurting (typically
+  oversubscription against a candidate's own inner parallelism). In the
+  latest full run, outer parallelism reliably helps everywhere &mdash; no
+  sweep collapses into a rising line &mdash; but not equally: Ridge,
+  LogisticRegression and HistGradientBoosting scale close to linearly, while
+  RandomForest/ExtraTrees only reach roughly 5-6x speed-up at 86 outer
+  workers, since their inner <code>n_jobs=-1</code> is competing with the
+  outer dispatch for the same cores.</p>
+</section>"""
+
 
 def _estimator(record: BenchmarkRecord) -> str:
     return record.case["algorithm"]["estimator"]
@@ -454,7 +476,7 @@ def generate(output_dir: Path) -> None:
 
     html = BASE_TEMPLATE.render(
         title="hptuning outer-parallelism scalability",
-        rows=[render_hardware_tabs(hardware_pages)],
+        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "hptuning_scalability.html"
     output.write_text(html)

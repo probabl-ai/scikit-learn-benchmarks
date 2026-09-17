@@ -86,8 +86,26 @@ SOURCE_CONFIG_OVERRIDES = {
     "configs/hgb_scalability_proc_bind.py": {"hardware": {"534824"}},
 }
 
+ABOUT_HTML = """<section class="panel">
+  <p>Thread-count scaling tells you a fit got faster, but not why, or why it
+  sometimes doesn't. This dashboard instruments HistGradientBoosting's fit
+  internals (binning, histogram computation, split finding) so a workload's
+  time can be broken into the phases that actually run in parallel. Tabs are
+  one per (hardware, build, thread-affinity setting) combination; within a
+  tab, one stacked bar per workload with the phase legend below. The x-axis
+  is the requested thread count (<code>OMP_NUM_THREADS</code>), with the
+  actual thread count trees were grown with in parentheses where known.
+  Watch whether the total bar height keeps shrinking as threads increase, and
+  which segment shrinks with it &mdash; a bar that stops shrinking, or grows,
+  means added threads bought nothing (or cost something). In the latest full
+  run, that's exactly what happens on the high-end server for small/medium
+  workloads at very high thread counts (100+): they get slower, not faster,
+  as per-tree dispatch/synchronization overhead starts to dominate an already
+  cheap fit, and only the largest workloads reliably speed up throughout the
+  sweep. Pinning threads (<code>proc_bind=close</code>) measurably reduces
+  that regression.</p>
+</section>"""
 
-# TODO: re-rerun 534824 (High-end Intel server) results.
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
 # cost first, so their band stays a constant height and the phases that
@@ -544,7 +562,7 @@ def generate(output_dir: Path) -> None:
 
     html = BASE_TEMPLATE.render(
         title="HGB fit-time breakdown (thread scalability)",
-        rows=[render_hardware_tabs(pages)],
+        rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"
     output.write_text(html)
