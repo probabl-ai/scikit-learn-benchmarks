@@ -22,6 +22,7 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
     Path("configs/models_scalability.py"): GENERAL_ENVS,
+    Path("configs/all_models_logistic_lbfgs_only.py"): ARRAY_API_ENVS,
     # hptuning.py only ever selects non-array-API (no data_library),
     # CPU-or-unset-device implementations - the array-API-only envs
     # (skl-cpu/skl-intel/skl-nvidia/skl-mps) would filter down to zero
