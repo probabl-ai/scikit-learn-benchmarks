@@ -18,16 +18,17 @@ with concurrent outer candidates, apart from "idle", e.g. dispatch/IPC
 overhead dominating over too-cheap candidates) is commented out for now
 rather than removed - see `_row_cell_html`.
 
-Seconds *per fit* (`duration_s * n_jobs / (n_iter * cv_n_splits)` - see
-`_seconds_per_fit`), not raw wall time: `configs/hptuning.py`'s `n_iter`
-grows with `n_jobs` (≈3x n_jobs beyond its "at least 10" floor - see its
-`_case`), so the total search work isn't fixed across the sweep and raw wall
-time isn't directly comparable point to point - a flat raw-wall-time line
-past the floor is already the *best* case (constant work per worker), not a
-sign of zero speedup. Dividing by fits *per worker* (not total fits - that
-would divide out an extra, misleading factor of `n_jobs`) turns "perfectly
-efficient" into "flat line" directly, with no separate reference curve
-needed to say so.
+Seconds *per fit* (`duration_s / (n_iter * cv_n_splits)` - see
+`_seconds_per_fit`), i.e. mean wall-clock time per `.fit()` call across the
+whole search, not raw wall time: `configs/hptuning.py`'s `n_iter` is fixed
+per machine (same value for every point in a row's `n_jobs` sweep - see its
+`_case`), so this is just `duration_s` rescaled by a row-constant factor and
+answers the actual question directly - does raising outer `n_jobs` let the
+machine push through more fits per second? A line dropping roughly ∝
+`1 / n_jobs` is ideal (linear) scaling; flat means more outer workers buy
+nothing; rising means outer parallelism is actively hurting (typically
+oversubscription against an inner parallelism the candidate already uses -
+see RF/ET's explicit `n_jobs=-1`).
 
 Records are identified by the presence of a `hptuning` case section - unique
 to `HPTuningCase` (see `sklbench/config/models/hptuning.py`), not set by any
@@ -171,21 +172,16 @@ def _duration_s(record: BenchmarkRecord) -> float | None:
 
 
 def _seconds_per_fit(record: BenchmarkRecord) -> float | None:
-    """Wall-clock time to process one fit's worth of work, accounting for
-    how many of `_n_fits(record)` fits ran concurrently: `duration_s *
-    n_jobs / n_fits`, i.e. `duration_s / (n_fits / n_jobs)` - dividing by
-    fits *per worker*, not by the total fit count. Dividing by the total
-    instead (no `* n_jobs`) would shrink by a full extra factor of `n_jobs`
-    even under perfectly efficient scaling - `n_jobs` parallel workers
-    produce that total in the first place, so wall time is already "divided
-    by n_jobs" once before this function does anything; dividing by the
-    (n_jobs-inflated) total fit count on top of that divides by it again.
-    This version is flat exactly when outer/inner parallelism composes
-    perfectly, which a plain `duration_s / n_fits` is not."""
+    """Mean wall-clock time per `.fit()` call across the whole search:
+    `duration_s / n_fits` - i.e. the reciprocal of fits-per-second
+    throughput. Decreasing with `n_jobs` means more outer workers are
+    letting the machine get through fits faster; flat/rising means they
+    aren't (or are actively hurting, e.g. oversubscription against a
+    candidate's own inner parallelism)."""
     duration = _duration_s(record)
     if duration is None:
         return None
-    return duration * _n_jobs(record) / _n_fits(record)
+    return duration / _n_fits(record)
 
 
 def _cpu_percent_mean(record: BenchmarkRecord) -> float | None:
