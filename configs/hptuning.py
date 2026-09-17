@@ -21,6 +21,7 @@ from _implementations import implementations_for_pixi_env
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
 BENCH = {"n_runs": 3}
+N_ESTIMATORS = cpu_count() * 2
 
 REAL_DATASET_CASES = [
     # Trees:
@@ -33,7 +34,7 @@ REAL_DATASET_CASES = [
             },
             "estimator": {
                 "n_jobs": -1,
-                "n_estimators": [100, 200, 300],
+                "n_estimators": N_ESTIMATORS,
                 "max_features": [0.3, "sqrt"],
                 "min_samples_split": [2, 5, 20, 100],
                 "min_impurity_decrease": [3e-5, 1e-5, 1e-6]
@@ -46,7 +47,7 @@ REAL_DATASET_CASES = [
         {   # search space:
             "estimator": {
                 "n_jobs": -1,
-                "n_estimators": 50,
+                "n_estimators": N_ESTIMATORS,
                 "min_samples_split": [50, 500, 5000],
                 "min_impurity_decrease": [3e-4, 1e-4, 1e-5, 1e-6]
             }
@@ -61,7 +62,7 @@ REAL_DATASET_CASES = [
             },
             "estimator": {
                 "n_jobs": -1,
-                "n_estimators": [200, 400, 600],
+                "n_estimators": N_ESTIMATORS * 2,
                 "max_features": [1., 0.5, 0.2],
                 "max_leaf_nodes": [50, 200, 800],
             }
@@ -225,6 +226,42 @@ def _split_search_space(search_space: dict) -> tuple[dict, dict]:
     return estimator_params, param_distributions
 
 
+def get_n_iter_and_n_jobs_list(estimator: str, library: str):
+    TREES = [
+        "RandomForestClassifier", "RandomForestRegressor",
+        "ExtraTreesRegressor", "ExtraTreesClassifier"
+    ]
+    is_tree = estimator in TREES
+    n_iter = n_cores * 2
+    n_cores = cpu_count(only_physical_cores=True)
+    # default:
+    n_jobs_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
+    if is_tree:
+        n_jobs_list = [1, 2, *n_jobs_list]
+        if library == "sklearnex":
+            n_jobs_list = n_jobs_list[:-2]
+    n_jobs_list = sorted(set([min(n_jobs, n_cores) for n_jobs in n_jobs_list]))
+
+    if n_cores == 16:
+        if is_tree and library == "sklearnex":
+            n_jobs_list = [1, 2, 4]
+        elif is_tree:
+            n_jobs_list = [1, 2, 4, 8, 16]
+        else:
+            n_jobs_list = [4, 8, 16]
+
+    elif n_cores == 172:
+        n_iter = n_cores
+        if is_tree and library == "sklearnex":
+            n_jobs_list = [1, 2, 5, 11]
+        elif is_tree:
+            n_jobs_list = [1, 2, 5, 11, 22, 43, 86]
+        else:
+            n_jobs_list = [11, 22, 43, 86]
+
+    return n_iter, n_jobs_list
+
+
 def _case(
     dataset: str,
     max_samples: int | None,
@@ -244,21 +281,15 @@ def _case(
         # hence the explicit `options={"scoring": ...}` override for those.
         scoring = "silhouette" if estimator == "KMeans" else None
     data = Data(dataset=dataset, preprocessing_kind=preprocessing_kind)
-    n_cores = cpu_count(only_physical_cores=True)
-    n_cores_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
-    n_iter = n_cores
-    if n_cores == 16:
-        n_cores_list = [4, 8, 16]
-    elif n_cores == 172:
-        n_iter = 86
-        n_cores_list = [11, 22, 43, 86]
 
     cases = []
     for implem in implementations:
         if implem["library"] in skip_libraries:
             continue
 
-        for n_jobs in n_cores_list:
+        n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator, implem["library"])
+
+        for n_jobs in n_jobs_list:
             cases.append(HPTuningCase(
                 bench=BENCH,
                 algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
