@@ -22,6 +22,7 @@ import sklearn
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import FeatureUnion, make_pipeline
 from sklearn.preprocessing import (
     FunctionTransformer,
@@ -161,14 +162,26 @@ def build_transfer_to_device(
     )
 
 
-def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
-    """`transfer_to_device` (see `build_transfer_to_device`), when given, is
+def trees_preprocessor(
+    encoding : str = "ordinal",
+    remove_nans: bool = False,
+    numeric_impute_strategy: str = "mean",
+    transfer_to_device=None,
+):
+    """`remove_nans`, when set, makes the output NaN-free, needed for
+    tree implementations that (unlike HGB) don't handle missing values
+    natively: numeric columns are imputed with `numeric_impute_strategy`
+    (`SimpleImputer`), and unseen categories at transform time are encoded
+    as -2 instead of NaN. Missing categories already always encode to -1
+    (`encoded_missing_value`), regardless of `remove_nans`.
+
+    `transfer_to_device` (see `build_transfer_to_device`), when given, is
     placed last."""
 
     encoders = {
         "ordinal": OrdinalEncoder(
             handle_unknown="use_encoded_value",
-            unknown_value=np.nan,
+            unknown_value=-2 if remove_nans else np.nan,
             encoded_missing_value=-1,
             min_frequency=5
         ),
@@ -178,9 +191,13 @@ def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
             min_frequency=5,
         ),
         # TODO? target encoding
-    } 
+    }
 
     encoder = encoders[encoding]
+
+    numeric_transformer = (
+        SimpleImputer(strategy=numeric_impute_strategy) if remove_nans else "passthrough"
+    )
 
     preprocessor = ColumnTransformer(
         transformers=[
@@ -189,8 +206,12 @@ def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
                 encoder,
                 make_column_selector(dtype_include=["category"]),
             ),
+            (
+                "numeric",
+                numeric_transformer,
+                make_column_selector(dtype_exclude=["category"]),
+            ),
         ],
-        remainder='passthrough'
     )
 
     # TODO? returning categorical type as done for HGB

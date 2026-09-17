@@ -11,12 +11,12 @@ whether that composition scales or falls over. One small multiple per
 (estimator, dataset): seconds per fit vs. outer `n_jobs`, with each swept
 environment (`sklearn-pypi`/`sklearn-cf-mkl`/`intel`) as its own colored line
 on the same plot (see `ENV_COLORS`) rather than a separate plot per
-environment, so a build's effect on scaling reads directly off one cell. A
-mean-CPU-utilization-vs-`n_jobs` panel (from the record's `system_telemetry`
-- meant to tell "busy but inefficient", e.g. HGB's own thread pool colliding
-with concurrent outer candidates, apart from "idle", e.g. dispatch/IPC
-overhead dominating over too-cheap candidates) is commented out for now
-rather than removed - see `_row_cell_html`.
+environment, so a build's effect on scaling reads directly off one cell. Mean
+CPU utilization (from the record's `system_telemetry` - meant to tell "busy
+but inefficient", e.g. HGB's own thread pool colliding with concurrent outer
+candidates, apart from "idle", e.g. dispatch/IPC overhead dominating over
+too-cheap candidates) sizes each point's marker rather than getting its own
+panel - see `_env_series`.
 
 Seconds *per fit* (`duration_s / (n_iter * cv_n_splits)` - see
 `_seconds_per_fit`), i.e. mean wall-clock time per `.fit()` call across the
@@ -100,6 +100,16 @@ def _dataset_name(record: BenchmarkRecord) -> str:
     return data.get("dataset") or data.get("source") or "unknown"
 
 
+def _data_desc_raw(run: dict) -> dict:
+    """`data_desc`'s pre-preprocessing shape - subsampled (per
+    `hptuning.max_samples`) but not yet through whatever `preprocessing_kind`
+    transform the pipeline applies. Older records (from before the runner
+    split `data_desc` into `raw`/`fit` - see `sklbench/runners/hptuning.py`)
+    stored this same shape flat instead of nested under `"raw"`."""
+    desc = run.get("data_desc") or {}
+    return desc.get("raw", desc)
+
+
 def _dataset_shape(record: BenchmarkRecord) -> tuple[int | None, int | None]:
     generation_kwargs = record.case.get("data", {}).get("generation_kwargs")
     if generation_kwargs:
@@ -109,9 +119,23 @@ def _dataset_shape(record: BenchmarkRecord) -> tuple[int | None, int | None]:
     # run's own `data_desc` instead (same for every n_jobs point of a given
     # spec, since `max_samples` doesn't vary with n_jobs).
     for run in record.runs:
-        desc = run.get("data_desc") or {}
+        desc = _data_desc_raw(run)
         if desc.get("n_samples") and desc.get("n_features"):
             return desc["n_samples"], desc["n_features"]
+    return None, None
+
+
+def _fit_shape(row_records: list[BenchmarkRecord]) -> tuple[int | None, int | None]:
+    """Shape actually seen by `.fit()`, after whatever `preprocessing_kind`
+    transform the pipeline applies (e.g. one-hot encoding categorical
+    columns expanding `n_features`) - `(None, None)` for records from
+    before the runner captured this (see `_data_desc_raw`), or when no run
+    in this row has it."""
+    for record in row_records:
+        for run in record.runs:
+            fit = (run.get("data_desc") or {}).get("fit") or {}
+            if fit.get("n_samples") and fit.get("n_features"):
+                return fit["n_samples"], fit["n_features"]
     return None, None
 
 
@@ -256,9 +280,14 @@ def _params_line(record: BenchmarkRecord) -> str:
     return f"params: {formatted}"
 
 
-def _row_title(row_key: tuple) -> str:
+def _row_title(row_key: tuple, fit_shape: tuple[int | None, int | None]) -> str:
     estimator, dataset, n_samples, n_features = row_key
-    dims = f"{n_samples:,} x {n_features}" if n_samples and n_features else "shape unknown"
+    if not n_samples or not n_features:
+        return f"{estimator} / {dataset} (shape unknown)"
+    dims = f"{n_samples:,} x {n_features}"
+    fit_n_samples, fit_n_features = fit_shape
+    if fit_n_features and (fit_n_samples, fit_n_features) != (n_samples, n_features):
+        dims += f" → {fit_n_samples:,} x {fit_n_features}"
     return f"{estimator} / {dataset} ({dims})"
 
 
@@ -268,17 +297,22 @@ def _row_subtitle_html(record: BenchmarkRecord) -> str:
 
 def _env_series(
     row_records: list[BenchmarkRecord], point_fn
-) -> dict[str, list[tuple[float, float, str]]]:
+) -> dict[str, list[tuple[float, float, str, float | None]]]:
     """`point_fn(record) -> float | None` per env, keyed by env label - one
     line per environment on the same plot (`ENV_COLORS` keeps a build's color
-    consistent across cells) rather than a separate plot per environment."""
+    consistent across cells) rather than a separate plot per environment.
+    Each point's marker is additionally sized by mean CPU utilization (see
+    `scaling_line_plot_html`'s 4th point element) - a visual signal for
+    "busy but inefficient" (e.g. HGB's own thread pool colliding with
+    concurrent outer candidates) alongside the exact number already in
+    `_hover_extra`'s hover text."""
     series = {}
     for env in sorted({_env(record) for record in row_records}, key=_env_sort_key):
         env_records = sorted(
             (record for record in row_records if _env(record) == env), key=_n_jobs
         )
         points = [
-            (_n_jobs(record), value, _hover_extra(record))
+            (_n_jobs(record), value, _hover_extra(record), _cpu_percent_mean(record))
             for record in env_records
             if (value := point_fn(record)) is not None
         ]
@@ -289,12 +323,6 @@ def _env_series(
 
 def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
     duration_series = _env_series(row_records, _seconds_per_fit)
-    # CPU-utilization cell disabled for now - it'd need its own `plot-cell`
-    # (a different unit/axis than seconds-per-fit, so it can't be folded
-    # into `duration_series`'s plot as more lines) rather than a second
-    # env-column, now that environments are merged into one plot's series
-    # instead of separate side-by-side plots - see the module docstring.
-    # cpu_series = _env_series(row_records, _cpu_percent_mean)
     if not duration_series:
         return ""
 
@@ -305,8 +333,10 @@ def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
         y_title=DURATION_METRIC,
         y_unit="s",
         x_log=True,
+        # Marker size ~ mean CPU utilization (%) - see `_env_series`.
+        size_domain=(0, 100),
     )
-    title = escape(_row_title(row_key))
+    title = escape(_row_title(row_key, _fit_shape(row_records)))
     subtitle = _row_subtitle_html(row_records[0])
     return f'<section class="plot-cell"><h3>{title}</h3>{subtitle}{plot}</section>'
 

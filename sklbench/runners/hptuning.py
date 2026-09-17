@@ -30,7 +30,7 @@ def _build_pipeline(case: HPTuningCase) -> Pipeline:
     preprocessing_kind = case.data.preprocessing_kind
     preprocessor = (
         "passthrough" if preprocessing_kind is None
-        else PREPROCESSORS[preprocessing_kind]()
+        else PREPROCESSORS[preprocessing_kind](**case.data.preprocessing_kwargs)
     )
     return Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
 
@@ -179,10 +179,18 @@ def run_hptuning(case: HPTuningCase) -> dict:
             search.fit(X, y)
         duration_s = time.time() - tic
 
+    # `best_estimator_` is the pipeline refit on the whole `X, y` (`refit=True`
+    # by default), so its already-fitted preprocessor step can transform `X`
+    # to recover the shape the estimator actually trained on, without an
+    # extra fit - same `estimator[:-1].transform(X)` pattern
+    # `_silhouette_scorer` uses above. Equals `raw`'s n_features when
+    # `preprocessing_kind` is None (a "passthrough" step).
+    fit_n_features = search.best_estimator_[:-1].transform(X).shape[1]
+
     return {
         "data_desc": {
-            "n_samples": len(X),
-            "n_features": X.shape[1],
+            "raw": {"n_samples": len(X), "n_features": X.shape[1]},
+            "fit": {"n_samples": len(X), "n_features": fit_n_features},
         },
         "duration_s": duration_s,
         "scoring": scoring,
