@@ -77,6 +77,17 @@ METHODS = ["fit", "predict"]
 CPU_DEVICES = {None, "default", "cpu"}
 GPU_DEVICES = {"gpu", "xpu", "mps"}
 
+# Unlike CPU, where every build/implementation variant present on both sides
+# gets compared, GPU pairings are restricted to the one backend that's
+# actually portable across GPU vendors: the Array API pytorch backend
+# (data_library "torch"), which runs on both Intel's "xpu" device and
+# Apple's "mps" one. sklearnex's native GPU offload (oneDAL) and the dpnp
+# Array API backend are both Intel-only - no Apple (or other-vendor)
+# counterpart exists for either - so they're excluded from GPU variant
+# results outright rather than left to fall out of an incidental label
+# intersection (see `variant_results`).
+GPU_PORTABLE_DATA_LIBRARIES = {"torch"}
+
 
 @dataclass(frozen=True)
 class HardwareVariant:
@@ -104,12 +115,19 @@ FAMILY_LABELS = {"cpu": "CPU", "gpu": "GPU"}
 def variant_results(
     results: list[MethodResult], variant: HardwareVariant
 ) -> list[MethodResult]:
-    return [
+    results = [
         result
         for result in results
         if result.hardware_hash == variant.hardware_hash
         and result.implementation.device in variant.devices
     ]
+    if variant.family == "gpu":
+        results = [
+            result
+            for result in results
+            if result.implementation.data_library in GPU_PORTABLE_DATA_LIBRARIES
+        ]
+    return results
 
 
 def variant_label(result: MethodResult | BenchmarkRecord) -> str:
