@@ -5,7 +5,7 @@ from math import sqrt
 
 from joblib import cpu_count
 
-from _common import deterministic_random_choice
+from _utils.common import deterministic_random_choice
 
 
 def get_estimator_params_variants(n_samples: int, broad=False):

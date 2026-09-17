@@ -1,9 +1,9 @@
-from _common import disable_profiling_for_array_api_gpu_cases
-from _implementations import implementations_for_pixi_env
+from _utils.common import disable_profiling_for_array_api_gpu_cases
+from _utils.implementations import implementations_for_pixi_env
 
-from synthetic_trees import generate_cases as generate_tree_cases
-from synthetic_linear import generate_cases as generate_linear_cases
-from real_datasets import generate_cases as generate_real_cases
+from _synthetic_trees import generate_cases as generate_tree_cases
+from _synthetic_linear import generate_cases as generate_linear_cases
+from _real_datasets import generate_cases as generate_real_cases
 
 from sklbench.config.utils import (
     filter_array_api_supported_cases_if_needed,
@@ -29,6 +29,6 @@ def generate_cases() -> list[dict]:
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_array_api_supported_cases_if_needed(cases))
 
-    # No separate clustering-case generator here: real_datasets.py's KMeans
+    # No separate clustering-case generator here: `_real_datasets.py`'s KMeans
     # cases already cover this tier.
     return cases

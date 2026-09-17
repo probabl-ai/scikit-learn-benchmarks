@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from .models import BaseCase, EstimatorCase, HPTuningCase
+from .registry import to_repo_relative
 
 
 Case = EstimatorCase | HPTuningCase
@@ -83,11 +84,20 @@ def load_cases_from_script(path: str | Path) -> list[Case]:
         raise TypeError(f"{config_path}:generate_cases is not callable")
 
     raw_cases = generate_cases()
+    source_config = to_repo_relative(config_path)
 
     cases = []
     for index, case in enumerate(raw_cases):
         try:
-            cases.append(validate_case(case))
+            validated = validate_case(case)
         except Exception as exc:
             raise ValueError(f"Invalid case at index {index}: {exc}") from exc
+        # Stamped here (keyed off the actually-invoked --config path), not
+        # self-declared by each config: a variant script like
+        # hgb_scalability_force_active_wait.py calls hgb_scalability.py's
+        # generate_cases() internally but is itself the invoked script, so
+        # self-stamping inside hgb_scalability.py would mislabel it. This is
+        # what dashboards/gen_*.py's SOURCE_CONFIGS matches against.
+        validated.metadata["source_config"] = source_config
+        cases.append(validated)
     return cases

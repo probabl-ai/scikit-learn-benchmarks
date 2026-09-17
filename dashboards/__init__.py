@@ -20,6 +20,45 @@ GPU_NAMES = {
     "b281b2": "Apple M4 GPU",
 }
 
+# Pixi platform (as declared by `platforms = [...]` in pixi.toml's
+# [feature.*] blocks) each hardware hash actually runs, so
+# `scripts/what_to_rerun.py --hardware` can drop envs that can't even be
+# installed there (see `sklbench.reporting.envs.env_platforms`). This is
+# genuinely new information (which OS/arch each physical machine runs) that
+# isn't derivable from anywhere else in the repo.
+HARDWARE_PLATFORMS = {
+    "3b5e61": "linux-64",
+    "534824": "linux-64",
+    "be1055": "linux-64",
+    "b281b2": "osx-arm64",
+}
+
+# `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison
+# dashboards (gen_per_hardware, gen_builds_comparison,
+# gen_hardware_comparisons), which all draw on the same broad
+# configs/all_models*.py matrix across every Pixi env it sweeps - kept here
+# once rather than tripled across those modules.
+GENERAL_SOURCE_CONFIGS = [
+    "configs/all_models.py",
+    "configs/all_models_fast.py",
+    "configs/smoke_check_test.py",
+]
+GENERAL_SOURCE_ENVS = [
+    "sklearn-pypi",
+    "sklearn-cf-default",
+    "sklearn-cf-libgomp-openblas",
+    "sklearn-cf-libomp-openblas",
+    "sklearn-cf-libomp-openblas-omp",
+    "sklearn-cf-mkl",
+    "sklearn-dev",
+    "sklearn-dev-libomp",
+    "skl-cpu",
+    "skl-intel",
+    "skl-nvidia",
+    "skl-mps",
+    "intel",
+]
+
 
 def dashboard_output_dir() -> Path:
     parser = ArgumentParser()

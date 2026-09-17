@@ -22,8 +22,7 @@ builds (a specific commit/PR branch, see CONTRIBUTING.md's
 `setup_sklearn_ref.sh` / `run.sh env@owner:ref` workflow) rather than a
 stable environment build, so mixing them into this dashboard's per-build
 tabs would make a tab mean "whatever PR happened to run last" instead of a
-fixed build. See `gen_hgb_dev_scalability_breakdown.py` for the sklearn-dev-only
-counterpart.
+fixed build.
 """
 from html import escape
 import json
@@ -54,9 +53,28 @@ from sklbench.reporting.html import (
 from sklbench.reporting.matching import (
     BenchmarkRecord,
     date_range,
-    is_scaling_benchmark,
+    matches_source_configs,
     read_benchmark_records,
 )
+
+
+SOURCE_CONFIGS = [
+    "configs/hgb_scalability.py",
+    "configs/hgb_scalability_force_active_wait.py",
+    "configs/hgb_scalability_proc_bind.py",
+]
+# hgb_scalability.py always benchmarks plain `library: "sklearn"` (no
+# sklearnex/Array API variants), so the envs that matter here are exactly
+# the stable sklearn build variants - sklearn-dev* is deliberately excluded
+# (see module docstring).
+SOURCE_ENVS = [
+    "sklearn-pypi",
+    "sklearn-cf-default",
+    "sklearn-cf-libgomp-openblas",
+    "sklearn-cf-libomp-openblas",
+    "sklearn-cf-libomp-openblas-omp",
+    "sklearn-cf-mkl",
+]
 
 
 # TODO: re-rerun 534824 (High-end Intel server) results.
@@ -104,15 +122,12 @@ _SECONDS_ATTRIBUTES = [
 
 
 def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
-    """Whether `record` is an instrumented-HGB result from a thread-scaling
-    sweep config (`configs/hgb_scalability.py` or alike, e.g.
-    `hgb_scalability_proc_bind.py`/`hgb_scalability_force_active_wait.py` - anything
-    tagging `metadata.benchmark_type: scaling`), as opposed to some other
-    config's HGB result that happens to carry phase timings too, since
-    `sklbench.runners.estimator.loading.wrapped_estimators` instruments every
-    HistGradientBoosting* estimator unconditionally regardless of which
-    config ran it."""
-    if not is_scaling_benchmark(record):
+    """Whether `record` is an instrumented-HGB result from `SOURCE_CONFIGS`,
+    as opposed to some other config's HGB result that happens to carry phase
+    timings too, since `sklbench.runners.estimator.loading.wrapped_estimators`
+    instruments every HistGradientBoosting* estimator unconditionally
+    regardless of which config ran it."""
+    if not matches_source_configs(record.case, SOURCE_CONFIGS):
         return False
     estimator = record.case.get("algorithm", {}).get("estimator", "")
     if "HistGradientBoosting" not in estimator:
@@ -122,10 +137,7 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
 
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
-# "sklearn-dev-libomp@..." (see configs/_implementations.py). Re-derived here
-# rather than imported from gen_hgb_dev_speedup_breakdown.py, per this codebase's
-# convention of each gen_*.py dashboard owning its own such helpers instead
-# of importing another dashboard module's internals.
+# "sklearn-dev-libomp@..." (see configs/_utils/implementations.py).
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 
 
@@ -259,8 +271,8 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
         "hist_time": grow_parts["hist_time"],
         "total_ms": fit_ms,
         # Raw per-repeat fit times (ms), for callers that need to gauge
-        # measurement noise around `total_ms` (e.g. gen_hgb_dev_speedup_breakdown.py)
-        # rather than just the de-noised median point estimate.
+        # measurement noise around `total_ms` rather than just the
+        # de-noised median point estimate.
         "total_ms_repeats": fit_ms_repeats,
     }
 

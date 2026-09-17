@@ -30,11 +30,10 @@ nothing; rising means outer parallelism is actively hurting (typically
 oversubscription against an inner parallelism the candidate already uses -
 see RF/ET's explicit `n_jobs=-1`).
 
-Records are identified by the presence of a `hptuning` case section - unique
-to `HPTuningCase` (see `sklbench/config/models/hptuning.py`), not set by any
-other config, so this doesn't need to import `configs/hptuning.py` itself
-(same convention as e.g. `gen_models_scalability.py`'s `metadata.n_cores`
-check). `duration_s`/`cpu_percent` aren't columns `MethodResult`/
+Records are identified by `metadata.source_config` (see `SOURCE_CONFIGS` and
+`sklbench.reporting.matching.matches_source_configs`), stamped at load time
+by `sklbench.config.loader.load_cases_from_script`. `duration_s`/
+`cpu_percent` aren't columns `MethodResult`/
 `read_all_results()` understands (that machinery expects a `time_ms` dict
 keyed by run method, e.g. "fit"/"predict" - `sklbench/runners/hptuning.py`
 writes flat `duration_s`/`best_score` rows instead), so this reads raw
@@ -66,7 +65,10 @@ from sklbench.reporting.html import (
     scaling_line_plot_html,
     variant_color_map,
 )
-from sklbench.reporting.matching import BenchmarkRecord, Implementation, date_range, read_benchmark_records
+from sklbench.reporting.matching import (
+    BenchmarkRecord, Implementation, date_range, matches_source_configs,
+    read_benchmark_records,
+)
 
 
 ENV_ORDER = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
@@ -87,8 +89,8 @@ DURATION_METRIC = "s / fit"
 CPU_METRIC = "CPU utilization (%)"
 
 
-def _is_hptuning(record: BenchmarkRecord) -> bool:
-    return "hptuning" in record.case
+SOURCE_CONFIGS = ["configs/hptuning.py"]
+SOURCE_ENVS = ENV_ORDER
 
 
 def _estimator(record: BenchmarkRecord) -> str:
@@ -428,7 +430,10 @@ def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> 
 
 def generate(output_dir: Path) -> None:
     records = _dedup_latest(
-        [record for record in read_benchmark_records() if _is_hptuning(record)]
+        [
+            record for record in read_benchmark_records()
+            if matches_source_configs(record.case, SOURCE_CONFIGS)
+        ]
     )
     hardware_hashes = sorted(
         {record.hardware_hash for record in records},

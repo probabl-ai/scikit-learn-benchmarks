@@ -3,8 +3,8 @@ from math import ceil, sqrt
 from typing import Iterable
 
 #TODO: in utils or in _common? wierd overlap
-from _common import deterministic_random_choice
-from _numa import auto_numa_cpu_affinity
+from _utils.common import deterministic_random_choice
+from _utils.numa import auto_numa_cpu_affinity
 
 
 ALGORITHM_VARIANTS = [
@@ -109,7 +109,7 @@ def linear_data_shapes(scale: int) -> list[dict]:
 
     scale=10 matches the "fast" tier, so "normal"'s first rung sits at
     roughly the same magnitude as "fast", then grows from there - mirroring
-    `synthetic_trees.py`'s scale ladder.
+    `_synthetic_trees.py`'s scale ladder.
     """
     return [
         {"n_samples": 50000 * scale, "n_features": 20, "n_informative": 5},
@@ -169,7 +169,7 @@ def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dic
 
 def with_numa_pinning(case: dict, numa_node: int = 0) -> dict:
     """Pin `case` to one NUMA node's cores via `bench.cpu_affinity` (see
-    `_numa.py`).
+    `_utils/numa.py`).
 
     These synthetic linear-model cases can be large and memory-bandwidth-
     bound enough that wall time varies run to run by 30-55% depending on

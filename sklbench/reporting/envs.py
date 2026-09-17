@@ -5,9 +5,11 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tomllib
 from typing import Callable
 from urllib.parse import quote
 
+from ..config.registry import REPO_ROOT
 from .matching import Implementation
 
 
@@ -18,6 +20,42 @@ def read_env(kind: str, hash: str):
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
     with open(path, "r") as f:
         return json.load(f)
+
+
+@lru_cache(maxsize=None)
+def env_platforms() -> dict[str, frozenset[str]]:
+    """Pixi platform(s) each `[environments]` entry in `pixi.toml` can
+    actually be installed on, resolved as the intersection of its features'
+    `platforms` (a feature with no `platforms` of its own inherits the
+    top-level list). This is the authoritative source for "which envs run
+    where" - e.g. `skl-mps` -> {"osx-arm64"}, `intel`/`skl-intel` ->
+    {"linux-64"}, `skl-nvidia` -> {"linux-64-cuda-12-9"} - so
+    `scripts/what_to_rerun.py --hardware` filters against it instead of a
+    separately maintained table."""
+    with open(REPO_ROOT / "pixi.toml", "rb") as f:
+        pixi = tomllib.load(f)
+
+    # A workspace platform entry is either a plain string or, for a custom
+    # variant like linux-64-cuda-12-9, a table naming itself (see
+    # [workspace].platforms in pixi.toml).
+    def _platform_name(entry):
+        return entry["name"] if isinstance(entry, dict) else entry
+
+    default_platforms = frozenset(
+        _platform_name(p) for p in pixi["workspace"]["platforms"]
+    )
+    feature_platforms = {
+        name: frozenset(feature.get("platforms", default_platforms))
+        for name, feature in pixi.get("feature", {}).items()
+    }
+
+    platforms_by_env = {}
+    for env_name, feature_names in pixi["environments"].items():
+        platforms = default_platforms
+        for feature_name in feature_names:
+            platforms &= feature_platforms.get(feature_name, default_platforms)
+        platforms_by_env[env_name] = platforms
+    return platforms_by_env
 
 
 # Several pixi envs build sklearn differently (pip, conda, MKL, OpenBLAS...);
@@ -38,7 +76,7 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
-# "sklearn-dev-libomp@..." (see configs/_implementations.py).
+# "sklearn-dev-libomp@..." (see configs/_utils/implementations.py).
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 
 

@@ -16,12 +16,12 @@ import numpy as np
 import math
 
 from joblib import cpu_count
-from _implementations import implementations_for_pixi_env
+from _utils.implementations import implementations_for_pixi_env
 
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
 BENCH = {"n_runs": 3}
-N_ESTIMATORS = cpu_count() * 2
+N_ESTIMATORS = 2 * cpu_count() if cpu_count() <= 32 else cpu_count()
 
 REAL_DATASET_CASES = [
     # Trees:
@@ -204,7 +204,7 @@ KMEANS_CASES = [
     ),
     (
         # Downsampled so a many-cluster search still lands near ~5s/fit
-        # (nytimes_256 is 290k rows full-size - see real_datasets.py).
+        # (nytimes_256 is 290k rows full-size - see _real_datasets.py).
         ("nytimes_256", 50_000),
         "KMeans",
         {   # search space:

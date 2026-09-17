@@ -3,7 +3,7 @@ from copy import deepcopy
 from itertools import product
 from typing import Iterable
 
-from _common import _merge_dicts
+from .common import _merge_dicts
 
 
 def with_implementations(cases: Iterable[dict], implementations: Iterable[dict]):

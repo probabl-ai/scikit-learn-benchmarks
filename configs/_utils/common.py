@@ -60,7 +60,7 @@ def disable_profiling_for_array_api_gpu_cases(cases: Iterable[dict]) -> None:
     modes here apply to it.
 
     Replaces `bench` on matching cases with a new dict rather than mutating
-    it in place - config generators like `real_datasets.py` reuse the same
+    it in place - config generators like `_real_datasets.py` reuse the same
     `bench` dict object across many cases, so an in-place mutation here would
     leak onto unrelated cases sharing that object.
     """

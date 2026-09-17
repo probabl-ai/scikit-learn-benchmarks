@@ -29,7 +29,9 @@ from itertools import permutations
 import json
 from pathlib import Path
 
-from dashboards import GPU_NAMES, HARDWARE_NAMES
+from dashboards import (
+    GPU_NAMES, HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -54,8 +56,7 @@ from sklbench.reporting.matching import (
     find_matches,
     read_all_results,
     date_range,
-    is_models_scalability_result,
-    is_scaling_benchmark,
+    matches_source_configs,
     BenchmarkRecord,
     Match,
     MatchWarning,
@@ -146,7 +147,7 @@ def variant_label(result: MethodResult | BenchmarkRecord) -> str:
     return implementation.short_name
 
 
-# `n_jobs` and RF/ET's `n_estimators` are both derived in `real_datasets.py`
+# `n_jobs` and RF/ET's `n_estimators` are both derived in `_real_datasets.py`
 # from `N_JOBS = floor(0.9 * cpu_count(...))` - the *local* machine's core
 # count at config-generation time - so they legitimately differ between two
 # machines' runs of what's otherwise the identical case. Excluded from the
@@ -536,11 +537,15 @@ def render_selector(all_results: list[MethodResult]) -> str:
     """
 
 
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+SOURCE_ENVS = GENERAL_SOURCE_ENVS
+
+
 def generate(output_dir: Path) -> None:
     all_results = [
         _drop_metrics_and_reliability_signals(result)
         for result in read_all_results()
-        if not is_scaling_benchmark(result) and not is_models_scalability_result(result)
+        if matches_source_configs(result.case, SOURCE_CONFIGS)
     ]
 
     html = BASE_TEMPLATE.render(

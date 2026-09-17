@@ -29,13 +29,14 @@ flatten most of that range into an unreadable near-zero tail. A dashed
 added to their cells too, so the real curve's departure from ideal linear
 scaling reads directly off the plot.
 
-Records from that config are identified by `metadata.n_cores` - a key unique
-to `_with_scaling_bench`, not set by any other config - combined with the
-(estimator, dataset) pairs it actually generates, rather than by importing
-the config module itself (`configs/` isn't on this script's import path, and
-no other `dashboards/gen_*.py` imports from it - see e.g.
-`configs/_implementations.py` being re-derived instead of imported in
-gen_hgb_scalability_breakdown.py).
+Records from that config are identified by `metadata.source_config` (see
+`SOURCE_CONFIGS` and `sklbench.reporting.matching.matches_source_configs`),
+stamped at load time by `sklbench.config.loader.load_cases_from_script` -
+not by importing the config module itself (`configs/` isn't on this script's
+import path, and no other `dashboards/gen_*.py` imports from it - see e.g.
+`configs/_utils/implementations.py` being re-derived instead of imported in
+gen_hgb_scalability_breakdown.py). `MODELS` below stays as a presentation
+detail (row selection/ordering only).
 """
 from html import escape
 from pathlib import Path
@@ -52,7 +53,9 @@ from sklbench.reporting.html import (
     render_software_tabs,
     scaling_line_plot_html,
 )
-from sklbench.reporting.matching import MethodResult, date_range, read_all_results
+from sklbench.reporting.matching import (
+    MethodResult, date_range, matches_source_configs, read_all_results,
+)
 
 
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
@@ -85,6 +88,8 @@ MODEL_ORDER = [estimator for estimator, _ in MODELS]
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
 
 ENV_ORDER = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+SOURCE_CONFIGS = ["configs/models_scalability.py"]
+SOURCE_ENVS = ENV_ORDER
 
 SIBLINGS_LABELS = {True: "with SMT", False: "without SMT"}
 SIBLINGS_COLORS = {"with SMT": "#636EFA", "without SMT": "#EF553B"}
@@ -99,14 +104,15 @@ SINGLE_SERIES_LABEL = "fit time"
 NORMALIZED_N_ESTIMATORS = 100
 
 
-def _is_models_scalability_result(result: MethodResult) -> bool:
+def _is_charted_pair(result: MethodResult) -> bool:
+    """Whether `result` is one of `MODELS`' (estimator, dataset) pairs -
+    a presentation/layout detail (row selection and ordering), no longer the
+    "is this mine" check (see `SOURCE_CONFIGS`, checked in `generate`)."""
     if result.method != "fit":
         return False
     estimator = result.case.get("algorithm", {}).get("estimator")
     dataset = result.case.get("data", {}).get("dataset")
-    return "n_cores" in result.case.get(
-        "metadata", {}
-    ) and (estimator, dataset) in MODELS
+    return (estimator, dataset) in MODELS
 
 
 def _cores(result: MethodResult) -> int:
@@ -308,7 +314,8 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
 
 def generate(output_dir: Path) -> None:
     results = [
-        result for result in read_all_results() if _is_models_scalability_result(result)
+        result for result in read_all_results()
+        if matches_source_configs(result.case, SOURCE_CONFIGS) and _is_charted_pair(result)
     ]
     hardware_hashes = sorted(
         {result.hardware_hash for result in results},

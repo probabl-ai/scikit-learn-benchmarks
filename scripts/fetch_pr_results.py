@@ -17,9 +17,8 @@ full raw record set. Each downloaded record is then read for its
 `hardware_hash`/`software_hash` to fetch the matching
 `results/hardware-envs/<hash>.json` and `results/software-envs/<hash>.json`
 - more reliable than scraping those from dashboard HTML, since some
-dashboards (e.g. gen_hgb_dev_scalability_breakdown.py) link software-envs
-via a GitHub-raw-URL fallback that 404s for these never-committed results
-rather than the hosted site.
+dashboards link software-envs via a GitHub-raw-URL fallback that 404s for
+these never-committed results rather than the hosted site.
 
 A `sklbench-compare` directive's `runs:` entries can target either
 self-hosted runner (see COMPARISONS_PR.md), each getting its own CI job and

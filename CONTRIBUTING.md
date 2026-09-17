@@ -95,8 +95,8 @@ and tier conventions.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `configs/synthetic_trees.py`,
-`configs/synthetic_linear.py`, or `configs/real_datasets.py`, depending on the
+Most case changes should start in `configs/_synthetic_trees.py`,
+`configs/_synthetic_linear.py`, or `configs/_real_datasets.py`, depending on the
 workload.
 
 Use `configs/smoke_check_test.py` for the current small exploratory matrix.
@@ -221,6 +221,43 @@ whenever `results/`, `sklbench/reporting/`, or `dashboards/` changes:
 pixi run -e reporting python watch_dashboards.py
 ```
 
+## Config → Dashboard Provenance
+
+Which config a dashboard's data comes from is explicit, not inferred:
+
+- A runnable, orchestrator-facing config is exactly a non-underscore-prefixed
+  `.py` file directly under `configs/` (see `configs/README.md`) - leaf
+  generators (`_real_datasets.py`, ...) and the `configs/_utils/` package of
+  config-authoring helpers are underscore-prefixed precisely so they don't
+  look runnable.
+- Every case is stamped with `metadata.source_config` (the invoked config's
+  repo-relative path) at load time, by
+  `sklbench.config.loader.load_cases_from_script`. This survives into
+  `results/records/*.json`.
+- Every `dashboards/gen_*.py` module declares `SOURCE_CONFIGS` (which
+  configs feed it) and `SOURCE_ENVS` (which Pixi envs it expects/charts) as
+  module-level constants, and filters results with
+  `sklbench.reporting.matching.matches_source_configs` instead of ad-hoc
+  shape/metadata sniffing.
+
+To find what to rerun after a config change - instead of reading
+`matching.py`'s filters by hand - use `scripts/what_to_rerun.py`:
+
+```bash
+python scripts/what_to_rerun.py --dashboard all
+python scripts/what_to_rerun.py --dashboard "HGB thread-scalability breakdown" --hardware "Modern Intel laptop"
+python scripts/what_to_rerun.py --config configs/hgb_scalability.py
+```
+
+`--hardware` (a `dashboards.HARDWARE_NAMES` display name or hash) narrows the
+printed envs to those actually installable there, via
+`sklbench.reporting.envs.env_platforms()` (derived from `pixi.toml`, not a
+separately maintained table) and `dashboards.HARDWARE_PLATFORMS`.
+
+Results predating this system (no `metadata.source_config`) simply won't
+match any dashboard's `SOURCE_CONFIGS` and disappear from every dashboard
+until rerun.
+
 ## Publishing New Results
 
 Make sure lfs is set up (`git lfs install`, see ["Setup"](#setup) above).
@@ -240,8 +277,9 @@ git add results/
 ```
 
 Commit and push on a branch and open a PR (e.g. "RES HGB Macbook results"); it
-will deploy a preview dashboard including your results (if they match the
-filters of some dashboard).
+will deploy a preview dashboard including your results (if some dashboard's
+`SOURCE_CONFIGS` claims the config you ran - see
+["Config → Dashboard Provenance"](#config--dashboard-provenance) above).
 
 Make sure a results PR only contains results - open a separate PR for
 fixes/enhancements/new configs/etc.

@@ -354,9 +354,9 @@ def phase_breakdown_plot_html(
     rather than repeating it per small multiple.
 
     A point may also carry a `"series"` label (e.g. a build being compared
-    against another, see gen_hgb_dev_scalability_breakdown.py) - when more
-    than one distinct series is present, each `x` position gets one
-    side-by-side bar per series (`offsetgroup` per series, stacked manually
+    against another) - when more than one distinct series is present, each
+    `x` position gets one side-by-side bar per series (`offsetgroup` per
+    series, stacked manually
     via each trace's `base` since `barmode="overlay"` doesn't stack on its
     own), ordered left-to-right by `series_order` (defaults to alphabetical).
     X-axis ticks stay plain `x`/`x_label` values either way - the series
