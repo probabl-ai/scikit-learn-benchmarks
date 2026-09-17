@@ -14,6 +14,8 @@ from dashboards import (
     dashboard_output_dir,
     gen_builds_comparison,
     gen_hardware_comparisons,
+    gen_hgb_dev_scalability_breakdown,
+    gen_hgb_dev_speedup_breakdown,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
     gen_models_scalability,
@@ -31,6 +33,8 @@ DASHBOARDS = [
     # TODO: scikit-learn versions comparison (start when? => at least 1.8; intermediate commits?)
     # longitudinal plots: to be ran once in a while
     ("HGB thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+    ("[dev] HGB thread-scalability breakdown", gen_hgb_dev_scalability_breakdown, "hgb_dev_scaling.html"),
+    ("[dev] HGB speed-up breakdown", gen_hgb_dev_speedup_breakdown, "hgb_speedup_breakdown.html"),
     ("hptuning outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
 ]
 
