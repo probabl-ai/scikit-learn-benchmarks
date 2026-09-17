@@ -60,6 +60,7 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     SOFTWARE_TEMPLATE,
+    format_duration_ms,
     render_hardware_tabs,
     render_software_tabs,
     scaling_line_plot_html,
@@ -196,8 +197,29 @@ def _cpu_percent_mean(record: BenchmarkRecord) -> float | None:
     return mean(samples) if samples else None
 
 
+def _memory_percent_max(record: BenchmarkRecord) -> float | None:
+    if record.record_path is None:
+        return None
+    raw = json.loads(record.record_path.read_text())
+    samples = [
+        sample["memory"]["used_percent"]
+        for sample in raw.get("system_telemetry", [])
+        if sample.get("memory", {}).get("used_percent") is not None
+    ]
+    return max(samples) if samples else None
+
+
 def _hover_extra(record: BenchmarkRecord) -> str:
-    extra = f"n_iter: {_n_iter(record)}"
+    parts = [f"n_iter: {_n_iter(record)}"]
+    duration = _duration_s(record)
+    if duration is not None:
+        parts.append(f"wall time: {format_duration_ms(duration * 1000)}")
+    cpu_percent = _cpu_percent_mean(record)
+    if cpu_percent is not None:
+        parts.append(f"CPU load: {cpu_percent:.0f}%")
+    memory_percent = _memory_percent_max(record)
+    if memory_percent is not None:
+        parts.append(f"max memory: {memory_percent:.0f}%")
     if record.failed_case is not None:
         # A record can carry both partial `runs` and a `failed_case` (e.g.
         # 1 of 3 repeats completed before the orchestrator's time limit hit)
@@ -206,8 +228,8 @@ def _hover_extra(record: BenchmarkRecord) -> str:
         # needs its own flag here instead, since its point is a noisier,
         # single-repeat (or otherwise incomplete) median rather than the
         # usual n_runs one.
-        extra += " (incomplete run - hit time limit)"
-    return extra
+        parts.append("timed out (incomplete run)")
+    return "<br>".join(parts)
 
 
 def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
