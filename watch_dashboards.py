@@ -173,8 +173,13 @@ def main() -> int:
             if len(changed) > 10:
                 print(f"  ... and {len(changed) - 10} more")
 
-            _generate(args.output_dir)
-            previous = _snapshot()
+            if _generate(args.output_dir):
+                previous = _snapshot()
+            else:
+                print(
+                    "Generation failed; will retry on the next detected change.",
+                    file=sys.stderr,
+                )
     except KeyboardInterrupt:
         print("\nStopped.")
         return 0
