@@ -67,6 +67,9 @@ REAL_DATASET_CASES = [
             }
         }
     ),
+]
+
+SKIPPED = [
     # Linear (only lbfgs for LogisticRegression - see repo notes on
     # class_weight="balanced"/solver choices):
     (
@@ -245,13 +248,17 @@ def _case(
         scoring = "silhouette" if estimator == "KMeans" else None
     data = Data(dataset=dataset, preprocessing_kind=preprocessing_kind)
     n_cores = cpu_count(only_physical_cores=True)
-    n_cores_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
-    n_iter = n_cores
-    if n_cores == 16:
-        n_cores_list = [4, 8, 16]
-    elif n_cores == 172:
-        n_iter = 86
-        n_cores_list = [11, 22, 43, 86]
+    if False:
+        n_cores_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
+        n_iter = n_cores
+        if n_cores == 16:
+            n_cores_list = [4, 8, 16]
+        elif n_cores == 172:
+            n_iter = 86
+            n_cores_list = [11, 22, 43, 86]
+    else:
+        n_cores_list = [1, 2] if n_cores == 16 else [1, 2, 5]
+        n_iter = n_cores if n_cores != 172 else 86
 
     cases = []
     for implem in implementations:
