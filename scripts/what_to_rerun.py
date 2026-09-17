@@ -14,6 +14,13 @@ filtering by hand.
 envs to those actually installable there, per `sklbench.reporting.envs.
 env_platforms()` and `dashboards.HARDWARE_PLATFORMS` - e.g. `skl-mps`/`intel`
 never get suggested for hardware that can't run them.
+
+A module may also declare `SOURCE_CONFIG_OVERRIDES` (see
+`dashboards/gen_hgb_scalability_breakdown.py` for an example) to restrict one
+specific config to certain hardware and/or a narrower env list than the
+dashboard's own `SOURCE_ENVS` - e.g. a config that only makes sense on
+multi-socket server hardware, or only under one build family. A config
+absent from `SOURCE_CONFIG_OVERRIDES` has no extra restriction.
 """
 
 import argparse
@@ -53,19 +60,50 @@ def _envs_for_hardware(source_envs: list[str], hardware_hash: str | None) -> lis
     return [env for env in source_envs if platform in platforms.get(env, frozenset())]
 
 
+def _config_envs_and_note(
+    module, config: str, hardware_hash: str | None
+) -> tuple[list[str] | None, str | None]:
+    """envs to run `config` under for `hardware_hash` (None = unfiltered),
+    honoring the module's optional `SOURCE_CONFIG_OVERRIDES` for this config.
+    Returns (None, None) if `config` doesn't apply to `hardware_hash` at all.
+    The second element is a human note to print when a hardware restriction
+    exists but no specific `--hardware` was given to check it against."""
+    override = getattr(module, "SOURCE_CONFIG_OVERRIDES", {}).get(config, {})
+    allowed_hardware = override.get("hardware")
+    note = None
+    if allowed_hardware is not None:
+        if hardware_hash is not None:
+            if hardware_hash not in allowed_hardware:
+                return None, None
+        else:
+            names = ", ".join(
+                HARDWARE_NAMES.get(h, h) for h in sorted(allowed_hardware)
+            )
+            note = f"only meaningful on: {names}"
+    config_envs = override.get("envs", module.SOURCE_ENVS)
+    return _envs_for_hardware(config_envs, hardware_hash), note
+
+
 def _print_rerun_commands(dashboards, hardware_hash: str | None) -> None:
     # config -> envs to run it under, unioned across every dashboard that
     # shares it, in first-seen order (so ./run.sh gets one deduped call).
     envs_by_config: dict[str, list[str]] = {}
+    notes_by_config: dict[str, str] = {}
     for _, module, _ in dashboards:
-        envs = _envs_for_hardware(module.SOURCE_ENVS, hardware_hash)
         for config in module.SOURCE_CONFIGS:
+            envs, note = _config_envs_and_note(module, config, hardware_hash)
+            if envs is None:
+                continue
             existing = envs_by_config.setdefault(config, [])
             for env in envs:
                 if env not in existing:
                     existing.append(env)
+            if note:
+                notes_by_config[config] = note
 
     for config, envs in envs_by_config.items():
+        if note := notes_by_config.get(config):
+            print(f"# {config}: {note}")
         if not envs:
             print(f"# no envs available for {config} on this hardware")
             continue

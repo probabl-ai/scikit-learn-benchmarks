@@ -99,10 +99,12 @@ Most case changes should start in `configs/_synthetic_trees.py`,
 `configs/_synthetic_linear.py`, or `configs/_real_datasets.py`, depending on the
 workload.
 
-Use `configs/smoke_check_test.py` for the current small exploratory matrix.
-Use `configs/all_models_fast.py` when working on a broader but still
-reasonably fast matrix. Both cover Array API Pixi environments as well as
-plain sklearn/sklearnex ones.
+Use `configs/smoke_check_test.py` for the current small exploratory matrix -
+it covers Array API Pixi environments as well as plain sklearn/sklearnex
+ones. It's also what CI's smoke-check workflows run, and isn't wired into
+any dashboard's `SOURCE_CONFIGS` (see "Config → Dashboard Provenance"
+below) - it's for validating the orchestrator/config machinery itself, not
+for producing dashboard-worthy results.
 
 Preview and validate a config by importing it directly:
 

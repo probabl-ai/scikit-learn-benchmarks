@@ -74,8 +74,9 @@ each file can be previewed on its own (see `CONTRIBUTING.md`).
 
 - `"test"`: a small, fast, deterministically-chosen sample (e.g. one case per
   estimator), for `smoke_check_test.py`.
-- `"fast"`: a single, smaller `scale`, for a broad but quick matrix
-  (`all_models_fast.py`).
+- `"fast"`: a single, smaller `scale`, for a broad but quick matrix. Not
+  currently requested by any top-level config, but still included whenever
+  `"normal"` is (see below) since cases are tagged at or below their tier.
 - `"normal"` (default): the full matrix. The synthetic generators chain
   multiple increasing `scale` values into one combined matrix (e.g.
   `_synthetic_trees.py` uses `[20, 100]`); `_real_datasets.py` includes every
@@ -90,7 +91,7 @@ convention the `configs/_utils/` package (below) uses for shared helpers.
 Anything needing "the list of runnable configs" (e.g.
 `scripts/what_to_rerun.py`) can rely on that glob rather than
 importing/inspecting every file. The zero-argument, orchestrator-facing
-scripts (`all_models.py`, `all_models_fast.py`, `smoke_check_test.py`, ...)
+scripts (`all_models.py`, `smoke_check_test.py`, ...)
 are the ones that compose the leaf generators: they resolve implementations
 for the current Pixi env, call each leaf generator once per implementation,
 then apply the hardware-availability filters and default `bench` settings

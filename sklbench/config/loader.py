@@ -94,7 +94,7 @@ def load_cases_from_script(path: str | Path) -> list[Case]:
             raise ValueError(f"Invalid case at index {index}: {exc}") from exc
         # Stamped here (keyed off the actually-invoked --config path), not
         # self-declared by each config: a variant script like
-        # hgb_scalability_force_active_wait.py calls hgb_scalability.py's
+        # hgb_scalability_proc_bind.py calls hgb_scalability.py's
         # generate_cases() internally but is itself the invoked script, so
         # self-stamping inside hgb_scalability.py would mislabel it. This is
         # what dashboards/gen_*.py's SOURCE_CONFIGS matches against.
