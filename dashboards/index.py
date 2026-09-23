@@ -45,8 +45,6 @@ DASHBOARDS = [
     ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
     ("Hardware comparison", gen_hardware_comparisons, "hardware_comparisons.html"),
     ("Model thread-scalability", gen_models_scalability, "models_scalability.html"),
-    # TODO: scikit-learn versions comparison (start when? => at least 1.8; intermediate commits?)
-    # longitudinal plots: to be ran once in a while
     ("HGB thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
     ("hptuning outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
 ]
