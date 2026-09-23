@@ -151,7 +151,7 @@ def filter_gpu_cases_if_unavailable(cases):
     (oneAPI `gpu`/`xpu`, NVIDIA `cuda`, or Apple `mps`) that isn't actually
     present on this machine.
 
-    Implementation selection (`configs/_implementations.py`) is keyed off
+    Implementation selection (`configs/_utils/implementations.py`) is keyed off
     `PIXI_ENVIRONMENT_NAME` alone, not detected hardware, so e.g. running the
     `intel` Pixi environment on a CPU-only host still generates
     `SKLEARNEX_GPU_IMPLEMENTATION` cases. Those fail at runtime with

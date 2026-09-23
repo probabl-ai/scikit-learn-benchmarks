@@ -204,13 +204,13 @@ def _row_dataset(inputs: RowInputs) -> str:
 def _row_columns_kind(inputs: RowInputs) -> str | None:
     """The synthetic tree datasets' column-type mix (e.g. "mix", "binary",
     "continuous", "long-tail") - only set in generation_kwargs for
-    tree-based configs (see configs/synthetic_trees.py, hgb_scalability.py)."""
+    tree-based configs (see configs/_synthetic_trees.py, hgb_scalability.py)."""
     return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
 def _row_order(inputs: RowInputs) -> str | None:
     """The data's memory layout ("C" or "F"): the config-forced value where a
-    config varies it (see configs/synthetic_linear.py's `order` field), else
+    config varies it (see configs/_synthetic_linear.py's `order` field), else
     the measured layout of the loaded array (real datasets - see
     sklbench/runners/datasets/__init__.py's `_measure_order`)."""
     order = inputs.case.get("data", {}).get("order")
@@ -233,7 +233,7 @@ def _row_openmp(inputs: RowInputs) -> str:
     links against - a build property rather than a case one, but only
     interesting once more than one OpenMP runtime shows up in the same
     table (e.g. comparing a `sklearn-dev` build against `sklearn-dev-libomp`
-    - see configs/_implementations.py)."""
+    - see configs/_utils/implementations.py)."""
     return openmp_runtime_short_label(inputs.software_hash)
 
 
@@ -273,7 +273,7 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
-    configs/synthetic_trees.py and append_max_bins_warning in matching.py).
+    configs/_synthetic_trees.py and append_max_bins_warning in matching.py).
     Empty for sklearn (doesn't vary this param) and for non-tree estimators
     (max_bins isn't a thing for them, same "tree-based" split MethodResult
     uses for `is_sklearnex_tree`)."""

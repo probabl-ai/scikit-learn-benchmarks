@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import sys
@@ -29,7 +30,7 @@ def _build_pipeline(case: HPTuningCase) -> Pipeline:
     preprocessing_kind = case.data.preprocessing_kind
     preprocessor = (
         "passthrough" if preprocessing_kind is None
-        else PREPROCESSORS[preprocessing_kind]()
+        else PREPROCESSORS[preprocessing_kind](**case.data.preprocessing_kwargs)
     )
     return Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
 
@@ -91,6 +92,39 @@ def _raw_xy(raw_data: dict):
     return raw_data["x_train"], raw_data["y_train"]
 
 
+@contextlib.contextmanager
+def _capture_cv_task_times(search: RandomizedSearchCV):
+    """`search.cv_results_` only keeps `mean_fit_time`/`mean_score_time`
+    (and their `std_*` counterparts), aggregated across CV folds per
+    candidate - the raw per-(candidate, fold) timings that `_fit_and_score`
+    already computes for each individual joblib task are discarded once
+    `_format_results` aggregates them. Monkeypatching `_format_results`
+    (called exactly once for `RandomizedSearchCV`, after `parallel(...)` has
+    collected every task's result back into the main process) recovers
+    them without caring which `joblib_backend` ran the tasks.
+    """
+    task_times: list[dict] = []
+    original_format_results = search._format_results
+
+    def timed_format_results(candidate_params, n_splits, out, more_results=None):
+        for i, task in enumerate(out):
+            task_times.append(
+                {
+                    "candidate_index": i // n_splits,
+                    "split_index": i % n_splits,
+                    "fit_time_s": task["fit_time"],
+                    "score_time_s": task["score_time"],
+                }
+            )
+        return original_format_results(candidate_params, n_splits, out, more_results)
+
+    search._format_results = timed_format_results
+    try:
+        yield task_times
+    finally:
+        search._format_results = original_format_results
+
+
 def run_hptuning(case: HPTuningCase) -> dict:
     raw_data, data_description = load_raw_data(case)
     n_classes = data_description.get("n_classes")
@@ -141,17 +175,27 @@ def run_hptuning(case: HPTuningCase) -> dict:
             random_state=hptuning.random_state,
         )
         tic = time.time()
-        search.fit(X, y)
+        with _capture_cv_task_times(search) as cv_task_times:
+            search.fit(X, y)
         duration_s = time.time() - tic
+
+    # `best_estimator_` is the pipeline refit on the whole `X, y` (`refit=True`
+    # by default), so its already-fitted preprocessor step can transform `X`
+    # to recover the shape the estimator actually trained on, without an
+    # extra fit - same `estimator[:-1].transform(X)` pattern
+    # `_silhouette_scorer` uses above. Equals `raw`'s n_features when
+    # `preprocessing_kind` is None (a "passthrough" step).
+    fit_n_features = search.best_estimator_[:-1].transform(X).shape[1]
 
     return {
         "data_desc": {
-            "n_samples": len(X),
-            "n_features": X.shape[1],
+            "raw": {"n_samples": len(X), "n_features": X.shape[1]},
+            "fit": {"n_samples": len(X), "n_features": fit_n_features},
         },
         "duration_s": duration_s,
         "scoring": scoring,
         "best_score": float(search.best_score_),
+        "cv_task_times": cv_task_times,
     }
 
 

@@ -1,6 +1,6 @@
 """
 Time just the preprocessing step (not dataset loading) for every distinct
-dataset/preprocessing_kind pair used in `configs/real_datasets.py`.
+dataset/preprocessing_kind pair used in `configs/_real_datasets.py`.
 
 Cases with `preprocessing_kind=None` (the clustering/KMeans cases, plus a
 few linear/tree cases on already-well-conditioned datasets like `susy`) have
@@ -17,7 +17,7 @@ from sklbench.runners.datasets.loaders import dataset_loading_functions
 from sklbench.runners.datasets.loading import load_from_cache_or_compute
 from sklbench.runners.datasets.preprocessing import split_and_preprocess_data
 
-CONFIG_PATH = "configs/real_datasets.py"
+CONFIG_PATH = "configs/_real_datasets.py"
 
 
 def freeze(value):

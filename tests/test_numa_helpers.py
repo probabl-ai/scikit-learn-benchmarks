@@ -1,5 +1,5 @@
-"""Tests for configs/_numa.py. Imported directly (not a package under
-sklbench/) the same way configs/synthetic_linear.py imports it - by putting
+"""Tests for configs/_utils/numa.py. Imported directly (not a package under
+sklbench/) the same way configs/_synthetic_linear.py imports it - by putting
 configs/ on sys.path.
 """
 import importlib
@@ -18,7 +18,7 @@ def numa(monkeypatch):
     if inserted:
         sys.path.insert(0, CONFIGS_DIR)
     try:
-        module = importlib.import_module("_numa")
+        module = importlib.import_module("_utils.numa")
         importlib.reload(module)
         yield module
     finally:
