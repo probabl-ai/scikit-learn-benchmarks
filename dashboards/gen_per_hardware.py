@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dashboards import HARDWARE_NAMES
+from dashboards import HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
@@ -9,7 +9,7 @@ from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
-    is_scaling_benchmark, is_models_scalability_result,
+    matches_source_configs,
     add_preprocessing_time, is_real_dataset,
 )
 
@@ -32,6 +32,24 @@ from sklbench.reporting.html import (
 
 
 BASE_IMPLEMENTATION = "sklearn"
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard isolates the effect of <em>implementation</em> choice: for
+  each machine, it compares accelerated implementations (scikit-learn-intelex,
+  Array API backends such as PyTorch/dpnp) against stock scikit-learn on that
+  same machine, so a speed-up here is attributable to the software, not to
+  different hardware. Pick a hardware tab, then read each cell as fit or
+  predict speed-up (y-axis, log scale) for one category of estimators &mdash;
+  points above the dashed 1x line are faster than the scikit-learn baseline.
+  Hover a point for the exact case; click it (or its row in "Detailed
+  results") to line the two up together. The marker legend flags cases worth
+  a second look: different iteration counts, a candidate that silently fell
+  back to plain scikit-learn, or a metric mismatch. In the latest full run,
+  <code>sklearnex-cpu</code> is the most consistently fast option on Intel
+  hardware &mdash; roughly a 2x median fit speed-up and 3-4x on predict for
+  tree-based models, with linear models more modestly ahead; the Array API
+  backends are more of a mixed bag, often slower to fit but noticeably faster
+  to predict.</p>
+</section>"""
 PREPROCESSING_TOGGLE_HTML = (
     '<section class="panel">'
     '<label class="preprocessing-toggle">'
@@ -267,14 +285,18 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+SOURCE_ENVS = GENERAL_SOURCE_ENVS
+
+
 def generate(output_dir: Path) -> None:
     results = [
         res for res in read_all_results()
-        if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
+        if matches_source_configs(res.case, SOURCE_CONFIGS)
     ]
     failed_records = [
         record for record in read_failed_records()
-        if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
+        if matches_source_configs(record.case, SOURCE_CONFIGS)
     ]
     hardware_hashes_with_results = {res.hardware_hash for res in results}
     hardware_pages = [
@@ -284,6 +306,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(rows=[
+        ABOUT_HTML,
         PREPROCESSING_TOGGLE_HTML,
         render_hardware_tabs(hardware_pages),
     ])

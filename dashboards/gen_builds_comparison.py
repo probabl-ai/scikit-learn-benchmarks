@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dashboards import HARDWARE_NAMES
+from dashboards import HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
@@ -9,7 +9,7 @@ from sklbench.reporting.matching import (
     append_iterations_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
-    is_scaling_benchmark, is_models_scalability_result,
+    matches_source_configs,
 )
 
 from sklbench.reporting.envs import (
@@ -31,6 +31,22 @@ from sklbench.reporting.html import (
 
 
 BASE_IMPLEMENTATION = "sklearn"
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard holds the implementation fixed (plain scikit-learn) and
+  varies only the <em>build</em> &mdash; the BLAS/OpenMP runtime a given pixi
+  environment links against (e.g. conda-forge's MKL or one of its
+  libgomp/libomp OpenBLAS builds) &mdash; against the PyPI wheel build as the
+  baseline. Array API and scikit-learn-intelex variants, and one-off
+  <code>sklearn-dev</code> git-checkout builds, are excluded (see the other
+  dashboards for those). Read each cell like
+  <a href="per_hardware.html">the software/implementations dashboard</a>: fit
+  or predict speed-up (log-scale y-axis) per estimator category, one line per
+  build. In the latest full run, most alternative builds land within a few
+  percent of the PyPI baseline for tree-based models &mdash; BLAS/OpenMP
+  choice mostly doesn't matter there &mdash; except MKL, which gives
+  BLAS-bound linear-model fitting a consistent real speed-up (commonly in the
+  1.3-1.5x range).</p>
+</section>"""
 
 
 def is_other_library_build(result: MethodResult | BenchmarkRecord) -> bool:
@@ -42,10 +58,9 @@ def is_array_api_variant(result: MethodResult | BenchmarkRecord) -> bool:
 
 
 def is_sklearn_dev_variant(result: MethodResult | BenchmarkRecord) -> bool:
-    """`sklearn-dev`/`sklearn-dev-libomp`/... builds get their own dedicated
-    branch-vs-branch dashboards (gen_hgb_dev_scalability_breakdown.py,
-    gen_hgb_dev_speedup_breakdown.py) rather than being folded in here as more
-    build variants."""
+    """`sklearn-dev`/`sklearn-dev-libomp`/... are one-off git-checkout builds
+    (a specific commit/PR branch, not a stable environment build), so they're
+    excluded here rather than folded in as more build variants."""
     return is_sklearn_dev_build(software_build_name(result.software_hash))
 
 
@@ -247,14 +262,18 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+SOURCE_ENVS = GENERAL_SOURCE_ENVS
+
+
 def generate(output_dir: Path) -> None:
     results = [
         res for res in read_all_results()
-        if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
+        if matches_source_configs(res.case, SOURCE_CONFIGS)
     ]
     failed_records = [
         record for record in read_failed_records()
-        if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
+        if matches_source_configs(record.case, SOURCE_CONFIGS)
     ]
     hardware_hashes_with_results = {res.hardware_hash for res in results}
     hardware_pages = [
@@ -266,6 +285,7 @@ def generate(output_dir: Path) -> None:
     html = BASE_TEMPLATE.render(
         title="sklbench builds comparison dashboard",
         rows=[
+            ABOUT_HTML,
             render_hardware_tabs(hardware_pages),
         ],
     )

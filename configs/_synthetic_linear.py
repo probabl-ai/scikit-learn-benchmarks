@@ -1,0 +1,195 @@
+from itertools import chain
+from math import ceil, sqrt
+from typing import Iterable
+
+#TODO: in utils or in _common? wierd overlap
+from _utils.common import deterministic_random_choice
+from _utils.numa import auto_numa_cpu_affinity
+
+
+ALGORITHM_VARIANTS = [
+    {"estimator": "Ridge"},
+    {"estimator": "LinearRegression"},
+    # TODO: in dashboards: take the best & fastest of the 3 solvers:
+    {"estimator": "LogisticRegression", "estimator_params": {"solver": "lbfgs"}},
+    {"estimator": "LogisticRegression", "estimator_params": {"solver": "newton-cholesky"}},
+    {"estimator": "LogisticRegression", "estimator_params": {"solver": "newton-cg"}},
+]
+
+# Per-estimator multiplier applied on top of the base scale in scaled tiers,
+# so each estimator's data size grows at its own rate.
+ALGORITHM_SCALE_FACTORS = {
+    "LinearRegression": 1,
+    "LogisticRegression": 2,
+    "Ridge": 5,
+}
+
+
+def _build_case(
+    bench: dict, algorithm: dict, generation_kwargs: dict, implem: dict
+) -> dict:
+    is_classifier = algorithm["estimator"] in {"LogisticRegression", "RidgeClassifier"}
+    source = "make_classification" if is_classifier else "make_regression"
+
+    n_features = generation_kwargs["n_features"]
+    extra_generation_kwargs = {}
+    if is_classifier and n_features >= 10:
+        seed = [generation_kwargs, algorithm['estimator'], source]
+        n_classes = deterministic_random_choice(seed, [2, 2, 5])
+        n_redundant = deterministic_random_choice(seed, [0, 5, n_features // 2])
+        extra_generation_kwargs.update(
+            {"n_classes": n_classes, "n_redundant": n_redundant}
+        )
+    elif is_classifier:
+        extra_generation_kwargs.update({"n_classes": 2, "n_redundant": 0})
+
+    case = {
+        "bench": bench,
+        "algorithm": algorithm,
+        "data": {
+            "source": source,
+            "generation_kwargs": {
+                **generation_kwargs, **extra_generation_kwargs},
+        },
+    }
+    # order="F" is known to be extremely slow (sometimes timing out) for
+    # sklearnex GPU Ridge/LinearRegression/LogisticRegression - see
+    # https://github.com/uxlfoundation/scikit-learn-intelex/issues/3235.
+    # Already fixed upstream in oneDAL (uxlfoundation/oneDAL#3665, merged
+    # 2026-07-10) but not yet in a scikit-learn-intelex release (latest is
+    # 2026.1.0, from 2026-06-10) - leaving order in the mix as-is for now,
+    # remove this comment once a release with the fix is picked up.
+    case['data']['order'] = deterministic_random_choice(case, ['C', 'F'])
+    case['data']['dtype'] = deterministic_random_choice(case, ['float32', 'float64'])
+    case["implementation"] = implem
+
+    return case
+
+
+def _linear_cases_for(
+    implem: dict, algorithm: dict, benchs: list[dict], data_variants: list[dict]
+) -> Iterable[dict]:
+    for bench, generation_kwargs in zip(benchs, data_variants):
+        solver = algorithm.get("estimator_params", {}).get("solver")
+        if solver in ("newton-cholesky", "newton-cg") and generation_kwargs["n_features"] >= 1000:
+            # Newton solvers factorize the (n_features, n_features) Hessian each
+            # iteration, so they don't scale to wide feature spaces - times out
+            # regardless of implementation rather than measuring anything useful.
+            continue
+
+        case = _build_case(bench, algorithm, generation_kwargs, implem)
+        if (
+            implem.get("device") == "xpu"
+            and case["data"]["dtype"] == "float64"
+            and generation_kwargs["n_samples"] > 10_000_000
+        ):
+            # XPU (torch) is broken for float64 once n_samples goes past ~10M -
+            # crashes rather than measuring anything useful.
+            # https://github.com/intel/torch-xpu-ops/issues/4805
+            continue
+        yield case
+
+
+def _test_linear_cases(implem: dict) -> Iterable[dict]:
+    bench = {"n_runs": 3}
+    data_variants = [
+        {
+            "n_samples": 1000,
+            "n_features": 20,
+            "n_informative": ceil(0.5 * 20),
+        }
+    ]
+
+    for algorithm in ALGORITHM_VARIANTS:
+        yield from _linear_cases_for(implem, algorithm, [bench], data_variants)
+
+
+def linear_data_shapes(scale: int) -> list[dict]:
+    """Base (n_samples, n_features, n_informative) shapes at a given scale.
+
+    scale=10 matches the "fast" tier, so "normal"'s first rung sits at
+    roughly the same magnitude as "fast", then grows from there - mirroring
+    `_synthetic_trees.py`'s scale ladder.
+    """
+    return [
+        {"n_samples": 50000 * scale, "n_features": 20, "n_informative": 5},
+        {"n_samples": 5000 * scale, "n_features": 100, "n_informative": 20},
+        {"n_samples": 500 * scale, "n_features": 1000, "n_informative": 100},
+        {
+            "n_samples": int(round(250 * sqrt(scale), -2)),
+            "n_features": int(round(2000 * sqrt(scale), -2)),
+            "n_informative": 500
+        },
+    ]
+
+
+def _scaled_linear_cases(implem: dict, scale: int, is_max_scale: bool) -> Iterable[dict]:
+    cases = []
+    for algorithm in ALGORITHM_VARIANTS:
+        algorithm_scale = scale * ALGORITHM_SCALE_FACTORS[algorithm["estimator"]]
+        data_shapes = linear_data_shapes(algorithm_scale)
+        benchs = [{"time_limit": 2 + algorithm_scale * 2} for _ in data_shapes]
+
+        if (
+            is_max_scale
+            and implem["library"] == "sklearnex"
+            and algorithm["estimator"] == "Ridge"
+        ):
+            # linear_data_shapes()'s last shape has the highest n_features -
+            # at the highest scale this builds an (n_features, n_features)
+            # Gram matrix that OOM-killed the runner (~30GB RSS, run
+            # 33491820416). Drop just that shape.
+            benchs, data_shapes = benchs[:-1], data_shapes[:-1]
+
+        cases.extend(_linear_cases_for(implem, algorithm, benchs, data_shapes))
+
+    return cases
+
+
+def generate_cases(implem: dict | None = None, tier: str = "normal") -> list[dict]:
+    if implem is None:
+        implem = {"library": "sklearn"}
+
+    if tier == "test":
+        return list(_test_linear_cases(implem))
+
+    scales = {
+        "fast": [10],
+        "normal": [20, 80],
+    }
+    tier_scales = scales[tier]
+
+    cases = list(chain(*[
+        _scaled_linear_cases(implem, scale=scale, is_max_scale=scale == max(tier_scales))
+        for scale in tier_scales
+    ]))
+
+    return cases
+
+
+def with_numa_pinning(case: dict, numa_node: int = 0) -> dict:
+    """Pin `case` to one NUMA node's cores via `bench.cpu_affinity` (see
+    `_utils/numa.py`).
+
+    These synthetic linear-model cases can be large and memory-bandwidth-
+    bound enough that wall time varies run to run by 30-55% depending on
+    which NUMA node the OS happens to place their data on and which cores
+    its threads land on (see
+    https://github.com/probabl-ai/scikit-learn-benchmarks/issues/80) - most
+    relevant for a before/after PR comparison, where that noise can look
+    like a regression. A no-op on a single-node machine, where pinning
+    would only discard cores for no benefit. Not applied by
+    `generate_cases()` itself - opt in per case, e.g.
+    `[with_numa_pinning(c) for c in generate_cases(implem)]` from a
+    PR-specific comparison config.
+    """
+    cpu_affinity = auto_numa_cpu_affinity(numa_node)
+    if cpu_affinity is None:
+        return case
+    bench = case.get("bench") or {}
+    if bench.get("cpu_affinity") is not None:
+        raise ValueError(
+            f"case already sets bench.cpu_affinity={bench['cpu_affinity']!r} - "
+            "with_numa_pinning would silently override it"
+        )
+    return {**case, "bench": {**bench, "cpu_affinity": cpu_affinity}}

@@ -19,7 +19,6 @@ ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"
 
 ENV_SENSITIVE_CONFIGS = {
     Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
-    Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
     Path("configs/all_models_ridge_only.py"): ARRAY_API_ENVS,
     Path("configs/models_scalability.py"): GENERAL_ENVS,
@@ -73,7 +72,10 @@ def generate_cases():
 
     assert len(cases) == 1
     assert isinstance(cases[0], EstimatorCase)
-    assert cases[0].metadata == {}
+    # load_cases_from_script stamps metadata.source_config with the
+    # (repo-relative, or absolute if outside the repo) invoked config path.
+    assert cases[0].metadata.keys() == {"source_config"}
+    assert cases[0].metadata["source_config"].endswith("config.py")
 
 
 def test_estimator_case_routes_to_estimator_runner():

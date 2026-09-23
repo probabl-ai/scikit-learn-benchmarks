@@ -128,6 +128,29 @@ def test_trees_preprocessor_one_hot_expands_more_columns_than_ordinal(housing_da
     assert one_hot_x_train.shape[1] > ordinal_x_train.shape[1]
 
 
+def test_trees_preprocessor_remove_nans_fills_missing_values(housing_data):
+    x_train, x_test = PREPROCESSINGS["trees"](
+        housing_data["x"], housing_data["x"], housing_data["y"],
+        encoding="ordinal", remove_nans=True,
+    )
+
+    assert not np.isnan(np.asarray(x_train, dtype=float)).any()
+    assert not np.isnan(np.asarray(x_test, dtype=float)).any()
+
+
+def test_trees_preprocessor_remove_nans_encodes_unseen_category_as_sentinel():
+    x_train = pd.DataFrame({"cat": pd.Categorical(["a", "a", "b", "b"])})
+    x_test = pd.DataFrame({"cat": pd.Categorical(["c", "c"])})
+    y_train = np.array([0, 1, 0, 1])
+
+    _, x_test_out = PREPROCESSINGS["trees"](
+        x_train, x_test, y_train, encoding="ordinal", remove_nans=True,
+    )
+
+    assert not np.isnan(np.asarray(x_test_out, dtype=float)).any()
+    np.testing.assert_array_equal(np.asarray(x_test_out).ravel(), [-2, -2])
+
+
 def test_hgb_preprocessing_preserves_original_column_names(housing_data):
     x_train, x_test = PREPROCESSINGS["hgb"](
         housing_data["x"], housing_data["x"], housing_data["y"]

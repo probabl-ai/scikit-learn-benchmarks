@@ -77,6 +77,33 @@ def filter_py_spy_stderr(stderr: str) -> tuple[str, bool]:
     return "\n".join(filtered_lines).strip(), len(filtered_lines) != len(lines)
 
 
+def _kill_process_tree(pid: int) -> None:
+    """Kill `pid` and all its descendants.
+
+    `Popen.kill()` alone only kills the immediate child. Runner subprocesses
+    spawn their own descendants (joblib/loky workers, or py-spy's tracked
+    runner grandchild), which inherit the parent's stdout/stderr pipe file
+    descriptors. If those descendants are still alive - e.g. stuck in a
+    genuine nested-parallelism deadlock in the benchmarked case - they keep
+    the pipe's write end open, and the `communicate()` call after `kill()`
+    blocks forever waiting for EOF even though the intended process is dead.
+    Snapshot the tree before killing anything: once the parent exits,
+    orphaned children reparent and `children(recursive=True)` on a dead pid
+    would miss them.
+    """
+    try:
+        parent = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return
+    procs = [*parent.children(recursive=True), parent]
+    for p in procs:
+        try:
+            p.kill()
+        except psutil.NoSuchProcess:
+            pass
+    psutil.wait_procs(procs, timeout=10)
+
+
 def pin_process_affinity(pid: int, cores: list[int]) -> None:
     """Pin process `pid` to `cores` (CPU ids).
 
@@ -190,7 +217,7 @@ def run_runner_from_case(
             stdout = stdout.strip()
             stderr = stderr.strip()
         except sp.TimeoutExpired:
-            proc.kill()
+            _kill_process_tree(proc.pid)
             stdout, stderr = proc.communicate()
             return_code = -9
             stdout = stdout.strip()

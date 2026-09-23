@@ -29,7 +29,9 @@ from itertools import permutations
 import json
 from pathlib import Path
 
-from dashboards import GPU_NAMES, HARDWARE_NAMES
+from dashboards import (
+    GPU_NAMES, HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -54,14 +56,29 @@ from sklbench.reporting.matching import (
     find_matches,
     read_all_results,
     date_range,
-    is_models_scalability_result,
-    is_scaling_benchmark,
+    matches_source_configs,
     BenchmarkRecord,
     Match,
     MatchWarning,
     MethodResult,
 )
 from sklbench.reporting.utils import stable_json, without_keys
+
+
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard isolates the effect of <em>hardware</em>: pick a baseline
+  and a comparison machine (CPU-vs-CPU or GPU-vs-GPU only &mdash; the two
+  dropdowns only ever offer pairs that actually share comparable results) and
+  it matches up every build/implementation present on both sides, so a
+  speed-up here is attributable to the machine, not to a different software
+  stack. Each cell is fit or predict speed-up (log-scale y-axis) per
+  estimator category, one line per shared build/implementation label. In the
+  latest full run, raw hardware doesn't always predict the winner: the modern
+  Intel laptop and the high-end Intel server run at close to parity across
+  the board, while the low-end Intel laptop trails both by roughly 3-5x, and
+  Apple's M4 CPU tends to edge out the Intel machines on the shared
+  <code>sklearn-pypi</code> baseline.</p>
+</section>"""
 
 
 BASE_IMPLEMENTATION = "sklearn"
@@ -76,6 +93,17 @@ METHODS = ["fit", "predict"]
 # Array API on Apple's MPS backend, respectively.
 CPU_DEVICES = {None, "default", "cpu"}
 GPU_DEVICES = {"gpu", "xpu", "mps"}
+
+# Unlike CPU, where every build/implementation variant present on both sides
+# gets compared, GPU pairings are restricted to the one backend that's
+# actually portable across GPU vendors: the Array API pytorch backend
+# (data_library "torch"), which runs on both Intel's "xpu" device and
+# Apple's "mps" one. sklearnex's native GPU offload (oneDAL) and the dpnp
+# Array API backend are both Intel-only - no Apple (or other-vendor)
+# counterpart exists for either - so they're excluded from GPU variant
+# results outright rather than left to fall out of an incidental label
+# intersection (see `variant_results`).
+GPU_PORTABLE_DATA_LIBRARIES = {"torch"}
 
 
 @dataclass(frozen=True)
@@ -104,12 +132,19 @@ FAMILY_LABELS = {"cpu": "CPU", "gpu": "GPU"}
 def variant_results(
     results: list[MethodResult], variant: HardwareVariant
 ) -> list[MethodResult]:
-    return [
+    results = [
         result
         for result in results
         if result.hardware_hash == variant.hardware_hash
         and result.implementation.device in variant.devices
     ]
+    if variant.family == "gpu":
+        results = [
+            result
+            for result in results
+            if result.implementation.data_library in GPU_PORTABLE_DATA_LIBRARIES
+        ]
+    return results
 
 
 def variant_label(result: MethodResult | BenchmarkRecord) -> str:
@@ -128,7 +163,7 @@ def variant_label(result: MethodResult | BenchmarkRecord) -> str:
     return implementation.short_name
 
 
-# `n_jobs` and RF/ET's `n_estimators` are both derived in `real_datasets.py`
+# `n_jobs` and RF/ET's `n_estimators` are both derived in `_real_datasets.py`
 # from `N_JOBS = floor(0.9 * cpu_count(...))` - the *local* machine's core
 # count at config-generation time - so they legitimately differ between two
 # machines' runs of what's otherwise the identical case. Excluded from the
@@ -518,16 +553,20 @@ def render_selector(all_results: list[MethodResult]) -> str:
     """
 
 
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+SOURCE_ENVS = GENERAL_SOURCE_ENVS
+
+
 def generate(output_dir: Path) -> None:
     all_results = [
         _drop_metrics_and_reliability_signals(result)
         for result in read_all_results()
-        if not is_scaling_benchmark(result) and not is_models_scalability_result(result)
+        if matches_source_configs(result.case, SOURCE_CONFIGS)
     ]
 
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
-        rows=[render_selector(all_results)],
+        rows=[ABOUT_HTML, render_selector(all_results)],
     )
 
     output = output_dir / "hardware_comparisons.html"

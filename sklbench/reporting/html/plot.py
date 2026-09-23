@@ -354,9 +354,9 @@ def phase_breakdown_plot_html(
     rather than repeating it per small multiple.
 
     A point may also carry a `"series"` label (e.g. a build being compared
-    against another, see gen_hgb_dev_scalability_breakdown.py) - when more
-    than one distinct series is present, each `x` position gets one
-    side-by-side bar per series (`offsetgroup` per series, stacked manually
+    against another) - when more than one distinct series is present, each
+    `x` position gets one side-by-side bar per series (`offsetgroup` per
+    series, stacked manually
     via each trace's `base` since `barmode="overlay"` doesn't stack on its
     own), ordered left-to-right by `series_order` (defaults to alphabetical).
     X-axis ticks stay plain `x`/`x_label` values either way - the series
@@ -426,6 +426,41 @@ def phase_breakdown_plot_html(
     )
 
 
+# Rendered marker *diameter* (pixels) an optional per-point size metric is
+# scaled into - see `scaling_line_plot_html`'s `size_domain`. Max trimmed to
+# about 80% of its prior radius (17.6 vs. what a 22px-diameter/11px-radius
+# max used to be) so a 100%-CPU point doesn't dominate a small-multiple cell.
+_MARKER_DIAMETER_RANGE_PX = (6, 17.6)
+
+
+def _marker_sizes(points: list[tuple], size_domain: tuple[float, float]) -> list[float] | None:
+    """Per-point marker *areas* (pixels^2, for `marker.sizemode="area"`) from
+    each point's optional 4th element, linearly mapped from `size_domain` -
+    so e.g. 50% CPU utilization reads as half the marker *area* (matching how
+    area is actually perceived), not half the diameter, which `sizemode`'s
+    default would otherwise give and which visually compresses low values
+    against high ones. `_MARKER_DIAMETER_RANGE_PX` bounds are converted to
+    the equivalent area range here, then linearly interpolated (clamped, so
+    an out-of-domain value doesn't shrink/grow past the range) - or `None`
+    if no point in this series carries a value, leaving Plotly's own default
+    marker size untouched."""
+    if not any(len(point) > 3 and point[3] is not None for point in points):
+        return None
+    lo, hi = size_domain
+    min_d, max_d = _MARKER_DIAMETER_RANGE_PX
+    min_area, max_area = math.pi * (min_d / 2) ** 2, math.pi * (max_d / 2) ** 2
+    sizes = []
+    for point in points:
+        value = point[3] if len(point) > 3 else None
+        if value is None:
+            sizes.append(min_area)
+            continue
+        fraction = 0.5 if hi <= lo else (value - lo) / (hi - lo)
+        fraction = min(1.0, max(0.0, fraction))
+        sizes.append(min_area + fraction * (max_area - min_area))
+    return sizes
+
+
 def scaling_line_plot_html(
     series: dict[str, list[tuple[float, float]]],
     *,
@@ -436,6 +471,7 @@ def scaling_line_plot_html(
     x_log: bool = False,
     y_log: bool = False,
     reference_lines: dict[str, list[tuple[float, float]]] | None = None,
+    size_domain: tuple[float, float] = (0, 100),
 ) -> str:
     """Simple line plot of `y_title` vs `x_title`, one line per series key
     (e.g. software build). `series` maps a label to a list of (x, y) points.
@@ -457,7 +493,14 @@ def scaling_line_plot_html(
     Each point is normally an `(x, y)` pair; a point may add a third element
     - one extra line of hover text (e.g. `"n_iter: 431"`) shown below the x/y
     line, or `""`/`None` for no extra line - for callers that want per-point
-    context an aggregate x/y trend can't convey.
+    context an aggregate x/y trend can't convey. A point may further add a
+    fourth element, `""`/`None` or a metric value (e.g. CPU utilization %)
+    to size that point's marker *area* by - `size_domain` (same units, fixed
+    rather than derived per-series so e.g. 50% CPU utilization renders as
+    the same marker size in every cell of a grid, not rescaled per-cell)
+    maps it into `_MARKER_DIAMETER_RANGE_PX` (see `_marker_sizes`); points
+    with no 4th element anywhere in a series keep Plotly's own default
+    marker size.
 
     `reference_lines` draws additional dashed, marker-less, grey lines (e.g.
     an ideal-scaling reference) in the same `{label: [(x, y), ...]}` shape as
@@ -474,6 +517,15 @@ def scaling_line_plot_html(
         ]
         all_x_values.update(x_values)
         color = (colors or {}).get(label)
+        marker_sizes = _marker_sizes(points, size_domain)
+        marker = {"color": color} if color else {}
+        if marker_sizes is not None:
+            # `_marker_sizes` returns areas (px^2) already, so `sizemode`
+            # must be "area" too - Plotly's default `"diameter"` would
+            # otherwise reinterpret them as diameters and square the effect.
+            marker["size"] = marker_sizes
+            marker["sizemode"] = "area"
+            marker["sizeref"] = 1
         fig.add_trace(
             go.Scatter(
                 name=label,
@@ -481,7 +533,7 @@ def scaling_line_plot_html(
                 y=y_values,
                 mode="lines+markers",
                 line={"color": color} if color else {},
-                marker={"color": color} if color else {},
+                marker=marker,
                 customdata=hover_extra,
                 hovertemplate=(
                     f"{label}<br>%{{x}} {x_title}: %{{y:.3g}}{y_unit}"

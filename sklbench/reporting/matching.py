@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 import re
 from statistics import mean, median, stdev
-from typing import Any
+from typing import Any, Sequence
 
 from .utils import stable_json, without_keys
 
@@ -47,16 +47,20 @@ def _category_of(case: dict) -> str:
         return "linear"
 
 
-def is_scaling_benchmark(result: "MethodResult | BenchmarkRecord") -> bool:
-    """Results from a config meant for its own thread/size scaling dashboard
-    (e.g. `configs/hgb_scalability.py`) rather than for the general per-hardware,
-    build, or hardware comparison dashboards."""
-    return result.benchmark_type == "scaling"
+def matches_source_configs(case: dict, source_configs: Sequence[str]) -> bool:
+    """Whether `case` was produced by one of `source_configs` (repo-relative
+    paths, e.g. "configs/hgb_scalability.py" - see `SOURCE_CONFIGS` on each
+    `dashboards/gen_*.py` module), per the `metadata.source_config` stamp
+    `sklbench.config.loader.load_cases_from_script` adds at load time. This
+    is how each dashboard picks its own results out of the shared
+    `results/records/` pool, in place of the previous ad-hoc, per-dashboard
+    shape/metadata sniffing."""
+    return case.get("metadata", {}).get("source_config") in source_configs
 
 
 def is_real_dataset(result: "MethodResult | BenchmarkRecord") -> bool:
     """Whether this case runs against a named real dataset
-    (`configs/real_datasets.py`) rather than synthetic data - real datasets
+    (`configs/_real_datasets.py`) rather than synthetic data - real datasets
     are the only ones with a `preprocessing` phase worth timing (see
     `add_preprocessing_time`)."""
     return bool(result.case.get("data", {}).get("dataset"))
@@ -104,16 +108,6 @@ def add_preprocessing_time(results: list["MethodResult"]) -> list["MethodResult"
     return combined
 
 
-def is_models_scalability_result(result: "MethodResult | BenchmarkRecord") -> bool:
-    """Results from `configs/models_scalability.py`, meant for its own
-    dashboard (`gen_models_scalability.py`) rather than the general
-    per-hardware dashboard. That config doesn't set `benchmark_type: scaling`
-    (see `is_scaling_benchmark`), so it's identified instead by
-    `metadata.n_cores` - a key unique to its `_with_scaling_bench`, not set by
-    any other config."""
-    return "n_cores" in result.case.get("metadata", {})
-
-
 @dataclass
 class BenchmarkRecord:
     hardware_hash: str
@@ -137,10 +131,6 @@ class BenchmarkRecord:
     @property
     def category(self) -> str:
         return _category_of(self.case)
-
-    @property
-    def benchmark_type(self) -> str | None:
-        return self.case.get("metadata", {}).get("benchmark_type")
 
 
 @dataclass
@@ -172,10 +162,6 @@ class MethodResult:
     @property
     def category(self) -> str:
         return _category_of(self.case)
-
-    @property
-    def benchmark_type(self) -> str | None:
-        return self.case.get("metadata", {}).get("benchmark_type")
 
     @property
     def is_sklearnex_tree(self) -> bool:

@@ -1,6 +1,6 @@
 """
 Thread-count scaling study for a small, representative slice of models, each
-paired with one real dataset from `real_datasets.py` - one linear regressor,
+paired with one real dataset from `_real_datasets.py` - one linear regressor,
 one linear classifier, two different tree-ensemble classifiers, and one
 clustering estimator:
 
@@ -10,7 +10,7 @@ clustering estimator:
 - RandomForestClassifier on fraud (classification)
 - KMeans on fashion_mnist_784, n_clusters=100 (clustering)
 
-Cases/hyperparameters are pulled straight from `real_datasets.py` (filtered
+Cases/hyperparameters are pulled straight from `_real_datasets.py` (filtered
 to these exact (estimator, dataset) pairs) rather than duplicated here, then
 swept across thread count (`cpu_affinity_for_physical_cores`, same pattern as
 `hgb_scalability.py`/`trees_scaling.py`) and crossed with every plain-CPU
@@ -21,7 +21,7 @@ thread pinning isn't a meaningful axis for GPU-offloaded/array-API-dispatched
 work.
 
 RandomForestClassifier/ExtraTreesClassifier's `n_jobs` (baked into
-`real_datasets.py` as a fixed fraction of *this* machine's core count) is
+`_real_datasets.py` as a fixed fraction of *this* machine's core count) is
 overridden to -1 here, so joblib parallelism actually follows the swept
 thread count via `cpu_affinity` pinning. Ridge/LogisticRegression/KMeans
 don't take an `n_jobs` estimator param: their thread count instead follows
@@ -30,17 +30,17 @@ purely from BLAS respecting the `cpu_affinity` pinning. See
 handling - it isn't uniform across estimators here.
 
 covtype's LogisticRegression case (Nystroem, 100 components) is ~48s/fit at
-`real_datasets.py`'s default ~465K-row train split (see its comment there);
+`_real_datasets.py`'s default ~465K-row train split (see its comment there);
 crossed with a thread-count sweep x n_runs x implementations that's too
 slow, so its train split is downsized here via `split_kwargs`
 (`SUBSAMPLE_DATASETS`), same as fraud's RandomForestClassifier and susy's
 ExtraTreesClassifier cases - see `SUBSAMPLE_DATASETS` for the per-case
 train sizes.
 """
-from _common import _merge_dicts
-from _implementations import implementations_for_pixi_env
-from _scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
-from real_datasets import generate_cases as generate_real_dataset_cases
+from _utils.common import _merge_dicts
+from _utils.implementations import implementations_for_pixi_env
+from _utils.scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
+from _real_datasets import generate_cases as generate_real_dataset_cases
 
 
 MODEL_DATASET_PAIRS = {
@@ -92,7 +92,7 @@ def _base_cases() -> list[dict]:
 
     missing = MODEL_DATASET_PAIRS.keys() - {c["algorithm"]["estimator"] for c in cases}
     if missing:
-        raise ValueError(f"real_datasets.py produced no case for: {sorted(missing)}")
+        raise ValueError(f"_real_datasets.py produced no case for: {sorted(missing)}")
     return cases
 
 
@@ -119,7 +119,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     `OMP_NUM_THREADS` set explicitly to make thread count follow the sweep
     (Ridge/LogisticRegression/RF/ET rely on BLAS/`n_jobs` respecting the
     `cpu_affinity` pinning alone). sklearn's
-    KMeans is also skipped above 128 threads - see `real_datasets.py`'s
+    KMeans is also skipped above 128 threads - see `_real_datasets.py`'s
     `KMEANS_BENCH` for the OpenBLAS crash this avoids; not applied to
     sklearnex, whose threading isn't OpenMP/OMP_NUM_THREADS-driven.
     """

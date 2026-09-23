@@ -16,11 +16,12 @@ import numpy as np
 import math
 
 from joblib import cpu_count
-from _implementations import implementations_for_pixi_env
+from _utils.implementations import implementations_for_pixi_env
 
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
 BENCH = {"n_runs": 3}
+N_ESTIMATORS = 2 * cpu_count() if cpu_count() <= 32 else cpu_count()
 
 REAL_DATASET_CASES = [
     # Trees:
@@ -33,12 +34,14 @@ REAL_DATASET_CASES = [
             },
             "estimator": {
                 "n_jobs": -1,
-                "n_estimators": [100, 200, 300],
-                "max_features": [0.3, "sqrt"],
-                "min_samples_split": [2, 5, 20, 100],
+                "n_estimators": N_ESTIMATORS,
+                "max_features": "sqrt",
+                "min_samples_split": [5, 20, 100],
                 "min_impurity_decrease": [3e-5, 1e-5, 1e-6]
             }
-        }
+        },
+        # sklearnex's oneDAL RandomForestClassifier doesn't support missing values:
+        {"preprocessing_kwargs_by_library": {"sklearnex": {"remove_nans": True}}},
     ),
     (
         ("susy", 300_000),
@@ -46,7 +49,7 @@ REAL_DATASET_CASES = [
         {   # search space:
             "estimator": {
                 "n_jobs": -1,
-                "n_estimators": 50,
+                "n_estimators": N_ESTIMATORS,
                 "min_samples_split": [50, 500, 5000],
                 "min_impurity_decrease": [3e-4, 1e-4, 1e-5, 1e-6]
             }
@@ -61,11 +64,14 @@ REAL_DATASET_CASES = [
             },
             "estimator": {
                 "n_jobs": -1,
-                "n_estimators": [200, 400, 600],
+                "n_estimators": N_ESTIMATORS * 2,
                 "max_features": [1., 0.5, 0.2],
                 "max_leaf_nodes": [50, 200, 800],
             }
-        }
+        },
+        # ames_housing has real missing values too (see loader docstring);
+        # sklearnex's oneDAL RF/ET don't support them.
+        {"preprocessing_kwargs_by_library": {"sklearnex": {"remove_nans": True}}},
     ),
     # Linear (only lbfgs for LogisticRegression - see repo notes on
     # class_weight="balanced"/solver choices):
@@ -125,36 +131,6 @@ REAL_DATASET_CASES = [
             }
         }
     ),
-    # KMeans (scored on silhouette)
-    (
-        ("road_network_points", None),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [5, 10, 15, 20],
-            }
-        }
-    ),
-    (
-        ("sift", None),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [5, 10, 15, 20],
-            }
-        }
-    ),
-    (
-        # Downsampled so a many-cluster search still lands near ~5s/fit
-        # (nytimes_256 is 290k rows full-size - see real_datasets.py).
-        ("nytimes_256", 50_000),
-        "KMeans",
-        {   # search space:
-            "estimator": {
-                "n_clusters": [50, 100, 200],
-            }
-        }
-    ),
     # HGB
     (
         ("ames_housing", None, "hgb"),
@@ -206,6 +182,39 @@ REAL_DATASET_CASES = [
 ]
 
 
+KMEANS_CASES = [
+    # KMeans (scored on silhouette); SKIPPED FOR NOW;
+    (
+        ("road_network_points", None),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [5, 10, 15, 20],
+            }
+        }
+    ),
+    (
+        ("sift", None),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [5, 10, 15, 20],
+            }
+        }
+    ),
+    (
+        # Downsampled so a many-cluster search still lands near ~5s/fit
+        # (nytimes_256 is 290k rows full-size - see _real_datasets.py).
+        ("nytimes_256", 50_000),
+        "KMeans",
+        {   # search space:
+            "estimator": {
+                "n_clusters": [50, 100, 200],
+            }
+        }
+    ),
+]
+
 def _split_search_space(search_space: dict) -> tuple[dict, dict]:
     _FAMILY_PREFIXES = {"estimator": "estimator__", "encoder": "preprocessor__encoder__"}
     estimator_params = {}
@@ -222,6 +231,42 @@ def _split_search_space(search_space: dict) -> tuple[dict, dict]:
     return estimator_params, param_distributions
 
 
+def get_n_iter_and_n_jobs_list(estimator: str, library: str):
+    TREES = [
+        "RandomForestClassifier", "RandomForestRegressor",
+        "ExtraTreesRegressor", "ExtraTreesClassifier"
+    ]
+    is_tree = estimator in TREES
+    n_cores = cpu_count(only_physical_cores=True)
+    n_iter = n_cores * 2
+    # default:
+    n_jobs_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
+    if is_tree:
+        n_jobs_list = [1, 2, *n_jobs_list]
+        if library == "sklearnex":
+            n_jobs_list = n_jobs_list[:-2]
+    n_jobs_list = sorted(set([min(n_jobs, n_cores) for n_jobs in n_jobs_list]))
+
+    if n_cores == 16:
+        if is_tree and library == "sklearnex":
+            n_jobs_list = [1, 2, 4]
+        elif is_tree:
+            n_jobs_list = [1, 2, 4, 8, 16]
+        else:
+            n_jobs_list = [4, 8, 16]
+
+    elif n_cores == 172:
+        n_iter = n_cores
+        if is_tree and library == "sklearnex":
+            n_jobs_list = [1, 2, 5, 11]
+        elif is_tree:
+            n_jobs_list = [1, 2, 5, 11, 22, 43, 86]
+        else:
+            n_jobs_list = [11, 22, 43, 86]
+
+    return n_iter, n_jobs_list
+
+
 def _case(
     dataset: str,
     max_samples: int | None,
@@ -231,6 +276,7 @@ def _case(
     implementations: list[dict],
     skip_libraries: tuple[str, ...],
     scoring: str | None,
+    preprocessing_kwargs_by_library: dict[str, dict] | None,
 ) -> list[HPTuningCase]:
     estimator_params, param_distributions = _split_search_space(search_space)
     if scoring is None:
@@ -240,22 +286,22 @@ def _case(
         # with a classification-labeled dataset (e.g. Ridge/susy below),
         # hence the explicit `options={"scoring": ...}` override for those.
         scoring = "silhouette" if estimator == "KMeans" else None
-    data = Data(dataset=dataset, preprocessing_kind=preprocessing_kind)
-    n_cores = cpu_count(only_physical_cores=True)
-    n_cores_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
-    n_iter = n_cores
-    if n_cores == 16:
-        n_cores_list = [4, 8, 16]
-    elif n_cores == 172:
-        n_iter = 86
-        n_cores_list = [11, 22, 43, 86]
+    preprocessing_kwargs_by_library = preprocessing_kwargs_by_library or {}
 
     cases = []
     for implem in implementations:
         if implem["library"] in skip_libraries:
             continue
 
-        for n_jobs in n_cores_list:
+        data = Data(
+            dataset=dataset,
+            preprocessing_kind=preprocessing_kind,
+            preprocessing_kwargs=preprocessing_kwargs_by_library.get(implem["library"], {}),
+        )
+
+        n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator, implem["library"])
+
+        for n_jobs in n_jobs_list:
             cases.append(HPTuningCase(
                 bench=BENCH,
                 algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
@@ -289,11 +335,12 @@ def generate_cases() -> list[HPTuningCase]:
         options = rest[0] if rest else {}
         skip_libraries = options.get("skip_libraries", ())
         scoring = options.get("scoring")
+        preprocessing_kwargs_by_library = options.get("preprocessing_kwargs_by_library")
 
         for estimator in estimators if isinstance(estimators, list) else [estimators]:
             cases.extend(_case(
                 dataset, max_samples, preprocessing_kind, estimator, search_space,
-                implementations, skip_libraries, scoring,
+                implementations, skip_libraries, scoring, preprocessing_kwargs_by_library,
             ))
 
     return cases
