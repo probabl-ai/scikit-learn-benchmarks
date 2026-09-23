@@ -43,6 +43,7 @@ HARDWARE_PLATFORMS = {
 GENERAL_SOURCE_CONFIGS = [
     "configs/all_models.py",
 ]
+
 GENERAL_SOURCE_ENVS = [
     "sklearn-pypi",
     "sklearn-cf-default",
@@ -50,8 +51,6 @@ GENERAL_SOURCE_ENVS = [
     "sklearn-cf-libomp-openblas",
     "sklearn-cf-libomp-openblas-omp",
     "sklearn-cf-mkl",
-    "sklearn-dev",
-    "sklearn-dev-libomp",
     "skl-cpu",
     "skl-intel",
     "skl-nvidia",

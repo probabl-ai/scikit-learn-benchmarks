@@ -60,31 +60,15 @@ from sklbench.reporting.matching import (
 
 SOURCE_CONFIGS = [
     "configs/hgb_scalability.py",
-    "configs/hgb_scalability_proc_bind.py",
 ]
 # hgb_scalability.py always benchmarks plain `library: "sklearn"` (no
-# sklearnex/Array API variants), so the envs that matter here are exactly
-# the stable sklearn build variants - sklearn-dev* is deliberately excluded
-# (see module docstring).
+# sklearnex/Array API variants) - only sklearn-pypi and sklearn-cf-default
+# are actually run here (on both laptop and server hardware), so those are
+# the only two envs that matter.
 SOURCE_ENVS = [
     "sklearn-pypi",
     "sklearn-cf-default",
-    "sklearn-cf-libgomp-openblas",
-    "sklearn-cf-libomp-openblas",
-    "sklearn-cf-libomp-openblas-omp",
-    "sklearn-cf-mkl",
 ]
-
-# Per-config restrictions on top of SOURCE_CONFIGS/SOURCE_ENVS, consulted by
-# scripts/what_to_rerun.py - a config absent here has no extra restriction
-# (any hardware, the full SOURCE_ENVS above). "hardware" is a set of
-# HARDWARE_NAMES/HARDWARE_PLATFORMS hashes; "envs" overrides SOURCE_ENVS for
-# that one config.
-SOURCE_CONFIG_OVERRIDES = {
-    # OMP_PROC_BIND=close only has something to bind across on a multi-core,
-    # multi-socket/NUMA machine - meaningless on a laptop's single socket.
-    "configs/hgb_scalability_proc_bind.py": {"hardware": {"534824"}},
-}
 
 ABOUT_HTML = """<section class="panel">
   <p>Thread-count scaling tells you a fit got faster, but not why, or why it
