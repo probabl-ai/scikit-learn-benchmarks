@@ -45,7 +45,10 @@ against a run's accumulated results, alongside the always-generated
 before/after table, add a call to it from `dashboards/index_comparison.py`'s
 `__main__` (see that file) and include the edit in your PR - useful when
 `runs` includes a config whose results a more specialized existing
-dashboard reads better than the generic table.
+dashboard reads better than the generic table (e.g. an HGB PR run under
+`configs/hgb_scalability.py` (instrumented) reads more clearly through
+`gen_hgb_dev_speedup_breakdown.py`'s per-phase speed-up breakdown than
+through the generic per-case table alone).
 
 ### Skipping the `main` re-benchmark
 
