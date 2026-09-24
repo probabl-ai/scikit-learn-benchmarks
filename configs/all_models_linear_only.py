@@ -9,7 +9,7 @@ def generate_cases() -> list[dict]:
     cases = [
         case
         for case in generate_all_models_cases()
-        if case.algorithm.estimator == "Ridge"
+        if case.algorithm.estimator in ["Ridge", "LogisticRegression"]
     ]
     for case in cases:
         case.bench.py_spy_profiling = False
