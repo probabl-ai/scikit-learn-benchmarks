@@ -10,11 +10,13 @@ differences require caution.
 
 ## Dashboards
 
-The latest generated dashboards are published on GitHub Pages:
+Dashboards are published on GitHub Pages:
 
-- [Dashboard index](https://probabl-ai.github.io/scikit-learn-benchmarks/)
-- [Hardware comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/hardware_comparisons.html)
-- [Software/implementations comparison](https://probabl-ai.github.io/scikit-learn-benchmarks/per_hardware.html)
+- [Dev dashboard](https://probabl-ai.github.io/scikit-learn-benchmarks/) —
+  regenerated from `main` on every push, always reflects the latest results.
+- [Latest stable dashboard](https://probabl-ai.github.io/scikit-learn-benchmarks/snapshots/2026-09-02-cff6ea4/) —
+  a pinned snapshot built from a specific commit, published via the
+  `Dashboard Snapshot` GitHub Actions workflow.
 
 ## Reading the Results
 

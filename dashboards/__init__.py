@@ -12,12 +12,14 @@ HARDWARE_NAMES = {
     "3b5e61": "Modern Intel laptop",
     "534824": "High-end Intel server",
     "be1055": "Low-end Intel laptop",
+    "5dcf30": "AMD Workstation",
     "b281b2": "Apple M4",
 }
 
 GPU_NAMES = {
     "3b5e61": "Modern Intel laptop GPU",
     "b281b2": "Apple M4 GPU",
+    "5dcf30": "NVIDIA RTX 2060"
 }
 
 # Pixi platform (as declared by `platforms = [...]` in pixi.toml's
@@ -31,6 +33,7 @@ HARDWARE_PLATFORMS = {
     "534824": "linux-64",
     "be1055": "linux-64",
     "b281b2": "osx-arm64",
+    "5dcf30": "win-64",
 }
 
 # `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison
