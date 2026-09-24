@@ -73,9 +73,6 @@ REAL_DATASET_CASES = [
         # sklearnex's oneDAL RF/ET don't support them.
         {"preprocessing_kwargs_by_library": {"sklearnex": {"remove_nans": True}}},
     ),
-]
-
-SKIPPED = [
     # Linear (only lbfgs for LogisticRegression - see repo notes on
     # class_weight="balanced"/solver choices):
     (
