@@ -264,12 +264,10 @@ def _runs_to_values(runs: list[dict]) -> dict:
         for method, time_ms in run.get("time_ms", {}).items():
             values["time_ms"].setdefault(method, []).append(float(time_ms))
 
+        # Keep the first repeat's: real datasets are re-split per repeat, so
+        # the encoded `features` count can differ between repeats.
         for method, data_desc in run.get("data_desc", {}).items():
-            if method in values["data_desc"]:
-                if stable_json(data_desc) != stable_json(values["data_desc"][method]):
-                    raise ValueError(f"Inconsistent data_desc across repeats for {method}")
-            else:
-                values["data_desc"][method] = data_desc
+            values["data_desc"].setdefault(method, data_desc)
 
         for method, method_metrics in run.get("metrics", {}).items():
             metric_values = values["metrics"].setdefault(method, {})

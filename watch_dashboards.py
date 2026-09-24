@@ -16,6 +16,7 @@ WATCH_ROOTS = (Path("results"), Path("sklbench/reporting"), Path("dashboards"))
 # stub is on the order of 130 bytes. Cheap size filter before reading content.
 LFS_POINTER_MAX_SIZE = 512
 LFS_POINTER_PREFIX = b"version https://git-lfs.github.com/spec/"
+LFS_INCLUDE_MAX_LEN = 64 * 1024
 
 
 def _parse_args() -> argparse.Namespace:
@@ -110,13 +111,26 @@ def _pull_lfs_pointers(paths: list[Path]) -> bool:
     if len(paths) > 10:
         print(f"  ... and {len(paths) - 10} more")
 
-    command = [
-        "git", "lfs", "pull",
-        "--exclude", "",
-        "--include", ",".join(str(path) for path in paths),
-    ]
-    result = subprocess.run(command, text=True)
-    if result.returncode != 0:
+    # Linux caps a single argv string at 128 KiB (MAX_ARG_STRLEN), so a
+    # fresh clone's thousands of pointers must be split across several pulls.
+    batches = [[]]
+    batch_len = 0
+    for path in map(str, paths):
+        if batches[-1] and batch_len + len(path) + 1 > LFS_INCLUDE_MAX_LEN:
+            batches.append([])
+            batch_len = 0
+        batches[-1].append(path)
+        batch_len += len(path) + 1
+
+    ok = True
+    for batch in batches:
+        command = [
+            "git", "lfs", "pull",
+            "--exclude", "",
+            "--include", ",".join(batch),
+        ]
+        ok &= subprocess.run(command, text=True).returncode == 0
+    if not ok:
         print(
             "`git lfs pull` failed; dashboard generation may error on LFS "
             "pointer files (see CONTRIBUTING.md > Previewing Dashboards "
