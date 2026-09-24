@@ -103,19 +103,20 @@ SYNTHETIC_DATA_FUNCTIONS = {
 
 
 def generate_synthetic_data(
-    function_name: str, generation_kwargs: dict
+    function_name: str, generation_kwargs: dict, random_state: int | None = None
 ) -> tuple[dict, dict]:
     """Generate a synthetic dataset already split into a fixed 50/50 train/test pair.
 
     Samples `2 * n_samples` from the requested sklearn generator, then splits it
-    into `n_samples` for train and `n_samples` for test.
+    into `n_samples` for train and `n_samples` for test. A `random_state` in
+    `generation_kwargs` takes precedence over the `random_state` argument.
     """
     if function_name not in SYNTHETIC_DATA_FUNCTIONS:
         raise ValueError(
             f"Unknown {function_name} function for synthetic data generation"
         )
 
-    kwargs = {"random_state": 42}
+    kwargs = {"random_state": 42 if random_state is None else random_state}
     kwargs.update(generation_kwargs)
     n_samples = kwargs["n_samples"]
     kwargs["n_samples"] = 2 * n_samples

@@ -177,6 +177,7 @@ def run_case_once(
     estimator,
     raw_data,
     data_description: dict,
+    data_random_state: int | None = None,
 ) -> dict:
     task = estimator_to_task(bench_case.algorithm.estimator)
     is_sklearnex = bench_case.implementation.library == "sklearnex"
@@ -186,7 +187,9 @@ def run_case_once(
     # Preprocessed fresh on every repeat, not once up front, so the
     # preprocessing pipeline itself is measured like `fit`/`predict`.
     t0 = perf_counter()
-    data, subset_description = preprocess_data(bench_case, raw_data, data_description)
+    data, subset_description = preprocess_data(
+        bench_case, raw_data, data_description, random_state=data_random_state
+    )
     times["preprocessing"] = 1000 * (perf_counter() - t0)
     X_train, X_test, y_train, y_test = data
 
@@ -260,12 +263,25 @@ def estimator_params_for_repeat(
     return params
 
 
+def data_random_state_for_repeat(bench_case: EstimatorCase, repeat: int) -> int:
+    """Seed for synthetic data generation, or for the train/test split of a
+    real dataset. Like `estimator_params_for_repeat`, a `random_state` set in
+    the case's `generation_kwargs`/`split_kwargs` is kept for every repeat."""
+    data_params = bench_case.data
+    if data_params.generation_kwargs is not None:
+        case_kwargs = data_params.generation_kwargs
+    else:
+        case_kwargs = data_params.split_kwargs
+    return case_kwargs.get("random_state", repeat)
+
+
 def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path):
     library_name = bench_case.implementation.library
     estimator_name = bench_case.algorithm.estimator
     estimator_class = get_estimator(library_name, estimator_name)
 
-    raw_data, data_description = load_raw_data(bench_case)
+    is_synthetic = bench_case.data.generation_kwargs is not None
+    raw_data = data_description = None
     estimator_params = dict(bench_case.algorithm.estimator_params)
     detected_cores = detected_core_counts()
 
@@ -274,6 +290,14 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
         get_context(bench_case.implementation),
     ):
         for repeat in range(n_runs):
+            data_random_state = data_random_state_for_repeat(bench_case, repeat)
+            # Real datasets are loaded once and re-split per repeat; synthetic
+            # ones come pre-split, so the whole dataset is regenerated.
+            if raw_data is None or is_synthetic:
+                raw_data = None  # free the previous repeat's dataset first
+                raw_data, data_description = load_raw_data(
+                    bench_case, random_state=data_random_state
+                )
             gc.collect()
             repeat_estimator_params = estimator_params_for_repeat(
                 estimator_class, estimator_params, repeat
@@ -283,7 +307,12 @@ def run_case_to_jsonl(bench_case: EstimatorCase, n_runs: int, output_jsonl: Path
                 estimator_class(**repeat_estimator_params),
                 raw_data,
                 data_description,
+                data_random_state=data_random_state,
             )
+            row["random_state"] = {
+                "estimator": repeat_estimator_params.get("random_state"),
+                "data": data_random_state,
+            }
             row["detected_cores"] = detected_cores
             fp.write(json.dumps(row, default=_as_jsonable) + "\n")
             fp.flush()
