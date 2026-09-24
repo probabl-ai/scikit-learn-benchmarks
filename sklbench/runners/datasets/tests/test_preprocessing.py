@@ -63,6 +63,23 @@ def test_split_data_resolves_stratify_sentinel_to_y_array():
     assert (split["y_test"] == 1).sum() == 1
 
 
+def test_split_data_random_state_overrides_default_split_but_not_split_kwargs():
+    data = {"x": np.arange(200).reshape(100, 2), "y": np.arange(100)}
+    default_split = {"test_size": 0.5, "random_state": 42}
+
+    seeded = [
+        split_data(data, None, default_split, random_state=seed)["y_train"]
+        for seed in (0, 1)
+    ]
+    assert not np.array_equal(seeded[0], seeded[1])
+
+    pinned = [
+        split_data(data, {"random_state": 3}, default_split, random_state=seed)["y_train"]
+        for seed in (0, 1)
+    ]
+    np.testing.assert_array_equal(pinned[0], pinned[1])
+
+
 def test_split_data_without_y_leaves_y_train_test_none():
     data = {"x": np.arange(20).reshape(10, 2)}
 

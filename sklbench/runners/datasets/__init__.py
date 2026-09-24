@@ -26,10 +26,12 @@ from .synthetic import generate_synthetic_data
 from .transformer import convert_subsets
 
 
-def load_raw_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
+def load_raw_data(
+    bench_case: EstimatorCase, random_state: int | None = None
+) -> tuple[dict, dict]:
     """Fetches or generates the case's raw dataset - the cacheable part of
-    loading, done once per case (see `preprocess_data` for the rest).
-    Returns `(raw_data, data_description)`.
+    loading (see `preprocess_data` for the rest). `random_state` only
+    applies to synthetic data. Returns `(raw_data, data_description)`.
     """
     data_params = bench_case.data
 
@@ -37,6 +39,7 @@ def load_raw_data(bench_case: EstimatorCase) -> tuple[dict, dict]:
         return generate_synthetic_data(
             function_name=data_params.source,
             generation_kwargs=data_params.generation_kwargs,
+            random_state=random_state,
         )
 
     data_name = data_params.name(shortened=False)
@@ -96,12 +99,16 @@ def _shape_desc(data) -> dict:
 
 
 def preprocess_data(
-    bench_case: EstimatorCase, raw_data: dict, data_description: dict
+    bench_case: EstimatorCase,
+    raw_data: dict,
+    data_description: dict,
+    random_state: int | None = None,
 ) -> tuple[tuple, dict]:
     """Splits, encodes and transfers `raw_data` (from `load_raw_data`) to
     its target library/device/dtype/order. Called fresh on every repeat by
     `run_case_once` so the preprocessing pipeline itself is part of what's
-    measured. Doesn't mutate `raw_data` or `data_description`.
+    measured. `random_state` seeds the train/test split of real datasets.
+    Doesn't mutate `raw_data` or `data_description`.
     """
     data_params = bench_case.data
 
@@ -143,6 +150,7 @@ def preprocess_data(
         default_split=data_description.get('default_split'),
         preprocessing_kind=data_params.preprocessing_kind,
         preprocessing_kwargs=preprocessing_kwargs,
+        random_state=random_state,
     )
 
     if data_dict["y_train"] is not None:

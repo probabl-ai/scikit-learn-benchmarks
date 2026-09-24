@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from sklbench.runners.datasets.synthetic import (
+    generate_synthetic_data,
     make_trees_classification_data,
     make_trees_regression_data,
     tree_synthetic_transform,
@@ -108,3 +109,21 @@ def test_make_trees_classification_data_can_return_dataframe():
     assert y.shape == (30,)
     assert set(np.unique(y)) == {0, 1}
     assert any(isinstance(X[i].dtype, pd.CategoricalDtype) for i in X.columns)
+
+
+def test_generate_synthetic_data_random_state_is_overridden_by_generation_kwargs():
+    kwargs = {"n_samples": 50, "n_features": 3}
+
+    seeded = [
+        generate_synthetic_data("make_regression", kwargs, random_state=seed)[0]["y_train"]
+        for seed in (0, 1)
+    ]
+    assert not np.array_equal(seeded[0], seeded[1])
+
+    pinned = [
+        generate_synthetic_data(
+            "make_regression", kwargs | {"random_state": 3}, random_state=seed
+        )[0]["y_train"]
+        for seed in (0, 1)
+    ]
+    np.testing.assert_array_equal(pinned[0], pinned[1])
