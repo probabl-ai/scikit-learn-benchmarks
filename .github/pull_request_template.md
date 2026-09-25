@@ -6,11 +6,10 @@
 ## Comparing a scikit-learn branch against main (optional)
 
 To benchmark an upstream scikit-learn branch against `main` and get a
-before/after dashboard posted on this PR, add a block like the one below
-OUTSIDE this comment, and rename the fence tag from
-`DISABLED-sklbench-compare` to `sklbench-compare`. The tag is disabled here
-because the workflows detect the block anywhere in the description, even
-inside a comment.
+before/after dashboard on this PR, add a block like the one below OUTSIDE
+this comment, and rename the fence tag from `DISABLED-sklbench-compare` to
+`sklbench-compare`. The tag is disabled here because the workflows find the
+block anywhere in the description, even inside a comment.
 
 ```DISABLED-sklbench-compare
 sklearn_ref: cakedev0:ridge/optim_cholesky

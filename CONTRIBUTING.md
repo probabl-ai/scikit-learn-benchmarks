@@ -1,112 +1,115 @@
 # Contributing
 
-This repository contains benchmark configurations, captured benchmark results,
-and reporting scripts for the published scikit-learn benchmark dashboards.
+This repository contains the benchmark configs, the benchmark results, and the
+reporting scripts that generate the published scikit-learn benchmark
+dashboards.
 
 ## Setup
 
-Install pixi (>= 0.75): 
+Install pixi (>= 0.75):
 
 ```bash
 curl -fsSL https://pixi.sh/install.sh | sh
 ```
 
-Or if you have an old pixi, you can self-update:
+Or update an older pixi:
+
 ```bash
-pixi self-update 
+pixi self-update
 ```
 
 Install Git LFS before cloning:
-```
+
+```bash
 pixi global install git-lfs
 git lfs install
 ```
 
-Then clone the repo. Use `git lfs pull` afterwards **if** you want to fetch all
-results locally (see more details in ["Previewing Dashboards
-Locally"](#previewing-dashboards-locally))
+Then clone the repo. Result files are not downloaded by default (see
+["Previewing Dashboards Locally"](#previewing-dashboards-locally)).
 
-
-Then from the repo root run:
+From the repo root, run:
 
 ```bash
 ./scripts/setup_sklearn_ref.sh --ref main
 ```
 
-The `sklearn-dev` environment (see ["Running Against scikit-learn
-Branches"](#running-against-scikit-learn-branches) below) depends on scikit-learn
-being checked out in a local path (`sklearn-src/`); running this script installs it.
+This checks out scikit-learn in `sklearn-src/`, which the `sklearn-dev`
+environment needs (see ["Running Against scikit-learn
+Branches"](#running-against-scikit-learn-branches)).
 
-Then you can test your environnment by running:
+Then check your environment with:
 
 ```bash
 pixi run -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py --results-dir ./results/tests/
 ```
 
-It will take a few dozen seconds and create a few results under `results/tests` (git ignored).
+It takes a few dozen seconds and writes a few results under `results/tests`
+(ignored by git).
 
 ## Architecture
 
-The project uses Pixi environments:
+The project uses these Pixi environments:
+
 - `sklearn-pypi`: vanilla scikit-learn
-- `skl-cpu`: Array API CPU (pytorch CPU)
-- `skl-intel`, `skl-nvidia`: Intel/NVIDIA GPU Array API (pytorch, dpnp)
-- `intel`: scikit-learn-intelex CPU and GPU
+- `skl-cpu`: Array API on CPU (PyTorch CPU)
+- `skl-intel`, `skl-nvidia`: Array API on Intel/NVIDIA GPUs (PyTorch, dpnp)
+- `intel`: scikit-learn-intelex on CPU and GPU
 - `reporting`: dashboard generation and reporting utilities
-- `sklearn-cf-*`: conda-forge scikit-learn builds across BLAS/OpenMP backends
-  (see the `[environments]` table in `pixi.toml` for the exact matrix)
+- `sklearn-cf-*`: conda-forge scikit-learn builds with different BLAS/OpenMP
+  backends (see the `[environments]` table in `pixi.toml` for the exact
+  matrix)
 - `sklearn-dev`: scikit-learn built from a git checkout (see ["Running Against
-  scikit-learn Branches"](#running-against-scikit-learn-branches) below)
-- `sklearn-dev-libomp`: same scikit-learn git checkout as `sklearn-dev`, but
-  with LLVM/Intel `libomp` runtime.
+  scikit-learn Branches"](#running-against-scikit-learn-branches))
+- `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
+  LLVM/Intel `libomp` runtime
 
+The repository has a few layers:
 
-The repository is split into a few layers:
-
-- `configs/`: Python benchmark case generators. Public config scripts
-  combine workload helpers with implementation selection and expose
+- `configs/`: Python benchmark case generators. Public config scripts combine
+  workload helpers with implementation selection and expose
   `generate_cases()`. See [configs/README.md](configs/README.md).
-- `sklbench/`: local benchmark package containing:
-    - `sklbench/config/`: Pydantic case models and the config-script loader.
+- `sklbench/`: the local benchmark package:
+    - `sklbench/config/`: Pydantic case models and the config script loader.
     - `sklbench/orchestrator/`: captures the environment, launches one runner
-      subprocess per case, captures logs/errors, and writes result files.
-    - `sklbench/runners/`: executes a single already-expanded case; see
+      subprocess per case, captures logs and errors, and writes result files.
+    - `sklbench/runners/`: runs a single expanded case; see
       [sklbench/runners/README.md](sklbench/runners/README.md).
-    - `sklbench/reporting/`: result matching, environment summaries, and HTML
-      helpers. Except the initial results-matching work, it's fully vibe-coded.
-- `results/`: captured benchmark outputs and environment metadata, tracked
-  with Git LFS.
-- `dashboards/index.py`: sole entry point for the full dashboard site. It
-  generates the index page and calls each `dashboards/gen_*.py` module's
-  `generate()`; those modules read `results/` and write one HTML page each,
-  but aren't run directly. `dashboards/index_comparison.py` is the separate
-  entry point for `pr-comparison.yml`'s ephemeral, per-PR results (see
-  COMPARISONS_PR.md). Fully vibe-coded.
+    - `sklbench/reporting/`: result matching, environment summaries and HTML
+      helpers. Apart from the initial result matching, it's fully vibe-coded.
+- `results/`: benchmark outputs and environment metadata, tracked with Git
+  LFS.
+- `dashboards/index.py`: the only entry point for the full dashboard site. It
+  generates the index page and calls `generate()` in each
+  `dashboards/gen_*.py` module. Those modules read `results/` and write one
+  HTML page each, and are not run directly. `dashboards/index_comparison.py`
+  is the separate entry point for the ephemeral per-PR results of
+  `pr-comparison.yml` (see COMPARISONS_PR.md). Fully vibe-coded.
 - `.github/workflows/`: CI. `dashboard-pages.yml` runs `dashboards/index.py`
-  on pushes to `main`; `dashboard-preview-build.yml`/`dashboard-preview-deploy.yml`
-  build and deploy a preview dashboard per results PR; `pr-comparison.yml` and
-  `run-benchmarks.yml` drive the benchmark-running workflows.
+  on pushes to `main`. `dashboard-preview-build.yml` and
+  `dashboard-preview-deploy.yml` build and deploy a preview dashboard for
+  each results PR. `pr-comparison.yml` and `run-benchmarks.yml` run the
+  benchmarks.
 
-Config scripts are regular Python: they return a list of JSON-serializable case
-dictionaries or pydantic case models from `generate_cases()`, and the
-orchestrator validates each case before running it. See
-[configs/README.md](configs/README.md) for the per-workload generator layout
-and tier conventions.
+Config scripts are regular Python. `generate_cases()` returns a list of
+JSON-serializable case dicts or pydantic case models, and the orchestrator
+validates each case before running it. See
+[configs/README.md](configs/README.md) for the per-workload generators and
+tiers.
 
 ## Adding Benchmark Cases
 
-Most case changes should start in `configs/_synthetic_trees.py`,
-`configs/_synthetic_linear.py`, or `configs/_real_datasets.py`, depending on the
-workload.
+Most case changes start in `configs/_synthetic_trees.py`,
+`configs/_synthetic_linear.py` or `configs/_real_datasets.py`, depending on
+the workload.
 
-Use `configs/smoke_check_test.py` for the current small exploratory matrix -
-it covers Array API Pixi environments as well as plain sklearn/sklearnex
-ones. It's also what CI's smoke-check workflows run, and isn't wired into
-any dashboard's `SOURCE_CONFIGS` (see "Config → Dashboard Provenance"
-below) - it's for validating the orchestrator/config machinery itself, not
-for producing dashboard-worthy results.
+`configs/smoke_check_test.py` is a small matrix covering the Array API Pixi
+environments as well as plain sklearn and sklearnex. CI's smoke check
+workflows run it. No dashboard lists it in `SOURCE_CONFIGS` (see ["Config →
+Dashboard Provenance"](#config--dashboard-provenance)): it checks the
+orchestrator and config machinery, not the results.
 
-Preview and validate a config by importing it directly:
+Preview and validate a config by importing it:
 
 ```bash
 pixi run -e sklearn-pypi python - <<'PY'
@@ -119,8 +122,8 @@ PY
 ```
 
 When adding cases, keep the matrix small enough to run repeatedly, set
-deterministic estimator/data random states where relevant, and check that the
-case can be compared to a baseline by the dashboard matching logic.
+estimator and data random states where relevant, and check that the
+dashboard matching logic can compare each case to a baseline.
 
 ## Running Benchmarks
 
@@ -130,35 +133,33 @@ Run the default scikit-learn configuration:
 pixi run -e sklearn-pypi python -m sklbench --config configs/smoke_check_test.py
 ```
 
-`run.sh` runs the same `python -m sklbench` invocation across one or more
-Pixi environments:
+`run.sh` runs the same `python -m sklbench` command in one or more Pixi
+environments:
 
 ```bash
 ./run.sh env1 [env2 ...] [sklbench args...]
 ```
 
-The leading arguments, up to the first one starting with `-`, are treated as
-Pixi environments; everything from there on is passed through to `sklbench`
-unchanged. For example:
+Arguments up to the first one starting with `-` are Pixi environments. The
+rest is passed to `sklbench` unchanged. For example:
 
 ```bash
 ./run.sh sklearn-pypi sklearn-cf-mkl intel --config configs/all_models.py
 ```
 
-Generated benchmark records are written under `results/`. If you need to clean
-results from a test/rehearsal run, you can do: `git clean results/ -fd`
-(deletes all untracked results).
+Benchmark records are written under `results/`. To delete the results of a
+test run, use `git clean results/ -fd` (this deletes all untracked results).
 
-Once you have some results locally, see ["Previewing Dashboards
-Locally"](#previewing-dashboards-locally) below to check them.
+Once you have results locally, see ["Previewing Dashboards
+Locally"](#previewing-dashboards-locally) to look at them.
 
 ## Running Against scikit-learn Branches
 
-For local performance PR checks, use one of the development Pixi environments and
-the scikit-learn setup helper. It maintains a single scikit-learn checkout under
-`sklearn-src/`, checks out the requested ref there, and installs that checkout
-editable into `sklearn-dev`. `pixi.toml` points `sklearn-dev` at this exact
-path.
+To check a performance PR locally, use one of the development Pixi
+environments and the scikit-learn setup script. The script keeps a single
+scikit-learn checkout in `sklearn-src/`, checks out the requested ref there,
+and installs it in editable mode into `sklearn-dev`. `pixi.toml` points
+`sklearn-dev` at this path.
 
 ```bash
 scripts/setup_sklearn_ref.sh --ref main
@@ -166,9 +167,9 @@ scripts/setup_sklearn_ref.sh --ref main
 pixi run -e sklearn-dev python -m sklbench --config configs/smoke_check_test.py
 ```
 
-Run the same config against a branch from a fork by changing only the remote and
-ref. Since the remote differs from the checkout's current origin, this recreates
-the checkout (a fresh clone) rather than reusing it:
+To run the same config on a branch from a fork, change the remote and ref.
+Since the remote differs from the checkout's current origin, the script
+clones it again instead of reusing the checkout:
 
 ```bash
 scripts/setup_sklearn_ref.sh \
@@ -179,12 +180,11 @@ pixi run -e sklearn-dev python -m sklbench --config configs/smoke_check_test.py
 ```
 
 Only one scikit-learn ref is checked out at a time. Switching back to a
-previous remote (e.g. back to upstream `main` after benchmarking a fork) also
-recreates the checkout, so comparing two refs means re-running the setup
-script between benchmark runs rather than keeping both checked out side by
-side.
+previous remote (for example upstream `main` after a fork) also clones again.
+To compare two refs, run the setup script again between the two benchmark
+runs.
 
-`run.sh` automates this re-running for you: give it `env@owner:ref`, for example:
+`run.sh` does this for you when given `env@owner:ref` entries, for example:
 
 ```bash
 ./run.sh sklearn-dev@cakedev0:hgb/use_threads_if sklearn-dev@scikit-learn:main \
@@ -193,9 +193,9 @@ side.
 
 Each `env@owner:ref` entry is set up and run in turn.
 
-Note: `sklearn-dev-libomp` installs the same `sklearn-src` checkout into a second
-Pixi environment. Use it to compare OpenMP runtimes on the exact same scikit-learn commit,
-by passing both environments to `run.sh` with the same ref:
+`sklearn-dev-libomp` installs the same `sklearn-src` checkout into a second
+Pixi environment. To compare OpenMP runtimes on the same scikit-learn commit,
+pass both environments to `run.sh` with the same ref:
 
 ```bash
 ./run.sh sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \
@@ -204,69 +204,65 @@ by passing both environments to `run.sh` with the same ref:
 
 ## PR Comparison Benchmarks
 
-Automatically benchmarking an upstream scikit-learn PR/branch against `main` from a
-PR description on this repo is documented separately, in [COMPARISONS_PR.md](COMPARISONS_PR.md).
+To benchmark an upstream scikit-learn PR or branch against `main` from a PR
+on this repo, see [COMPARISONS_PR.md](COMPARISONS_PR.md).
 
 ## Previewing Dashboards Locally
 
-By default, `results/` stays checked out as Git LFS pointer files (small text
-stubs) rather than actual JSON/gzip content, so a plain clone or `git pull`
-never downloads the full results history. Pull the content you actually need
-with `git lfs pull`. `git lfs pull` only fetches content for the ref you
-currently have checked out; switching branches and needing another commit's results
-means re-running it there.
+By default, `results/` is checked out as Git LFS pointer files (small text
+stubs), so a clone or `git pull` doesn't download the full results history.
 
-Then run the watcher to generate pages, and regenerate then
-whenever `results/`, `sklbench/reporting/`, or `dashboards/` changes:
+Run the watcher. It downloads the missing result files of the current ref,
+generates the pages, and generates them again whenever `results/`,
+`sklbench/reporting/` or `dashboards/` changes:
 
 ```bash
 pixi run -e reporting python watch_dashboards.py
 ```
 
+To download all results of the current ref by hand, use
+`git lfs pull --exclude ""` (a plain `git lfs pull` fetches nothing, see
+["Notes"](#notes)).
+
 ## Config → Dashboard Provenance
 
-Which config a dashboard's data comes from is explicit, not inferred:
+Each dashboard declares which configs its data comes from:
 
-- A runnable, orchestrator-facing config is exactly a non-underscore-prefixed
-  `.py` file directly under `configs/` (see `configs/README.md`) - leaf
-  generators (`_real_datasets.py`, ...) and the `configs/_utils/` package of
-  config-authoring helpers are underscore-prefixed precisely so they don't
-  look runnable.
-- Every case is stamped with `metadata.source_config` (the invoked config's
-  repo-relative path) at load time, by
-  `sklbench.config.loader.load_cases_from_script`. This survives into
-  `results/records/*.json`.
-- Every `dashboards/gen_*.py` module declares `SOURCE_CONFIGS` (which
-  configs feed it) and `SOURCE_ENVS` (which Pixi envs it expects/charts) as
-  module-level constants, and filters results with
-  `sklbench.reporting.matching.matches_source_configs` instead of ad-hoc
-  shape/metadata sniffing.
+- A runnable config is a `.py` file directly under `configs/` whose name
+  doesn't start with an underscore (see `configs/README.md`). Leaf generators
+  (`_real_datasets.py`, ...) and the `configs/_utils/` helpers start with an
+  underscore so they don't look runnable.
+- `sklbench.config.loader.load_cases_from_script` stamps every case with
+  `metadata.source_config` (the repo-relative path of the config that was
+  run). It is kept in `results/records/*.json`.
+- Every `dashboards/gen_*.py` module declares `SOURCE_CONFIGS` (the configs
+  it reads) and `SOURCE_ENVS` (the Pixi envs it expects) as module-level
+  constants, and filters results with
+  `sklbench.reporting.matching.matches_source_configs`.
 
-To find what to rerun after a config change - instead of reading
-`matching.py`'s filters by hand - use `scripts/what_to_rerun.py`:
+To find what to rerun after a config change, use `scripts/what_to_rerun.py`:
 
 ```bash
-python scripts/what_to_rerun.py --dashboard all
-python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Modern Intel laptop"
-python scripts/what_to_rerun.py --config configs/hgb_scalability.py
+pixi run -e reporting python scripts/what_to_rerun.py --dashboard all
+pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Modern Intel laptop"
+pixi run -e reporting python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 ```
 
-`--hardware` (a `dashboards.HARDWARE_NAMES` display name or hash) narrows the
-printed envs to those actually installable there, via
-`sklbench.reporting.envs.env_platforms()` (derived from `pixi.toml`, not a
-separately maintained table) and `dashboards.HARDWARE_PLATFORMS`.
+`--hardware` (a display name or hash from `dashboards.HARDWARE_NAMES`) keeps
+only the envs that can be installed on that machine. This uses
+`sklbench.reporting.envs.env_platforms()`, derived from `pixi.toml`, and
+`dashboards.HARDWARE_PLATFORMS`.
 
-Results predating this system (no `metadata.source_config`) simply won't
-match any dashboard's `SOURCE_CONFIGS` and disappear from every dashboard
-until rerun.
+Results older than this system (without `metadata.source_config`) match no
+dashboard's `SOURCE_CONFIGS`, so they don't show up anywhere until rerun.
 
 ## Publishing New Results
 
-Make sure lfs is set up (`git lfs install`, see ["Setup"](#setup) above).
-You don't need to pull existing results first, only the new files you add
+Make sure Git LFS is set up (`git lfs install`, see ["Setup"](#setup)). You
+don't need to pull existing results first: only the new files you add
 matter.
 
-Run the relevant benchmarks, then inspect the generated files:
+Run the relevant benchmarks, then check the generated files:
 
 ```bash
 git status --short results/
@@ -278,29 +274,30 @@ Stage the new result and environment JSON files together:
 git add results/
 ```
 
-Commit and push on a branch and open a PR (e.g. "RES HGB Macbook results"); it
-will deploy a preview dashboard including your results (if some dashboard's
-`SOURCE_CONFIGS` claims the config you ran - see
-["Config → Dashboard Provenance"](#config--dashboard-provenance) above).
+Commit and push on a branch and open a PR (for example "RES HGB Macbook
+results"). The PR deploys a preview dashboard with your results, as long as a
+dashboard's `SOURCE_CONFIGS` lists the config you ran (see ["Config →
+Dashboard Provenance"](#config--dashboard-provenance)).
 
-Make sure a results PR only contains results - open a separate PR for
-fixes/enhancements/new configs/etc.
+A results PR should only contain results. Open a separate PR for fixes,
+enhancements, new configs, etc.
 
-Once the change reaches `main`, the GitHub Pages workflow regenerates and deploys the
-dashboards automatically.
+Once the PR is merged into `main`, the GitHub Pages workflow regenerates and
+deploys the dashboards.
 
 ## Notes
 
-`results/*.json` and `results/**/*.json` are tracked through Git LFS via
-`.gitattributes`. Do not bypass LFS for benchmark results.
+`results/*.json` and `results/**/*.json` are tracked with Git LFS through
+`.gitattributes`. Don't bypass LFS for benchmark results.
 
-`.lfsconfig` sets `fetchexclude = *` so clones and plain `git lfs
-pull`/`fetch` don't download `results/` content by default (to protect the
-repo's LFS quota) - see ["Fetching Result Files"](#fetching-result-files).
-CI workflows pass their own `--include`, but `-I` alone only overrides
-`fetchinclude` - `fetchexclude = *` from `.lfsconfig` still applies and blocks
-everything, so those workflows must also pass `--exclude ""` to clear it.
+`.lfsconfig` sets `fetchexclude = *`, so clones and plain `git lfs
+pull`/`fetch` don't download `results/` content by default. This protects the
+repo's LFS quota (see ["Previewing Dashboards
+Locally"](#previewing-dashboards-locally)). CI workflows pass their own
+`--include`, but `-I` alone only overrides `fetchinclude`: `fetchexclude = *`
+still applies and blocks everything, so these workflows must also pass
+`--exclude ""`.
 
-**Cloud machines can have high tail variability**, especially for scaling studies
-and short workloads. Prefer stable local/dedicated hardware when deciding whether
-one representative case can replace a broader matrix.
+**Cloud machines can have high tail variability**, especially for scaling
+studies and short workloads. Prefer stable local or dedicated hardware when
+deciding whether one representative case can replace a broader matrix.

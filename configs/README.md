@@ -1,108 +1,105 @@
 # Benchmark Config Scripts
 
 Each Python file in this directory defines a benchmark matrix through a
-`generate_cases()` function. The function must return a list of plain
-dictionaries or pydantic case models exported by `sklbench.config`.
+`generate_cases()` function. It returns a list of plain dicts or pydantic case
+models exported by `sklbench.config`.
 
 ## Contract with the orchestrator
 
-`sklbench/config/loader.py`'s `load_cases_from_script()` imports a config file
-as a module and calls its `generate_cases()` **with no arguments** (see
-`sklbench/__main__.py`, which does this once per `--config` script and
-concatenates the results). So the top-level script named on the command line
-must expose a zero-argument `generate_cases()`.
+`load_cases_from_script()` in `sklbench/config/loader.py` imports a config
+file as a module and calls its `generate_cases()` **with no arguments**.
+`sklbench/__main__.py` does this once per `--config` script and concatenates
+the results. So the script named on the command line must expose a
+zero-argument `generate_cases()`.
 
-It must return an iterable of plain dicts or pydantic case models. Each
-returned item is JSON-normalized and validated into an `EstimatorCase` (has
-an `algorithm`/`implementation` key) or `HPTuningCase` (has an `hptuning`
-key); anything else raises `ValueError` naming the offending index. There is
-no other contract - no required ordering, no dedup, no size cap. Keep the
-matrix small enough to actually run and to compare against a baseline (see
+It returns an iterable of plain dicts or pydantic case models. Each item is
+JSON-normalized and validated into an `EstimatorCase` (it has an
+`algorithm`/`implementation` key) or an `HPTuningCase` (it has an `hptuning`
+key). Anything else raises a `ValueError` with the index of the bad item.
+There is no other requirement: no ordering, no deduplication, no size limit.
+Keep the matrix small enough to run and to compare against a baseline (see
 `CONTRIBUTING.md`).
 
 ## Implementation resolution based on the Pixi environment
 
 `configs/_utils/implementations.py` maps each Pixi environment name to the
-implementation dict(s) (`library`, `device`, `data_library`,
-`sklearn_context`/`sklearnex_context`, ...) that make sense to benchmark
-under it, e.g. `intel` -> sklearnex CPU + GPU, `skl-nvidia` -> Array API on
-CUDA via both `torch` and `cupy`. `implementations_for_pixi_env()` reads
-`PIXI_ENVIRONMENT_NAME` (set by `pixi run -e <env> ...`) and returns the
-matching list, raising if the config isn't run through Pixi or the env isn't
-in the map.
+implementation dicts (`library`, `device`, `data_library`,
+`sklearn_context`/`sklearnex_context`, ...) worth benchmarking in it. For
+example, `intel` gives sklearnex on CPU and GPU, and `skl-nvidia` gives Array
+API on CUDA through both `torch` and `cupy`. `implementations_for_pixi_env()`
+reads `PIXI_ENVIRONMENT_NAME` (set by `pixi run -e <env> ...`) and returns the
+matching list. It raises if the config isn't run through Pixi or if the env
+isn't in the map.
 
-This resolution is purely name-based, not hardware-based: the `intel` env
-still yields a GPU implementation dict even on a CPU-only machine. Public
-config scripts call `implementations_for_pixi_env()`, loop over each returned
-implementation to generate that implementation's slice of the matrix, and
-only filter out the cases that need hardware the machine doesn't actually
-have as a last step (see below).
+This mapping only uses the env name, not the hardware: the `intel` env yields
+a GPU implementation even on a CPU-only machine. Public config scripts call
+`implementations_for_pixi_env()`, generate the matrix for each returned
+implementation, and only drop the cases that need missing hardware at the
+end (see below).
 
 ## Hardware probing
 
-A few configs inspect the machine to size or gate their matrix:
+A few configs inspect the machine to size or filter their matrix:
 
-- `configs/_utils/scaling.py` and `configs/_utils/numa.py` read CPU topology from
-  `joblib.cpu_count()` and `/sys/devices/system/cpu/*/topology` /
-  `/sys/devices/system/node` to build thread-count sweeps, detect
-  hybrid P/E-core layouts, and pin a case to one NUMA node's cores. Used by
-  `hgb_scalability.py` and `models_scalability.py` for scaling sweeps.
-- `_synthetic_trees.py` and `hptuning.py` size `n_estimators`, worker counts,
-  and time limits off `joblib.cpu_count()`.
+- `configs/_utils/scaling.py` and `configs/_utils/numa.py` read the CPU
+  topology from `joblib.cpu_count()`, `/sys/devices/system/cpu/*/topology`
+  and `/sys/devices/system/node`. They build thread count sweeps, detect
+  hybrid P/E-core layouts, and pin a case to the cores of one NUMA node.
+  `hgb_scalability.py` and `models_scalability.py` use them for scaling
+  sweeps.
+- `_synthetic_trees.py` and `hptuning.py` size `n_estimators`, worker counts
+  and time limits from `joblib.cpu_count()`.
 - `_real_datasets.py` caps KMeans' `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
-  very-high-core-count hosts (a PyPI OpenBLAS wheel bug) and sizes `N_JOBS`
-  off the physical core count.
-- `sklbench/config/utils.py` lazily probes for GPU backends (`dpctl` for
+  machines with very many cores (to avoid an OpenBLAS bug in the PyPI wheel),
+  and sizes `N_JOBS` from the physical core count.
+- `sklbench/config/utils.py` probes for GPU backends lazily (`dpctl` for
   oneAPI/xpu/gpu, `pynvml` for CUDA, `torch.backends.mps` for MPS).
-  `filter_gpu_cases_if_unavailable` drops any case whose implementation
-  targets hardware the machine doesn't have, and
-  `filter_array_api_supported_cases_if_needed` drops Array API
-  solver/order combinations the implementation doesn't actually support.
-  Public config scripts apply both after generating the full matrix.
+  `filter_gpu_cases_if_unavailable` drops cases that target hardware the
+  machine doesn't have, and `filter_array_api_supported_cases_if_needed`
+  drops Array API solver/order combinations the implementation doesn't
+  support. Public config scripts apply both after generating the full matrix.
 
 ## Per-workload case generators
 
-The workloads themselves are generated by `configs/_synthetic_trees.py`,
-`configs/_synthetic_linear.py`, and `configs/_real_datasets.py`. Each exposes
-`generate_cases(implem=None, tier="normal")` (`_real_datasets.py` calls the
-parameter `max_tier`): given one implementation dict, it returns every case
-for that workload with the implementation already baked in - no separate
-cross-product step needed downstream. `implem` defaults to plain sklearn so
-each file can be previewed on its own (see `CONTRIBUTING.md`).
+The workloads are generated by `configs/_synthetic_trees.py`,
+`configs/_synthetic_linear.py` and `configs/_real_datasets.py`. Each exposes
+`generate_cases(implem=None, tier="normal")` (the parameter is called
+`max_tier` in `_real_datasets.py`). Given one implementation dict, it returns
+every case of that workload with the implementation already set, so no cross
+product is needed afterwards. `implem` defaults to plain sklearn, so each
+file can be previewed on its own (see `CONTRIBUTING.md`).
 
-`tier`/`max_tier` controls how much of the matrix comes back:
+`tier`/`max_tier` controls how much of the matrix is returned:
 
-- `"test"`: a small, fast, deterministically-chosen sample (e.g. one case per
+- `"test"`: a small, fast, deterministic sample (for example one case per
   estimator), for `smoke_check_test.py`.
-- `"fast"`: a single, smaller `scale`, for a broad but quick matrix. Not
-  currently requested by any top-level config, but still included whenever
-  `"normal"` is (see below) since cases are tagged at or below their tier.
-- `"normal"` (default): the full matrix. The synthetic generators chain
-  multiple increasing `scale` values into one combined matrix (e.g.
-  `_synthetic_trees.py` uses `[20, 100]`); `_real_datasets.py` includes every
-  case tagged at or below the requested tier.
+- `"fast"`: a single, smaller `scale`, for a broad but quick matrix. No
+  top-level config requests it right now, but it's included whenever
+  `"normal"` is, since cases are tagged at or below their tier.
+- `"normal"` (default): the full matrix. The synthetic generators combine
+  several increasing `scale` values into one matrix (for example `[20, 100]`
+  in `_synthetic_trees.py`). `_real_datasets.py` includes every case tagged
+  at or below the requested tier.
 
-These leaf `generate_cases()` are *not* what the orchestrator calls directly
-- they take an `implem`/`tier` argument, and the orchestrator always calls
-`generate_cases()` with none. Their names are underscore-prefixed for exactly
-this reason: **a runnable, orchestrator-facing config is precisely a
-non-underscore-prefixed `.py` file directly under `configs/`** - the same
-convention the `configs/_utils/` package (below) uses for shared helpers.
-Anything needing "the list of runnable configs" (e.g.
-`scripts/what_to_rerun.py`) can rely on that glob rather than
-importing/inspecting every file. The zero-argument, orchestrator-facing
-scripts (`all_models.py`, `smoke_check_test.py`, ...)
-are the ones that compose the leaf generators: they resolve implementations
-for the current Pixi env, call each leaf generator once per implementation,
-then apply the hardware-availability filters and default `bench` settings
-described above.
+The orchestrator doesn't call these leaf `generate_cases()` directly: they
+take `implem`/`tier` arguments, and the orchestrator always calls
+`generate_cases()` without arguments. That's why their names start with an
+underscore. **A runnable config is a `.py` file directly under `configs/`
+whose name doesn't start with an underscore.** The `configs/_utils/` package
+(below) follows the same convention. Tools that need the list of runnable
+configs (for example `scripts/what_to_rerun.py`) can rely on this naming
+instead of importing every file.
 
-Common utilities (deterministic case selection, sklearn-version/solver
-helpers, ...) live in `configs/_utils/common.py`; implementation selection
-lives in `configs/_utils/implementations.py`; CPU/NUMA topology helpers live
-in `configs/_utils/scaling.py` and `configs/_utils/numa.py`. These are
-config-authoring helpers, not part of the `sklbench` package - config
-scripts import them (e.g. `from _utils.common import ...`) the same way they
-import each other, by relying on `sklbench.config.loader` putting `configs/`
-on `sys.path` before running a script (see "Contract with the orchestrator"
-above).
+The zero-argument configs (`all_models.py`, `smoke_check_test.py`, ...)
+compose the leaf generators. They resolve the implementations for the current
+Pixi env, call each leaf generator once per implementation, then apply the
+hardware filters and default `bench` settings described above.
+
+Shared helpers live in `configs/_utils/`: `common.py` (deterministic case
+selection, sklearn version and solver helpers, ...), `implementations.py`
+(implementation selection), and `scaling.py` and `numa.py` (CPU and NUMA
+topology). They are config-authoring helpers, not part of the `sklbench`
+package. Config scripts import them (for example
+`from _utils.common import ...`) like they import each other, because
+`sklbench.config.loader` puts `configs/` on `sys.path` before running a script
+(see "Contract with the orchestrator" above).
