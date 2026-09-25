@@ -80,7 +80,7 @@ DASHBOARD_DESCRIPTIONS = {
     "hardware_comparisons.html": "Same software on different machines.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "Speed-up from evaluating search candidates in parallel.",
-    "hgb_scaling.html": "Fit time per phase as the thread count grows.",
+    "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers",
 }
 
 # Machines that are benchmarked but not presented on the index page.
