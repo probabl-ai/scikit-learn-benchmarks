@@ -24,13 +24,16 @@ from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_sof
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This site tracks scikit-learn's performance across machines, builds and
+  <p>
+  This site tracks scikit-learn's performance across machines, builds and
   accelerated backends. It shows which workloads benefit from
-  scikit-learn-intelex or an Array API backend, and when a different
-  BLAS/OpenMP build or machine changes anything. Most dashboards below vary
-  one of these (implementation, build or hardware) and keep the others fixed.
-  The scalability ones look at how a fit speeds up with more CPU cores. Each
-  dashboard explains how to read it in its own intro.</p>
+  <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/">scikit-learn-intelex</a>
+  or an <a href="https://scikit-learn.org/stable/modules/array_api.html">Array API</a> backend,
+  and when a different BLAS/OpenMP build or machine changes anything.
+  Most dashboards below vary one of these (implementation, build or hardware)
+  and keep the others fixed. The scalability ones look at how a fit speeds up
+  with more CPU cores. Each dashboard explains how to read it in its own intro.
+  </p>
 
   <h3 style="margin-top: 5px">Overall results:</h3>
 
@@ -42,9 +45,8 @@ ABOUT_HTML = """<section class="panel">
     cases.</p>
     <p>Note that scikit-learn-intelex only accelerates a subset of estimators
     and parameters (see its
-    <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/algorithms.html">supported algorithms</a>),
-    and falls back to scikit-learn otherwise. Its behavior can also differ from
-    scikit-learn, for instance in
+    <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/algorithms.html">supported algorithms</a>).
+    Its behavior can also differ from scikit-learn, for instance in
     <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">best-first tree growth</a>,
     <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3401">multiclass <code>predict_proba</code></a>
     or <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3356">missing values at predict time</a>.
