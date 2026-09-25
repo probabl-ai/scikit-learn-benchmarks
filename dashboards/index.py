@@ -40,26 +40,26 @@ ABOUT_HTML = """<section class="panel">
   <ul>
     <li>
     <p>On the benchmarked cases, <code>scikit-learn-intelex</code> on CPUs
-    is the most consistently fast option among the currently benchmarked set
+    is the <b>most consistently fast option</b> among the currently benchmarked set
     of options, especially for fitting tree-based
     models. Other backends and builds help in narrower, workload-specific
     cases.</p>
-    <p>Note that scikit-learn-intelex only accelerates a subset of estimators
-    and parameters (see its
+    <p>Note that scikit-learn-intelex <b>only accelerates a subset of estimators
+    and parameters</b> (see its
     <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/algorithms.html">supported algorithms</a>).
-    Its behavior can also differ from scikit-learn, for instance in
+    Its <b>behavior can also differ</b> from scikit-learn, for instance in
     <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">best-first tree growth</a>,
     <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3401">multiclass <code>predict_proba</code></a>
     or <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3356">missing values at predict time</a>.
     These gaps are actively worked on.</p>
     </li>
     <li>
-    For linear models, a good option for improved performance is simply to pick 
-    the MKL conda-forge build of scikit-learn, instead of the PyPI one.
+    For linear models, a good option for improved performance is simply to pick
+    the <b>MKL conda-forge build</b> of scikit-learn, instead of the PyPI one.
     </li>
     <li>
-    Using a bigger machine doesn't help a lot for a single fit for most models
-    except random forests and alike. But it helps a lot for multiple parallelized fits, typically
+    Using a bigger machine <b>doesn't help a lot for a single fit</b> for most models
+    except random forests and alike. But it <b>helps a lot for multiple parallelized fits</b>, typically
     for hyper-parameters tunning workloads.
     </li>
   </ul>

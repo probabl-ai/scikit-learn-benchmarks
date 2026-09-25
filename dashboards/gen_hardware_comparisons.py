@@ -24,6 +24,7 @@ as "Baseline": swapping which MethodResult list is `base_results` in
 inverted after the fact.
 """
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from html import escape
 from itertools import permutations
 import json
@@ -80,11 +81,11 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li>the modern Intel laptop and the high-end Intel server are close to
-      parity;</li>
-      <li>the low-end Intel laptop is ~3-5x slower than both;</li>
+      <li>the modern Intel laptop and the high-end Intel server are <b>close to
+      parity</b>;</li>
+      <li>the low-end Intel laptop is <b>~3-5x slower</b> than both;</li>
       <li>on the shared <code>sklearn-pypi</code> build, Apple's M4 CPU tends
-      to be slightly faster than the Intel machines.</li>
+      to be <b>slightly faster</b> than the Intel machines.</li>
     </ul>
   </details>
 </section>"""
@@ -377,6 +378,7 @@ def render_comparison(
                     "plot": speedup_plot_html(
                         category_method_matches,
                         baseline_label=baseline_variant.label,
+                        y_title=f"speed-up of {candidate_variant.label} vs {baseline_variant.label}",
                         variant_colors=trace_colors,
                         trace_variant=match_variant_label,
                         x_variant=match_variant_label,
@@ -564,7 +566,24 @@ def render_selector(all_results: list[MethodResult]) -> str:
 
 
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
-SOURCE_ENVS = GENERAL_SOURCE_ENVS
+# The conda-forge BLAS/OpenMP build variants are a software comparison
+# (gen_builds_comparison.py); across hardware they'd only multiply the lines
+# per cell, so sklearn-cf-mkl alone stands in for the conda-forge builds.
+SOURCE_ENVS = [
+    env
+    for env in GENERAL_SOURCE_ENVS
+    if not env.startswith("sklearn-cf-") or env == "sklearn-cf-mkl"
+]
+
+
+@lru_cache(maxsize=None)
+def _pixi_env_name(software_hash: str) -> str:
+    return read_env("software", software_hash)["pixi_environment_name"]
+
+
+def _is_excluded_env(result: MethodResult) -> bool:
+    name = _pixi_env_name(result.software_hash)
+    return name.startswith("sklearn-cf-") and name not in SOURCE_ENVS
 
 
 def generate(output_dir: Path) -> None:
@@ -572,6 +591,7 @@ def generate(output_dir: Path) -> None:
         _drop_metrics_and_reliability_signals(result)
         for result in read_all_results()
         if matches_source_configs(result.case, SOURCE_CONFIGS)
+        and not _is_excluded_env(result)
     ]
 
     html = BASE_TEMPLATE.render(

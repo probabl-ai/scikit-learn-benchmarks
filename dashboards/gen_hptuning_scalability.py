@@ -114,9 +114,9 @@ ABOUT_HTML = """<section class="panel">
     <p>On the benchmarked cases, outer parallelism helps in every case, but
     not equally:</p>
     <ul>
-      <li>Ridge, LogisticRegression and HistGradientBoosting scale close to
-      linearly;</li>
-      <li>RandomForest and ExtraTrees only reach ~5-6x at 86 outer workers,
+      <li>Ridge, LogisticRegression and HistGradientBoosting <b>scale close to
+      linearly</b>;</li>
+      <li>RandomForest and ExtraTrees <b>only reach ~5-6x at 86 outer workers</b>,
       because their inner <code>n_jobs=-1</code> competes for the same
       cores.</li>
     </ul>
@@ -424,10 +424,10 @@ def _row_sort_key(row_key: tuple) -> tuple:
     return (order, dataset, n_samples or 0, n_features or 0)
 
 
-def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str:
+def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str | None:
     hw_records = [record for record in records if record.hardware_hash == hardware_hash]
     if not hw_records:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
 
     sections = [
         f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_records))}</div>',

@@ -47,9 +47,9 @@ ABOUT_HTML = """<section class="panel">
   <details class="about-section">
     <summary>Findings</summary>
     <ul>
-      <li>MKL is a good pick for linear models: it speeds up BLAS-bound
+      <li><b>MKL is a good pick for linear models</b>: it speeds up BLAS-bound
       linear model fits, commonly by 1.3x to 1.5x.</li>
-      <li>HistGradientBoosting varies more between builds. On laptops, this
+      <li><b>HistGradientBoosting varies more between builds</b>. On laptops, this
       comes from differences in active wait (how long idle OpenMP threads spin
       before sleeping), which conda-forge disables by default. Without active
       wait, HGB fits on small and medium datasets can be much slower. On the
@@ -60,7 +60,7 @@ ABOUT_HTML = """<section class="panel">
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>
       for a fix in progress, based on the insights from the
       <a href="hgb_scaling.html">HistGradientBoosting thread-scalability breakdown</a> plots.</li>
-      <li>ExtraTrees fits are ~25% slower on conda-forge builds.
+      <li><b>ExtraTrees fits are ~25% slower on conda-forge builds</b>.
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34876">scikit-learn#34876</a>
       fixes it and will land in the next release.</li>
     </ul>
@@ -133,7 +133,7 @@ def render_hardware_page(
     results: list[MethodResult],
     failed_records: list[BenchmarkRecord],
     hardware_hash: str,
-) -> str:
+) -> str | None:
     results = [res for res in results if res.hardware_hash == hardware_hash]
     results = [
         res for res in results
@@ -149,7 +149,7 @@ def render_hardware_page(
         and not is_sklearn_dev_variant(record)
     ]
     if not results:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
     hardwares_set = {res.hardware_hash for res in results}
     if len(hardwares_set) > 1:
         raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
@@ -159,7 +159,7 @@ def render_hardware_page(
         predicate=lambda res: is_vanilla_sklearn(res.software_hash)
     )
     if not base_results:
-        return f'<section class="empty">No vanilla {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+        return None
     baseline_label = build_variant(base_results[0])
 
     variant_colors = variant_color_map(
@@ -197,6 +197,10 @@ def render_hardware_page(
                 failed_records=candidate_failed_by_category.get(category, []),
             )
         })
+    if not candidate_failed_records and not any(
+        matches for by_method in matches_by_category.values() for matches in by_method.values()
+    ):
+        return None
     failed_by_category = groupby(failed_records, lambda record: record.category)
 
     # A failed record means find_matches never sees a pair for that case, so the

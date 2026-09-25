@@ -85,11 +85,23 @@ ABOUT_HTML = """<section class="panel">
   </details>
   <details class="about-section">
     <summary>Findings</summary>
-    <p>On the benchmarked cases, small and medium workloads get slower above
-    ~100 threads on the high-end server, because per-tree dispatch and
-    synchronization overhead dominates an already cheap fit. Only the largest
-    workloads speed up over the whole sweep. Pinning threads
-    (<code>proc_bind=close</code>) reduces this slowdown.</p>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>On the high-end server, the <b>best thread count grows with the
+      workload</b>. The smallest workloads (e.g. XS, ames_housing) are fastest on
+      1 thread, medium ones (e.g. covtype, M) on 4 to 8 threads, and the
+      largest (year_prediction_msd, susy) on 16 to 32. Only L-stumps keeps
+      speeding up up to 64 threads (~17x). No workload benefits from the whole
+      server: <b>every fit is 2x to 30x slower at 128 or 172 threads</b> than at its
+      best thread count, with the biggest jump from 64 to 128 threads.</li>
+      <li>On the laptop, active wait matters for small and medium workloads.
+      <b>Without active wait (the conda-forge build)</b>, they get <b>several times slower at 8
+      and 16 threads</b>: XS goes from 74ms on 1 thread to 919ms on 8, covtype
+      from 11s on 4 threads to 38s on 8. With it (PyPI), they stay roughly
+      flat or keep improving up to 8 threads. The largest workloads scale up
+      to 16 threads either way. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>.</li>
+    </ul>
   </details>
 </section>"""
 
@@ -417,12 +429,12 @@ def _env_summary_rows(records: list[BenchmarkRecord]) -> list[str]:
     ]
 
 
-def render_env_page(records: list[BenchmarkRecord]) -> str:
+def render_env_page(records: list[BenchmarkRecord]) -> str | None:
     by_workload: dict[str, list[BenchmarkRecord]] = {}
     for record in records:
         by_workload.setdefault(_workload_name(record), []).append(record)
     if not by_workload:
-        return '<section class="empty">No instrumented HGB results for this hardware.</section>'
+        return None
 
     cells = []
     for name in sorted(by_workload, key=lambda n: _workload_size(by_workload[n][0])):

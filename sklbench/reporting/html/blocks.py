@@ -105,7 +105,9 @@ def render_software_hardware_tabs(
     return render_software_tabs(elements, variant_colors=variant_colors)
 
 
-def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
+def render_hardware_tabs(pages: list[tuple[str, str | None]]) -> str:
+    """Pages whose html is None have nothing to show and get no tab."""
+    pages = [(label, html) for label, html in pages if html is not None]
     if not pages:
         return '<section class="empty">No matching benchmark results.</section>'
     tabs_id = "hardware-tabs"

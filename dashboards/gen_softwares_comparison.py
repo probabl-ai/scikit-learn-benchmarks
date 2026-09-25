@@ -71,10 +71,21 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li><code>sklearnex-cpu</code> is the most consistently fast option.
+      <li><code>sklearnex-cpu</code> is the <b>most consistently fast option</b>.
       Tree-based models sometimes get impressive speed-ups, especially on the
-      high-end server, up to 30x. Linear models gain less.</li>
-      <li>Array API backends are mixed</li>
+      high-end server, <b>up to 30x</b>. Linear models gain less.</li>
+      <li>Array API backends are <b>mixed</b>. Only LogisticRegression and
+      Ridge are benchmarked for now:
+        <ul>
+          <li>LogisticRegression on GPU is <b>fairly fast</b>.</li>
+          <li>Ridge uses the SVD solver instead of Cholesky under Array API,
+          which is <b>probably why it's slower</b>.</li>
+          <li>PyTorch on CPU parallelizes every operation, and this overhead
+          <b>hurts LogisticRegression</b>. That's why it's slower than
+          scikit-learn, even though you could expect performance similar to
+          the baseline NumPy implementation.</li>
+        </ul>
+      </li>
     </ul>
   </details>
 </section>"""
@@ -244,7 +255,7 @@ def render_hardware_page(
     results: list[MethodResult],
     failed_records: list[BenchmarkRecord],
     hardware_hash: str,
-) -> str:
+) -> str | None:
     results = [res for res in results if res.hardware_hash == hardware_hash]
     results = [res for res in results if not is_alt_sklearn_build(res)]
     failed_records = [
@@ -252,7 +263,7 @@ def render_hardware_page(
         if record.hardware_hash == hardware_hash and not is_alt_sklearn_build(record)
     ]
     if not results:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
     hardwares_set = {res.hardware_hash for res in results}
     if len(hardwares_set) > 1:
         raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
@@ -261,8 +272,8 @@ def render_hardware_page(
         results,
         predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
     )
-    if not base_results:
-        return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+    if not base_results or not other_results:
+        return None
     baseline_label = software_build_name(base_results[0].software_hash)
 
     variant_colors = variant_color_map(

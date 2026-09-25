@@ -75,12 +75,12 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li>tree ensembles scale best, especially with
+      <li><b>tree ensembles scale best</b>, especially with
       <code>scikit-learn-intelex</code>, which reaches ~50-60% parallel
       efficiency at the highest core counts;</li>
-      <li>Ridge and LogisticRegression barely benefit from more cores, with
+      <li>Ridge and LogisticRegression <b>barely benefit from more cores</b>, with
       stock or MKL BLAS;</li>
-      <li>KMeans can get slower past some core count.</li>
+      <li>KMeans <b>can get slower</b> past some core count.</li>
     </ul>
   </details>
 </section>"""
@@ -281,10 +281,10 @@ def _software_tabs_html(hw_results: list[MethodResult]) -> str:
     return render_software_tabs(cards)
 
 
-def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str:
+def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str | None:
     hw_results = [result for result in results if result.hardware_hash == hardware_hash]
     if not hw_results:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
 
     sections = [
         f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_results))}</div>',
