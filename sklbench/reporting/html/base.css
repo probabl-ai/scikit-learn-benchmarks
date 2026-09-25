@@ -1,25 +1,74 @@
 :root {
   color-scheme: light;
-  --text: #222;
-  --muted: #5f6368;
-  --line: #d9dde3;
-  --surface: #f7f8fa;
-  --accent: #2864c8;
+  /* scikit-learn documentation palette: pydata-sphinx-theme neutrals plus
+     the sklearn cyan/orange brand colors (doc/scss/colors.scss). */
+  --text: #222832;
+  --muted: #48566b;
+  --line: #d1d5da;
+  --line-soft: #e5e7ea;
+  --surface: #f3f4f5;
+  --accent: #0a7d91;
+  --accent-hover: #8045e5;
+  --sk-cyan: #29abe2;
+  --sk-cyan-shades-2: #1c7ea8;
+  --sk-cyan-shades-3: #15688c;
+  --sk-orange: #f7931e;
+  --sk-orange-tint-3: #fcb575;
+  --sk-orange-tint-8: #ffead9;
+  --sk-orange-tint-9: #fff5ec;
   --warn: #8a1f11;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
 body {
-  margin: 24px;
+  margin: 0;
   color: var(--text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
   background: white;
 }
+main {
+  margin: 0 auto;
+  padding: 24px;
+}
+.site-header {
+  padding: 28px 24px;
+  background: linear-gradient(
+    120deg,
+    var(--sk-cyan-shades-3) 0%,
+    var(--sk-cyan) 17%,
+    var(--sk-orange-tint-8) 59%,
+    var(--sk-orange-tint-3) 100%
+  );
+}
+.site-header h1 {
+  margin: 0;
+  color: white;
+  text-shadow: 0 0 8px var(--sk-cyan-shades-3);
+}
+.site-header a {
+  color: inherit;
+  text-decoration: none;
+}
+h1, h2, h3 { font-weight: 500; line-height: 1.25; }
 h1 { margin: 0 0 20px; font-size: 30px; }
 h2 { margin: 0 0 12px; font-size: 20px; }
 h3 { margin: 0 0 8px; font-size: 16px; }
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+a:hover {
+  color: var(--accent-hover);
+  text-decoration-thickness: 2px;
+}
 code {
-  padding: 2px 4px;
+  padding: 1px 4px;
   border-radius: 4px;
-  background: #eef1f5;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: #912583;
+  background: var(--surface);
 }
 .page-row {
   margin-bottom: 24px;
@@ -31,7 +80,7 @@ code {
 }
 .panel {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 14px 16px;
   background: white;
 }
@@ -44,13 +93,14 @@ code {
 .about-section summary {
   cursor: pointer;
   font-weight: 600;
+  color: var(--accent);
 }
 .muted {
   color: var(--muted);
 }
 .tabs {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   background: white;
 }
@@ -60,6 +110,9 @@ code {
   gap: 0;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
+}
+.tab-button:hover {
+  color: var(--text);
 }
 .tab-button {
   border: 0;
@@ -73,7 +126,7 @@ code {
 .tab-button.active {
   color: var(--text);
   background: white;
-  box-shadow: inset 0 3px 0 var(--accent);
+  box-shadow: inset 0 -3px 0 var(--sk-orange);
 }
 .tab-panel {
   display: none;
@@ -112,7 +165,7 @@ code {
   position: relative;
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
   background: white;
 }
@@ -144,7 +197,7 @@ code {
   transition: transform 0.2s ease;
 }
 .predict-collapse-toggle:hover {
-  background: #f2f2f2;
+  background: var(--surface);
 }
 .plot-grid.method-grid {
   transition: grid-template-columns 0.2s ease;
@@ -258,7 +311,7 @@ body.with-preprocessing .speedup-view-preprocessing {
 }
 .detailed-results {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px 12px;
   background: white;
 }
@@ -282,7 +335,7 @@ body.with-preprocessing .speedup-view-preprocessing {
 }
 @keyframes row-just-matched-flash {
   from {
-    background-color: rgba(40, 100, 200, 0.35);
+    background-color: rgba(247, 147, 30, 0.35);
   }
   to {
     background-color: transparent;
@@ -345,7 +398,7 @@ body.with-preprocessing .speedup-view-preprocessing {
   padding: 24px;
   text-align: center;
   background: var(--surface);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 ul.compact {
   margin: 6px 0 0;
@@ -373,4 +426,37 @@ ul.compact {
   .dashboard-list td:first-child {
     white-space: normal;
   }
+}
+.tabulator {
+  border-color: var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+}
+.tabulator .tabulator-header,
+.tabulator .tabulator-header .tabulator-col {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+.tabulator .tabulator-tableholder .tabulator-table,
+.tabulator-row,
+.tabulator-row .tabulator-cell {
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+.tabulator-row.tabulator-row-even {
+  background: #fafbfb;
+}
+.tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+.tabulator .tabulator-footer {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.tabulator .tabulator-footer .tabulator-page.active {
+  color: var(--accent);
 }

@@ -336,10 +336,14 @@ BASE_TEMPLATE = Template("""<!doctype html>
   </script>
 </head>
 <body>
-  <h1>{{ title|default("sklbench dashboard") }}</h1>
+  <header class="site-header">
+    <h1>{{ title|default("sklbench dashboard") }}</h1>
+  </header>
+  <main>
   {% for row in rows %}
   <div class="page-row">{{ row }}</div>
   {% endfor %}
+  </main>
 </body>
 </html>
 """)

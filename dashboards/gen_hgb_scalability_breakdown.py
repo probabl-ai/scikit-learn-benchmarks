@@ -45,7 +45,7 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    PLOTLY_DEFAULT_COLORS,
+    SERIES_COLORS,
     SOFTWARE_TEMPLATE,
     phase_breakdown_plot_html,
     render_hardware_tabs,
@@ -130,7 +130,7 @@ PHASE_LABELS = {
     "find_split_time": "find split",
     "hist_time": "compute hist",
 }
-PHASE_COLORS = dict(zip(PHASE_ORDER, PLOTLY_DEFAULT_COLORS))
+PHASE_COLORS = dict(zip(PHASE_ORDER, SERIES_COLORS))
 
 # Raw attribute names (seconds) summed from grow_time's/binning_time's
 # sub-phases plus the outer fit-time residual - see instrumented_hgb.py for
