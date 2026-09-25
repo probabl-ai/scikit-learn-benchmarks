@@ -63,6 +63,20 @@ a PR/runner, or a previous run whose `main` benchmark never completed),
 The PR comment for each runner notes whether its `main` results were
 reused or freshly benchmarked.
 
+### Rebuilding only the dashboard
+
+Include `[skip]` in the latest commit's message to run no benchmark at all.
+Each runner's job downloads every result file its comparison last published
+(both `main` and the PR ref), regenerates the dashboard with this commit's
+code and redeploys it. Use it when a push only changes dashboard code, e.g.
+an edit to `dashboards/index_comparison.py` or `sklbench/reporting/`.
+
+These jobs run on `ubuntu-latest` instead of the self-hosted runners, so
+they don't wait behind a benchmark holding the runner. The `sklbench-compare`
+block still has to be present and valid (it picks which runners' sites to
+rebuild), but its `sklearn_ref` and configs are not re-run. If a runner has
+no published results yet, its job fails: push without `[skip]` first.
+
 Only PRs opened by someone with write access to this repo (`OWNER`/`MEMBER`/
 `COLLABORATOR`) trigger the self-hosted benchmark run, and **the PR branch
 must be pushed directly to `scikit-learn-benchmarks`, not a personal fork**:
