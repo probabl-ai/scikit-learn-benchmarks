@@ -414,6 +414,15 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "Status", "status", _row_status, custom_show=_status_column_visible
     ),
+    # Set in `_add_result_method` from the "fit" result, with the ratio to
+    # the baseline's n_iter when they differ.
+    ColumnSpec(
+        "n_iter",
+        "n_iter",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+    ),
     ColumnSpec(
         "fit time",
         "fit_time",
@@ -478,6 +487,7 @@ def _base_row(
         "variant": variant,
         "n_samples": n_samples,
         "n_features": n_features,
+        "n_iter": None,
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -548,6 +558,29 @@ def _new_failed_row(
     )
 
 
+def _n_iter(result: MethodResult) -> float | None:
+    """Median over repeats. A per-repeat value can be a list (e.g.
+    LogisticRegression's per-class `n_iter_`), reduced to its max."""
+    per_repeat = [
+        max(value) if isinstance(value, list) else value
+        for value in result.attributes.get("n_iter", [])
+    ]
+    per_repeat = [value for value in per_repeat if isinstance(value, (int, float))]
+    return median(per_repeat) if per_repeat else None
+
+
+def _format_n_iter(result: MethodResult, base_result: MethodResult | None) -> str | None:
+    n_iter = _n_iter(result)
+    if n_iter is None:
+        return None
+    label = f"{n_iter:.0f}"
+    base_n_iter = _n_iter(base_result) if base_result is not None else None
+    if base_n_iter and n_iter != base_n_iter:
+        ratio = n_iter / base_n_iter
+        label += f" ({ratio:.0f}x)" if ratio >= 10 else f" ({ratio:.2g}x)"
+    return label
+
+
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
     result_time = median(result.times)
     if result_time == 0:
@@ -577,6 +610,7 @@ def _add_result_method(
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
         row["n_features"] = result.data_desc.get("features")
+        row["n_iter"] = _format_n_iter(result, base_result)
     row[f"{method}_time"] = median(result.times)
     row[f"{method}_speedup"] = (
         _speedup(base_result, result) if base_result is not None else None

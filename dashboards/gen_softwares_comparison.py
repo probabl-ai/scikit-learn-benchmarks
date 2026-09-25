@@ -86,6 +86,11 @@ PREPROCESSING_TOGGLE_HTML = (
     "</label>"
     "</section>"
 )
+TREE_BINNING_NOTE = (
+    "Tree-based plots: within each implementation, cases without binning "
+    "(exact splits) are on the left, cases with binning (histogram-based "
+    "splits) on the right."
+)
 
 
 def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
@@ -231,6 +236,7 @@ def _render_speedup_grid(
         rows={"category": ["linear", "tree-based", "clustering"]},
         columns={"method": ["fit", "predict"]},
         details_by_row=details_by_category,
+        notes_by_row={"tree-based": TREE_BINNING_NOTE},
     )
 
 

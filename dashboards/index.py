@@ -35,12 +35,13 @@ ABOUT_HTML = """<section class="panel">
   with more CPU cores. Each dashboard explains how to read it in its own intro.
   </p>
 
-  <h3 style="margin-top: 5px">Overall results:</h3>
+  <h3 style="margin-top: 10px">Overall findings:</h3>
 
   <ul>
     <li>
     <p>On the benchmarked cases, <code>scikit-learn-intelex</code> on CPUs
-    is the most consistently fast option, especially for fitting tree-based
+    is the most consistently fast option among the currently benchmarked set
+    of options, especially for fitting tree-based
     models. Other backends and builds help in narrower, workload-specific
     cases.</p>
     <p>Note that scikit-learn-intelex only accelerates a subset of estimators
@@ -69,7 +70,7 @@ DASHBOARDS = [
     ("Software/implementations comparison", gen_softwares_comparison, "per_hardware.html"),
     ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
     ("Hardware comparison", gen_hardware_comparisons, "hardware_comparisons.html"),
-    ("Models thread-scalability", gen_models_scalability, "models_scalability.html"),
+    ("Models core-count scalability", gen_models_scalability, "models_scalability.html"),
     ("RandomizedSearchCV outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
     ("HistGradientBoosting thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
 ]
@@ -80,7 +81,7 @@ DASHBOARD_DESCRIPTIONS = {
     "hardware_comparisons.html": "Same software on different machines.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "Speed-up from evaluating search candidates in parallel.",
-    "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers",
+    "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
 }
 
 # Machines that are benchmarked but not presented on the index page.
@@ -109,7 +110,8 @@ if __name__ == "__main__":
         module.generate(output_dir)
 
     links = "".join(
-        f'<li><a href="{href}">{label}</a>: {escape(DASHBOARD_DESCRIPTIONS[href])}</li>'
+        f'<tr><td><a href="{href}">{label}</a></td>'
+        f'<td>{escape(DASHBOARD_DESCRIPTIONS[href])}</td></tr>'
         for label, _, href in DASHBOARDS
     )
     html = BASE_TEMPLATE.render(
@@ -119,9 +121,9 @@ if __name__ == "__main__":
             f"""
             <section class="panel">
               <h2>Dashboards</h2>
-              <ul class="compact">
+              <table class="dashboard-list">
                 {links}
-              </ul>
+              </table>
             </section>
             """,
             _hardware_overview_html(),

@@ -8,7 +8,7 @@ from statistics import median
 
 from plotly import graph_objects as go
 
-from ..matching import BenchmarkRecord, Match, fitted_solver
+from ..matching import BenchmarkRecord, Match
 from .table import default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
@@ -255,11 +255,9 @@ def _hover_text(match: Match) -> str:
         lines.append("<i>fell back to scikit-learn</i>")
     if warning_lines:
         lines.extend(escape(line) for line in warning_lines)
-    estimator_param_lines = _hover_lines(algorithm.get("estimator_params", {}))
-    solver = fitted_solver(result.case, result.implementation.library, result.attributes)
-    if solver is not None:
-        estimator_param_lines.append(f"resolved solver: {solver}")
-    estimator_params = "<br>".join(escape(line) for line in estimator_param_lines)
+    estimator_params = "<br>".join(
+        escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
+    )
     data_params = "<br>".join(
         escape(line) for line in _data_hover_lines(data, result.data_desc)
     )

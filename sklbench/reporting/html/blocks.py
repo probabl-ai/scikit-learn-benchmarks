@@ -148,6 +148,7 @@ def assemble_plots_in_grid(
     columns=None,
     details_by_row=None,
     details_after_grid=None,
+    notes_by_row=None,
 ):
     row_key = rows if isinstance(rows, str) else list(rows)[0]
     column_key = columns if isinstance(columns, str) else list(columns)[0]
@@ -173,8 +174,13 @@ def assemble_plots_in_grid(
         details_by_row = {}
     if details_after_grid is None:
         details_after_grid = []
+    if notes_by_row is None:
+        notes_by_row = {}
     cells = []
     for row_value in row_values:
+        note = notes_by_row.get(row_value)
+        if note and any(key[0] == row_value for key in by_position):
+            cells.append(f'<p class="plot-row-note">{note}</p>')
         for column_value in column_values:
             plot = by_position.get((row_value, column_value))
             if plot is None:
