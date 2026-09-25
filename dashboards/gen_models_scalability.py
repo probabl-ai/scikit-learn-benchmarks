@@ -351,7 +351,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="Model thread-scalability",
+        title="Models thread-scalability",
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "models_scalability.html"

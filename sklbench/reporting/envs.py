@@ -529,6 +529,8 @@ HARDWARE_COMMERCIAL_INFO = {
     "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
     "Apple M4": {"price_usd": 1_599, "release_year": 2024},
     "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    # Self-built desktop, estimated from 2019 part prices (CPU $329, GPU $349).
+    "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
 }
 
 # GPUs that are an integrated tile of a CPU package above rather than a separately
@@ -536,6 +538,10 @@ HARDWARE_COMMERCIAL_INFO = {
 # it has no price of its own; the dashboard notes it shares the CPU's price instead
 # of showing a second, fabricated-looking dollar figure.
 INTEGRATED_GPUS = {"Intel(R) Arc(TM) B390 GPU"}
+
+# Discrete GPUs whose price is already included in the machine price of the CPU
+# entry above.
+GPUS_PRICED_WITH_CPU = INTEGRATED_GPUS | {"NVIDIA GeForce RTX 2060"}
 
 
 def _commercial_info(name: str) -> dict:
@@ -567,6 +573,7 @@ def summarize_hardware_env(env: dict):
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
                 "integrated": gpu.get("name", "?") in INTEGRATED_GPUS,
+                "priced_with_cpu": gpu.get("name", "?") in GPUS_PRICED_WITH_CPU,
                 **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()

@@ -69,10 +69,22 @@ DASHBOARDS = [
     ("Software/implementations comparison", gen_per_hardware, "per_hardware.html"),
     ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
     ("Hardware comparison", gen_hardware_comparisons, "hardware_comparisons.html"),
-    ("Model thread-scalability", gen_models_scalability, "models_scalability.html"),
-    ("hptuning outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
-    ("HGB thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+    ("Models thread-scalability", gen_models_scalability, "models_scalability.html"),
+    ("RandomizedSearchCV outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
+    ("HistGradientBoosting thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
 ]
+
+DASHBOARD_DESCRIPTIONS = {
+    "per_hardware.html": "scikit-learn-intelex and Array API backends vs stock scikit-learn.",
+    "builds_comparison.html": "PyPI vs conda-forge BLAS/OpenMP builds of scikit-learn.",
+    "hardware_comparisons.html": "Same software on different machines.",
+    "models_scalability.html": "How a single fit scales with more CPU cores.",
+    "hptuning_scalability.html": "Speed-up from evaluating search candidates in parallel.",
+    "hgb_scaling.html": "Fit time per phase as the thread count grows.",
+}
+
+# Machines that are benchmarked but not presented on the index page.
+INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30"}
 
 
 def _hardware_overview_html() -> str:
@@ -80,6 +92,7 @@ def _hardware_overview_html() -> str:
         f"<h3>{escape(name)}</h3>"
         + HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hardware_hash)))
         for hardware_hash, name in HARDWARE_NAMES.items()
+        if hardware_hash not in INDEX_HIDDEN_HARDWARE
     ]
     return f"""
     <section class="panel">
@@ -96,7 +109,7 @@ if __name__ == "__main__":
         module.generate(output_dir)
 
     links = "".join(
-        f'<li><a href="{href}">{label}</a></li>'
+        f'<li><a href="{href}">{label}</a>: {escape(DASHBOARD_DESCRIPTIONS[href])}</li>'
         for label, _, href in DASHBOARDS
     )
     html = BASE_TEMPLATE.render(

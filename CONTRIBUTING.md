@@ -247,7 +247,7 @@ To find what to rerun after a config change - instead of reading
 
 ```bash
 python scripts/what_to_rerun.py --dashboard all
-python scripts/what_to_rerun.py --dashboard "HGB thread-scalability breakdown" --hardware "Modern Intel laptop"
+python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Modern Intel laptop"
 python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 ```
 

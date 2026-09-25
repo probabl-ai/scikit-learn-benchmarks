@@ -471,7 +471,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="hptuning outer-parallelism scalability",
+        title="RandomizedSearchCV outer-parallelism scalability",
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "hptuning_scalability.html"

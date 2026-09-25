@@ -542,7 +542,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB fit-time breakdown (thread scalability)",
+        title="HistGradientBoosting fit-time breakdown (thread scalability)",
         rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"
