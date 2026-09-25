@@ -6,7 +6,7 @@ from sklbench.reporting.utils import (
 )
 
 from sklbench.reporting.matching import (
-    append_iterations_warning, append_max_bins_warning, read_all_results,
+    append_iterations_warning, append_solver_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
     matches_source_configs,
@@ -36,16 +36,47 @@ ABOUT_HTML = """<section class="panel">
   <p>This dashboard compares implementations on the same machine:
   scikit-learn-intelex and Array API backends (PyTorch, dpnp) against stock
   scikit-learn. Since the hardware is fixed, a speed-up comes from the
-  software. Pick a machine tab. Each cell shows the fit or predict speed-up
-  (log scale) for one estimator category, and points above the dashed 1x line
-  are faster than scikit-learn. Hover a point to see the case, and click it
-  (or its row in "Detailed results") to highlight both. Special markers flag
-  cases to double check: a different number of iterations, a silent fallback
-  to scikit-learn, or a metric mismatch.</p>
-  <p>On the benchmarked cases, <code>sklearnex-cpu</code> is the most
-  consistently fast option on Intel CPUs. For tree-based models, the median
-  speed-up is ~2x on fit and 3-4x on predict. Linear models gain less. Array
-  API backends are mixed: often slower to fit, but faster to predict.</p>
+  software: faster algorithms, better use of the CPU (vectorization,
+  threading), or offloading to the GPU.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Pick a machine tab. The top of the tab describes the machine and each
+    software environment (versions, BLAS and OpenMP libraries).</p>
+    <p>The plots are arranged in a grid: one row per estimator category
+    (linear, tree-based, clustering) and one column for <code>fit</code> and
+    one for <code>predict</code>. In each plot:</p>
+    <ul>
+      <li>the x-axis lists the estimators, with one color per implementation;</li>
+      <li>each point is one benchmark case (dataset and hyperparameters);</li>
+      <li>the y-axis is the speed-up over stock scikit-learn, in log scale.
+      Points above the dashed 1x line are faster than scikit-learn.</li>
+    </ul>
+    <p>The marker shape flags cases to double check:</p>
+    <ul>
+      <li>circle (●): metrics and setup match scikit-learn;</li>
+      <li>square (■): metrics match but the setup differs, for instance a
+      different solver or number of iterations, or scikit-learn-intelex using
+      histogram-based splits where scikit-learn uses exact ones;</li>
+      <li>open diamond (◇): the metrics differ;</li>
+      <li>grey point (<span style="color: grey">●</span>):
+      scikit-learn-intelex fell back to scikit-learn;</li>
+      <li>cross (✕): failed run.</li>
+    </ul>
+    <p>The notes under each plot count these cases.</p>
+    <p>Hover a point to see its case. Click it to find its row in "Detailed
+    results", the table below each row, which has the exact timings and
+    metrics and can be filtered by column.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li><code>sklearnex-cpu</code> is the most consistently fast option.
+      Tree-based models sometimes get impressive speed-ups, especially on the
+      high-end server, up to 30x. Linear models gain less.</li>
+      <li>Array API backends are mixed</li>
+    </ul>
+  </details>
 </section>"""
 PREPROCESSING_TOGGLE_HTML = (
     '<section class="panel">'
@@ -92,6 +123,7 @@ def result_matches(
     if candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     append_cpu_fallback_warning(candidate, warnings)
 
     return (

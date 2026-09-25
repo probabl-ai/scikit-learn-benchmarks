@@ -73,18 +73,24 @@ SOURCE_ENVS = [
 ABOUT_HTML = """<section class="panel">
   <p>A thread scaling curve shows whether a fit got faster, but not why. This
   dashboard breaks HistGradientBoosting's fit time into its phases (binning,
-  histogram computation, split finding) to see which ones scale. There is
-  one tab per machine, build and thread affinity setting, and one stacked
-  bar per workload. The x-axis is the requested thread count
-  (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
-  parentheses when known. If a bar stops shrinking or grows as threads are
-  added, the extra threads bring nothing or cost time, and the segments show
-  which phase is responsible.</p>
-  <p>On the benchmarked cases, this happens on the high-end server for small
-  and medium workloads above ~100 threads: they get slower, because
-  per-tree dispatch and synchronization overhead dominates an already cheap
-  fit. Only the largest workloads speed up over the whole sweep. Pinning
-  threads (<code>proc_bind=close</code>) reduces this slowdown.</p>
+  histogram computation, split finding) to see which ones scale.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>There is one tab per machine, build and thread affinity setting, and
+    one stacked bar per workload. The x-axis is the requested thread count
+    (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
+    parentheses when known. If a bar stops shrinking or grows as threads are
+    added, the extra threads bring nothing or cost time, and the segments
+    show which phase is responsible.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases, small and medium workloads get slower above
+    ~100 threads on the high-end server, because per-tree dispatch and
+    synchronization overhead dominates an already cheap fit. Only the largest
+    workloads speed up over the whole sweep. Pinning threads
+    (<code>proc_bind=close</code>) reduces this slowdown.</p>
+  </details>
 </section>"""
 
 

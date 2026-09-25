@@ -37,7 +37,7 @@ HARDWARE_PLATFORMS = {
 }
 
 # `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison
-# dashboards (gen_per_hardware, gen_builds_comparison,
+# dashboards (gen_softwares_comparison, gen_builds_comparison,
 # gen_hardware_comparisons), which all draw on the same broad
 # configs/all_models.py matrix across every Pixi env it sweeps - kept here
 # once rather than tripled across those modules. configs/smoke_check_test.py

@@ -494,7 +494,7 @@ PLOT_NOTES_TEMPLATE = Template("""<div class="plot-notes">
       {% for warning in warnings %}
         <li class="warning-note">
           <span class="warning-icon">{{ warning.icon }}</span>
-          <span>{{ warning.message|e }} - {{ warning.estimator_counts }}</span>
+          <span>{{ warning.message|e }}</span>
         </li>
       {% endfor %}
       </ul>

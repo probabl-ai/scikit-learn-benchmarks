@@ -17,7 +17,7 @@ from dashboards import (
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
     gen_models_scalability,
-    gen_per_hardware,
+    gen_softwares_comparison,
 )
 from sklbench.reporting.envs import read_env, summarize_hardware_env
 from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_software_tabs
@@ -66,7 +66,7 @@ ABOUT_HTML = """<section class="panel">
 
 
 DASHBOARDS = [
-    ("Software/implementations comparison", gen_per_hardware, "per_hardware.html"),
+    ("Software/implementations comparison", gen_softwares_comparison, "per_hardware.html"),
     ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
     ("Hardware comparison", gen_hardware_comparisons, "hardware_comparisons.html"),
     ("Models thread-scalability", gen_models_scalability, "models_scalability.html"),

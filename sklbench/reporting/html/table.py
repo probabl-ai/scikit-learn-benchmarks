@@ -16,7 +16,7 @@ from ..envs import (
     openmp_runtime_short_label,
     profile_viewer_url,
 )
-from ..matching import BenchmarkRecord, Match, MethodResult
+from ..matching import BenchmarkRecord, Match, MethodResult, fitted_solver
 from ..utils import stable_json, without_keys
 
 
@@ -143,7 +143,7 @@ def _result_params(case: dict) -> dict:
 
 # Model params shown in the detailed results table, beyond this the table gets
 # too wide to be useful. "solver" is overwritten with the fitted
-# `estimator.solver_` (see `_row_hyperparams`) rather than the requested param,
+# `estimator.solver_` (see `fitted_solver`) rather than the requested param,
 # since solvers are often auto-selected.
 HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
 
@@ -153,22 +153,9 @@ def _row_hyperparams(inputs: RowInputs) -> dict:
     hyperparams = {}
     for name in HYPERPARAM_DISPLAY_ALLOWLIST:
         if name == "solver":
-            solver_values = inputs.attributes.get("solver")
-            if solver_values:
-                hyperparams["solver"] = solver_values[0]
-                continue
-            estimator = inputs.case.get("algorithm", {}).get("estimator")
-            if inputs.library == "sklearnex" and estimator == "Ridge":
-                # sklearnex's Ridge never records a fitted `solver_` (unlike
-                # stock sklearn), and its oneDAL fit path only ever runs for
-                # the requested "auto" solver, solving via oneDAL's "norm_eq"
-                # algorithm - the same normal-equations approach sklearn's
-                # own "cholesky" solver uses. A `solver` value's presence
-                # here would mean sklearnex fell back to stock sklearn for at
-                # least one repeat (see `MethodResult.is_sklearnex_fallback`),
-                # which does record it - so its absence means every repeat
-                # took the oneDAL path.
-                hyperparams["solver"] = "cholesky"
+            solver = fitted_solver(inputs.case, inputs.library, inputs.attributes)
+            if solver is not None:
+                hyperparams["solver"] = solver
                 continue
         if name in params:
             hyperparams[name] = params[name]

@@ -38,6 +38,13 @@ code {
 .panel p {
   margin: 5px 0;
 }
+.about-section {
+  margin-top: 8px;
+}
+.about-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
 .muted {
   color: var(--muted);
 }

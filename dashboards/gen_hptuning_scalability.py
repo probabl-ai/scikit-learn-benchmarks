@@ -95,19 +95,32 @@ SOURCE_ENVS = ENV_ORDER
 ABOUT_HTML = """<section class="panel">
   <p>RandomizedSearchCV has two levels of parallelism: its outer
   <code>n_jobs</code> runs candidates in parallel, and each candidate can use
-  threads itself (<code>n_jobs=-1</code> for RandomForest and ExtraTrees,
-  OpenMP for HistGradientBoosting, BLAS for Ridge and LogisticRegression).
-  This dashboard sweeps the outer <code>n_jobs</code> to check how the two
-  levels interact. There is one tab per machine and one plot per (estimator,
-  dataset) pair. The x-axis is the outer <code>n_jobs</code> (log scale), the
-  y-axis is the mean time per <code>.fit()</code> call over the search, with
-  one line per environment and marker size for mean CPU usage. A line going
-  down as 1/n_jobs is ideal scaling. A flat line means more outer workers
-  bring nothing, and a rising one usually means oversubscription.</p>
-  <p>On the benchmarked cases, outer parallelism helps in every case. Ridge,
-  LogisticRegression and HistGradientBoosting scale close to linearly.
-  RandomForest and ExtraTrees only reach ~5-6x at 86 outer workers, because
-  their inner <code>n_jobs=-1</code> competes for the same cores.</p>
+  threads itself. This dashboard sweeps the outer <code>n_jobs</code> to
+  check how the two levels interact.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Inner parallelism depends on the estimator: <code>n_jobs=-1</code> for
+    RandomForest and ExtraTrees, OpenMP for HistGradientBoosting, BLAS for
+    Ridge and LogisticRegression. There is one tab per machine and one plot
+    per (estimator, dataset) pair. The x-axis is the outer
+    <code>n_jobs</code> (log scale), the y-axis is the mean time per
+    <code>.fit()</code> call over the search, with one line per environment
+    and marker size for mean CPU usage. A line going down as 1/n_jobs is
+    ideal scaling. A flat line means more outer workers bring nothing, and a
+    rising one usually means oversubscription.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases, outer parallelism helps in every case, but
+    not equally:</p>
+    <ul>
+      <li>Ridge, LogisticRegression and HistGradientBoosting scale close to
+      linearly;</li>
+      <li>RandomForest and ExtraTrees only reach ~5-6x at 86 outer workers,
+      because their inner <code>n_jobs=-1</code> competes for the same
+      cores.</li>
+    </ul>
+  </details>
 </section>"""
 
 

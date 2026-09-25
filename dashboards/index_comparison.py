@@ -32,7 +32,7 @@ import re
 from dashboards import dashboard_output_dir
 from sklbench.reporting.utils import groupby, stable_json, without_keys
 from sklbench.reporting.matching import (
-    append_iterations_warning,
+    append_iterations_warning, append_solver_warning,
     read_all_results,
     read_failed_records,
     find_matches,
@@ -107,6 +107,7 @@ def result_matches(
 ) -> tuple[bool, list[MatchWarning]]:
     warnings = []
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     return base_res.minimal_match_key == candidate.minimal_match_key, warnings
 
 
