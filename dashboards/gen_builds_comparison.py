@@ -32,20 +32,18 @@ from sklbench.reporting.html import (
 
 BASE_IMPLEMENTATION = "sklearn"
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard holds the implementation fixed (plain scikit-learn) and
-  varies only the <em>build</em> &mdash; the BLAS/OpenMP runtime a given pixi
-  environment links against (e.g. conda-forge's MKL or one of its
-  libgomp/libomp OpenBLAS builds) &mdash; against the PyPI wheel build as the
-  baseline. Array API and scikit-learn-intelex variants, and one-off
-  <code>sklearn-dev</code> git-checkout builds, are excluded (see the other
-  dashboards for those). Read each cell like
+  <p>This dashboard compares builds of plain scikit-learn. The code is the
+  same, only the BLAS/OpenMP runtime changes (for example conda-forge's MKL,
+  or its libgomp and libomp OpenBLAS builds). The PyPI wheel is the baseline.
+  </p><p>
+  scikit-learn-intelex, Array API and <code>sklearn-dev</code> builds are not
+  shown here. Read each cell like in
   <a href="per_hardware.html">the software/implementations dashboard</a>: fit
-  or predict speed-up (log-scale y-axis) per estimator category, one line per
-  build. In the latest full run, most alternative builds land within a few
-  percent of the PyPI baseline for tree-based models &mdash; BLAS/OpenMP
-  choice mostly doesn't matter there &mdash; except MKL, which gives
-  BLAS-bound linear-model fitting a consistent real speed-up (commonly in the
-  1.3-1.5x range).</p>
+  or predict speed-up (log scale) per estimator category, one line per
+  build.</p>
+  <p>On the benchmarked cases, most builds are within a few percent of PyPI for
+  tree-based models. MKL is the exception: it speeds up BLAS-bound linear
+  model fits, commonly by 1.3x to 1.5x.</p>
 </section>"""
 
 

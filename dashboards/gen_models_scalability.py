@@ -59,23 +59,19 @@ from sklbench.reporting.matching import (
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard asks a narrower question than the others: given a single
-  <code>.fit()</code> call, how does its wall-clock time change as it's
-  allowed more CPU cores? Each tab is a machine; each row is one
-  (estimator, dataset) pair with its dataset shape and fixed hyperparameters
-  noted above it; each column is a swept software environment; the dashed
-  line is the "perfect scalability" reference for tree models, so how far the
-  real curve falls short of it reads directly off the plot (log/log axes,
-  since fit time and core count both span orders of magnitude). RandomForest
-  and ExtraTrees additionally split into "with SMT"/"without SMT" lines where
-  the hardware has hyper-threading. In the latest full run, tree ensembles
-  scale the best with more cores &mdash; especially under
-  <code>scikit-learn-intelex</code>, reaching roughly 50-60% parallel
-  efficiency at the highest core counts tested &mdash; while linear-model fit
-  (Ridge, LogisticRegression) barely benefits from extra cores under stock or
-  MKL BLAS threading, and KMeans can get slower, not faster, past a certain
-  core count. Watch for curves that flatten or turn upward, not just the fit
-  time at 1 core.</p>
+  <p>This dashboard shows how the wall-clock time of a single
+  <code>.fit()</code> call changes with the number of CPU cores. Each tab is
+  a machine, each row an (estimator, dataset) pair with its shape and
+  hyperparameters above it, and each column a software environment. Both
+  axes are in log scale. For tree models, the dashed line is perfect
+  scaling, so the gap to it is the lost efficiency. RandomForest and
+  ExtraTrees have separate "with SMT" and "without SMT" lines on machines
+  with hyper-threading. Look for curves that flatten or go up.</p>
+  <p>On the benchmarked cases, tree ensembles scale best, especially with
+  <code>scikit-learn-intelex</code>, which reaches ~50-60% parallel
+  efficiency at the highest core counts. Ridge and LogisticRegression barely
+  benefit from more cores, with stock or MKL BLAS. KMeans can get slower past
+  some core count.</p>
 </section>"""
 
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see

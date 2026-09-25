@@ -273,16 +273,16 @@ if __name__ == "__main__":
     envs_note = ""
     if multi_env:
         env_names_html = ", ".join(f"<code>{escape(env)}</code>" for env, _, _ in env_groups)
-        envs_note = f" Compared under {len(env_groups)} pixi envs: {env_names_html} &mdash; use the branch-name filter to isolate one."
+        envs_note = f" Compared under {len(env_groups)} pixi envs: {env_names_html}. Use the branch name filter to isolate one."
 
     about_html = f"""<section class="panel">
-  <p>This page compares two scikit-learn builds &mdash; <code>main</code> and
-  {variant_label_html} &mdash; benchmarked back-to-back on the same self-hosted
-  runner in one CI job (see the commits below for exactly what was compared).{envs_note}
-  Each table row is one benchmark case (estimator, dataset, hyperparameters);
-  <code>fit speedup</code>/<code>predict speedup</code> is the branch's time
-  relative to the <code>main</code> baseline.
-  Use the column filters to narrow down by estimator, dataset, or branch name.</p>
+  <p>This page compares <code>main</code> and {variant_label_html}, benchmarked
+  back to back on the same self-hosted runner in one CI job. The exact commits
+  are listed below.{envs_note}
+  Each table row is one benchmark case (estimator, dataset, hyperparameters).
+  <code>fit speedup</code> and <code>predict speedup</code> are relative to
+  <code>main</code>. Use the column filters to narrow down by estimator,
+  dataset or branch name.</p>
 </section>"""
 
     rows = [

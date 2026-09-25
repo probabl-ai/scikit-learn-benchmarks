@@ -24,19 +24,42 @@ from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_sof
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This site tracks scikit-learn's performance across hardware, software
-  builds, and accelerated backends, to make trade-offs visible: which
-  workloads benefit from scikit-learn-intelex or an Array API backend, which
-  results are directly comparable to the plain scikit-learn baseline, and
-  where a different BLAS/OpenMP build or a different machine actually
-  changes anything. Each dashboard below isolates one of those variables
-  (implementation, build, or hardware) while holding the others fixed, or
-  looks at how a single fit scales with more CPU cores &mdash; see each
-  dashboard's own intro for specifics on how to read it. In short, as of the
-  latest full run: <code>scikit-learn-intelex</code> on Intel CPUs is the
-  most consistently fast option today, especially for tree-based model
-  fitting; other backends and builds help in narrower, more workload-specific
-  cases.</p>
+  <p>This site tracks scikit-learn's performance across machines, builds and
+  accelerated backends. It shows which workloads benefit from
+  scikit-learn-intelex or an Array API backend, and when a different
+  BLAS/OpenMP build or machine changes anything. Most dashboards below vary
+  one of these (implementation, build or hardware) and keep the others fixed.
+  The scalability ones look at how a fit speeds up with more CPU cores. Each
+  dashboard explains how to read it in its own intro.</p>
+
+  <h3 style="margin-top: 5px">Overall results:</h3>
+
+  <ul>
+    <li>
+    <p>On the benchmarked cases, <code>scikit-learn-intelex</code> on CPUs
+    is the most consistently fast option, especially for fitting tree-based
+    models. Other backends and builds help in narrower, workload-specific
+    cases.</p>
+    <p>Note that scikit-learn-intelex only accelerates a subset of estimators
+    and parameters (see its
+    <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/algorithms.html">supported algorithms</a>),
+    and falls back to scikit-learn otherwise. Its behavior can also differ from
+    scikit-learn, for instance in
+    <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">best-first tree growth</a>,
+    <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3401">multiclass <code>predict_proba</code></a>
+    or <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3356">missing values at predict time</a>.
+    These gaps are actively worked on.</p>
+    </li>
+    <li>
+    For linear models, a good option for improved performance is simply to pick 
+    the MKL conda-forge build of scikit-learn, instead of the PyPI one.
+    </li>
+    <li>
+    Using a bigger machine doesn't help a lot for a single fit for most models
+    except random forests and alike. But it helps a lot for multiple parallelized fits, typically
+    for hyper-parameters tunning workloads.
+    </li>
+  </ul>
 </section>"""
 
 
@@ -45,8 +68,8 @@ DASHBOARDS = [
     ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
     ("Hardware comparison", gen_hardware_comparisons, "hardware_comparisons.html"),
     ("Model thread-scalability", gen_models_scalability, "models_scalability.html"),
-    ("HGB thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
     ("hptuning outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
+    ("HGB thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
 ]
 
 

@@ -33,22 +33,19 @@ from sklbench.reporting.html import (
 
 BASE_IMPLEMENTATION = "sklearn"
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard isolates the effect of <em>implementation</em> choice: for
-  each machine, it compares accelerated implementations (scikit-learn-intelex,
-  Array API backends such as PyTorch/dpnp) against stock scikit-learn on that
-  same machine, so a speed-up here is attributable to the software, not to
-  different hardware. Pick a hardware tab, then read each cell as fit or
-  predict speed-up (y-axis, log scale) for one category of estimators &mdash;
-  points above the dashed 1x line are faster than the scikit-learn baseline.
-  Hover a point for the exact case; click it (or its row in "Detailed
-  results") to line the two up together. The marker legend flags cases worth
-  a second look: different iteration counts, a candidate that silently fell
-  back to plain scikit-learn, or a metric mismatch. In the latest full run,
-  <code>sklearnex-cpu</code> is the most consistently fast option on Intel
-  hardware &mdash; roughly a 2x median fit speed-up and 3-4x on predict for
-  tree-based models, with linear models more modestly ahead; the Array API
-  backends are more of a mixed bag, often slower to fit but noticeably faster
-  to predict.</p>
+  <p>This dashboard compares implementations on the same machine:
+  scikit-learn-intelex and Array API backends (PyTorch, dpnp) against stock
+  scikit-learn. Since the hardware is fixed, a speed-up comes from the
+  software. Pick a machine tab. Each cell shows the fit or predict speed-up
+  (log scale) for one estimator category, and points above the dashed 1x line
+  are faster than scikit-learn. Hover a point to see the case, and click it
+  (or its row in "Detailed results") to highlight both. Special markers flag
+  cases to double check: a different number of iterations, a silent fallback
+  to scikit-learn, or a metric mismatch.</p>
+  <p>On the benchmarked cases, <code>sklearnex-cpu</code> is the most
+  consistently fast option on Intel CPUs. For tree-based models, the median
+  speed-up is ~2x on fit and 3-4x on predict. Linear models gain less. Array
+  API backends are mixed: often slower to fit, but faster to predict.</p>
 </section>"""
 PREPROCESSING_TOGGLE_HTML = (
     '<section class="panel">'
