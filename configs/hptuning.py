@@ -10,6 +10,9 @@ Each `REAL_DATASET_CASES` entry is:
         options,                         # optional: {"skip_libraries": (...)}
     )
 
+`options["max_samples_by_n_cores"]` overrides `max_samples` on machines with
+that many physical cores (e.g. `{172: None}` for full size on the big server).
+
 """
 
 import numpy as np
@@ -105,7 +108,8 @@ REAL_DATASET_CASES = [
             "estimator": {
                 "alpha": list(np.logspace(-3, 3, 13)),
             }
-        }
+        },
+        {"max_samples_by_n_cores": {172: None}},
     ),
     (
         ("amazon_employee_access", None, "linear"),
@@ -129,7 +133,8 @@ REAL_DATASET_CASES = [
                 "C": list(np.logspace(-3, 3, 13)),
                 "fit_intercept": [True, False],
             }
-        }
+        },
+        {"max_samples_by_n_cores": {172: 1_000_000}},
     ),
     # HGB
     (
@@ -330,6 +335,9 @@ def generate_cases() -> list[HPTuningCase]:
         skip_libraries = options.get("skip_libraries", ())
         scoring = options.get("scoring")
         preprocessing_kwargs_by_library = options.get("preprocessing_kwargs_by_library")
+        max_samples = options.get("max_samples_by_n_cores", {}).get(
+            cpu_count(only_physical_cores=True), max_samples
+        )
 
         for estimator in estimators if isinstance(estimators, list) else [estimators]:
             cases.extend(_case(
