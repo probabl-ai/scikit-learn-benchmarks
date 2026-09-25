@@ -373,7 +373,7 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
       {% if gpus %}
       <ul class="compact">
       {% for gpu in gpus %}
-        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB{% if gpu.integrated %}, integrated - priced with the CPU {% elif gpu.price_usd %}, ${{ "{:,}".format(gpu.price_usd) }}, released {{ gpu.release_year }}{% endif %})</span></li>
+        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB{% if gpu.integrated %}, integrated, priced with the CPU{% elif gpu.priced_with_cpu %}, priced with the CPU{% elif gpu.price_usd %}, ${{ "{:,}".format(gpu.price_usd) }}, released {{ gpu.release_year }}{% endif %})</span></li>
       {% endfor %}
       </ul>
       {% else %}
@@ -494,7 +494,7 @@ PLOT_NOTES_TEMPLATE = Template("""<div class="plot-notes">
       {% for warning in warnings %}
         <li class="warning-note">
           <span class="warning-icon">{{ warning.icon }}</span>
-          <span>{{ warning.message|e }} - {{ warning.estimator_counts }}</span>
+          <span>{{ warning.message|e }}</span>
         </li>
       {% endfor %}
       </ul>

@@ -16,7 +16,7 @@ from ..envs import (
     openmp_runtime_short_label,
     profile_viewer_url,
 )
-from ..matching import BenchmarkRecord, Match, MethodResult
+from ..matching import BenchmarkRecord, Match, MethodResult, fitted_solver
 from ..utils import stable_json, without_keys
 
 
@@ -143,7 +143,7 @@ def _result_params(case: dict) -> dict:
 
 # Model params shown in the detailed results table, beyond this the table gets
 # too wide to be useful. "solver" is overwritten with the fitted
-# `estimator.solver_` (see `_row_hyperparams`) rather than the requested param,
+# `estimator.solver_` (see `fitted_solver`) rather than the requested param,
 # since solvers are often auto-selected.
 HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
 
@@ -153,22 +153,9 @@ def _row_hyperparams(inputs: RowInputs) -> dict:
     hyperparams = {}
     for name in HYPERPARAM_DISPLAY_ALLOWLIST:
         if name == "solver":
-            solver_values = inputs.attributes.get("solver")
-            if solver_values:
-                hyperparams["solver"] = solver_values[0]
-                continue
-            estimator = inputs.case.get("algorithm", {}).get("estimator")
-            if inputs.library == "sklearnex" and estimator == "Ridge":
-                # sklearnex's Ridge never records a fitted `solver_` (unlike
-                # stock sklearn), and its oneDAL fit path only ever runs for
-                # the requested "auto" solver, solving via oneDAL's "norm_eq"
-                # algorithm - the same normal-equations approach sklearn's
-                # own "cholesky" solver uses. A `solver` value's presence
-                # here would mean sklearnex fell back to stock sklearn for at
-                # least one repeat (see `MethodResult.is_sklearnex_fallback`),
-                # which does record it - so its absence means every repeat
-                # took the oneDAL path.
-                hyperparams["solver"] = "cholesky"
+            solver = fitted_solver(inputs.case, inputs.library, inputs.attributes)
+            if solver is not None:
+                hyperparams["solver"] = solver
                 continue
         if name in params:
             hyperparams[name] = params[name]
@@ -427,6 +414,15 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "Status", "status", _row_status, custom_show=_status_column_visible
     ),
+    # Set in `_add_result_method` from the "fit" result, with the ratio to
+    # the baseline's n_iter when they differ.
+    ColumnSpec(
+        "n_iter",
+        "n_iter",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+    ),
     ColumnSpec(
         "fit time",
         "fit_time",
@@ -491,6 +487,7 @@ def _base_row(
         "variant": variant,
         "n_samples": n_samples,
         "n_features": n_features,
+        "n_iter": None,
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -561,6 +558,29 @@ def _new_failed_row(
     )
 
 
+def _n_iter(result: MethodResult) -> float | None:
+    """Median over repeats. A per-repeat value can be a list (e.g.
+    LogisticRegression's per-class `n_iter_`), reduced to its max."""
+    per_repeat = [
+        max(value) if isinstance(value, list) else value
+        for value in result.attributes.get("n_iter", [])
+    ]
+    per_repeat = [value for value in per_repeat if isinstance(value, (int, float))]
+    return median(per_repeat) if per_repeat else None
+
+
+def _format_n_iter(result: MethodResult, base_result: MethodResult | None) -> str | None:
+    n_iter = _n_iter(result)
+    if n_iter is None:
+        return None
+    label = f"{n_iter:.0f}"
+    base_n_iter = _n_iter(base_result) if base_result is not None else None
+    if base_n_iter and n_iter != base_n_iter:
+        ratio = n_iter / base_n_iter
+        label += f" ({ratio:.0f}x)" if ratio >= 10 else f" ({ratio:.2g}x)"
+    return label
+
+
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
     result_time = median(result.times)
     if result_time == 0:
@@ -590,6 +610,7 @@ def _add_result_method(
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
         row["n_features"] = result.data_desc.get("features")
+        row["n_iter"] = _format_n_iter(result, base_result)
     row[f"{method}_time"] = median(result.times)
     row[f"{method}_speedup"] = (
         _speedup(base_result, result) if base_result is not None else None

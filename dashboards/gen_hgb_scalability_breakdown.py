@@ -71,23 +71,26 @@ SOURCE_ENVS = [
 ]
 
 ABOUT_HTML = """<section class="panel">
-  <p>Thread-count scaling tells you a fit got faster, but not why, or why it
-  sometimes doesn't. This dashboard instruments HistGradientBoosting's fit
-  internals (binning, histogram computation, split finding) so a workload's
-  time can be broken into the phases that actually run in parallel. Tabs are
-  one per (hardware, build, thread-affinity setting) combination; within a
-  tab, one stacked bar per workload with the phase legend below. The x-axis
-  is the requested thread count (<code>OMP_NUM_THREADS</code>), with the
-  actual thread count trees were grown with in parentheses where known.
-  Watch whether the total bar height keeps shrinking as threads increase, and
-  which segment shrinks with it &mdash; a bar that stops shrinking, or grows,
-  means added threads bought nothing (or cost something). In the latest full
-  run, that's exactly what happens on the high-end server for small/medium
-  workloads at very high thread counts (100+): they get slower, not faster,
-  as per-tree dispatch/synchronization overhead starts to dominate an already
-  cheap fit, and only the largest workloads reliably speed up throughout the
-  sweep. Pinning threads (<code>proc_bind=close</code>) measurably reduces
-  that regression.</p>
+  <p>A thread scaling curve shows whether a fit got faster, but not why. This
+  dashboard breaks HistGradientBoosting's fit time into its phases (binning,
+  histogram computation, split finding) to see which ones scale.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>There is one tab per machine, build and thread affinity setting, and
+    one stacked bar per workload. The x-axis is the requested thread count
+    (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
+    parentheses when known. If a bar stops shrinking or grows as threads are
+    added, the extra threads bring nothing or cost time, and the segments
+    show which phase is responsible.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases, small and medium workloads get slower above
+    ~100 threads on the high-end server, because per-tree dispatch and
+    synchronization overhead dominates an already cheap fit. Only the largest
+    workloads speed up over the whole sweep. Pinning threads
+    (<code>proc_bind=close</code>) reduces this slowdown.</p>
+  </details>
 </section>"""
 
 
@@ -499,7 +502,7 @@ def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool, str | None]:
 def _env_label(hardware_hash: str, software_hash: str, active_wait: bool, proc_bind: str | None) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
     return (
-        f"{hardware_label} — {software_build_name(software_hash)}"
+        f"{hardware_label} · {software_build_name(software_hash)}"
         f"{active_wait_label_suffix(active_wait)}"
         f"{proc_bind_label_suffix(proc_bind)}"
     )
@@ -545,7 +548,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB fit-time breakdown (thread scalability)",
+        title="HistGradientBoosting fit-time breakdown (thread scalability)",
         rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"

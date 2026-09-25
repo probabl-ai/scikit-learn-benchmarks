@@ -38,6 +38,13 @@ code {
 .panel p {
   margin: 5px 0;
 }
+.about-section {
+  margin-top: 8px;
+}
+.about-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
 .muted {
   color: var(--muted);
 }
@@ -217,6 +224,12 @@ body.with-preprocessing .speedup-view-preprocessing {
   grid-column: 1 / -1;
   min-width: 0;
 }
+.plot-row-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 .phase-breakdown {
   gap: 24px;
 }
@@ -337,4 +350,27 @@ body.with-preprocessing .speedup-view-preprocessing {
 ul.compact {
   margin: 6px 0 0;
   padding-left: 18px;
+}
+.dashboard-list {
+  border-collapse: collapse;
+}
+.dashboard-list td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+}
+.dashboard-list tr:last-child td {
+  border-bottom: none;
+}
+.dashboard-list td:first-child {
+  padding-right: 24px;
+  white-space: nowrap;
+}
+.dashboard-list td:last-child {
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .dashboard-list td:first-child {
+    white-space: normal;
+  }
 }

@@ -51,7 +51,7 @@ from sklbench.reporting.envs import (
 )
 from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
-    append_iterations_warning,
+    append_iterations_warning, append_solver_warning,
     append_max_bins_warning,
     find_matches,
     read_all_results,
@@ -66,18 +66,27 @@ from sklbench.reporting.utils import stable_json, without_keys
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard isolates the effect of <em>hardware</em>: pick a baseline
-  and a comparison machine (CPU-vs-CPU or GPU-vs-GPU only &mdash; the two
-  dropdowns only ever offer pairs that actually share comparable results) and
-  it matches up every build/implementation present on both sides, so a
-  speed-up here is attributable to the machine, not to a different software
-  stack. Each cell is fit or predict speed-up (log-scale y-axis) per
-  estimator category, one line per shared build/implementation label. In the
-  latest full run, raw hardware doesn't always predict the winner: the modern
-  Intel laptop and the high-end Intel server run at close to parity across
-  the board, while the low-end Intel laptop trails both by roughly 3-5x, and
-  Apple's M4 CPU tends to edge out the Intel machines on the shared
-  <code>sklearn-pypi</code> baseline.</p>
+  <p>This dashboard compares machines running the same software. Every build
+  or implementation present on both machines is matched, so a speed-up comes
+  from the hardware.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Pick a baseline and a comparison machine. The dropdowns only offer CPU
+    vs CPU or GPU vs GPU pairs that have comparable results. Each cell shows
+    the fit or predict speed-up (log scale) per estimator category, one line
+    per build or implementation.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>the modern Intel laptop and the high-end Intel server are close to
+      parity;</li>
+      <li>the low-end Intel laptop is ~3-5x slower than both;</li>
+      <li>on the shared <code>sklearn-pypi</code> build, Apple's M4 CPU tends
+      to be slightly faster than the Intel machines.</li>
+    </ul>
+  </details>
 </section>"""
 
 
@@ -242,6 +251,7 @@ def result_matches(
     if base_res.implementation.library == BASE_IMPLEMENTATION and candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     # Unlike the other dashboards' base/candidate pairing (always
     # sklearn-vs-accelerated on the same machine), either side here can be
     # the GPU one (e.g. comparing the same "sklearn-torch" variant's MPS
@@ -292,7 +302,7 @@ def _software_env_badges(
             source.implementation,
             software_hash=source.software_hash,
         )
-        summary["name"] = f"{label} — {side_variant.label}"
+        summary["name"] = f"{label} · {side_variant.label}"
         badges.append(SOFTWARE_TEMPLATE.render(**summary))
     return badges
 

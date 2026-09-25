@@ -2,7 +2,7 @@
 
 One tab per hardware; within a tab, a software-envs panel (tabbed
 `SOFTWARE_TEMPLATE` cards, one per plain-CPU Pixi environment it sweeps -
-see `_software_tabs_html`, same pattern as e.g. `gen_per_hardware.py`) followed
+see `_software_tabs_html`, same pattern as e.g. `gen_softwares_comparison.py`) followed
 by one row of plots per (estimator, dataset) pair from that config -
 preceded by a small panel naming the dataset (shape, class count) and the
 estimator's fixed hyperparameters, see `_row_detail_html` - and one column
@@ -59,23 +59,30 @@ from sklbench.reporting.matching import (
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard asks a narrower question than the others: given a single
-  <code>.fit()</code> call, how does its wall-clock time change as it's
-  allowed more CPU cores? Each tab is a machine; each row is one
-  (estimator, dataset) pair with its dataset shape and fixed hyperparameters
-  noted above it; each column is a swept software environment; the dashed
-  line is the "perfect scalability" reference for tree models, so how far the
-  real curve falls short of it reads directly off the plot (log/log axes,
-  since fit time and core count both span orders of magnitude). RandomForest
-  and ExtraTrees additionally split into "with SMT"/"without SMT" lines where
-  the hardware has hyper-threading. In the latest full run, tree ensembles
-  scale the best with more cores &mdash; especially under
-  <code>scikit-learn-intelex</code>, reaching roughly 50-60% parallel
-  efficiency at the highest core counts tested &mdash; while linear-model fit
-  (Ridge, LogisticRegression) barely benefits from extra cores under stock or
-  MKL BLAS threading, and KMeans can get slower, not faster, past a certain
-  core count. Watch for curves that flatten or turn upward, not just the fit
-  time at 1 core.</p>
+  <p>This dashboard shows how the wall-clock time of a single
+  <code>.fit()</code> call changes with the number of CPU cores.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Each tab is a machine, each row an (estimator, dataset) pair with its
+    shape and hyperparameters above it, and each column a software
+    environment. Both axes are in log scale. For tree models, the dashed line
+    is perfect scaling, so the gap to it is the lost efficiency.
+    RandomForest and ExtraTrees have separate "with SMT" and "without SMT"
+    lines on machines with hyper-threading. Look for curves that flatten or
+    go up.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>tree ensembles scale best, especially with
+      <code>scikit-learn-intelex</code>, which reaches ~50-60% parallel
+      efficiency at the highest core counts;</li>
+      <li>Ridge and LogisticRegression barely benefit from more cores, with
+      stock or MKL BLAS;</li>
+      <li>KMeans can get slower past some core count.</li>
+    </ul>
+  </details>
 </section>"""
 
 # RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
@@ -257,7 +264,7 @@ def _row_detail_html(result: MethodResult, estimator: str, hardware_hash: str) -
 def _software_tabs_html(hw_results: list[MethodResult]) -> str:
     """Tabbed `SOFTWARE_TEMPLATE` card per swept environment (pixi env,
     package versions, threadpools, OpenMP - see `summarize_software_env`),
-    same pattern as e.g. `gen_per_hardware.py`/`gen_builds_comparison.py`."""
+    same pattern as e.g. `gen_softwares_comparison.py`/`gen_builds_comparison.py`."""
     cards = []
     for env in ENV_ORDER:
         env_results = [result for result in hw_results if _env(result) == env]
@@ -355,7 +362,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="Model thread-scalability",
+        title="Models core-count scalability",
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "models_scalability.html"

@@ -146,48 +146,21 @@ def _format_point_count(count: int) -> str:
     return f"{count} point" if count == 1 else f"{count} points"
 
 
-def _format_estimator_counts(estimator_counts: dict[str, int]) -> str:
-    parts = [
-        f"{escape(estimator)} ({count})"
-        for estimator, count in sorted(
-            estimator_counts.items(), key=lambda item: (-item[1], item[0])
-        )
-    ]
-    return ", ".join(parts)
-
-
 def _marker_notes_html(matches: list[Match], failed_count: int = 0) -> str:
     metric_mismatch_count = sum(not match.metrics_match for match in matches)
     fallback_count = sum(
         match.matched_result.is_sklearnex_fallback for match in matches
     )
-    warning_counts = {}
-    warning_order = []
-
+    warnings = []
+    seen = set()
     for match in matches:
+        if not match.metrics_match:
+            continue
         for warning in match.warnings:
             key = (warning.icon, warning.message)
-            if key not in warning_order and match.metrics_match:
-                warning_order.append(key)
-            if key not in warning_counts:
-                warning_counts[key] = {
-                    "warning": warning,
-                    "estimators": defaultdict(int),
-                }
-            warning_counts[key]["estimators"][_estimator_name(match)] += 1
-
-    warnings = []
-    if warning_order:
-        for key in warning_order:
-            warning = warning_counts[key]["warning"]
-            estimator_counts = warning_counts[key]["estimators"]
-            warnings.append(
-                {
-                    "estimator_counts": _format_estimator_counts(estimator_counts),
-                    "icon": warning.icon,
-                    "message": warning.message,
-                }
-            )
+            if key not in seen:
+                seen.add(key)
+                warnings.append({"icon": warning.icon, "message": warning.message})
     return PLOT_NOTES_TEMPLATE.render(
         metric_mismatch_count=metric_mismatch_count,
         metric_mismatch_label=_format_point_count(metric_mismatch_count),

@@ -49,7 +49,7 @@ A few configs inspect the machine to size or gate their matrix:
   `hgb_scalability.py` and `models_scalability.py` for scaling sweeps.
 - `_synthetic_trees.py` and `hptuning.py` size `n_estimators`, worker counts,
   and time limits off `joblib.cpu_count()`.
-- `_real_datasets.py` caps `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
+- `_real_datasets.py` caps KMeans' `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
   very-high-core-count hosts (a PyPI OpenBLAS wheel bug) and sizes `N_JOBS`
   off the physical core count.
 - `sklbench/config/utils.py` lazily probes for GPU backends (`dpctl` for
