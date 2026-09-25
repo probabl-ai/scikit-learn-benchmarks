@@ -29,4 +29,7 @@ def generate_cases() -> list[dict]:
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_array_api_supported_cases_if_needed(cases))
 
+    # TMP: KMeans-only rerun, revert right after dispatching.
+    cases = [c for c in cases if c.algorithm.estimator == 'KMeans']
+
     return cases
