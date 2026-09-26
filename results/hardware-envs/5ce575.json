@@ -1,22 +1,3 @@
-{
-    "CPU": {
-        "architecture": "X86_64",
-        "logical_cpus": 4,
-        "name": "AMD EPYC 7R13 Processor",
-        "flags": "3dnowext 3dnowprefetch abm adx aes aperfmperf apic arat avx avx2 bmi1 bmi2 clflush clflushopt clwb clzero cmov cmp_legacy constant_tsc cpuid cr8_legacy cx16 cx8 de extd_apicid f16c fma fpu fsgsbase fxsr fxsr_opt ht hypervisor ibpb ibrs invpcid lahf_lm lm mca mce misalignsse mmx mmxext movbe msr mtrr nonstop_tsc nopl npt nrip_save nx osxsave pae pat pcid pclmulqdq pdpe1gb pge pni popcnt pse pse36 rdpid rdpru rdrand rdrnd rdseed rdtscp rep_good sep sha sha_ni smap smep ssbd sse sse2 sse4_1 sse4_2 sse4a ssse3 stibp syscall topoext tsc tsc_known_freq vaes vme vmmcall vpclmulqdq wbnoinvd x2apic xgetbv1 xsave xsavec xsaveerptr xsaveopt xtopology",
-        "physical_cores": 2
-    },
-    "GPU(s)": {
-        "cuda:0": {
-            "name": "NVIDIA L4",
-            "vendor": "NVIDIA Corporation",
-            "type": "gpu",
-            "driver version": "595.91.07",
-            "cuda driver version": "13.2",
-            "index": 0,
-            "memory size[GB]": 22,
-            "cuda compute capability": "8.9"
-        }
-    },
-    "RAM size[GB]": 15
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:1d54b4510fe84ea89ee43b875b13986a2b6f639443615268b51e71ab707c8af8
+size 1193
