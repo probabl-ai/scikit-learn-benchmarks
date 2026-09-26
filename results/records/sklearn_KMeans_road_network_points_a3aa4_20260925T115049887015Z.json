@@ -1,0 +1,842 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "env": {},
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "clustering",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "KMeans",
+            "estimator_params": {
+                "n_clusters": 1000
+            }
+        },
+        "data": {
+            "dataset": "road_network_points"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 434874,
+                    "features": 3
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 347899,
+                    "features": 3
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 86975,
+                    "features": 3
+                }
+            },
+            "time_ms": {
+                "preprocessing": 36.01393300050404,
+                "fit": 11298.636354000337,
+                "predict": 41.741023999747995
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 14218.85611506898,
+                    "Davies-Bouldin score": 0.9504940795977251,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 3654.649576821198,
+                    "Davies-Bouldin score": 0.9590623185295051,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 22,
+                "n_features_in": 3,
+                "inertia": 14218.856115070412
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 434874,
+                    "features": 3
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 347899,
+                    "features": 3
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 86975,
+                    "features": 3
+                }
+            },
+            "time_ms": {
+                "preprocessing": 19.103173000075913,
+                "fit": 11077.126727000177,
+                "predict": 41.85363300075551
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 14182.337133204745,
+                    "Davies-Bouldin score": 0.947661269281875,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 3630.117759387424,
+                    "Davies-Bouldin score": 0.9576773413145561,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 21,
+                "n_features_in": 3,
+                "inertia": 14182.337133208037
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 434874,
+                    "features": 3
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 347899,
+                    "features": 3
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 86975,
+                    "features": 3
+                }
+            },
+            "time_ms": {
+                "preprocessing": 19.143307000376808,
+                "fit": 11402.458501999718,
+                "predict": 41.96249399956287
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 14266.994972648283,
+                    "Davies-Bouldin score": 0.9495007286181252,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 3650.9898082487125,
+                    "Davies-Bouldin score": 0.9603089143055346,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 23,
+                "n_features_in": 3,
+                "inertia": 14266.994972646022
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 434874,
+                    "features": 3
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 347899,
+                    "features": 3
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 86975,
+                    "features": 3
+                }
+            },
+            "time_ms": {
+                "preprocessing": 18.928833000245504,
+                "fit": 11513.57816899963,
+                "predict": 41.59838600025978
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 14180.533288865738,
+                    "Davies-Bouldin score": 0.9496224242808116,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 3723.447886675573,
+                    "Davies-Bouldin score": 0.9599588733102553,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 24,
+                "n_features_in": 3,
+                "inertia": 14180.533288872166
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 434874,
+                    "features": 3
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 347899,
+                    "features": 3
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 86975,
+                    "features": 3
+                }
+            },
+            "time_ms": {
+                "preprocessing": 18.684401999962574,
+                "fit": 11202.339975000541,
+                "predict": 41.91933299989614
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 14243.12052081698,
+                    "Davies-Bouldin score": 0.9545427581638992,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 3625.567023142877,
+                    "Davies-Bouldin score": 0.9620040967470916,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 22,
+                "n_features_in": 3,
+                "inertia": 14243.120520819928
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:50:50.487+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 67.9,
+            "cpu_freq_mhz": 3599.7795,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.47265625,
+            "memory": {
+                "used_percent": 9.3,
+                "available_mb": 13932.27734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:52.490+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 66.3,
+            "cpu_freq_mhz": 3596.9089999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.59521484375,
+            "memory": {
+                "used_percent": 10.5,
+                "available_mb": 13745.5859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:54.495+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.519,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.59521484375,
+            "memory": {
+                "used_percent": 10.5,
+                "available_mb": 13745.5859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:56.498+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.96525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.59521484375,
+            "memory": {
+                "used_percent": 10.5,
+                "available_mb": 13745.5859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:58.502+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.6355,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.7080078125,
+            "memory": {
+                "used_percent": 10.5,
+                "available_mb": 13745.5859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:00.504+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 61.2,
+            "cpu_freq_mhz": 3590.5305,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.7080078125,
+            "memory": {
+                "used_percent": 10.1,
+                "available_mb": 13814.05859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:02.506+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3593.47875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.65087890625,
+            "memory": {
+                "used_percent": 10.1,
+                "available_mb": 13814.05859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:04.508+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 42.8,
+            "cpu_freq_mhz": 3178.5795,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.65087890625,
+            "memory": {
+                "used_percent": 10.2,
+                "available_mb": 13800.5,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:06.510+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 66.7,
+            "cpu_freq_mhz": 3598.773,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.65087890625,
+            "memory": {
+                "used_percent": 10.7,
+                "available_mb": 13718.8984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:08.514+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3596.7827500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.75927734375,
+            "memory": {
+                "used_percent": 10.3,
+                "available_mb": 13787.453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:10.516+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.42,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.75927734375,
+            "memory": {
+                "used_percent": 10.3,
+                "available_mb": 13787.453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:12.520+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.814,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.85888671875,
+            "memory": {
+                "used_percent": 10.3,
+                "available_mb": 13787.453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:14.522+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 68.5,
+            "cpu_freq_mhz": 3593.3915,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.85888671875,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13823.51171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:16.524+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3591.8525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.85888671875,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13823.28125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:18.526+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 44.6,
+            "cpu_freq_mhz": 3416.55475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.7099609375,
+            "memory": {
+                "used_percent": 10.1,
+                "available_mb": 13818.21875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:20.528+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 62.2,
+            "cpu_freq_mhz": 3599.3605,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.7099609375,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13762.08984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:22.532+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.62,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8134765625,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13762.03515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:24.536+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.6234999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8134765625,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13762.03515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:26.538+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5565,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8134765625,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13764.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:28.541+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 71.6,
+            "cpu_freq_mhz": 3590.6715,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.90869140625,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13824.4453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:30.542+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3360.5455,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.90869140625,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13824.4453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:32.544+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 48.1,
+            "cpu_freq_mhz": 3236.42275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.75537109375,
+            "memory": {
+                "used_percent": 27.3,
+                "available_mb": 11173.5546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:34.546+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 47.6,
+            "cpu_freq_mhz": 3597.447,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.75537109375,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13769.80859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:36.550+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.36575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.75537109375,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13769.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:38.553+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.95575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.85546875,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13769.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:40.557+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.4832499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.85546875,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13769.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:42.561+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 81.4,
+            "cpu_freq_mhz": 3593.86875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.78662109375,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13828.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:44.563+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3591.26275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.78662109375,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13828.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:46.565+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 55.0,
+            "cpu_freq_mhz": 3245.08925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.78662109375,
+            "memory": {
+                "used_percent": 27.2,
+                "available_mb": 11177.484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:48.567+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 37.7,
+            "cpu_freq_mhz": 3178.426,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.64306640625,
+            "memory": {
+                "used_percent": 10.3,
+                "available_mb": 13778.546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:50.569+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 87.9,
+            "cpu_freq_mhz": 3599.41775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.64306640625,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13762.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:52.572+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3596.8735,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.751953125,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13762.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:54.575+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.99125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.751953125,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13762.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:56.578+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 96.4,
+            "cpu_freq_mhz": 3415.929,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.751953125,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13824.0234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:51:58.580+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3360.6240000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.69140625,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 13824.0234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:52:00.582+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 58.4,
+            "cpu_freq_mhz": 3423.37875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.69140625,
+            "memory": {
+                "used_percent": 27.3,
+                "available_mb": 11176.88671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:52:02.584+00:00",
+            "case_index": 136,
+            "case_name": "sklearn KMeans road_network_points",
+            "cpu_percent": 37.2,
+            "cpu_freq_mhz": 3475.03425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.5556640625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13144.58203125,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

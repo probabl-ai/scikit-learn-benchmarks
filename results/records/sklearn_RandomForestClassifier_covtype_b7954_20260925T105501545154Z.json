@@ -1,0 +1,2310 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "classification",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "RandomForestClassifier",
+            "estimator_params": {
+                "n_estimators": 100,
+                "n_jobs": 1
+            }
+        },
+        "data": {
+            "dataset": "covtype",
+            "preprocessing_kind": "trees"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 581012,
+                    "features": 12,
+                    "n_categorical_features": 2,
+                    "n_classes": 7
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 464809,
+                    "features": 12,
+                    "n_classes": 7
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 116203,
+                    "features": 12,
+                    "n_classes": 7
+                }
+            },
+            "time_ms": {
+                "preprocessing": 125.8137549998537,
+                "fit": 89770.40878399975,
+                "predict": 2213.0092710003737
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 1.0,
+                    "Brier score": 0.00969245647136781,
+                    "logloss": 0.04377551432367713
+                },
+                "predict": {
+                    "ROC AUC": 0.9986642113279581,
+                    "Brier score": 0.06732704491278194,
+                    "logloss": 0.14200010887324374
+                }
+            },
+            "attributes": {
+                "n_features_in": 12,
+                "n_outputs": 1,
+                "n_classes": 7,
+                "total_time": 89.77036383299992,
+                "build_trees_time": 89.70531624600017,
+                "build_trees_cpu_time": 89.69239996800025,
+                "n_trees_built": 100,
+                "avg_tree_time": 0.8969239996800025,
+                "other_time": 0.06504758699975355
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "Runner exceeded time limit (300.0 seconds)."
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 581012,
+                    "features": 12,
+                    "n_categorical_features": 2,
+                    "n_classes": 7
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 464809,
+                    "features": 12,
+                    "n_classes": 7
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 116203,
+                    "features": 12,
+                    "n_classes": 7
+                }
+            },
+            "time_ms": {
+                "preprocessing": 93.41795799991814,
+                "fit": 92702.86192899993,
+                "predict": 2246.528820000094
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 1.0,
+                    "Brier score": 0.009712551607219311,
+                    "logloss": 0.04396331844556634
+                },
+                "predict": {
+                    "ROC AUC": 0.9986552256300663,
+                    "Brier score": 0.06789474798413121,
+                    "logloss": 0.14299509256373794
+                }
+            },
+            "attributes": {
+                "n_features_in": 12,
+                "n_outputs": 1,
+                "n_classes": 7,
+                "total_time": 92.702810968,
+                "build_trees_time": 92.66004078000014,
+                "build_trees_cpu_time": 92.6471698420005,
+                "n_trees_built": 100,
+                "avg_tree_time": 0.926471698420005,
+                "other_time": 0.04277018799984944
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "Runner exceeded time limit (300.0 seconds)."
+            }
+        }
+    ],
+    "failed_case": {
+        "case": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 300.0,
+                "py_spy_profiling": false
+            },
+            "metadata": {
+                "task": "classification",
+                "tier": "normal",
+                "source_config": "configs/all_models_16gb.py"
+            },
+            "algorithm": {
+                "estimator": "RandomForestClassifier",
+                "estimator_params": {
+                    "n_estimators": 100,
+                    "n_jobs": 1
+                }
+            },
+            "data": {
+                "dataset": "covtype",
+                "preprocessing_kind": "trees"
+            },
+            "implementation": {
+                "library": "sklearn"
+            }
+        },
+        "return_code": -9,
+        "command": [
+            "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/bin/python",
+            "-m",
+            "sklbench.runners.estimator",
+            "--case-file",
+            "/tmp/sklbench-run-plk59ucx/case.json",
+            "--n-runs",
+            "5",
+            "--output-jsonl",
+            "/tmp/sklbench-run-plk59ucx/result.jsonl"
+        ],
+        "logs": {
+            "stdout": "",
+            "stderr": "Runner exceeded time limit (300.0 seconds)."
+        }
+    },
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T10:55:03.467+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 34.7,
+            "cpu_freq_mhz": 3239.9145,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.80810546875,
+            "memory": {
+                "used_percent": 11.6,
+                "available_mb": 13579.18359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:05.468+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.12725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.80810546875,
+            "memory": {
+                "used_percent": 11.8,
+                "available_mb": 13556.0234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:07.470+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3259.5715,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5029296875,
+            "memory": {
+                "used_percent": 11.9,
+                "available_mb": 13532.37109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:09.472+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3227.2692500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5029296875,
+            "memory": {
+                "used_percent": 11.9,
+                "available_mb": 13535.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:11.473+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3242.1327499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5029296875,
+            "memory": {
+                "used_percent": 12.1,
+                "available_mb": 13512.03125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:13.475+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.541,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.22216796875,
+            "memory": {
+                "used_percent": 12.0,
+                "available_mb": 13520.4609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:15.477+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.035,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.22216796875,
+            "memory": {
+                "used_percent": 12.2,
+                "available_mb": 13496.80859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:17.479+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.6715000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.9638671875,
+            "memory": {
+                "used_percent": 12.2,
+                "available_mb": 13484.6484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:19.480+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.94725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.9638671875,
+            "memory": {
+                "used_percent": 12.4,
+                "available_mb": 13456.609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:21.482+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3226.4880000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.9638671875,
+            "memory": {
+                "used_percent": 12.6,
+                "available_mb": 13433.01171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:23.483+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3233.686,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.72607421875,
+            "memory": {
+                "used_percent": 12.7,
+                "available_mb": 13417.234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:25.485+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.7992500000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.72607421875,
+            "memory": {
+                "used_percent": 12.7,
+                "available_mb": 13409.33203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:27.487+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3472.8455000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.50732421875,
+            "memory": {
+                "used_percent": 12.8,
+                "available_mb": 13393.58203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:29.488+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3285.82375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.50732421875,
+            "memory": {
+                "used_percent": 13.0,
+                "available_mb": 13369.95703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:31.490+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3230.1907499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.50732421875,
+            "memory": {
+                "used_percent": 13.1,
+                "available_mb": 13346.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:33.491+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3253.94325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.30615234375,
+            "memory": {
+                "used_percent": 13.2,
+                "available_mb": 13338.45703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:35.493+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.97725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.30615234375,
+            "memory": {
+                "used_percent": 13.3,
+                "available_mb": 13322.70703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:37.494+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3324.2480000000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.12109375,
+            "memory": {
+                "used_percent": 13.5,
+                "available_mb": 13291.26171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:39.496+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3244.7560000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.12109375,
+            "memory": {
+                "used_percent": 13.6,
+                "available_mb": 13275.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:41.497+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.7104999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.12109375,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13251.8984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:43.499+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.9492499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.951171875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13236.12109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:45.500+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.20575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.951171875,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13228.24609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:47.502+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3274.29925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.794921875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13204.6484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:49.503+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.5634999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.794921875,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13188.8984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:51.505+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3274.9089999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.794921875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13165.2734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:53.506+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.3489999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.65087890625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13141.59375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:55.507+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.01825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.65087890625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13133.74609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:57.509+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.33075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.5185546875,
+            "memory": {
+                "used_percent": 14.6,
+                "available_mb": 13117.99609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:59.510+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.2015,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.5185546875,
+            "memory": {
+                "used_percent": 14.7,
+                "available_mb": 13110.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:01.512+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3239.864,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.5185546875,
+            "memory": {
+                "used_percent": 14.9,
+                "available_mb": 13078.6484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:03.513+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3246.143,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.396484375,
+            "memory": {
+                "used_percent": 15.0,
+                "available_mb": 13055.0234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:05.515+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.9102500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.396484375,
+            "memory": {
+                "used_percent": 15.0,
+                "available_mb": 13054.97265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:07.516+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3232.9455,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2841796875,
+            "memory": {
+                "used_percent": 15.2,
+                "available_mb": 13031.34765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:09.518+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3245.0415000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2841796875,
+            "memory": {
+                "used_percent": 15.4,
+                "available_mb": 12999.91015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:11.519+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3278.99225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2841796875,
+            "memory": {
+                "used_percent": 15.4,
+                "available_mb": 12999.85546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:13.521+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3246.65075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.18115234375,
+            "memory": {
+                "used_percent": 15.5,
+                "available_mb": 12984.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:15.523+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.943,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.18115234375,
+            "memory": {
+                "used_percent": 15.6,
+                "available_mb": 12968.3828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:17.524+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.016,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.08642578125,
+            "memory": {
+                "used_percent": 15.7,
+                "available_mb": 12944.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:19.526+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3229.321,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.08642578125,
+            "memory": {
+                "used_percent": 15.8,
+                "available_mb": 12929.0078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:21.528+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.228,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.08642578125,
+            "memory": {
+                "used_percent": 15.9,
+                "available_mb": 12921.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:23.530+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3275.28075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9990234375,
+            "memory": {
+                "used_percent": 16.1,
+                "available_mb": 12897.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:25.531+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.9125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9990234375,
+            "memory": {
+                "used_percent": 16.1,
+                "available_mb": 12889.8515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:27.532+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3277.0205,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9189453125,
+            "memory": {
+                "used_percent": 16.2,
+                "available_mb": 12874.1015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:29.534+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.20275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9189453125,
+            "memory": {
+                "used_percent": 16.4,
+                "available_mb": 12850.5078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:31.536+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.88175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9189453125,
+            "memory": {
+                "used_percent": 16.5,
+                "available_mb": 12834.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:33.537+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3240.1710000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.84521484375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12818.98046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:35.539+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3471.888,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.84521484375,
+            "memory": {
+                "used_percent": 16.9,
+                "available_mb": 12771.4609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:37.541+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.8815000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.77734375,
+            "memory": {
+                "used_percent": 16.9,
+                "available_mb": 12771.3515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:39.542+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.9424999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.77734375,
+            "memory": {
+                "used_percent": 16.9,
+                "available_mb": 12771.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:41.544+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3237.6547499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.77734375,
+            "memory": {
+                "used_percent": 16.9,
+                "available_mb": 12771.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:43.545+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3229.21675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.71484375,
+            "memory": {
+                "used_percent": 16.9,
+                "available_mb": 12771.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:45.547+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.7480000000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.71484375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12815.2421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:47.548+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.1067500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6572265625,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13223.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:49.550+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3242.0715,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6572265625,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13232.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:51.551+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3264.13475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6572265625,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13238.55078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:53.553+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.13125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6044921875,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13255.47265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:55.554+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.74575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6044921875,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13255.47265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:57.556+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3246.70775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5556640625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13255.47265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:56:59.557+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.6565,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5556640625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.98046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:01.559+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.5387499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5556640625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:03.560+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3241.80225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5107421875,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:05.562+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.5654999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5107421875,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:07.563+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.48975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4697265625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:09.565+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.09775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4697265625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:11.566+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3245.88375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4697265625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.9921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:13.568+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.32175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.431640625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.9921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:15.569+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.7445,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.431640625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.9921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:17.571+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3243.6214999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.39697265625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.9921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:19.572+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.3044999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.39697265625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.9921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:21.574+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.61125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.39697265625,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.99609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:23.575+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.5065,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.36474609375,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.99609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:25.577+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.1382499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.36474609375,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.99609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:27.578+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.3152499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.33544921875,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13254.99609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:29.580+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3230.594,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.33544921875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13247.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:31.581+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.20175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.33544921875,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13215.921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:33.583+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3235.18975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.30810546875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13200.171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:35.584+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.5294999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.30810546875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13192.26953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:37.586+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3213.5115,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.283203125,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13184.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:39.587+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.20975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.283203125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13168.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:41.588+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3235.53725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.283203125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13145.02734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:43.590+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.746,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26025390625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13129.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:45.592+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.0077499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26025390625,
+            "memory": {
+                "used_percent": 14.7,
+                "available_mb": 13105.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:47.593+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3233.312,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2392578125,
+            "memory": {
+                "used_percent": 14.8,
+                "available_mb": 13089.875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:49.594+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.69275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2392578125,
+            "memory": {
+                "used_percent": 15.0,
+                "available_mb": 13066.3046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:51.596+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.8754999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2392578125,
+            "memory": {
+                "used_percent": 15.1,
+                "available_mb": 13042.68359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:53.597+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.8452500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2197265625,
+            "memory": {
+                "used_percent": 15.2,
+                "available_mb": 13034.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:55.599+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.89725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2197265625,
+            "memory": {
+                "used_percent": 15.3,
+                "available_mb": 13011.15625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:57.600+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3235.4725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.20166015625,
+            "memory": {
+                "used_percent": 15.5,
+                "available_mb": 12987.55859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:57:59.602+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3239.4052500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.20166015625,
+            "memory": {
+                "used_percent": 15.6,
+                "available_mb": 12971.78125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:01.603+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.288,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.20166015625,
+            "memory": {
+                "used_percent": 15.7,
+                "available_mb": 12948.15625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:03.605+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3260.92375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.18505859375,
+            "memory": {
+                "used_percent": 15.9,
+                "available_mb": 12924.55859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:05.606+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.7735000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.18505859375,
+            "memory": {
+                "used_percent": 16.0,
+                "available_mb": 12900.93359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:07.608+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3263.9565,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.169921875,
+            "memory": {
+                "used_percent": 16.2,
+                "available_mb": 12877.30859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:09.609+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3231.3545,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.169921875,
+            "memory": {
+                "used_percent": 16.3,
+                "available_mb": 12853.68359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:11.611+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.07925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.169921875,
+            "memory": {
+                "used_percent": 16.4,
+                "available_mb": 12837.90625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:13.612+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.45325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.15625,
+            "memory": {
+                "used_percent": 16.5,
+                "available_mb": 12822.16015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:15.614+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.48475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.15625,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12806.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:17.615+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.8625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1435546875,
+            "memory": {
+                "used_percent": 16.8,
+                "available_mb": 12774.91015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:19.617+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3255.509,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1435546875,
+            "memory": {
+                "used_percent": 17.0,
+                "available_mb": 12759.1328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:21.618+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.77325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1435546875,
+            "memory": {
+                "used_percent": 17.0,
+                "available_mb": 12759.1328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:23.620+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3236.91225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1318359375,
+            "memory": {
+                "used_percent": 17.3,
+                "available_mb": 12708.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:25.621+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.411,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1318359375,
+            "memory": {
+                "used_percent": 17.3,
+                "available_mb": 12708.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:27.623+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3241.6547499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.12109375,
+            "memory": {
+                "used_percent": 17.3,
+                "available_mb": 12708.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:29.624+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3236.52325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.12109375,
+            "memory": {
+                "used_percent": 17.3,
+                "available_mb": 12708.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:31.626+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3007.09875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.12109375,
+            "memory": {
+                "used_percent": 17.0,
+                "available_mb": 12746.96484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:33.627+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.53025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19189453125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12810.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:35.629+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.1115,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19189453125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12815.46875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:37.630+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.317,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.17626953125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12818.140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:39.632+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3235.7225000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.17626953125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12818.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:41.633+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3356.68025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.17626953125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12818.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:43.635+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3246.243,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.162109375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:45.636+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.46925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.162109375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:47.638+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.6707499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.14892578125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:49.639+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3227.7532499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.14892578125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:51.641+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.4725000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.13671875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:53.642+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3271.49575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.13671875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:55.644+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3241.84025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.13671875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:57.645+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3236.3445,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.12548828125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:58:59.647+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.6594999999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.12548828125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:01.648+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.2927500000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.115234375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:03.650+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3241.14975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.115234375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:05.651+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.14225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.115234375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:07.653+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3241.759,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.10595703125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:09.654+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.7780000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.10595703125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:11.656+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.01875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09716796875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:13.657+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.023,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09716796875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:15.659+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.3475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09716796875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:17.660+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.5379999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08935546875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:19.662+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3227.49575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08935546875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:21.663+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.393,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08203125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:23.665+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.6735,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08203125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.3359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:25.666+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.765,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08203125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.3359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:27.668+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.84525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0751953125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.3359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:29.669+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.72975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0751953125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:31.671+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3272.3295,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06884765625,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:33.672+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.6975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06884765625,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:35.674+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.1205,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06884765625,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:37.675+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.571,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06298828125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:39.677+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.40525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06298828125,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:41.678+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.6725000000006,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0576171875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:43.680+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3241.45275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0576171875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:45.681+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.983,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0576171875,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:47.683+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.6792499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.052734375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:49.684+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.14225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.052734375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12819.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:51.686+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.0364999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04833984375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12818.91796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:53.688+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.3390000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04833984375,
+            "memory": {
+                "used_percent": 16.6,
+                "available_mb": 12811.64453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:55.689+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3248.52225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04833984375,
+            "memory": {
+                "used_percent": 16.8,
+                "available_mb": 12787.89453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:57.691+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.574,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04443359375,
+            "memory": {
+                "used_percent": 16.9,
+                "available_mb": 12772.1171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:59:59.693+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.08725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04443359375,
+            "memory": {
+                "used_percent": 17.1,
+                "available_mb": 12740.671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:00:01.695+00:00",
+            "case_index": 109,
+            "case_name": "sklearn RandomForestClassifier covtype",
+            "cpu_percent": 26.3,
+            "cpu_freq_mhz": 3597.26575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.12109375,
+            "memory": {
+                "used_percent": 10.3,
+                "available_mb": 13773.46875,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

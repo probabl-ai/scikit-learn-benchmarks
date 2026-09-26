@@ -1,0 +1,2367 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "classification",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "LogisticRegression",
+            "estimator_params": {
+                "C": 10.0,
+                "solver": "lbfgs",
+                "max_iter": 1000
+            }
+        },
+        "data": {
+            "dataset": "covtype",
+            "preprocessing_kind": "linear",
+            "preprocessing_kwargs": {
+                "nystroem": {
+                    "n_components": 100
+                }
+            }
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 581012,
+                    "features": 12,
+                    "n_categorical_features": 2,
+                    "n_classes": 7
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 464809,
+                    "features": 100,
+                    "n_classes": 7
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 116203,
+                    "features": 100,
+                    "n_classes": 7
+                }
+            },
+            "time_ms": {
+                "preprocessing": 2432.808254000065,
+                "fit": 78381.14774900032,
+                "predict": 15.899228999842308
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.945500520139032,
+                    "Brier score": 0.36283504620380785,
+                    "logloss": 0.6016186052158449
+                },
+                "predict": {
+                    "ROC AUC": 0.9449797128440741,
+                    "Brier score": 0.3629214325258191,
+                    "logloss": 0.6022959003404947
+                }
+            },
+            "attributes": {
+                "n_iter": 371,
+                "n_features_in": 100
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "Runner exceeded time limit (300.0 seconds)."
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 581012,
+                    "features": 12,
+                    "n_categorical_features": 2,
+                    "n_classes": 7
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 464809,
+                    "features": 100,
+                    "n_classes": 7
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 116203,
+                    "features": 100,
+                    "n_classes": 7
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1875.227958999858,
+                "fit": 93774.73307099991,
+                "predict": 15.797947999999451
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.9452612736739008,
+                    "Brier score": 0.3647769537209354,
+                    "logloss": 0.6034562547845328
+                },
+                "predict": {
+                    "ROC AUC": 0.9454542011088959,
+                    "Brier score": 0.36545089042017614,
+                    "logloss": 0.6042024463147314
+                }
+            },
+            "attributes": {
+                "n_iter": 483,
+                "n_features_in": 100
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "Runner exceeded time limit (300.0 seconds)."
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 581012,
+                    "features": 12,
+                    "n_categorical_features": 2,
+                    "n_classes": 7
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 464809,
+                    "features": 100,
+                    "n_classes": 7
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 116203,
+                    "features": 100,
+                    "n_classes": 7
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1877.2870560001138,
+                "fit": 95515.48840799979,
+                "predict": 15.765758999805257
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.9461086705653035,
+                    "Brier score": 0.3615367940671028,
+                    "logloss": 0.5985412910320222
+                },
+                "predict": {
+                    "ROC AUC": 0.9454179619910725,
+                    "Brier score": 0.3633662882286676,
+                    "logloss": 0.601428375516245
+                }
+            },
+            "attributes": {
+                "n_iter": 515,
+                "n_features_in": 100
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "Runner exceeded time limit (300.0 seconds)."
+            }
+        }
+    ],
+    "failed_case": {
+        "case": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 300.0,
+                "py_spy_profiling": false
+            },
+            "metadata": {
+                "task": "classification",
+                "tier": "normal",
+                "source_config": "configs/all_models_16gb.py"
+            },
+            "algorithm": {
+                "estimator": "LogisticRegression",
+                "estimator_params": {
+                    "C": 10.0,
+                    "solver": "lbfgs",
+                    "max_iter": 1000
+                }
+            },
+            "data": {
+                "dataset": "covtype",
+                "preprocessing_kind": "linear",
+                "preprocessing_kwargs": {
+                    "nystroem": {
+                        "n_components": 100
+                    }
+                }
+            },
+            "implementation": {
+                "library": "sklearn"
+            }
+        },
+        "return_code": -9,
+        "command": [
+            "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/bin/python",
+            "-m",
+            "sklbench.runners.estimator",
+            "--case-file",
+            "/tmp/sklbench-run-v2bqyk0t/case.json",
+            "--n-runs",
+            "5",
+            "--output-jsonl",
+            "/tmp/sklbench-run-v2bqyk0t/result.jsonl"
+        ],
+        "logs": {
+            "stdout": "",
+            "stderr": "Runner exceeded time limit (300.0 seconds)."
+        }
+    },
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T10:50:02.880+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 53.5,
+            "cpu_freq_mhz": 3257.98925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0048828125,
+            "memory": {
+                "used_percent": 9.7,
+                "available_mb": 13877.41796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:04.883+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 61.6,
+            "cpu_freq_mhz": 3597.9627499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0048828125,
+            "memory": {
+                "used_percent": 17.5,
+                "available_mb": 12674.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:06.888+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 95.3,
+            "cpu_freq_mhz": 3599.8630000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2451171875,
+            "memory": {
+                "used_percent": 15.6,
+                "available_mb": 12971.91015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:08.892+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3598.361,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2451171875,
+            "memory": {
+                "used_percent": 15.5,
+                "available_mb": 12975.671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:10.894+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.6,
+            "cpu_freq_mhz": 3598.4727500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2451171875,
+            "memory": {
+                "used_percent": 15.0,
+                "available_mb": 13061.30078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:12.898+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.6515,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.4658203125,
+            "memory": {
+                "used_percent": 14.7,
+                "available_mb": 13102.5703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:14.900+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.9987499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.4658203125,
+            "memory": {
+                "used_percent": 14.8,
+                "available_mb": 13097.3359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:16.905+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.412,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8291015625,
+            "memory": {
+                "used_percent": 14.6,
+                "available_mb": 13114.72265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:18.910+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.97275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8291015625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13142.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:20.912+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3596.44575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8291015625,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13181.3984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:22.916+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.55875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.92333984375,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13175.1640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:24.922+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.04025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.92333984375,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13179.09765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:26.924+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.6020000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.009765625,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13182.2109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:28.930+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.03775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.009765625,
+            "memory": {
+                "used_percent": 14.6,
+                "available_mb": 13125.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:30.933+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.8015,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.009765625,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13196.13671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:32.939+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3600.0902499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.08935546875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13146.96875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:34.941+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.64475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.08935546875,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13205.94140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:36.946+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.089,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.40283203125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13172.2421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:38.948+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.5825000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.40283203125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13169.98046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:40.951+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.8692499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.40283203125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13171.1328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:42.955+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.88225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.45068359375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13172.9609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:44.957+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.73675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.45068359375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13171.01953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:46.961+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.367,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.4951171875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13171.33203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:48.964+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.59375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.4951171875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13174.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:50.968+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.9935,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.4951171875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13193.68359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:52.971+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.7035,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.77587890625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13169.93359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:54.973+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.8017499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.77587890625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13169.71484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:56.977+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.2415,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.7939453125,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13197.8203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:50:58.982+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5977500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.7939453125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13174.125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:00.984+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3600.08425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.7939453125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13171.25,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:02.988+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.0735,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.810546875,
+            "memory": {
+                "used_percent": 14.7,
+                "available_mb": 13109.2109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:04.995+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.93,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.810546875,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13179.24609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:06.999+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.03125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.06640625,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13195.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:09.001+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.91,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.06640625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13172.890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:11.006+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.906,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.06640625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13170.71875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:13.008+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9582499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.3017578125,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13198.89453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:15.016+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9235,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.3017578125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13173.15234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:17.020+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.999,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.51806640625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13166.48828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:19.022+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.25575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.51806640625,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13197.62109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:21.026+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.71175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.51806640625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13167.5703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:23.029+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.76475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.71728515625,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13210.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:25.035+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 67.0,
+            "cpu_freq_mhz": 3598.46775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.71728515625,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13190.53125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:27.037+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 44.9,
+            "cpu_freq_mhz": 3600.035,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.65966796875,
+            "memory": {
+                "used_percent": 15.6,
+                "available_mb": 12968.8203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:29.041+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.3010000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.65966796875,
+            "memory": {
+                "used_percent": 14.6,
+                "available_mb": 13127.2109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:31.044+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.544,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.65966796875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13157.56640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:33.048+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5944999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.6064453125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13146.40625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:35.056+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.64125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.6064453125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13150.45703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:37.060+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.948,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5576171875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13161.9296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:39.064+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.9452499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5576171875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13141.77734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:41.068+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.282,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5576171875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13197.5703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:43.070+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.7889999999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5126953125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13152.94921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:45.072+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.35625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.5126953125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13165.125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:47.074+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.44375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.7119140625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13173.7734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:49.077+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.81075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.7119140625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13162.46484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:51.082+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.957,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.7119140625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13143.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:53.086+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.7325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.65478515625,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13209.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:55.088+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.98075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.65478515625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13167.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:57.093+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.1577500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.8427734375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13147.6328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:51:59.098+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9610000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.8427734375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13148.60546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:01.101+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.6184999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.8427734375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13171.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:03.105+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9832499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.015625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13161.609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:05.108+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.1237499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.015625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13153.90234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:07.124+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3600.00525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1748046875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13149.49609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:09.126+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.7605000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1748046875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13142.2890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:11.130+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.02625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1748046875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13195.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:13.133+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.944,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.08056640625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13152.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:15.140+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9432500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.08056640625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13148.14453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:17.146+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.5685,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.234375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13149.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:19.147+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9835,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.234375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13163.38671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:21.151+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.884,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.234375,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13175.1484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:23.157+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9572500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3759765625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13142.08203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:25.159+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.442,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3759765625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13165.4609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:27.162+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.8185,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.50634765625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13168.69140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:29.166+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.8954999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.50634765625,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13177.3359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:31.173+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.42,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.50634765625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13147.6484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:33.174+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.691,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6259765625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13169.41796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:35.178+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.859,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6259765625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13159.89453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:37.185+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.8305,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.49560546875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13149.77734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:39.189+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.0515,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.49560546875,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13189.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:41.193+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.35975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.49560546875,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13179.3046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:43.197+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.2307499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6162109375,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13186.47265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:45.199+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.1164999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6162109375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13168.42578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:47.204+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.21425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.486328125,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13160.81640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:49.205+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.4132499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.486328125,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13192.859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:51.210+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5114999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.486328125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13146.859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:53.214+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.97875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.60791015625,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13169.7421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:55.216+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.3289999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.60791015625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13144.0625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:57.220+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5162499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.7197265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13152.046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:52:59.228+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.79025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.7197265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13155.84375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:01.230+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 92.4,
+            "cpu_freq_mhz": 3240.1307500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.7197265625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13133.1015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:03.231+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 29.3,
+            "cpu_freq_mhz": 3234.2035,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.34130859375,
+            "memory": {
+                "used_percent": 15.3,
+                "available_mb": 13019.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:05.234+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 90.1,
+            "cpu_freq_mhz": 3600.1365,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.34130859375,
+            "memory": {
+                "used_percent": 15.2,
+                "available_mb": 13034.3984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:07.238+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.6625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.23388671875,
+            "memory": {
+                "used_percent": 15.1,
+                "available_mb": 13048.89453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:09.243+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.14875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.23388671875,
+            "memory": {
+                "used_percent": 15.0,
+                "available_mb": 13064.64453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:11.246+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.60825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.23388671875,
+            "memory": {
+                "used_percent": 14.9,
+                "available_mb": 13080.39453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:13.250+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.4610000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.134765625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13128.8359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:15.253+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.0735,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.134765625,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13128.8359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:17.260+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.85025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.2841796875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13128.8359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:19.264+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.8650000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.2841796875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13134.8359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:21.266+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3600.0737500000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.2841796875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.8359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:23.271+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.978,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.421875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.58984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:25.273+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5565,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.421875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:27.279+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.772,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3076171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:29.283+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.85325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3076171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:31.290+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.0744999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3076171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:33.292+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.99775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.20263671875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:35.295+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.8355,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.20263671875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:37.304+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.0485,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3466796875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:39.308+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.58025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3466796875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:41.312+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.356,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.3466796875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:43.314+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9939999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.4794921875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:45.318+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.3715,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.4794921875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:47.320+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.958,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6015625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:49.323+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.18875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6015625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:51.326+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.5039999999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.6015625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:53.330+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3600.34,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.7138671875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.60546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:55.334+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.7349999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.7138671875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.60546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:57.338+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.75,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.576171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:53:59.341+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.8202499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.576171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:01.346+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.47225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.576171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:03.350+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3599.983,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.52978515625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:05.354+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.9402499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.52978515625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:07.356+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.68375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.4072265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:09.360+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.18675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.4072265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:11.366+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.3647499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.4072265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:13.370+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.982,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.29443359375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:15.372+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.4705000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.29443359375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.61328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:17.376+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.1675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1904296875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:19.378+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.96,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1904296875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:21.382+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.746,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1904296875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:23.388+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.7495,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.0947265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:25.390+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.28675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.0947265625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:27.394+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.835,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.24755859375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:29.401+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.84825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.24755859375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:31.404+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.2965000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.24755859375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:33.410+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.544,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.38818359375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:35.414+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.007,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.38818359375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:37.418+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.383,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.517578125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:39.420+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.93375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.517578125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13154.625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:41.423+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 41.5,
+            "cpu_freq_mhz": 3232.94925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.517578125,
+            "memory": {
+                "used_percent": 12.9,
+                "available_mb": 13383.57421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:43.425+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 69.3,
+            "cpu_freq_mhz": 3598.746,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.15576171875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13133.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:45.429+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.4895,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.15576171875,
+            "memory": {
+                "used_percent": 14.6,
+                "available_mb": 13115.171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:47.431+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.3627500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.06298828125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13145.03125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:49.436+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.5755,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.06298828125,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13141.30078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:51.442+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3597.3477500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.06298828125,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13150.1484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:53.445+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.057,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.9775390625,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13179.26171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:55.448+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.98025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.9775390625,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13146.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:57.451+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.3534999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1396484375,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13199.6484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:54:59.457+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.424,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1396484375,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13148.2578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:55:01.460+00:00",
+            "case_index": 108,
+            "case_name": "sklearn LogisticRegression covtype",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.806,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.1396484375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13169.1328125,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

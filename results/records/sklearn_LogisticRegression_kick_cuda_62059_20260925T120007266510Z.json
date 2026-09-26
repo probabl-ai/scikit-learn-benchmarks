@@ -1,0 +1,438 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "d2eb44",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false,
+            "cprofile_profiling": true
+        },
+        "metadata": {
+            "task": "classification",
+            "tier": "fast",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "LogisticRegression",
+            "estimator_params": {
+                "solver": "lbfgs",
+                "max_iter": 2000,
+                "C": 24.0
+            }
+        },
+        "data": {
+            "dataset": "kick",
+            "preprocessing_kind": "linear",
+            "preprocessing_kwargs": {
+                "nystroem": {}
+            }
+        },
+        "implementation": {
+            "library": "sklearn",
+            "device": "cuda",
+            "data_library": "torch",
+            "sklearn_context": {
+                "array_api_dispatch": true
+            }
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 72983,
+                    "features": 32,
+                    "n_categorical_features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 58386,
+                    "features": 300,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 14597,
+                    "features": 300,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 3328.148971000701,
+                "fit": 189.1039060001276,
+                "predict": 15.538077999735833
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.7688023553238515,
+                    "Brier score": 0.08697653636942415,
+                    "logloss": 0.3046508202266541
+                },
+                "predict": {
+                    "ROC AUC": 0.7660196791305911,
+                    "Brier score": 0.0859142733165801,
+                    "logloss": 0.3030667140109238
+                }
+            },
+            "attributes": {
+                "n_iter": 55,
+                "n_features_in": 300
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 72983,
+                    "features": 32,
+                    "n_categorical_features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 58386,
+                    "features": 300,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 14597,
+                    "features": 300,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1292.5351560006675,
+                "fit": 71.50658799946541,
+                "predict": 1.1753019998650416
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.7660410650310538,
+                    "Brier score": 0.08794700467681661,
+                    "logloss": 0.3078453179003408
+                },
+                "predict": {
+                    "ROC AUC": 0.7501463229656986,
+                    "Brier score": 0.08425425570939697,
+                    "logloss": 0.2997519045798771
+                }
+            },
+            "attributes": {
+                "n_iter": 37,
+                "n_features_in": 300
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 72983,
+                    "features": 32,
+                    "n_categorical_features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 58386,
+                    "features": 300,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 14597,
+                    "features": 300,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1292.3483330005183,
+                "fit": 88.80552800019359,
+                "predict": 1.0622909994708607
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.7691417761739063,
+                    "Brier score": 0.08700673717232205,
+                    "logloss": 0.30475088539096973
+                },
+                "predict": {
+                    "ROC AUC": 0.7567993637289021,
+                    "Brier score": 0.08625815384636536,
+                    "logloss": 0.30470253856896445
+                }
+            },
+            "attributes": {
+                "n_iter": 45,
+                "n_features_in": 300
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 72983,
+                    "features": 32,
+                    "n_categorical_features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 58386,
+                    "features": 300,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 14597,
+                    "features": 300,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1283.3895109997684,
+                "fit": 71.24757300061901,
+                "predict": 1.0739599993030424
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.7635609604905117,
+                    "Brier score": 0.08770968386676731,
+                    "logloss": 0.3072765531380025
+                },
+                "predict": {
+                    "ROC AUC": 0.770216794481334,
+                    "Brier score": 0.08379297435799662,
+                    "logloss": 0.29663163568004003
+                }
+            },
+            "attributes": {
+                "n_iter": 35,
+                "n_features_in": 300
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 72983,
+                    "features": 32,
+                    "n_categorical_features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 58386,
+                    "features": 300,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": "torch",
+                    "order": null,
+                    "dtype": null,
+                    "samples": 14597,
+                    "features": 300,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1290.3338950000034,
+                "fit": 134.39826000012545,
+                "predict": 1.1469920000308775
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.7703406344237824,
+                    "Brier score": 0.08656525170675736,
+                    "logloss": 0.30355747003935785
+                },
+                "predict": {
+                    "ROC AUC": 0.767075679859877,
+                    "Brier score": 0.08641611542603062,
+                    "logloss": 0.30340970884840146
+                }
+            },
+            "attributes": {
+                "n_iter": 70,
+                "n_features_in": 300
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T12:00:07.514+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 66.0,
+            "cpu_freq_mhz": 3590.2349999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.64208984375,
+            "memory": {
+                "used_percent": 10.7,
+                "available_mb": 13712.23828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:00:09.516+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 52.6,
+            "cpu_freq_mhz": 3597.9772499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.64208984375,
+            "memory": {
+                "used_percent": 11.1,
+                "available_mb": 13664.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:00:11.518+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 36.7,
+            "cpu_freq_mhz": 3240.0465,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.64208984375,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13188.265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:00:13.519+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 32.6,
+            "cpu_freq_mhz": 3233.662,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.8310546875,
+            "memory": {
+                "used_percent": 18.1,
+                "available_mb": 12576.8046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:00:15.521+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 31.3,
+            "cpu_freq_mhz": 3239.0712499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.8310546875,
+            "memory": {
+                "used_percent": 18.0,
+                "available_mb": 12600.30859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:00:17.523+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 37.9,
+            "cpu_freq_mhz": 3000.044,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0048828125,
+            "memory": {
+                "used_percent": 17.4,
+                "available_mb": 12683.80859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:00:19.524+00:00",
+            "case_index": 14,
+            "case_name": "sklearn LogisticRegression kick cuda",
+            "cpu_percent": 33.5,
+            "cpu_freq_mhz": 3239.3285,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0048828125,
+            "memory": {
+                "used_percent": 16.8,
+                "available_mb": 12777.3046875,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

@@ -1,0 +1,2239 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "classification",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "ExtraTreesClassifier",
+            "estimator_params": {
+                "n_estimators": 50,
+                "min_impurity_decrease": 3e-06,
+                "max_depth": 16,
+                "n_jobs": 1
+            }
+        },
+        "data": {
+            "dataset": "susy"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 4500000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 500000,
+                    "features": 18,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 155.90468000027613,
+                "fit": 188461.87780499985,
+                "predict": 1385.0102999999763
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8613989167497983,
+                    "Brier score": 0.15628112571512898,
+                    "logloss": 0.4862554055071104
+                },
+                "predict": {
+                    "ROC AUC": 0.8617393381294433,
+                    "Brier score": 0.15630593691575476,
+                    "logloss": 0.486302422957568
+                }
+            },
+            "attributes": {
+                "n_features_in": 18,
+                "n_outputs": 1,
+                "n_classes": 2
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "Runner exceeded time limit (300.0 seconds)."
+            }
+        }
+    ],
+    "failed_case": {
+        "case": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 300.0,
+                "py_spy_profiling": false
+            },
+            "metadata": {
+                "task": "classification",
+                "tier": "normal",
+                "source_config": "configs/all_models_16gb.py"
+            },
+            "algorithm": {
+                "estimator": "ExtraTreesClassifier",
+                "estimator_params": {
+                    "n_estimators": 50,
+                    "min_impurity_decrease": 3e-06,
+                    "max_depth": 16,
+                    "n_jobs": 1
+                }
+            },
+            "data": {
+                "dataset": "susy"
+            },
+            "implementation": {
+                "library": "sklearn"
+            }
+        },
+        "return_code": -9,
+        "command": [
+            "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/bin/python",
+            "-m",
+            "sklbench.runners.estimator",
+            "--case-file",
+            "/tmp/sklbench-run-bl7hnfxu/case.json",
+            "--n-runs",
+            "5",
+            "--output-jsonl",
+            "/tmp/sklbench-run-bl7hnfxu/result.jsonl"
+        ],
+        "logs": {
+            "stdout": "",
+            "stderr": "Runner exceeded time limit (300.0 seconds)."
+        }
+    },
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:03:09.891+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 36.6,
+            "cpu_freq_mhz": 3236.3212500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.16064453125,
+            "memory": {
+                "used_percent": 10.8,
+                "available_mb": 13704.20703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:11.892+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 46.6,
+            "cpu_freq_mhz": 3236.08125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0673828125,
+            "memory": {
+                "used_percent": 31.0,
+                "available_mb": 10599.578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:13.894+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.2807500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0673828125,
+            "memory": {
+                "used_percent": 30.9,
+                "available_mb": 10615.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:15.895+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.77975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0673828125,
+            "memory": {
+                "used_percent": 30.8,
+                "available_mb": 10633.078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:17.897+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.4359999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9814453125,
+            "memory": {
+                "used_percent": 30.6,
+                "available_mb": 10656.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:19.898+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3235.5765,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9814453125,
+            "memory": {
+                "used_percent": 29.6,
+                "available_mb": 10821.07421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:21.900+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3225.469,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.90283203125,
+            "memory": {
+                "used_percent": 29.6,
+                "available_mb": 10821.07421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:23.901+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.49775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.90283203125,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10874.06640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:25.903+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.1347499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.90283203125,
+            "memory": {
+                "used_percent": 29.4,
+                "available_mb": 10848.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:27.904+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3378.31125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.830078125,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10879.70703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:29.906+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.61925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.830078125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.69921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:31.908+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.7835,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.76318359375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.6328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:33.909+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.7740000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.76318359375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.6328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:35.911+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3244.249,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.76318359375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:37.912+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.76975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.70166015625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:39.914+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3250.9925000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.70166015625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10897.55078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:41.915+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.09625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.64501953125,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10897.55078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:43.917+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.29825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.64501953125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.44921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:45.918+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3239.8275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.64501953125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.44921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:47.920+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.536,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.59326171875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.69921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:49.921+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.8725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.59326171875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:51.923+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.9492499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.54541015625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:53.924+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.0480000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.54541015625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10898.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:55.926+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3246.8797499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.54541015625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10898.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:57.928+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 2992.8745,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.50146484375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.2265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:03:59.929+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3227.03125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.50146484375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:01.931+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3227.4492499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4609375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.11328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:03.932+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.7305000000006,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4609375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.11328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:05.934+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.27475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4609375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10911.0546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:07.936+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3242.201,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.423828125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10911.0546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:09.937+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3257.0597500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.423828125,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:11.939+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.1257499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3896484375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:13.941+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3336.8157499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3896484375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10907.546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:15.942+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.2325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3896484375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10907.546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:17.944+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.05175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3583984375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10895.6953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:19.945+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3225.052,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3583984375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10895.6953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:21.947+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.78925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.32958984375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:23.949+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3240.3235,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.32958984375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:25.950+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3290.5502500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.32958984375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10904.5625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:27.952+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3232.87125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.302734375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10904.5625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:29.953+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3243.96975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.302734375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:31.955+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.19175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2783203125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:33.956+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3244.6945,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2783203125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10910.78515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:35.958+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3237.835,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2783203125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10910.78515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:37.960+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3252.1564999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.255859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10897.671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:39.961+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3227.30575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.255859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10897.671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:41.963+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.5432499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2353515625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.46875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:43.965+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.38375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2353515625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.46875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:45.966+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.22575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2353515625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10898.51953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:47.968+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3314.781,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.21630859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10898.51953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:49.969+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3229.8424999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.21630859375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10912.91015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:51.971+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.2615,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19873046875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10912.91015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:53.973+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.754,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19873046875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10912.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:55.974+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.705,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19873046875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10912.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:57.976+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.0447499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1826171875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.12109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:04:59.978+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3225.6040000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1826171875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.12109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:01.979+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3226.263,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.16796875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10900.24609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:03.981+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3253.31925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.16796875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10900.24609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:05.982+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3006.71625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.16796875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.17578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:07.984+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3245.32075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.154296875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.17578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:09.985+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3350.2355,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.154296875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.97265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:11.987+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3180.10725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1416015625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.98046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:13.989+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.371,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1416015625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10899.59375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:15.990+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3231.206,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1416015625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10899.59375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:17.992+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.5924999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1298828125,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.62890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:19.993+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3283.02775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1298828125,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.62890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:21.995+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.70075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.119140625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.62890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:23.996+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.3232500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.119140625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.5390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:25.998+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.371,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.119140625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:27.999+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3230.00675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.109375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:30.001+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3247.1645000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.109375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.87890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:32.003+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3265.3917500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1005859375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.87890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:34.004+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3244.1665,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1005859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10897.03515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:36.006+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.11075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1005859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10897.03515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:38.007+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3244.0552500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09228515625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:40.009+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3229.3552499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09228515625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.14453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:42.011+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3229.0975000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08447265625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.15234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:44.012+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.10725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08447265625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:46.014+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.75475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08447265625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:48.016+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.87,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.07763671875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.53125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:50.017+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.55925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.07763671875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.53125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:52.019+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3270.161,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0712890625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.7890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:54.021+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.1304999999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0712890625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.7890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:56.022+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.741,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0712890625,
+            "memory": {
+                "used_percent": 28.8,
+                "available_mb": 10931.71484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:05:58.025+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3247.04075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0654296875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10899.421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:00.026+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.85675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0654296875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10899.421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:02.028+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3243.13625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06005859375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10904.0,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:04.030+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.9575000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06005859375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10907.05078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:06.031+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3259.2292500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06005859375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10907.05078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:08.033+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.6707499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05517578125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.7578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:10.034+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.32125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05517578125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.7578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:12.035+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.681,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05029296875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10895.4921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:14.037+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3231.66175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05029296875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10895.4921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:16.039+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3243.2072500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05029296875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10900.546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:18.040+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3231.2555,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0458984375,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10900.546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:20.041+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3408.699,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0458984375,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11317.95703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:22.043+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.8669999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0419921875,
+            "memory": {
+                "used_percent": 28.8,
+                "available_mb": 10942.10546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:24.044+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3243.27675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0419921875,
+            "memory": {
+                "used_percent": 28.8,
+                "available_mb": 10942.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:26.046+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3244.3067499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0419921875,
+            "memory": {
+                "used_percent": 28.8,
+                "available_mb": 10942.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:28.047+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.5535000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03857421875,
+            "memory": {
+                "used_percent": 28.8,
+                "available_mb": 10941.0859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:30.049+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.21375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03857421875,
+            "memory": {
+                "used_percent": 28.8,
+                "available_mb": 10943.58203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:32.050+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.67775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03515625,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10875.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:34.052+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.28775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03515625,
+            "memory": {
+                "used_percent": 27.4,
+                "available_mb": 11157.72265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:36.053+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.89825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03515625,
+            "memory": {
+                "used_percent": 27.7,
+                "available_mb": 11113.94921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:38.055+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3223.508,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0322265625,
+            "memory": {
+                "used_percent": 27.2,
+                "available_mb": 11182.63671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:40.057+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3182.01525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0322265625,
+            "memory": {
+                "used_percent": 29.7,
+                "available_mb": 10806.90625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:42.058+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.25425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.029296875,
+            "memory": {
+                "used_percent": 29.7,
+                "available_mb": 10806.90625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:44.059+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.0115,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.029296875,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10876.9140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:46.061+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3236.23225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.029296875,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10876.9140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:48.062+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.9945,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02685546875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:50.064+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.693,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02685546875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:52.065+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.81925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0244140625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10909.234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:54.067+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3243.2365,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0244140625,
+            "memory": {
+                "used_percent": 29.5,
+                "available_mb": 10838.95703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:56.069+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.2885,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0244140625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:06:58.070+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.01575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02197265625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:00.072+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3240.49625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02197265625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.2265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:02.073+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3248.1245,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02001953125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.2265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:04.075+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.73375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02001953125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10910.2421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:06.076+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.98425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02001953125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10911.20703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:08.078+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.046,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01806640625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10911.20703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:10.079+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.096,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01806640625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:12.081+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.679,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0166015625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:14.082+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.7230000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0166015625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10906.16015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:16.084+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.48925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0166015625,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.7109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:18.085+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.7387499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01513671875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.7109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:20.087+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.8424999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01513671875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10913.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:22.088+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3234.9030000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.013671875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10913.32421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:24.090+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.4715,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.013671875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10900.3125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:26.091+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.53375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.013671875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10900.3125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:28.093+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.183,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01220703125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:30.095+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.5604999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01220703125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:32.096+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.4335,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0107421875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10905.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:34.098+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.00825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0107421875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10912.671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:36.099+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 32.3,
+            "cpu_freq_mhz": 3597.3152499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0107421875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10908.0859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:38.101+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 36.4,
+            "cpu_freq_mhz": 3233.871,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09033203125,
+            "memory": {
+                "used_percent": 30.2,
+                "available_mb": 10726.921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:40.103+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3179.393,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.09033203125,
+            "memory": {
+                "used_percent": 30.2,
+                "available_mb": 10726.921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:42.104+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.8705,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0830078125,
+            "memory": {
+                "used_percent": 30.1,
+                "available_mb": 10738.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:44.106+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.34375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0830078125,
+            "memory": {
+                "used_percent": 30.1,
+                "available_mb": 10734.38671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:46.107+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.22175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0830078125,
+            "memory": {
+                "used_percent": 30.1,
+                "available_mb": 10734.38671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:48.109+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3249.36575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.076171875,
+            "memory": {
+                "used_percent": 29.3,
+                "available_mb": 10858.01171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:50.110+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.16075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.076171875,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10874.98828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:52.112+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.2522499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06982421875,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10883.9375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:54.113+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3237.0147500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06982421875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10891.7421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:56.115+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3228.164,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06982421875,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10896.19921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:07:58.116+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.1885,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06396484375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10898.84765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:00.118+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.50875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.06396484375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10898.84765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:02.119+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.16,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:04.121+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.09825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:06.123+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.5144999999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05859375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:08.124+00:00",
+            "case_index": 112,
+            "case_name": "sklearn ExtraTreesClassifier susy",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3230.1890000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0537109375,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10890.109375,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

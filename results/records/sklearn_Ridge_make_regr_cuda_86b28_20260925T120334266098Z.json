@@ -1,0 +1,628 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "d2eb44",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 202.0,
+            "py_spy_profiling": false,
+            "cprofile_profiling": true
+        },
+        "metadata": {
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "Ridge"
+        },
+        "data": {
+            "source": "make_regression",
+            "generation_kwargs": {
+                "n_samples": 5000000,
+                "n_features": 20,
+                "n_informative": 5
+            },
+            "order": "F",
+            "dtype": "float64"
+        },
+        "implementation": {
+            "library": "sklearn",
+            "device": "cuda",
+            "data_library": "cupy",
+            "sklearn_context": {
+                "array_api_dispatch": true
+            }
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "fit": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "predict": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                }
+            },
+            "time_ms": {
+                "preprocessing": 2563.534097000229,
+                "fit": 978.2468680004968,
+                "predict": 13.692102000277373
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 2.338063920948035e-05,
+                    "R2": 0.9999999999999599
+                },
+                "predict": {
+                    "RMSE": 2.3383767774433067e-05,
+                    "R2": 0.9999999999999599
+                }
+            },
+            "attributes": {
+                "solver": "svd",
+                "n_features_in": 20
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "fit": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "predict": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1170.1256619999185,
+                "fit": 551.4879839993228,
+                "predict": 10.229887000605231
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 2.6980820110698606e-05,
+                    "R2": 0.99999999999996
+                },
+                "predict": {
+                    "RMSE": 2.6962667498748546e-05,
+                    "R2": 0.99999999999996
+                }
+            },
+            "attributes": {
+                "solver": "svd",
+                "n_features_in": 20
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "fit": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "predict": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1170.290023999769,
+                "fit": 551.446894000037,
+                "predict": 10.301698000148463
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 2.7382102365324255e-05,
+                    "R2": 0.99999999999996
+                },
+                "predict": {
+                    "RMSE": 2.7372569476489458e-05,
+                    "R2": 0.99999999999996
+                }
+            },
+            "attributes": {
+                "solver": "svd",
+                "n_features_in": 20
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "fit": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "predict": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1169.2918460003057,
+                "fit": 554.7976580000977,
+                "predict": 10.293338999872503
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 3.0228227522556523e-05,
+                    "R2": 0.99999999999996
+                },
+                "predict": {
+                    "RMSE": 3.0229650749061836e-05,
+                    "R2": 0.99999999999996
+                }
+            },
+            "attributes": {
+                "solver": "svd",
+                "n_features_in": 20
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "fit": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                },
+                "predict": {
+                    "format": "cupy",
+                    "order": "F",
+                    "dtype": "float64",
+                    "samples": 5000000,
+                    "features": 20
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1173.5634480000954,
+                "fit": 553.3014390002791,
+                "predict": 10.23487699967518
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 3.256427438124993e-05,
+                    "R2": 0.99999999999996
+                },
+                "predict": {
+                    "RMSE": 3.2570304809711855e-05,
+                    "R2": 0.99999999999996
+                }
+            },
+            "attributes": {
+                "solver": "svd",
+                "n_features_in": 20
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn(\n/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/skl-nvidia/lib/python3.12/site-packages/sklearn/linear_model/_ridge.py:856: UserWarning: Using Array API dispatch to namespace sklearn.externals.array_api_compat.cupy with `solver='auto'` will result in using the solver 'svd'. The results may differ from those when using a Numpy array, because in that case the preferred solver would be cholesky. Set `solver='svd'` to suppress this warning.\n  warnings.warn("
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T12:03:35.749+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 32.4,
+            "cpu_freq_mhz": 3236.30875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3525390625,
+            "memory": {
+                "used_percent": 15.3,
+                "available_mb": 13016.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:37.750+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3226.315,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.32421875,
+            "memory": {
+                "used_percent": 19.6,
+                "available_mb": 12355.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:39.752+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 30.6,
+            "cpu_freq_mhz": 3235.2775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.32421875,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10990.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:41.754+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.846,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.32421875,
+            "memory": {
+                "used_percent": 29.3,
+                "available_mb": 10856.06640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:43.755+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 19.7,
+            "cpu_freq_mhz": 3235.35575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2978515625,
+            "memory": {
+                "used_percent": 34.8,
+                "available_mb": 10018.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:45.757+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 20.1,
+            "cpu_freq_mhz": 3230.78075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2978515625,
+            "memory": {
+                "used_percent": 38.4,
+                "available_mb": 9456.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:47.760+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.4585,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.27392578125,
+            "memory": {
+                "used_percent": 26.7,
+                "available_mb": 11256.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:49.761+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 30.5,
+            "cpu_freq_mhz": 3240.9022499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.27392578125,
+            "memory": {
+                "used_percent": 32.6,
+                "available_mb": 10356.51171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:51.763+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3282.0190000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.27392578125,
+            "memory": {
+                "used_percent": 34.0,
+                "available_mb": 10134.015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:53.764+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.6245,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.251953125,
+            "memory": {
+                "used_percent": 33.6,
+                "available_mb": 10197.77734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:55.766+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3241.37625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.251953125,
+            "memory": {
+                "used_percent": 24.8,
+                "available_mb": 11550.5,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:57.768+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3278.80425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2314453125,
+            "memory": {
+                "used_percent": 30.2,
+                "available_mb": 10730.0,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:03:59.769+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 30.7,
+            "cpu_freq_mhz": 3232.1282499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2314453125,
+            "memory": {
+                "used_percent": 39.5,
+                "available_mb": 9287.50390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:01.771+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.83625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2314453125,
+            "memory": {
+                "used_percent": 34.0,
+                "available_mb": 10145.64453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:03.773+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.6312499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.212890625,
+            "memory": {
+                "used_percent": 22.7,
+                "available_mb": 11882.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:05.775+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.06225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.212890625,
+            "memory": {
+                "used_percent": 28.0,
+                "available_mb": 11058.23046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:07.776+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 30.7,
+            "cpu_freq_mhz": 3235.23825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19580078125,
+            "memory": {
+                "used_percent": 34.2,
+                "available_mb": 10103.5859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:09.778+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3228.83525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19580078125,
+            "memory": {
+                "used_percent": 34.1,
+                "available_mb": 10124.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:11.780+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3244.35375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19580078125,
+            "memory": {
+                "used_percent": 21.2,
+                "available_mb": 12102.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:13.781+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.38925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1796875,
+            "memory": {
+                "used_percent": 26.1,
+                "available_mb": 11346.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:15.783+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 30.7,
+            "cpu_freq_mhz": 3234.186,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1796875,
+            "memory": {
+                "used_percent": 39.9,
+                "available_mb": 9230.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:17.784+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.90675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1650390625,
+            "memory": {
+                "used_percent": 40.6,
+                "available_mb": 9122.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T12:04:19.786+00:00",
+            "case_index": 22,
+            "case_name": "sklearn Ridge make_regr cuda",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.2169999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1650390625,
+            "memory": {
+                "used_percent": 35.6,
+                "available_mb": 9901.20703125,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

@@ -1,0 +1,898 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "env": {},
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "clustering",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "KMeans",
+            "estimator_params": {
+                "n_clusters": 100
+            }
+        },
+        "data": {
+            "dataset": "fashion_mnist_784"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 70000,
+                    "features": 784
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 60000,
+                    "features": 784
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 784
+                }
+            },
+            "time_ms": {
+                "preprocessing": 38.60728600011498,
+                "fit": 10314.461234999726,
+                "predict": 11.539379000168992
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 78801977344.0,
+                    "Davies-Bouldin score": 2.511305817234169,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 13205265408.0,
+                    "Davies-Bouldin score": 2.5032635264439667,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 76,
+                "n_features_in": 784,
+                "inertia": 78801920000.0
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 70000,
+                    "features": 784
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 60000,
+                    "features": 784
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 784
+                }
+            },
+            "time_ms": {
+                "preprocessing": 33.12376799931371,
+                "fit": 16007.027654000012,
+                "predict": 11.536245999195671
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 78852579328.0,
+                    "Davies-Bouldin score": 2.539835214169044,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 13238992896.0,
+                    "Davies-Bouldin score": 2.5430907270165344,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 173,
+                "n_features_in": 784,
+                "inertia": 78852128768.0
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 70000,
+                    "features": 784
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 60000,
+                    "features": 784
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 784
+                }
+            },
+            "time_ms": {
+                "preprocessing": 33.204614000169386,
+                "fit": 10695.228886000223,
+                "predict": 13.222341000073357
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 78972821504.0,
+                    "Davies-Bouldin score": 2.5349476813449168,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 13266155520.0,
+                    "Davies-Bouldin score": 2.5427718459998827,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 84,
+                "n_features_in": 784,
+                "inertia": 78972764160.0
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 70000,
+                    "features": 784
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 60000,
+                    "features": 784
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 784
+                }
+            },
+            "time_ms": {
+                "preprocessing": 32.31686500021169,
+                "fit": 21362.13761700037,
+                "predict": 11.511888000313775
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 78808465408.0,
+                    "Davies-Bouldin score": 2.533057310794102,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 13244282880.0,
+                    "Davies-Bouldin score": 2.5420728837320654,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 117,
+                "n_features_in": 784,
+                "inertia": 78808662016.0
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 70000,
+                    "features": 784
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 60000,
+                    "features": 784
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 784
+                }
+            },
+            "time_ms": {
+                "preprocessing": 33.42829399934999,
+                "fit": 12247.798847000013,
+                "predict": 11.519468999722449
+            },
+            "metrics": {
+                "fit": {
+                    "inertia": 78739308544.0,
+                    "Davies-Bouldin score": 2.5500787069241437,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                },
+                "predict": {
+                    "inertia": 13223684096.0,
+                    "Davies-Bouldin score": 2.5533226895191614,
+                    "homogeneity": 1.0,
+                    "completeness": 0.0
+                }
+            },
+            "attributes": {
+                "n_iter": 111,
+                "n_features_in": 784,
+                "inertia": 78739365888.0
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:49:16.370+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 39.4,
+            "cpu_freq_mhz": 3491.2855,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.45166015625,
+            "memory": {
+                "used_percent": 9.9,
+                "available_mb": 13848.7890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:18.371+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 4.4,
+            "cpu_freq_mhz": 3505.74975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2548828125,
+            "memory": {
+                "used_percent": 9.9,
+                "available_mb": 13848.953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:20.373+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 4.4,
+            "cpu_freq_mhz": 3106.85525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.2548828125,
+            "memory": {
+                "used_percent": 9.9,
+                "available_mb": 13847.203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:22.374+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 13.7,
+            "cpu_freq_mhz": 3237.5514999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.154296875,
+            "memory": {
+                "used_percent": 11.3,
+                "available_mb": 13630.45703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:24.376+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 77.9,
+            "cpu_freq_mhz": 3597.4625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.154296875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13138.18359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:26.381+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.64575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.154296875,
+            "memory": {
+                "used_percent": 14.5,
+                "available_mb": 13140.09765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:28.386+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3596.812,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.30224609375,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13159.953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:30.389+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 58.5,
+            "cpu_freq_mhz": 3595.822,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.30224609375,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13181.63671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:32.391+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3594.9127500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.27783203125,
+            "memory": {
+                "used_percent": 13.7,
+                "available_mb": 13257.63671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:34.392+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 74.3,
+            "cpu_freq_mhz": 3599.9685,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.27783203125,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13206.59375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:36.395+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.84125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.27783203125,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13206.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:38.400+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3599.48975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.416015625,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13206.4921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:40.402+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 82.7,
+            "cpu_freq_mhz": 3592.9842499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.416015625,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13206.4921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:42.404+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3588.65525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.38232421875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13239.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:44.406+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.6,
+            "cpu_freq_mhz": 3595.49425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.38232421875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13235.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:46.407+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3596.028,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.38232421875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13235.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:48.409+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.8,
+            "cpu_freq_mhz": 3607.9185,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.3515625,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13235.51171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:50.411+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 62.0,
+            "cpu_freq_mhz": 3599.5637500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.3515625,
+            "memory": {
+                "used_percent": 12.7,
+                "available_mb": 13414.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:52.414+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 95.9,
+            "cpu_freq_mhz": 3598.9207499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.48388671875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13243.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:54.418+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.7405,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.48388671875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13239.41796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:56.420+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 96.9,
+            "cpu_freq_mhz": 3595.9644999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.48388671875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13239.41796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:49:58.422+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3597.78675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.44482421875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13239.171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:00.424+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3597.9979999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.44482421875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13239.171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:02.426+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 78.6,
+            "cpu_freq_mhz": 3591.5910000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.4091796875,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13225.0078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:04.428+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 97.1,
+            "cpu_freq_mhz": 3599.64775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.4091796875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13161.21484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:06.431+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.4995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.4091796875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13166.28125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:08.441+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3598.2825000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.61669921875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13172.51953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:10.443+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 99.6,
+            "cpu_freq_mhz": 3600.073,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.61669921875,
+            "memory": {
+                "used_percent": 14.3,
+                "available_mb": 13163.28515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:12.447+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 99.7,
+            "cpu_freq_mhz": 3597.461,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8076171875,
+            "memory": {
+                "used_percent": 14.4,
+                "available_mb": 13144.21484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:14.450+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3598.31725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8076171875,
+            "memory": {
+                "used_percent": 14.2,
+                "available_mb": 13187.5,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:16.452+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3600.17625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8076171875,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13197.17578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:18.455+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 62.1,
+            "cpu_freq_mhz": 3594.34725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.74267578125,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13198.93359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:20.457+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3592.893,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.74267578125,
+            "memory": {
+                "used_percent": 14.1,
+                "available_mb": 13204.87109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:22.459+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3594.447,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.68310546875,
+            "memory": {
+                "used_percent": 14.0,
+                "available_mb": 13213.98046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:24.461+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 65.0,
+            "cpu_freq_mhz": 3233.64525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.68310546875,
+            "memory": {
+                "used_percent": 13.8,
+                "available_mb": 13244.078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:26.464+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 96.6,
+            "cpu_freq_mhz": 3599.918,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.68310546875,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13226.17578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:28.466+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3598.33725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.78857421875,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13226.17578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:30.470+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 92.6,
+            "cpu_freq_mhz": 3595.1760000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.78857421875,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13225.9296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:32.472+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3595.3467499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.72509765625,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13225.9296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:34.474+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3594.1915,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.72509765625,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13225.9296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:50:36.476+00:00",
+            "case_index": 134,
+            "case_name": "sklearn KMeans fashion_mnist_784",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3593.4632500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.72509765625,
+            "memory": {
+                "used_percent": 13.9,
+                "available_mb": 13229.05859375,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

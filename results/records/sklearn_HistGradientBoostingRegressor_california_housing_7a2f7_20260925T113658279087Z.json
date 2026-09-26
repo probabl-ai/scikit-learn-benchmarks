@@ -1,0 +1,422 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "regression",
+            "tier": "fast",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "HistGradientBoostingRegressor",
+            "estimator_params": {
+                "learning_rate": 0.1,
+                "max_iter": 150,
+                "max_leaf_nodes": 63,
+                "min_samples_leaf": 20,
+                "max_bins": 255,
+                "early_stopping": false
+            }
+        },
+        "data": {
+            "dataset": "california_housing",
+            "preprocessing_kind": "hgb"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20640,
+                    "features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 18576,
+                    "features": 8
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 2064,
+                    "features": 8
+                }
+            },
+            "time_ms": {
+                "preprocessing": 16.01901899994118,
+                "fit": 504.24975700025243,
+                "predict": 9.339949999230157
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.30726656350889797,
+                    "R2": 0.9288410326802407
+                },
+                "predict": {
+                    "RMSE": 0.4382443597930335,
+                    "R2": 0.8602514711226467
+                }
+            },
+            "attributes": {
+                "n_iter": 150,
+                "n_features_in": 8,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 0.5042399769999975,
+                "other_time": 0.07967751199794293,
+                "preprocess_time": 0.0009291280002798885,
+                "binning_time": 0.01694073699945875,
+                "binning_train_time": 0.01694073699945875,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.012752615999488626,
+                "bin_transform_time": 0.00417582099998981,
+                "tree_time": 0.46957912200105056,
+                "grower_init_time": 0.027569028005927976,
+                "grow_time": 0.3791235719963879,
+                "make_predictor_time": 0.06288652199873468,
+                "hist_time": 0.11768017094163952,
+                "find_split_time": 0.10556328099301027,
+                "apply_split_time": 0.12875057702603954,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20640,
+                    "features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 18576,
+                    "features": 8
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 2064,
+                    "features": 8
+                }
+            },
+            "time_ms": {
+                "preprocessing": 2.9643569996551378,
+                "fit": 501.81634000000486,
+                "predict": 9.25707899932604
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.30715151529161033,
+                    "R2": 0.929064283842496
+                },
+                "predict": {
+                    "RMSE": 0.4529734963650924,
+                    "R2": 0.847416062559222
+                }
+            },
+            "attributes": {
+                "n_iter": 150,
+                "n_features_in": 8,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 0.5018091199999617,
+                "other_time": 0.0794328289994155,
+                "preprocess_time": 0.000702743999681843,
+                "binning_time": 0.016204073000153585,
+                "binning_train_time": 0.016204073000153585,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.011867548999362043,
+                "bin_transform_time": 0.004324673999690276,
+                "tree_time": 0.4683092760014915,
+                "grower_init_time": 0.027791941995928937,
+                "grow_time": 0.3776775320047818,
+                "make_predictor_time": 0.06283980200078076,
+                "hist_time": 0.11659789494387951,
+                "find_split_time": 0.10576628206490568,
+                "apply_split_time": 0.12874245200691803,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20640,
+                    "features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 18576,
+                    "features": 8
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 2064,
+                    "features": 8
+                }
+            },
+            "time_ms": {
+                "preprocessing": 2.660821999597829,
+                "fit": 498.61994799994136,
+                "predict": 9.228887999597646
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.30245819707867466,
+                    "R2": 0.9312231499607696
+                },
+                "predict": {
+                    "RMSE": 0.45258861877161377,
+                    "R2": 0.8476212466043461
+                }
+            },
+            "attributes": {
+                "n_iter": 150,
+                "n_features_in": 8,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 0.49861478799994075,
+                "other_time": 0.07890291499916202,
+                "preprocess_time": 0.0006715030003761058,
+                "binning_time": 0.016321044999131118,
+                "binning_train_time": 0.016321044999131118,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.012281296999390179,
+                "bin_transform_time": 0.004028878000099212,
+                "tree_time": 0.46530813300341833,
+                "grower_init_time": 0.027541935000954254,
+                "grow_time": 0.37517739000031725,
+                "make_predictor_time": 0.06258880800214683,
+                "hist_time": 0.11593462000291765,
+                "find_split_time": 0.10470052604523516,
+                "apply_split_time": 0.12795679698410822,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20640,
+                    "features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 18576,
+                    "features": 8
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 2064,
+                    "features": 8
+                }
+            },
+            "time_ms": {
+                "preprocessing": 2.724592000049597,
+                "fit": 502.51138399926276,
+                "predict": 9.272139000131574
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.3068176174312759,
+                    "R2": 0.9292070283460033
+                },
+                "predict": {
+                    "RMSE": 0.40920669660748515,
+                    "R2": 0.87572832920978
+                }
+            },
+            "attributes": {
+                "n_iter": 150,
+                "n_features_in": 8,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 0.5025054240004465,
+                "other_time": 0.08007159899716498,
+                "preprocess_time": 0.0007094840002537239,
+                "binning_time": 0.01667862199974479,
+                "binning_train_time": 0.01667862199974479,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.012518642000031832,
+                "bin_transform_time": 0.004147890000240295,
+                "tree_time": 0.46843117200569395,
+                "grower_init_time": 0.027810719999251887,
+                "grow_time": 0.3772349990040311,
+                "make_predictor_time": 0.06338545300241094,
+                "hist_time": 0.11530539001523721,
+                "find_split_time": 0.10504833299910388,
+                "apply_split_time": 0.12938984996526415,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20640,
+                    "features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 18576,
+                    "features": 8
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 2064,
+                    "features": 8
+                }
+            },
+            "time_ms": {
+                "preprocessing": 2.751742999862472,
+                "fit": 503.69138599944563,
+                "predict": 9.281628999815439
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.3064297902026594,
+                    "R2": 0.92990062370728
+                },
+                "predict": {
+                    "RMSE": 0.419073163181494,
+                    "R2": 0.8603975251085411
+                }
+            },
+            "attributes": {
+                "n_iter": 150,
+                "n_features_in": 8,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 0.5036849059997621,
+                "other_time": 0.07990383700598613,
+                "preprocess_time": 0.0006836530001237406,
+                "binning_time": 0.016521188999831793,
+                "binning_train_time": 0.016521188999831793,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.012447881000298366,
+                "bin_transform_time": 0.004060928000399144,
+                "tree_time": 0.46985408399450534,
+                "grower_init_time": 0.02763845399749698,
+                "grow_time": 0.3789377729963235,
+                "make_predictor_time": 0.06327785700068489,
+                "hist_time": 0.1160838189880451,
+                "find_split_time": 0.10569472702263738,
+                "apply_split_time": 0.12988846198459214,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:36:59.528+00:00",
+            "case_index": 127,
+            "case_name": "sklearn HistGradientBoostingRegressor california_housing",
+            "cpu_percent": 32.8,
+            "cpu_freq_mhz": 3244.48425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2060546875,
+            "memory": {
+                "used_percent": 10.8,
+                "available_mb": 13703.11328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:37:01.529+00:00",
+            "case_index": 127,
+            "case_name": "sklearn HistGradientBoostingRegressor california_housing",
+            "cpu_percent": 47.1,
+            "cpu_freq_mhz": 3176.86725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2060546875,
+            "memory": {
+                "used_percent": 10.8,
+                "available_mb": 13708.7109375,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

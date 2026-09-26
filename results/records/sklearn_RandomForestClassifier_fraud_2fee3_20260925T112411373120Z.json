@@ -1,0 +1,2175 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "classification",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "RandomForestClassifier",
+            "estimator_params": {
+                "n_estimators": 200,
+                "n_jobs": 1
+            }
+        },
+        "data": {
+            "dataset": "fraud"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [],
+    "failed_case": {
+        "case": {
+            "bench": {
+                "n_runs": 5,
+                "time_limit": 300.0,
+                "py_spy_profiling": false
+            },
+            "metadata": {
+                "task": "classification",
+                "tier": "normal",
+                "source_config": "configs/all_models_16gb.py"
+            },
+            "algorithm": {
+                "estimator": "RandomForestClassifier",
+                "estimator_params": {
+                    "n_estimators": 200,
+                    "n_jobs": 1
+                }
+            },
+            "data": {
+                "dataset": "fraud"
+            },
+            "implementation": {
+                "library": "sklearn"
+            }
+        },
+        "return_code": -9,
+        "command": [
+            "/home/ubuntu/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/bin/python",
+            "-m",
+            "sklbench.runners.estimator",
+            "--case-file",
+            "/tmp/sklbench-run-yw6503vs/case.json",
+            "--n-runs",
+            "5",
+            "--output-jsonl",
+            "/tmp/sklbench-run-yw6503vs/result.jsonl"
+        ],
+        "logs": {
+            "stdout": "",
+            "stderr": "Runner exceeded time limit (300.0 seconds)."
+        }
+    },
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:24:12.929+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 44.6,
+            "cpu_freq_mhz": 2986.74575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.11181640625,
+            "memory": {
+                "used_percent": 11.9,
+                "available_mb": 13537.16015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:14.931+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3240.1434999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.11181640625,
+            "memory": {
+                "used_percent": 11.8,
+                "available_mb": 13547.80078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:16.932+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3234.81425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.11181640625,
+            "memory": {
+                "used_percent": 11.8,
+                "available_mb": 13555.9453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:18.934+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.482,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0224609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.1875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:20.936+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.861,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.0224609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:22.937+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3232.9480000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9404296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:24.939+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3229.3047500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9404296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:26.941+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.84525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9404296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:28.942+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.7435,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.86474609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:30.944+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.4359999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.86474609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:32.945+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.8560000000007,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.79541015625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:34.947+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.101,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.79541015625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:36.948+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3241.10975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7314453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:38.950+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3229.09625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7314453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:40.951+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3232.3175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7314453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:42.953+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3233.20125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6728515625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:44.954+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3274.84575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6728515625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:46.956+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3240.59625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.61865234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.64453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:48.957+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3228.536,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.61865234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:50.959+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3245.579,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.61865234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:52.960+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3232.5389999999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.56884765625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:54.962+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3231.3955,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.56884765625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:56.963+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.4105,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.52294921875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:24:58.965+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3242.5280000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.52294921875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:00.966+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3228.6690000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.52294921875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13564.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:02.968+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3246.5685000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.48095703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.71484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:04.969+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.4665,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.48095703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.71484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:06.971+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.2275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4423828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.71484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:08.972+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3243.781,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4423828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.71484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:10.974+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3233.4902500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4423828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.72265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:12.975+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3236.6997499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.40673828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.72265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:14.976+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3237.4037499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.40673828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.72265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:16.978+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3261.52025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3740234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.72265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:18.979+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.8365000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3740234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:20.981+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.138,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3740234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:22.982+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3241.25175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.34375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:24.984+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3247.5380000000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.34375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:26.985+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.4022499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.31591796875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:28.987+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.94625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.31591796875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:30.988+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3232.42925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.31591796875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:32.990+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.37025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.29052734375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:34.991+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.2092500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.29052734375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:36.992+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3244.9987499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26708984375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:38.994+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3225.65075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26708984375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:40.995+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.78,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26708984375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:42.997+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3375.81675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.24560546875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:44.998+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.12525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.24560546875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:47.000+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3232.8664999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2255859375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:49.001+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.85825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2255859375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:51.003+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3236.05625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.2255859375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:53.004+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.93925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.20751953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:55.006+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.42075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.20751953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:57.007+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.68775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1904296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:25:59.009+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3246.1885,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1904296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:01.010+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3237.6004999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1904296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:03.011+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.2125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1748046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:05.013+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.5915,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1748046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:07.014+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.8885,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.16064453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:09.016+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.6725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.16064453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.73828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:11.017+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.8252500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.16064453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:13.019+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3251.01725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1474609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:15.020+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.0057500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1474609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:17.022+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.749,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.13525390625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:19.023+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.486,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.13525390625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:21.025+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3230.91125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.13525390625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:23.026+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3235.3885,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1240234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:25.028+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.5280000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1240234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:27.029+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3239.772,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.11376953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:29.031+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3241.2745000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.11376953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:31.032+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.7397499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.11376953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:33.034+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3241.36225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1044921875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:35.035+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3243.5730000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1044921875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:37.037+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.7219999999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.095703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:39.038+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3240.08075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.095703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:41.040+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.0875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.095703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:43.041+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.5315,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.087890625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:45.043+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3308.2802500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.087890625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:47.044+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.8957499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08056640625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:49.045+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3232.576,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08056640625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:51.047+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.5005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.08056640625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:53.048+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.82575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.07373046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:55.050+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.0545,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.07373046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:57.051+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.6605,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0673828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:26:59.053+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3240.2245,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0673828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:01.054+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.134,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0673828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:03.056+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3237.38875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0615234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:05.058+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3233.138,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0615234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:07.059+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.67375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05615234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:09.061+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3220.475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05615234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:11.063+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.4852499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05615234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:13.064+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.87475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05126953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:15.066+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.12475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.05126953125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:17.068+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.2725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:19.069+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3219.31675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:21.071+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3231.67375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.046875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.7734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:23.073+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.2315,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13563.77734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:25.074+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3237.1985,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.04296875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.8203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:27.076+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3233.5755,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0390625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:29.078+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.3959999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0390625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:31.079+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.526,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0390625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:33.081+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3224.30075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03564453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:35.083+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3271.0289999999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03564453125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:37.084+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.26375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03271484375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:39.086+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3297.6765,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03271484375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:41.088+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3230.52025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.03271484375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:43.090+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3228.246,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02978515625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.80078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:45.091+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.6852499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02978515625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.80078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:47.093+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.5150000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02734375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.63671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:49.095+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3231.944,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02734375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.63671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:51.096+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3226.385,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02734375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.63671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:53.098+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.19075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02490234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:55.100+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3243.361,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.02490234375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:57.101+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3240.1755000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0224609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:27:59.103+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3229.661,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0224609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:01.105+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3244.29875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0224609375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:03.106+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3258.6437499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0205078125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:05.108+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3240.551,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0205078125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:07.110+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3225.7995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0185546875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:09.111+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3233.54425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0185546875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:11.113+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.126,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0185546875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:13.115+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3231.8625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0166015625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:15.116+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.4,
+            "cpu_freq_mhz": 3235.68975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0166015625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:17.118+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3281.96725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01513671875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:19.119+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3223.2875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01513671875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:21.121+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3238.1807499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01513671875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:23.122+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3245.2095,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.013671875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:25.124+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3232.9584999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.013671875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:27.125+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3244.6842500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01220703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:29.127+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3256.7595,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01220703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:31.128+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.85425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.01220703125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:33.130+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3239.17775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0107421875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:35.131+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3234.98225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0107421875,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:37.133+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3235.67075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.009765625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:39.134+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3229.20625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.009765625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:41.136+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3226.786,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.009765625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:43.137+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3236.6112500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0087890625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:45.139+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.1945,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0087890625,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:47.140+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3238.24125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0078125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:49.142+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3235.599,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0078125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:51.143+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3248.9307500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0078125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:53.145+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3230.8957499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0068359375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:55.146+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.1,
+            "cpu_freq_mhz": 3236.81,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0068359375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:57.148+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.5905,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.005859375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:28:59.149+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3242.31525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.005859375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:01.150+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3271.88825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.005859375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:03.152+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3237.98025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.00537109375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.6640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:05.153+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3247.97925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.00537109375,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.66796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:07.155+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3242.19775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0048828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.66796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:09.156+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3245.54625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0048828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.66796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:11.158+00:00",
+            "case_index": 117,
+            "case_name": "sklearn RandomForestClassifier fraud",
+            "cpu_percent": 25.2,
+            "cpu_freq_mhz": 3234.555,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0048828125,
+            "memory": {
+                "used_percent": 11.7,
+                "available_mb": 13562.66796875,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

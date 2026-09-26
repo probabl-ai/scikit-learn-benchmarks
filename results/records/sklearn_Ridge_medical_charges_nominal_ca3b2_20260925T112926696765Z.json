@@ -1,0 +1,365 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "regression",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "Ridge",
+            "estimator_params": {
+                "alpha": 1.0
+            }
+        },
+        "data": {
+            "dataset": "medical_charges_nominal",
+            "preprocessing_kind": "linear"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 163065,
+                    "features": 11,
+                    "n_categorical_features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 130452,
+                    "features": 121
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 32613,
+                    "features": 121
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1045.8158779993028,
+                "fit": 82.62355299939372,
+                "predict": 2.6903710004262393
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 1080.0848881498562,
+                    "R2": 0.9801123723855729
+                },
+                "predict": {
+                    "RMSE": 1021.4489849812312,
+                    "R2": 0.982344739690084
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 121,
+                "intercept": 64723.6724008542
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 163065,
+                    "features": 11,
+                    "n_categorical_features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 130452,
+                    "features": 121
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 32613,
+                    "features": 121
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1018.946096000036,
+                "fit": 81.37940999949933,
+                "predict": 2.7337419996911194
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 1056.6051187830035,
+                    "R2": 0.9809958277407944
+                },
+                "predict": {
+                    "RMSE": 1094.3091309084896,
+                    "R2": 0.9796158512108029
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 121,
+                "intercept": 64262.04897854064
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 163065,
+                    "features": 11,
+                    "n_categorical_features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 130452,
+                    "features": 121
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 32613,
+                    "features": 121
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1026.2483359992984,
+                "fit": 81.3943900002414,
+                "predict": 2.700861999983317
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 1085.1769878725677,
+                    "R2": 0.9799140209192991
+                },
+                "predict": {
+                    "RMSE": 970.8949086015967,
+                    "R2": 0.9840818397509435
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 121,
+                "intercept": 64540.271506932
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 163065,
+                    "features": 11,
+                    "n_categorical_features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 130452,
+                    "features": 121
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 32613,
+                    "features": 121
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1029.969417000757,
+                "fit": 81.04508399992483,
+                "predict": 2.6605709999785176
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 1073.084356301482,
+                    "R2": 0.9803929245913767
+                },
+                "predict": {
+                    "RMSE": 1024.8828136684479,
+                    "R2": 0.9821398367156083
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 121,
+                "intercept": 64324.63461969679
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 163065,
+                    "features": 11,
+                    "n_categorical_features": 8
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 130452,
+                    "features": 121
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "samples": 32613,
+                    "features": 121
+                }
+            },
+            "time_ms": {
+                "preprocessing": 1029.9385950002033,
+                "fit": 81.14252599989413,
+                "predict": 2.712950999921304
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 1060.6005088729648,
+                    "R2": 0.9808940602418468
+                },
+                "predict": {
+                    "RMSE": 1073.9397859086569,
+                    "R2": 0.9801931141419407
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 121,
+                "intercept": 64676.127340831335
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:29:27.171+00:00",
+            "case_index": 119,
+            "case_name": "sklearn Ridge medical_charges_nominal",
+            "cpu_percent": 44.6,
+            "cpu_freq_mhz": 3235.4495,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1455078125,
+            "memory": {
+                "used_percent": 9.1,
+                "available_mb": 13962.5234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:29.173+00:00",
+            "case_index": 119,
+            "case_name": "sklearn Ridge medical_charges_nominal",
+            "cpu_percent": 29.4,
+            "cpu_freq_mhz": 3238.36325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1455078125,
+            "memory": {
+                "used_percent": 11.5,
+                "available_mb": 13600.49609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:31.175+00:00",
+            "case_index": 119,
+            "case_name": "sklearn Ridge medical_charges_nominal",
+            "cpu_percent": 37.3,
+            "cpu_freq_mhz": 3232.68475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1455078125,
+            "memory": {
+                "used_percent": 10.4,
+                "available_mb": 13760.34765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:29:33.176+00:00",
+            "case_index": 119,
+            "case_name": "sklearn Ridge medical_charges_nominal",
+            "cpu_percent": 37.2,
+            "cpu_freq_mhz": 3243.8144999999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1337890625,
+            "memory": {
+                "used_percent": 10.5,
+                "available_mb": 13756.40625,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

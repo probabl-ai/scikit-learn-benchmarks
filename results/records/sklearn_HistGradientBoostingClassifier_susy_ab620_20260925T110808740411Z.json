@@ -1,0 +1,2226 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 300.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "task": "classification",
+            "tier": "normal",
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "HistGradientBoostingClassifier",
+            "estimator_params": {
+                "learning_rate": 0.07,
+                "max_iter": 70,
+                "max_leaf_nodes": 127,
+                "min_samples_leaf": 5,
+                "l2_regularization": 0.05,
+                "max_bins": 255,
+                "early_stopping": false
+            }
+        },
+        "data": {
+            "dataset": "susy",
+            "preprocessing_kind": "hgb"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 4500000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 500000,
+                    "features": 18,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 155.6108839999979,
+                "fit": 34801.396939999904,
+                "predict": 1106.8300450001516
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8765025107011903,
+                    "Brier score": 0.1380682928354227,
+                    "logloss": 0.4272207006738874
+                },
+                "predict": {
+                    "ROC AUC": 0.876196936951135,
+                    "Brier score": 0.13838349979092754,
+                    "logloss": 0.4278821782582563
+                }
+            },
+            "attributes": {
+                "n_iter": 70,
+                "n_features_in": 18,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 34.80137752000019,
+                "other_time": 2.1506102269986513,
+                "preprocess_time": 0.0012516429997049272,
+                "binning_time": 2.3542214410003908,
+                "binning_train_time": 2.3542214410003908,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.20904974099994433,
+                "bin_transform_time": 2.145144519999576,
+                "tree_time": 30.36140959000204,
+                "grower_init_time": 3.308152048003649,
+                "grow_time": 26.98714216099779,
+                "make_predictor_time": 0.06611538100059988,
+                "hist_time": 24.866343789951316,
+                "find_split_time": 0.3542598490266755,
+                "apply_split_time": 4.624186858014582,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 4500000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 500000,
+                    "features": 18,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 133.8975900002879,
+                "fit": 35714.88138699988,
+                "predict": 1115.366535999783
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8765128363854502,
+                    "Brier score": 0.1380724408341993,
+                    "logloss": 0.4272284576594567
+                },
+                "predict": {
+                    "ROC AUC": 0.8762117761099848,
+                    "Brier score": 0.1383745261296053,
+                    "logloss": 0.42785768405245794
+                }
+            },
+            "attributes": {
+                "n_iter": 70,
+                "n_features_in": 18,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 35.71486169599984,
+                "other_time": 2.2290723519990934,
+                "preprocess_time": 0.000922157999866613,
+                "binning_time": 2.351795521999975,
+                "binning_train_time": 2.351795521999975,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.2060940119999941,
+                "bin_transform_time": 2.145675809000295,
+                "tree_time": 31.19941536600254,
+                "grower_init_time": 4.128663331999633,
+                "grow_time": 27.004408332001276,
+                "make_predictor_time": 0.06634370200163175,
+                "hist_time": 24.850867886029846,
+                "find_split_time": 0.352728851986285,
+                "apply_split_time": 4.676962977010589,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 4500000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 500000,
+                    "features": 18,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 134.58414999968227,
+                "fit": 38349.38915500016,
+                "predict": 1112.5588210002206
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8765133862741701,
+                    "Brier score": 0.13805339048867557,
+                    "logloss": 0.4271969691562371
+                },
+                "predict": {
+                    "ROC AUC": 0.8761964538159928,
+                    "Brier score": 0.1383845435645532,
+                    "logloss": 0.42787125410431176
+                }
+            },
+            "attributes": {
+                "n_iter": 70,
+                "n_features_in": 18,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 38.34937309499992,
+                "other_time": 2.4878286530060905,
+                "preprocess_time": 0.0008764670001255581,
+                "binning_time": 2.3515851820002354,
+                "binning_train_time": 2.3515851820002354,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.20628530900012265,
+                "bin_transform_time": 2.145275843000036,
+                "tree_time": 33.58386709399201,
+                "grower_init_time": 4.572379623998131,
+                "grow_time": 28.936703168995336,
+                "make_predictor_time": 0.0747843009985445,
+                "hist_time": 26.827032074961153,
+                "find_split_time": 0.37868158201490587,
+                "apply_split_time": 5.002719122012877,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 4500000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 500000,
+                    "features": 18,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 134.24041899997974,
+                "fit": 35637.75564400021,
+                "predict": 1105.7492079999065
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8765202270619018,
+                    "Brier score": 0.13805254552670543,
+                    "logloss": 0.4271871539680784
+                },
+                "predict": {
+                    "ROC AUC": 0.876243805006647,
+                    "Brier score": 0.13834666916357902,
+                    "logloss": 0.42779178981866683
+                }
+            },
+            "attributes": {
+                "n_iter": 70,
+                "n_features_in": 18,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 35.63774004400011,
+                "other_time": 2.2231833280006867,
+                "preprocess_time": 0.0008981270002550445,
+                "binning_time": 2.3532997869997416,
+                "binning_train_time": 2.3532997869997416,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.20601896400012265,
+                "bin_transform_time": 2.1472563429997535,
+                "tree_time": 31.127003407000757,
+                "grower_init_time": 4.13477821799961,
+                "grow_time": 26.925580583999817,
+                "make_predictor_time": 0.06664460500132918,
+                "hist_time": 24.763609092020488,
+                "find_split_time": 0.3531232759955856,
+                "apply_split_time": 4.685548567039405,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 5000000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 4500000,
+                    "features": 18,
+                    "n_classes": 2
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 500000,
+                    "features": 18,
+                    "n_classes": 2
+                }
+            },
+            "time_ms": {
+                "preprocessing": 134.44079499959116,
+                "fit": 35652.61181799997,
+                "predict": 1106.5720560000045
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8765232219985133,
+                    "Brier score": 0.1380537020275894,
+                    "logloss": 0.4271887009127436
+                },
+                "predict": {
+                    "ROC AUC": 0.8761962279910094,
+                    "Brier score": 0.13837198928697414,
+                    "logloss": 0.42786190066894747
+                }
+            },
+            "attributes": {
+                "n_iter": 70,
+                "n_features_in": 18,
+                "n_trees_per_iteration": 1,
+                "do_early_stopping": false,
+                "total_time": 35.65259580799966,
+                "other_time": 2.2287777189972076,
+                "preprocess_time": 0.0008503059998474782,
+                "binning_time": 2.3383929349997743,
+                "binning_train_time": 2.3383929349997743,
+                "binning_validation_time": 0.0,
+                "bin_fit_time": 0.19372532300030798,
+                "bin_transform_time": 2.14464037200014,
+                "tree_time": 31.150967119001507,
+                "grower_init_time": 4.11022467200246,
+                "grow_time": 26.97435017600037,
+                "make_predictor_time": 0.0663922709986764,
+                "hist_time": 24.812390704994414,
+                "find_split_time": 0.3525490419956441,
+                "apply_split_time": 4.678538346997357,
+                "tree_n_threads": 2
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T11:08:10.126+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 32.7,
+            "cpu_freq_mhz": 3242.329,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.0537109375,
+            "memory": {
+                "used_percent": 10.3,
+                "available_mb": 13780.92578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:12.127+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 55.2,
+            "cpu_freq_mhz": 3596.9475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1298828125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10957.97265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:14.129+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3596.746,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1298828125,
+            "memory": {
+                "used_percent": 29.2,
+                "available_mb": 10881.96484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:16.131+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3594.393,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.1298828125,
+            "memory": {
+                "used_percent": 29.6,
+                "available_mb": 10813.2734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:18.133+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.2,
+            "cpu_freq_mhz": 3593.618,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19970703125,
+            "memory": {
+                "used_percent": 29.8,
+                "available_mb": 10790.80859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:20.135+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3594.5840000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.19970703125,
+            "memory": {
+                "used_percent": 29.7,
+                "available_mb": 10806.55859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:22.136+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3596.02225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26416015625,
+            "memory": {
+                "used_percent": 29.6,
+                "available_mb": 10818.0625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:24.138+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3594.81325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26416015625,
+            "memory": {
+                "used_percent": 29.5,
+                "available_mb": 10833.78515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:26.140+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3593.078,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.26416015625,
+            "memory": {
+                "used_percent": 29.1,
+                "available_mb": 10887.41796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:28.142+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3595.40575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3232421875,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10903.140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:30.144+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3601.0850000000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.3232421875,
+            "memory": {
+                "used_percent": 28.9,
+                "available_mb": 10926.765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:32.146+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3587.87075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.37744140625,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10950.390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:34.148+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3595.9514999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.37744140625,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10972.04296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:36.150+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3598.4977499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.37744140625,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10988.1875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:38.152+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3598.9652499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.427734375,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 10995.5546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:40.154+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3595.79075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.427734375,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11008.2734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:42.156+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3595.3652500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4736328125,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11010.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:44.158+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.5,
+            "cpu_freq_mhz": 3595.46325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4736328125,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11014.08203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:46.160+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3597.44575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.4736328125,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11275.76953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:48.161+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3596.237,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.51611328125,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11275.0703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:50.163+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.2,
+            "cpu_freq_mhz": 3597.433,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.51611328125,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11275.0703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:52.165+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.2,
+            "cpu_freq_mhz": 3595.31125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.55517578125,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11275.0703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:54.166+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3592.436,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.55517578125,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11275.0703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:56.168+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3361.277,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.55517578125,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11275.0703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:08:58.170+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 37.2,
+            "cpu_freq_mhz": 3238.816,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5908203125,
+            "memory": {
+                "used_percent": 27.7,
+                "available_mb": 11101.97265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:00.171+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 33.3,
+            "cpu_freq_mhz": 3596.8245,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.5908203125,
+            "memory": {
+                "used_percent": 27.1,
+                "available_mb": 11194.98046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:02.173+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 42.4,
+            "cpu_freq_mhz": 3600.03925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6240234375,
+            "memory": {
+                "used_percent": 27.7,
+                "available_mb": 11100.51171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:04.175+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.6,
+            "cpu_freq_mhz": 3593.88625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6240234375,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10964.98828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:06.177+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3596.7847500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.6240234375,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10963.87109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:08.178+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3594.7772499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.654296875,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 10995.87109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:10.180+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3587.635,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.654296875,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11008.51953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:12.182+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3596.03825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.68212890625,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 10995.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:14.184+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3593.2617499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.68212890625,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 10995.30078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:16.186+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3573.1380000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.68212890625,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11008.4453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:18.187+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3593.14175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7080078125,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10990.09375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:20.189+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3595.19,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7080078125,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11030.01171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:22.191+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3592.8455,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7314453125,
+            "memory": {
+                "used_percent": 28.1,
+                "available_mb": 11042.13671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:24.193+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3595.73025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7314453125,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 11006.84765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:26.195+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3358.56225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7314453125,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11013.4921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:28.197+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.7,
+            "cpu_freq_mhz": 3418.4930000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.75341796875,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11013.87890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:30.198+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3597.3737499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.75341796875,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11026.8515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:32.200+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3591.1360000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7734375,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11027.09765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:34.202+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3593.42475,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7734375,
+            "memory": {
+                "used_percent": 28.1,
+                "available_mb": 11053.15625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:36.204+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.861,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7734375,
+            "memory": {
+                "used_percent": 28.0,
+                "available_mb": 11063.42578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:38.206+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3595.1075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7919921875,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11278.28515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:40.208+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3597.86275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7919921875,
+            "memory": {
+                "used_percent": 26.4,
+                "available_mb": 11307.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:42.210+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3597.10875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.80908203125,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11316.71875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:44.211+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.2,
+            "cpu_freq_mhz": 3595.84075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.80908203125,
+            "memory": {
+                "used_percent": 26.0,
+                "available_mb": 11363.68359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:46.213+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.2,
+            "cpu_freq_mhz": 3597.3234999999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.80908203125,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11321.46875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:48.215+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 48.2,
+            "cpu_freq_mhz": 3182.8772500000005,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.82470703125,
+            "memory": {
+                "used_percent": 26.7,
+                "available_mb": 11261.9296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:50.217+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 25.3,
+            "cpu_freq_mhz": 3239.60675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.82470703125,
+            "memory": {
+                "used_percent": 27.6,
+                "available_mb": 11125.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:52.218+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 39.3,
+            "cpu_freq_mhz": 3594.9477500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.75830078125,
+            "memory": {
+                "used_percent": 27.1,
+                "available_mb": 11197.6171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:54.220+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3597.617,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.75830078125,
+            "memory": {
+                "used_percent": 27.1,
+                "available_mb": 11197.421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:56.222+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.5,
+            "cpu_freq_mhz": 3596.2335,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.75830078125,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10970.5703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:09:58.224+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3597.589,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.77783203125,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11026.19140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:00.226+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3597.20775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.77783203125,
+            "memory": {
+                "used_percent": 28.1,
+                "available_mb": 11050.265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:02.228+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 55.6,
+            "cpu_freq_mhz": 3361.77525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7958984375,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10966.43359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:04.232+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 73.1,
+            "cpu_freq_mhz": 3600.9525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7958984375,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 10995.3203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:06.234+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 72.9,
+            "cpu_freq_mhz": 3596.70425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.7958984375,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 10995.703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:08.236+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 72.8,
+            "cpu_freq_mhz": 3600.216,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.892578125,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10968.359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:10.238+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 72.9,
+            "cpu_freq_mhz": 3598.04225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.892578125,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11028.38671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:12.240+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 73.3,
+            "cpu_freq_mhz": 3599.6075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9814453125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10951.88671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:14.242+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 64.4,
+            "cpu_freq_mhz": 3341.9202499999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9814453125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10914.7265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:16.244+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3522.18275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9814453125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10952.609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:18.246+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3606.18825,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9833984375,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10967.30859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:20.248+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.53125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9833984375,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10984.94921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:22.250+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3596.2225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98486328125,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11016.55078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:24.252+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.7,
+            "cpu_freq_mhz": 3591.009,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98486328125,
+            "memory": {
+                "used_percent": 27.9,
+                "available_mb": 11073.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:26.254+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3589.6454999999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98486328125,
+            "memory": {
+                "used_percent": 28.1,
+                "available_mb": 11045.08203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:28.256+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.6,
+            "cpu_freq_mhz": 3593.05675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.986328125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10958.3828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:30.258+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3591.117,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.986328125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10954.08984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:32.260+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3596.611,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98779296875,
+            "memory": {
+                "used_percent": 27.0,
+                "available_mb": 11221.94921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:34.262+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.1,
+            "cpu_freq_mhz": 3596.1352500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98779296875,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11284.0859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:36.264+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3599.4965,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98779296875,
+            "memory": {
+                "used_percent": 26.4,
+                "available_mb": 11309.7109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:38.266+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3598.01975,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9892578125,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11327.140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:40.267+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3597.1925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9892578125,
+            "memory": {
+                "used_percent": 26.5,
+                "available_mb": 11294.68359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:42.269+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 41.9,
+            "cpu_freq_mhz": 3229.00875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.90966796875,
+            "memory": {
+                "used_percent": 27.7,
+                "available_mb": 11114.3203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:44.271+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 28.3,
+            "cpu_freq_mhz": 3600.33025,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.90966796875,
+            "memory": {
+                "used_percent": 26.6,
+                "available_mb": 11278.03515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:46.273+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 42.2,
+            "cpu_freq_mhz": 3611.0045,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.90966796875,
+            "memory": {
+                "used_percent": 27.6,
+                "available_mb": 11119.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:48.274+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3590.0415000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9169921875,
+            "memory": {
+                "used_percent": 28.0,
+                "available_mb": 11055.20703125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:50.276+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3601.4615,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9169921875,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11014.98828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:52.278+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3598.3815,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.923828125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10953.7578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:54.280+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3592.17925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.923828125,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10958.30859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:56.282+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.7,
+            "cpu_freq_mhz": 3589.941,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.923828125,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11013.21484375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:10:58.283+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3593.8195,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.93017578125,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11020.06640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:00.285+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.9775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.93017578125,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10983.02734375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:02.287+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3597.3672500000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.93603515625,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10980.515625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:04.289+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3597.22275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.93603515625,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10982.04296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:06.291+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.1,
+            "cpu_freq_mhz": 3595.224,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.93603515625,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 11003.43359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:08.293+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.08075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.94140625,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11035.99609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:10.295+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3595.38325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.94140625,
+            "memory": {
+                "used_percent": 28.0,
+                "available_mb": 11062.80859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:12.296+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3594.90325,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9462890625,
+            "memory": {
+                "used_percent": 28.0,
+                "available_mb": 11065.73046875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:14.299+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3596.3635,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9462890625,
+            "memory": {
+                "used_percent": 27.6,
+                "available_mb": 11118.18359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:16.300+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.6,
+            "cpu_freq_mhz": 3596.5064999999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9462890625,
+            "memory": {
+                "used_percent": 28.0,
+                "available_mb": 11054.2109375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:18.302+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.4912499999996,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.95068359375,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11018.5546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:20.304+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.7,
+            "cpu_freq_mhz": 3589.46525,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.95068359375,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11020.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:22.306+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.1,
+            "cpu_freq_mhz": 3596.53725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.955078125,
+            "memory": {
+                "used_percent": 27.0,
+                "available_mb": 11220.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:24.308+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3597.5267499999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.955078125,
+            "memory": {
+                "used_percent": 26.7,
+                "available_mb": 11267.50390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:26.309+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3598.042,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.955078125,
+            "memory": {
+                "used_percent": 26.5,
+                "available_mb": 11293.07421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:28.311+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3598.9162499999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.958984375,
+            "memory": {
+                "used_percent": 26.5,
+                "available_mb": 11291.01171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:30.313+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3599.26275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.958984375,
+            "memory": {
+                "used_percent": 26.5,
+                "available_mb": 11284.671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:32.314+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3597.38925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.96240234375,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11327.7421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:34.316+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 26.5,
+            "cpu_freq_mhz": 3233.29225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.96240234375,
+            "memory": {
+                "used_percent": 27.4,
+                "available_mb": 11161.078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:36.318+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 39.2,
+            "cpu_freq_mhz": 3234.815,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.96240234375,
+            "memory": {
+                "used_percent": 25.1,
+                "available_mb": 11502.4765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:38.319+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 47.1,
+            "cpu_freq_mhz": 3597.9245,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9658203125,
+            "memory": {
+                "used_percent": 27.8,
+                "available_mb": 11098.39453125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:40.321+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.6,
+            "cpu_freq_mhz": 3594.977,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9658203125,
+            "memory": {
+                "used_percent": 29.0,
+                "available_mb": 10902.56640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:42.323+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3597.37775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.96875,
+            "memory": {
+                "used_percent": 28.7,
+                "available_mb": 10952.50390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:44.324+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3595.6385,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.96875,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10966.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:46.327+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.10075,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.96875,
+            "memory": {
+                "used_percent": 28.6,
+                "available_mb": 10965.69140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:48.329+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3598.482,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9716796875,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11028.07421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:50.331+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3594.066,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9716796875,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11023.58984375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:52.333+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3594.783,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.97412109375,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11036.12890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:54.335+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3593.152,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.97412109375,
+            "memory": {
+                "used_percent": 28.1,
+                "available_mb": 11039.65625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:56.336+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3571.1532500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.97412109375,
+            "memory": {
+                "used_percent": 28.1,
+                "available_mb": 11038.84375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:11:58.338+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3596.4320000000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9765625,
+            "memory": {
+                "used_percent": 27.9,
+                "available_mb": 11076.890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:00.340+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3593.19175,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9765625,
+            "memory": {
+                "used_percent": 27.9,
+                "available_mb": 11071.19921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:02.342+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.8,
+            "cpu_freq_mhz": 3594.5532500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.978515625,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11021.37890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:04.344+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.6,
+            "cpu_freq_mhz": 3415.188,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.978515625,
+            "memory": {
+                "used_percent": 28.3,
+                "available_mb": 11008.85546875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:06.346+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.0,
+            "cpu_freq_mhz": 3595.60725,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.978515625,
+            "memory": {
+                "used_percent": 28.5,
+                "available_mb": 10977.44921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:08.348+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3592.17575,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98046875,
+            "memory": {
+                "used_percent": 28.4,
+                "available_mb": 11004.265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:10.350+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3592.50225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98046875,
+            "memory": {
+                "used_percent": 28.2,
+                "available_mb": 11031.25390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:12.352+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 49.9,
+            "cpu_freq_mhz": 3599.1095,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.982421875,
+            "memory": {
+                "used_percent": 26.2,
+                "available_mb": 11332.76171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:14.354+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.4,
+            "cpu_freq_mhz": 3596.7960000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.982421875,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11319.31640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:16.355+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3598.2145,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.982421875,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11317.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:18.357+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3598.02925,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98388671875,
+            "memory": {
+                "used_percent": 26.3,
+                "available_mb": 11318.68359375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:20.359+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3598.7235,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.98388671875,
+            "memory": {
+                "used_percent": 26.2,
+                "available_mb": 11331.44921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:22.361+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 50.3,
+            "cpu_freq_mhz": 3596.35275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9853515625,
+            "memory": {
+                "used_percent": 26.5,
+                "available_mb": 11299.49609375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:24.362+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 36.5,
+            "cpu_freq_mhz": 3235.93675,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9853515625,
+            "memory": {
+                "used_percent": 27.7,
+                "available_mb": 11109.203125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T11:12:26.364+00:00",
+            "case_index": 113,
+            "case_name": "sklearn HistGradientBoostingClassifier susy",
+            "cpu_percent": 33.8,
+            "cpu_freq_mhz": 3607.06775,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 1.9853515625,
+            "memory": {
+                "used_percent": 26.7,
+                "available_mb": 11254.625,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

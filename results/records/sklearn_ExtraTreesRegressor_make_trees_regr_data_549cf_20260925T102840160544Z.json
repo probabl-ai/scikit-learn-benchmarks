@@ -1,0 +1,361 @@
+{
+    "hardware_hash": "5ce575",
+    "software_hash": "153688",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 252.0,
+            "py_spy_profiling": false
+        },
+        "metadata": {
+            "source_config": "configs/all_models_16gb.py"
+        },
+        "algorithm": {
+            "estimator": "ExtraTreesRegressor",
+            "estimator_params": {
+                "n_estimators": 8,
+                "max_features": 0.3,
+                "n_jobs": -1
+            }
+        },
+        "data": {
+            "source": "make_trees_regression_data",
+            "generation_kwargs": {
+                "n_samples": 10000,
+                "n_features": 500,
+                "n_informative": 50,
+                "columns": "mix",
+                "noise": 0.1
+            }
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 10000,
+                    "features": 500
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.02513000004000787,
+                "fit": 624.6321109999826,
+                "predict": 16.718448000005992
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 4.9341599932778035e-14,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 434.08280359323555,
+                    "R2": 0.05337013898211862
+                }
+            },
+            "attributes": {
+                "n_features_in": 500,
+                "n_outputs": 1
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 10000,
+                    "features": 500
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.01889999998638814,
+                "fit": 632.6069479999887,
+                "predict": 15.656017999958749
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 4.2342069261026847e-14,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 368.45201199288505,
+                    "R2": 0.10620651988939867
+                }
+            },
+            "attributes": {
+                "n_features_in": 500,
+                "n_outputs": 1
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 10000,
+                    "features": 500
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.015530000041508174,
+                "fit": 652.5388449999809,
+                "predict": 15.80797100007203
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 4.688012272443876e-14,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 414.4989501001676,
+                    "R2": 0.05280994338723344
+                }
+            },
+            "attributes": {
+                "n_features_in": 500,
+                "n_outputs": 1
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 10000,
+                    "features": 500
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.014360000022861641,
+                "fit": 641.8296479999981,
+                "predict": 16.131916999938767
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 4.555930999190864e-14,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 398.4970521428895,
+                    "R2": 0.07559014739315639
+                }
+            },
+            "attributes": {
+                "n_features_in": 500,
+                "n_outputs": 1
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 10000,
+                    "features": 500
+                },
+                "fit": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                },
+                "predict": {
+                    "format": null,
+                    "order": null,
+                    "dtype": null,
+                    "samples": 10000,
+                    "features": 500
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.015689999941059796,
+                "fit": 662.6189999999497,
+                "predict": 15.625648000082037
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 4.923712026535037e-14,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 441.87228658471264,
+                    "R2": 0.05573965097341782
+                }
+            },
+            "attributes": {
+                "n_features_in": 500,
+                "n_outputs": 1
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 2,
+                "n_detected_logical_cpus": 4
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "system_telemetry": [
+        {
+            "timestamp": "2026-09-25T10:28:41.300+00:00",
+            "case_index": 70,
+            "case_name": "sklearn ExtraTreesRegressor make_trees_regr_data",
+            "cpu_percent": 44.7,
+            "cpu_freq_mhz": 3228.65275,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.001953125,
+            "memory": {
+                "used_percent": 9.5,
+                "available_mb": 13907.47265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:28:43.301+00:00",
+            "case_index": 70,
+            "case_name": "sklearn ExtraTreesRegressor make_trees_regr_data",
+            "cpu_percent": 57.4,
+            "cpu_freq_mhz": 3599.20375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.001953125,
+            "memory": {
+                "used_percent": 10.7,
+                "available_mb": 13715.05859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:28:45.307+00:00",
+            "case_index": 70,
+            "case_name": "sklearn ExtraTreesRegressor make_trees_regr_data",
+            "cpu_percent": 75.2,
+            "cpu_freq_mhz": 3245.5209999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.001953125,
+            "memory": {
+                "used_percent": 10.7,
+                "available_mb": 13722.421875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-09-25T10:28:47.309+00:00",
+            "case_index": 70,
+            "case_name": "sklearn ExtraTreesRegressor make_trees_regr_data",
+            "cpu_percent": 71.8,
+            "cpu_freq_mhz": 3600.1397500000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.08203125,
+            "memory": {
+                "used_percent": 11.0,
+                "available_mb": 13677.94140625,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}
