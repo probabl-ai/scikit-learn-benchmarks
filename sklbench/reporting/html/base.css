@@ -157,6 +157,34 @@ code {
     width: auto;
   }
 }
+.vs-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.vs-table th,
+.vs-table td {
+  border: 1px solid var(--line-soft);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.vs-table thead th {
+  background: var(--surface);
+}
+.vs-table tbody th {
+  width: 1%;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
+}
+.vs-table td.same {
+  text-align: center;
+  color: var(--muted);
+}
+.vs-table td.differs {
+  width: 45%;
+  background: var(--sk-orange-tint-9);
+}
 .plot-grid {
   display: grid;
   gap: 18px;

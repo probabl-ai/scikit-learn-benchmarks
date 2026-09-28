@@ -185,10 +185,13 @@ class MethodResult:
         """
         If two results don't share the same minimal_match_key, it will
         never makes sense to compare them.
+
+        `source_config` is excluded so that a subset config (e.g.
+        configs/all_models_16gb.py) matches its parent's identical cases.
         """
         case = without_keys(
             self.case,
-            excluded_names={"implementation", "max_bins"},
+            excluded_names={"implementation", "max_bins", "source_config"},
         )
         case["method"] = self.method
         return stable_json(case)

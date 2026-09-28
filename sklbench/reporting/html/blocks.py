@@ -21,7 +21,10 @@ def _slug_id(label: str) -> str:
 
 
 def render_software_tabs(
-    elements: list[str], *, variant_colors: dict[str, str] | None = None
+    elements: list[str],
+    *,
+    variant_colors: dict[str, str] | None = None,
+    labels: list[str] | None = None,
 ):
     if not elements:
         return ""
@@ -31,8 +34,11 @@ def render_software_tabs(
     buttons = []
     panels = []
     for index, element in enumerate(elements):
-        match = re.search(r"<h3>(.*?)</h3>", element)
-        label = match.group(1) if match else f"Environment {index + 1}"
+        if labels is not None:
+            label = labels[index]
+        else:
+            match = re.search(r"<h3>(.*?)</h3>", element)
+            label = match.group(1) if match else f"Environment {index + 1}"
         marker = f"tab-{tabs_id}-{index}"
         style = ""
         color = variant_colors.get(label)
