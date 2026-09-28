@@ -42,7 +42,9 @@ The before/after table is always generated. To also publish one of the other
 `dashboards/gen_*.py` dashboards on a run's results, call it from the
 `__main__` of `dashboards/index_comparison.py` and include that edit in your
 PR. This is useful when a specialized dashboard reads a config's results
-better than the generic table.
+better than the generic table, e.g. `gen_hgb_dev_speedup_breakdown.py`'s
+per-phase speed-up breakdown for an HGB PR run under
+`configs/hgb_scalability.py`.
 
 ### Skipping the `main` re-benchmark
 
