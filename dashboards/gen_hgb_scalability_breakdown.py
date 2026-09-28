@@ -45,7 +45,6 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    SERIES_COLORS,
     SOFTWARE_TEMPLATE,
     phase_breakdown_plot_html,
     render_hardware_tabs,
@@ -132,7 +131,11 @@ PHASE_LABELS = {
     "find_split_time": "find split",
     "hist_time": "compute hist",
 }
-PHASE_COLORS = dict(zip(PHASE_ORDER, SERIES_COLORS))
+# Plotly's default colors rather than SERIES_COLORS: adjacent stacked phases
+# are easier to tell apart with these.
+PHASE_COLORS = dict(zip(PHASE_ORDER, [
+    "#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A", "#19D3F3",
+]))
 
 # Raw attribute names (seconds) summed from grow_time's/binning_time's
 # sub-phases plus the outer fit-time residual - see instrumented_hgb.py for
