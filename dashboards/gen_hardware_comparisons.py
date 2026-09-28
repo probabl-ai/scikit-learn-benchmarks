@@ -611,9 +611,13 @@ def render_selector(all_results: list[MethodResult]) -> str:
         }});
       }}
 
-      function showPanel() {{
+      function showPanel(updateHash = true) {{
         const baseline = baselineSelect.value;
         const candidate = candidateSelect.value;
+        if (updateHash) {{
+          const params = new URLSearchParams({{baseline, compare: candidate}});
+          history.replaceState(null, "", `#${{params}}`);
+        }}
         const panelId = pairPanels[`${{baseline}}|${{candidate}}`] || "hw-compare-empty";
         document.querySelectorAll(".hw-compare-panels > .tab-panel").forEach((panel) => {{
           panel.classList.toggle("active", panel.id === panelId);
@@ -635,15 +639,23 @@ def render_selector(all_results: list[MethodResult]) -> str:
         populate(candidateSelect, options, kept ? kept.key : options[0] && options[0].key);
         showPanel();
       }});
-      candidateSelect.addEventListener("change", showPanel);
+      candidateSelect.addEventListener("change", () => showPanel());
 
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      let initialBaseline = "{default_baseline.key}";
+      let initialCandidate = "{default_candidate.key}";
+      if (pairPanels[`${{hashParams.get("baseline")}}|${{hashParams.get("compare")}}`]) {{
+        initialBaseline = hashParams.get("baseline");
+        initialCandidate = hashParams.get("compare");
+      }}
       populate(
         baselineSelect,
         variants.filter((v) => candidatesFor(v.key).length > 0),
-        "{default_baseline.key}"
+        initialBaseline
       );
-      populate(candidateSelect, candidatesFor(baselineSelect.value), "{default_candidate.key}");
-      showPanel();
+      populate(candidateSelect, candidatesFor(baselineSelect.value), initialCandidate);
+      // Don't rewrite the URL on load, so an unmodified default page keeps a clean URL.
+      showPanel(false);
     }})();
     </script>
     """
