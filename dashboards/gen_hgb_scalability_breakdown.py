@@ -45,7 +45,7 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    PLOTLY_DEFAULT_COLORS,
+    SERIES_COLORS,
     SOFTWARE_TEMPLATE,
     phase_breakdown_plot_html,
     render_hardware_tabs,
@@ -73,23 +73,38 @@ SOURCE_ENVS = [
 ]
 
 ABOUT_HTML = """<section class="panel">
-  <p>Thread-count scaling tells you a fit got faster, but not why, or why it
-  sometimes doesn't. This dashboard instruments HistGradientBoosting's fit
-  internals (binning, histogram computation, split finding) so a workload's
-  time can be broken into the phases that actually run in parallel. Tabs are
-  one per (hardware, build, thread-affinity setting) combination; within a
-  tab, one stacked bar per workload with the phase legend below. The x-axis
-  is the requested thread count (<code>OMP_NUM_THREADS</code>), with the
-  actual thread count trees were grown with in parentheses where known.
-  Watch whether the total bar height keeps shrinking as threads increase, and
-  which segment shrinks with it &mdash; a bar that stops shrinking, or grows,
-  means added threads bought nothing (or cost something). In the latest full
-  run, that's exactly what happens on the high-end server for small/medium
-  workloads at very high thread counts (100+): they get slower, not faster,
-  as per-tree dispatch/synchronization overhead starts to dominate an already
-  cheap fit, and only the largest workloads reliably speed up throughout the
-  sweep. Pinning threads (<code>proc_bind=close</code>) measurably reduces
-  that regression.</p>
+  <p>A thread scaling curve shows whether a fit got faster, but not why. This
+  dashboard breaks HistGradientBoosting's fit time into its phases (binning,
+  histogram computation, split finding) to see which ones scale.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>There is one tab per machine, build and thread affinity setting, and
+    one stacked bar per workload. The x-axis is the requested thread count
+    (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
+    parentheses when known. If a bar stops shrinking or grows as threads are
+    added, the extra threads bring nothing or cost time, and the segments
+    show which phase is responsible.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>On the high-end server, the <b>best thread count grows with the
+      workload</b>. The smallest workloads (e.g. XS, ames_housing) are fastest on
+      1 thread, medium ones (e.g. covtype, M) on 4 to 8 threads, and the
+      largest (year_prediction_msd, susy) on 16 to 32. Only L-stumps keeps
+      speeding up up to 64 threads (~17x). No workload benefits from the whole
+      server: <b>every fit is 2x to 30x slower at 128 or 172 threads</b> than at its
+      best thread count, with the biggest jump from 64 to 128 threads.</li>
+      <li>On the laptop, active wait matters for small and medium workloads.
+      <b>Without active wait (the conda-forge build)</b>, they get <b>several times slower at 8
+      and 16 threads</b>: XS goes from 74ms on 1 thread to 919ms on 8, covtype
+      from 11s on 4 threads to 38s on 8. With it (PyPI), they stay roughly
+      flat or keep improving up to 8 threads. The largest workloads scale up
+      to 16 threads either way. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>.</li>
+    </ul>
+  </details>
 </section>"""
 
 
@@ -117,7 +132,7 @@ PHASE_LABELS = {
     "find_split_time": "find split",
     "hist_time": "compute hist",
 }
-PHASE_COLORS = dict(zip(PHASE_ORDER, PLOTLY_DEFAULT_COLORS))
+PHASE_COLORS = dict(zip(PHASE_ORDER, SERIES_COLORS))
 
 # Raw attribute names (seconds) summed from grow_time's/binning_time's
 # sub-phases plus the outer fit-time residual - see instrumented_hgb.py for
@@ -416,12 +431,12 @@ def _env_summary_rows(records: list[BenchmarkRecord]) -> list[str]:
     ]
 
 
-def render_env_page(records: list[BenchmarkRecord]) -> str:
+def render_env_page(records: list[BenchmarkRecord]) -> str | None:
     by_workload: dict[str, list[BenchmarkRecord]] = {}
     for record in records:
         by_workload.setdefault(_workload_name(record), []).append(record)
     if not by_workload:
-        return '<section class="empty">No instrumented HGB results for this hardware.</section>'
+        return None
 
     cells = []
     for name in sorted(by_workload, key=lambda n: _workload_size(by_workload[n][0])):
@@ -501,7 +516,7 @@ def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool, str | None]:
 def _env_label(hardware_hash: str, software_hash: str, active_wait: bool, proc_bind: str | None) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
     return (
-        f"{hardware_label} — {software_build_name(software_hash)}"
+        f"{hardware_label} · {software_build_name(software_hash)}"
         f"{active_wait_label_suffix(active_wait)}"
         f"{proc_bind_label_suffix(proc_bind)}"
     )
@@ -547,7 +562,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB fit-time breakdown (thread scalability)",
+        title="HistGradientBoosting fit-time breakdown (thread scalability)",
         rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"

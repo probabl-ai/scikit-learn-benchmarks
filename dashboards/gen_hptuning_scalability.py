@@ -9,7 +9,7 @@ log-spaced from 1 up to half the machine's physical cores (see
 `configs/hptuning.py`'s `_case`/`get_n_cores_list` usage) specifically to see
 whether that composition scales or falls over. One small multiple per
 (estimator, dataset): seconds per fit vs. outer `n_jobs`, with each swept
-environment (`sklearn-pypi`/`sklearn-cf-mkl`/`intel`) as its own colored line
+environment (`sklearn-pypi`/`sklearn-cf-mkl`/`sklearnex`) as its own colored line
 on the same plot (see `ENV_COLORS`) rather than a separate plot per
 environment, so a build's effect on scaling reads directly off one cell. Mean
 CPU utilization (from the record's `system_telemetry` - meant to tell "busy
@@ -71,7 +71,10 @@ from sklbench.reporting.matching import (
 )
 
 
-ENV_ORDER = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+# The `intel` pixi env is sklearn patched with sklearnex; plots name the library.
+ENV_LABELS = {"intel": "sklearnex"}
+ENV_ORDER = [ENV_LABELS.get(env, env) for env in SOURCE_ENVS]
 ENV_COLORS = variant_color_map(ENV_ORDER)
 
 ESTIMATOR_ORDER = [
@@ -90,28 +93,52 @@ CPU_METRIC = "CPU utilization (%)"
 
 
 SOURCE_CONFIGS = ["configs/hptuning.py"]
-SOURCE_ENVS = ENV_ORDER
 
 ABOUT_HTML = """<section class="panel">
-  <p>RandomizedSearchCV nests two levels of parallelism: its own outer
-  <code>n_jobs</code> dispatching candidates, and whatever each candidate
-  does with its own threads internally (RF/ET's explicit inner
-  <code>n_jobs=-1</code>, HGB's OpenMP pool, BLAS threads under Ridge/
-  LogisticRegression). This dashboard sweeps outer <code>n_jobs</code> to see
-  whether that combination scales, stalls, or fights itself. Tabs are one per
-  hardware; each small multiple is one (estimator, dataset) pair, x-axis =
-  outer <code>n_jobs</code> (log scale), y-axis = mean seconds per individual
-  <code>.fit()</code> call across the whole search, one colored line per
-  environment, marker size = mean CPU utilization. A line dropping roughly
-  &prop; 1/n_jobs is ideal scaling; flat means extra outer workers buy
-  nothing; rising means outer parallelism is actively hurting (typically
-  oversubscription against a candidate's own inner parallelism). In the
-  latest full run, outer parallelism reliably helps everywhere &mdash; no
-  sweep collapses into a rising line &mdash; but not equally: Ridge,
-  LogisticRegression and HistGradientBoosting scale close to linearly, while
-  RandomForest/ExtraTrees only reach roughly 5-6x speed-up at 86 outer
-  workers, since their inner <code>n_jobs=-1</code> is competing with the
-  outer dispatch for the same cores.</p>
+  <p>RandomizedSearchCV has two levels of parallelism: its outer
+  <code>n_jobs</code> runs candidates in parallel, and each candidate can use
+  threads itself. This dashboard sweeps the outer <code>n_jobs</code> to
+  check how the two levels interact.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Inner parallelism depends on the estimator: <code>n_jobs=-1</code> for
+    RandomForest and ExtraTrees, OpenMP for HistGradientBoosting, BLAS for
+    Ridge and LogisticRegression. There is one tab per machine and one plot
+    per (estimator, dataset) pair. The x-axis is the outer
+    <code>n_jobs</code> (log scale), the y-axis is the mean time per
+    <code>.fit()</code> call over the search, with one line per environment
+    and marker size for mean CPU usage. The line shape tells how the two
+    levels interact:</p>
+    <ul>
+      <li>going down as 1/n_jobs: a single fit has little inner parallelism,
+      and the search scales with outer workers;</li>
+      <li>flat: a single fit was likely already using all cores, so outer
+      workers bring nothing;</li>
+      <li>rising: oversubscription, or bad interactions between joblib and
+      the inner threading layer (they don't coordinate).</li>
+    </ul>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>These results match what the
+    <a href="models_scalability.html">models core-count scalability</a>
+    dashboard shows. On the benchmarked cases:</p>
+    <ul>
+      <li>Ridge and LogisticRegression: outer parallelism helps, but <b>less
+      than one could hope</b>. These workloads are probably memory bound, so
+      more cores don't help much.</li>
+      <li>HistGradientBoosting: outer parallelism <b>works well on small
+      datasets or on a big machine</b>, because HGB's own threads are
+      counter-productive there (see the
+      <a href="hgb_scaling.html">HistGradientBoosting thread-scalability
+      breakdown</a>).</li>
+      <li>RandomForest and ExtraTrees: on susy, the curve is <b>mostly
+      flat</b>, as expected since a single fit already uses all cores. On the
+      datasets with preprocessing, the search <b>still speeds up with outer
+      workers</b>. This is a surprise: preprocessing may take a non-negligible
+      part of each fit, but this needs investigation.</li>
+    </ul>
+  </details>
 </section>"""
 
 
@@ -189,7 +216,8 @@ def _n_fits(record: BenchmarkRecord) -> int:
 
 
 def _env(record: BenchmarkRecord) -> str:
-    return software_build_name(record.software_hash)
+    build = software_build_name(record.software_hash)
+    return ENV_LABELS.get(build, build)
 
 
 def _env_sort_key(env: str) -> tuple[int, str]:
@@ -299,24 +327,35 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
 def _params_line(record: BenchmarkRecord) -> str:
     params = record.case.get("algorithm", {}).get("estimator_params", {})
     if not params:
-        return "params: (defaults)"
+        return "Params: (defaults)"
     formatted = ", ".join(f"{key}={value}" for key, value in sorted(params.items()))
-    return f"params: {formatted}"
+    return f"Params: {formatted}"
 
 
-def _row_title(row_key: tuple, fit_shape: tuple[int | None, int | None]) -> str:
-    estimator, dataset, n_samples, n_features = row_key
+def _row_title(row_key: tuple) -> str:
+    estimator, dataset, _, _ = row_key
+    return f"{estimator} / {dataset}"
+
+
+def _shape_line(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
+    _, _, n_samples, n_features = row_key
     if not n_samples or not n_features:
-        return f"{estimator} / {dataset} (shape unknown)"
-    dims = f"{n_samples:,} x {n_features}"
-    fit_n_samples, fit_n_features = fit_shape
-    if fit_n_features and (fit_n_samples, fit_n_features) != (n_samples, n_features):
-        dims += f" → {fit_n_samples:,} x {fit_n_features}"
-    return f"{estimator} / {dataset} ({dims})"
+        return "Shape: unknown"
+    line = f"Shape: {n_samples:,} x {n_features}"
+    preprocessing_kind = row_records[0].case.get("data", {}).get("preprocessing_kind")
+    # Measured on the best candidate's fitted preprocessor, so a tuned
+    # encoder param (e.g. `min_frequency`) makes it candidate-dependent.
+    _, fit_n_features = _fit_shape(row_records)
+    if preprocessing_kind and fit_n_features:
+        line += f" (→ x {fit_n_features:,} after pre-processing)"
+    return line
 
 
-def _row_subtitle_html(record: BenchmarkRecord) -> str:
-    return f'<div class="plot-subtitle">{escape(_params_line(record))}</div>'
+def _row_subtitle_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
+    return "".join(
+        f'<div class="plot-subtitle">{escape(line)}</div>'
+        for line in (_shape_line(row_key, row_records), _params_line(row_records[0]))
+    )
 
 
 def _env_series(
@@ -360,8 +399,8 @@ def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
         # Marker size ~ mean CPU utilization (%) - see `_env_series`.
         size_domain=(0, 100),
     )
-    title = escape(_row_title(row_key, _fit_shape(row_records)))
-    subtitle = _row_subtitle_html(row_records[0])
+    title = escape(_row_title(row_key))
+    subtitle = _row_subtitle_html(row_key, row_records)
     return f'<section class="plot-cell"><h3>{title}</h3>{subtitle}{plot}</section>'
 
 
@@ -415,10 +454,10 @@ def _row_sort_key(row_key: tuple) -> tuple:
     return (order, dataset, n_samples or 0, n_features or 0)
 
 
-def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str:
+def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str | None:
     hw_records = [record for record in records if record.hardware_hash == hardware_hash]
     if not hw_records:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
 
     sections = [
         f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_records))}</div>',
@@ -475,7 +514,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="hptuning outer-parallelism scalability",
+        title="RandomizedSearchCV outer-parallelism scalability",
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "hptuning_scalability.html"

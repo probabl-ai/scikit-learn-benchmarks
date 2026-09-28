@@ -10,6 +10,9 @@ Each `REAL_DATASET_CASES` entry is:
         options,                         # optional: {"skip_libraries": (...)}
     )
 
+`options["max_samples_by_n_cores"]` overrides `max_samples` on machines with
+that many physical cores (e.g. `{172: None}` for full size on the big server).
+
 """
 
 import numpy as np
@@ -105,7 +108,8 @@ REAL_DATASET_CASES = [
             "estimator": {
                 "alpha": list(np.logspace(-3, 3, 13)),
             }
-        }
+        },
+        {"max_samples_by_n_cores": {172: None}},
     ),
     (
         ("amazon_employee_access", None, "linear"),
@@ -129,7 +133,8 @@ REAL_DATASET_CASES = [
                 "C": list(np.logspace(-3, 3, 13)),
                 "fit_intercept": [True, False],
             }
-        }
+        },
+        {"max_samples_by_n_cores": {172: 1_000_000}},
     ),
     # HGB
     (
@@ -231,7 +236,7 @@ def _split_search_space(search_space: dict) -> tuple[dict, dict]:
     return estimator_params, param_distributions
 
 
-def get_n_iter_and_n_jobs_list(estimator: str, library: str):
+def get_n_iter_and_n_jobs_list(estimator: str):
     TREES = [
         "RandomForestClassifier", "RandomForestRegressor",
         "ExtraTreesRegressor", "ExtraTreesClassifier"
@@ -243,23 +248,17 @@ def get_n_iter_and_n_jobs_list(estimator: str, library: str):
     n_jobs_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
     if is_tree:
         n_jobs_list = [1, 2, *n_jobs_list]
-        if library == "sklearnex":
-            n_jobs_list = n_jobs_list[:-2]
     n_jobs_list = sorted(set([min(n_jobs, n_cores) for n_jobs in n_jobs_list]))
 
     if n_cores == 16:
-        if is_tree and library == "sklearnex":
-            n_jobs_list = [1, 2, 4]
-        elif is_tree:
+        if is_tree:
             n_jobs_list = [1, 2, 4, 8, 16]
         else:
             n_jobs_list = [4, 8, 16]
 
     elif n_cores == 172:
         n_iter = n_cores
-        if is_tree and library == "sklearnex":
-            n_jobs_list = [1, 2, 5, 11]
-        elif is_tree:
+        if is_tree:
             n_jobs_list = [1, 2, 5, 11, 22, 43, 86]
         else:
             n_jobs_list = [11, 22, 43, 86]
@@ -299,7 +298,7 @@ def _case(
             preprocessing_kwargs=preprocessing_kwargs_by_library.get(implem["library"], {}),
         )
 
-        n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator, implem["library"])
+        n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator)
 
         for n_jobs in n_jobs_list:
             cases.append(HPTuningCase(
@@ -336,6 +335,9 @@ def generate_cases() -> list[HPTuningCase]:
         skip_libraries = options.get("skip_libraries", ())
         scoring = options.get("scoring")
         preprocessing_kwargs_by_library = options.get("preprocessing_kwargs_by_library")
+        max_samples = options.get("max_samples_by_n_cores", {}).get(
+            cpu_count(only_physical_cores=True), max_samples
+        )
 
         for estimator in estimators if isinstance(estimators, list) else [estimators]:
             cases.extend(_case(

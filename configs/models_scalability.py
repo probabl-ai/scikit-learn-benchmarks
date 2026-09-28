@@ -119,7 +119,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     `OMP_NUM_THREADS` set explicitly to make thread count follow the sweep
     (Ridge/LogisticRegression/RF/ET rely on BLAS/`n_jobs` respecting the
     `cpu_affinity` pinning alone). sklearn's
-    KMeans is also skipped above 128 threads - see `_real_datasets.py`'s
+    KMeans is also skipped above 64 threads - see `_real_datasets.py`'s
     `KMEANS_BENCH` for the OpenBLAS crash this avoids; not applied to
     sklearnex, whose threading isn't OpenMP/OMP_NUM_THREADS-driven.
     """
@@ -131,7 +131,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
         != cpu_affinity_for_physical_cores(cores_count, False)
     )
 
-    if is_sklearn and is_kmeans and cores_count > 128:
+    if is_sklearn and is_kmeans and cores_count > 64:
         return
 
     env = {"OMP_NUM_THREADS": str(cores_count)} if is_sklearn and is_kmeans else {}

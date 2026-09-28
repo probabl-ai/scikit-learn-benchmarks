@@ -529,6 +529,10 @@ HARDWARE_COMMERCIAL_INFO = {
     "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
     "Apple M4": {"price_usd": 1_599, "release_year": 2024},
     "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    # Self-built desktop, estimated from 2019 part prices (CPU $329, GPU $349).
+    "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
+    # Cloud-only CPU; priced as the rented 4 vCPU + NVIDIA L4 VM it was benchmarked on.
+    "AMD EPYC 7R13 Processor": {"price_per_hour_usd": 1, "release_year": 2024},
 }
 
 # GPUs that are an integrated tile of a CPU package above rather than a separately
@@ -537,9 +541,20 @@ HARDWARE_COMMERCIAL_INFO = {
 # of showing a second, fabricated-looking dollar figure.
 INTEGRATED_GPUS = {"Intel(R) Arc(TM) B390 GPU"}
 
+# Discrete GPUs whose price is already included in the machine price of the CPU
+# entry above.
+GPUS_PRICED_WITH_CPU = INTEGRATED_GPUS | {"NVIDIA GeForce RTX 2060", "NVIDIA L4"}
+
 
 def _commercial_info(name: str) -> dict:
-    return HARDWARE_COMMERCIAL_INFO.get(name, {"price_usd": None, "release_year": None})
+    info = HARDWARE_COMMERCIAL_INFO.get(name, {})
+    if "price_usd" in info:
+        price = f"${info['price_usd']:,}"
+    elif "price_per_hour_usd" in info:
+        price = f"~${info['price_per_hour_usd']:,}/h (cloud VM)"
+    else:
+        return {"price_label": None}
+    return {"price_label": f"{price}, released {info['release_year']}"}
 
 
 def summarize_hardware_env(env: dict):
@@ -567,6 +582,7 @@ def summarize_hardware_env(env: dict):
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
                 "integrated": gpu.get("name", "?") in INTEGRATED_GPUS,
+                "priced_with_cpu": gpu.get("name", "?") in GPUS_PRICED_WITH_CPU,
                 **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()

@@ -63,6 +63,7 @@ def split_and_preprocess_data(
     default_split: dict | None = None,
     preprocessing_kind: str | None = None,
     preprocessing_kwargs: dict | None = None,
+    random_state: int | None = None,
 ) -> dict[str, Array]:
     """Split `data_dict` and, if `preprocessing_kind` is set, encode it.
 
@@ -71,7 +72,7 @@ def split_and_preprocess_data(
     which places it in its own pipeline. With no `preprocessing_kind`,
     there's no such function, so it's applied directly here instead.
     """
-    data_dict = split_data(data_dict, split_kwargs, default_split)
+    data_dict = split_data(data_dict, split_kwargs, default_split, random_state)
     if preprocessing_kind is not None:
         preprocessing_func = PREPROCESSINGS[preprocessing_kind]
         data_dict['x_train'], data_dict['x_test'] = preprocessing_func(
@@ -97,19 +98,26 @@ def train_test_split_wrapper(*args, **kwargs):
 
 
 def split_data(
-    data: dict, split_kwargs: dict | None, default_split: dict | None
+    data: dict,
+    split_kwargs: dict | None,
+    default_split: dict | None,
+    random_state: int | None = None,
 ) -> tuple[dict, dict]:
     """Split loaded `{"x": ..., "y": ...}` data into train/test subsets.
 
     Uses the dataset's own `default_split` (set by individual loaders) as a
-    base, overridden by the case's `split_kwargs`.
+    base, overridden by the case's `split_kwargs`. `random_state` overrides
+    the loader's seed but not one set explicitly in `split_kwargs`.
 
     `default_split` is JSON-serialized to disk, so it cannot carry the actual
     `y` array for stratification. A loader that needs a stratified split sets
     `"stratify": "y"` as a string sentinel instead; it is resolved here to
     the real `y` array before being passed to `train_test_split`.
     """
-    kwargs = (default_split or {}) | (split_kwargs or {})
+    kwargs = dict(default_split or {})
+    if random_state is not None:
+        kwargs["random_state"] = random_state
+    kwargs |= split_kwargs or {}
     kwargs.setdefault("random_state", 42)
 
     x = data["x"]

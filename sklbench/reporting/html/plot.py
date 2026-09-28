@@ -13,18 +13,37 @@ from .table import default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
 
-PLOTLY_DEFAULT_COLORS = [
-    "#636EFA",
-    "#EF553B",
-    "#00CC96",
-    "#AB63FA",
-    "#FFA15A",
-    "#19D3F3",
-    "#FF6692",
-    "#B6E880",
-    "#FF97FF",
-    "#FECB52",
+# scikit-learn's cyan and orange (doc/scss/colors.scss) lead, followed by
+# hues picked to stay distinguishable from them and from FALLBACK_COLOR.
+SERIES_COLORS = [
+    "#2294c4",
+    "#f7931e",
+    "#8045e5",
+    "#2e9e5b",
+    "#d1495b",
+    "#15688c",
+    "#b76c13",
+    "#e377c2",
+    "#9aa500",
+    "#7ac5ec",
 ]
+
+TEXT_COLOR = "#222832"
+GRID_COLOR = "#e5e7ea"
+REFERENCE_LINE_COLOR = "#48566b"
+FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+
+PLOT_TEMPLATE = go.layout.Template(
+    layout={
+        "font": {"family": FONT_FAMILY, "color": TEXT_COLOR, "size": 12},
+        "colorway": SERIES_COLORS,
+        "paper_bgcolor": "white",
+        "plot_bgcolor": "white",
+        "hoverlabel": {"font": {"family": FONT_FAMILY}},
+        "xaxis": {"gridcolor": GRID_COLOR, "linecolor": "#d1d5da", "zerolinecolor": GRID_COLOR},
+        "yaxis": {"gridcolor": GRID_COLOR, "linecolor": "#d1d5da", "zerolinecolor": GRID_COLOR},
+    }
+)
 
 FALLBACK_COLOR = "#9e9e9e"
 FAILED_MARKER_GAP = 0.4  # log2(speed-up) units below the slowest point of a column
@@ -146,48 +165,21 @@ def _format_point_count(count: int) -> str:
     return f"{count} point" if count == 1 else f"{count} points"
 
 
-def _format_estimator_counts(estimator_counts: dict[str, int]) -> str:
-    parts = [
-        f"{escape(estimator)} ({count})"
-        for estimator, count in sorted(
-            estimator_counts.items(), key=lambda item: (-item[1], item[0])
-        )
-    ]
-    return ", ".join(parts)
-
-
 def _marker_notes_html(matches: list[Match], failed_count: int = 0) -> str:
     metric_mismatch_count = sum(not match.metrics_match for match in matches)
     fallback_count = sum(
         match.matched_result.is_sklearnex_fallback for match in matches
     )
-    warning_counts = {}
-    warning_order = []
-
+    warnings = []
+    seen = set()
     for match in matches:
+        if not match.metrics_match:
+            continue
         for warning in match.warnings:
             key = (warning.icon, warning.message)
-            if key not in warning_order and match.metrics_match:
-                warning_order.append(key)
-            if key not in warning_counts:
-                warning_counts[key] = {
-                    "warning": warning,
-                    "estimators": defaultdict(int),
-                }
-            warning_counts[key]["estimators"][_estimator_name(match)] += 1
-
-    warnings = []
-    if warning_order:
-        for key in warning_order:
-            warning = warning_counts[key]["warning"]
-            estimator_counts = warning_counts[key]["estimators"]
-            warnings.append(
-                {
-                    "estimator_counts": _format_estimator_counts(estimator_counts),
-                    "icon": warning.icon,
-                    "message": warning.message,
-                }
-            )
+            if key not in seen:
+                seen.add(key)
+                warnings.append({"icon": warning.icon, "message": warning.message})
     return PLOT_NOTES_TEMPLATE.render(
         metric_mismatch_count=metric_mismatch_count,
         metric_mismatch_label=_format_point_count(metric_mismatch_count),
@@ -330,7 +322,7 @@ def _variant_offsets(variants: list[str]) -> dict[str, float]:
 
 def variant_color_map(variants: list[str]) -> dict[str, str]:
     return {
-        variant: PLOTLY_DEFAULT_COLORS[index % len(PLOTLY_DEFAULT_COLORS)]
+        variant: SERIES_COLORS[index % len(SERIES_COLORS)]
         for index, variant in enumerate(variants)
     }
 
@@ -414,7 +406,7 @@ def phase_breakdown_plot_html(
         yaxis={"title": "time (ms)", "rangemode": "tozero"},
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         showlegend=False,
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     return fig.to_html(
         full_html=False,
@@ -557,16 +549,20 @@ def scaling_line_plot_html(
                 x=x_values,
                 y=y_values,
                 mode="lines",
-                line={"color": "#999", "dash": "dash", "width": 1},
+                line={"color": REFERENCE_LINE_COLOR, "dash": "dash", "width": 1},
                 hoverinfo="skip",
             )
         )
     xaxis = {"title": x_title}
     if x_log and all_x_values:
         min_x, max_x = min(all_x_values), max(all_x_values)
-        start_exp = math.floor(math.log2(max(min_x, 1)))
+        start_exp = math.ceil(math.log2(max(min_x, 1)))
         end_exp = math.ceil(math.log2(max(max_x, 1)))
         tick_values = [2**exp for exp in range(start_exp, end_exp + 1)]
+        # Tick a non-power-of-two first point (e.g. an n_jobs sweep starting
+        # at 11) so the axis visibly doesn't start at 1.
+        if min_x not in tick_values:
+            tick_values.insert(0, min_x)
         xaxis |= {
             "type": "log",
             "tickmode": "array",
@@ -582,7 +578,7 @@ def scaling_line_plot_html(
         yaxis=yaxis,
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         legend={"orientation": "h", "y": -0.25},
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     return fig.to_html(
         full_html=False,
@@ -714,7 +710,7 @@ def phase_variant_speedup_plot_html(
             "yref": "y",
             "y0": 0,
             "y1": 0,
-            "line": {"color": "#666", "width": 1, "dash": "dash"},
+            "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
         }
     ]
     layout_yaxis = {"title": y_title, "zeroline": True}
@@ -730,7 +726,7 @@ def phase_variant_speedup_plot_html(
                 "yref": "y2",
                 "y0": 1,
                 "y1": 1,
-                "line": {"color": "#666", "width": 1, "dash": "dash"},
+                "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
             }
         )
         # Both axes are forced symmetric around their own "no change" value
@@ -779,7 +775,7 @@ def phase_variant_speedup_plot_html(
         shapes=shapes,
         margin={"l": 70, "r": right_margin, "t": 20, "b": 90},
         legend={"orientation": "h", "y": -0.2},
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     return fig.to_html(
         full_html=False,
@@ -842,6 +838,7 @@ def speedup_plot_html(
     matches: list[Match],
     *,
     baseline_label: str,
+    y_title: str | None = None,
     variant_colors: dict[str, str] | None = None,
     trace_variant=None,
     x_variant=None,
@@ -1004,7 +1001,7 @@ def speedup_plot_html(
             "range": [-0.5, len(estimators) - 0.5],
         },
         yaxis={
-            "title": f"speed-up vs {baseline_label}",
+            "title": y_title or f"speed-up vs {baseline_label}",
             "tickmode": "array",
             "tickvals": tick_values,
             "ticktext": [_format_speedup_tick(2**tick) for tick in tick_values],
@@ -1018,13 +1015,13 @@ def speedup_plot_html(
                 "yref": "y",
                 "y0": 0,
                 "y1": 0,
-                "line": {"color": "#666", "width": 1, "dash": "dash"},
+                "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
             }
         ],
         margin={"l": 70, "r": 20, "t": 20, "b": 110},
         showlegend=True,
         legend={"orientation": "h"},
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     fragment = fig.to_html(
         full_html=False,

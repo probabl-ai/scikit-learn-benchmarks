@@ -6,7 +6,7 @@ from sklbench.reporting.utils import (
 )
 
 from sklbench.reporting.matching import (
-    append_iterations_warning, append_max_bins_warning, read_all_results,
+    append_iterations_warning, append_solver_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
     matches_source_configs,
@@ -32,20 +32,39 @@ from sklbench.reporting.html import (
 
 BASE_IMPLEMENTATION = "sklearn"
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard holds the implementation fixed (plain scikit-learn) and
-  varies only the <em>build</em> &mdash; the BLAS/OpenMP runtime a given pixi
-  environment links against (e.g. conda-forge's MKL or one of its
-  libgomp/libomp OpenBLAS builds) &mdash; against the PyPI wheel build as the
-  baseline. Array API and scikit-learn-intelex variants, and one-off
-  <code>sklearn-dev</code> git-checkout builds, are excluded (see the other
-  dashboards for those). Read each cell like
-  <a href="per_hardware.html">the software/implementations dashboard</a>: fit
-  or predict speed-up (log-scale y-axis) per estimator category, one line per
-  build. In the latest full run, most alternative builds land within a few
-  percent of the PyPI baseline for tree-based models &mdash; BLAS/OpenMP
-  choice mostly doesn't matter there &mdash; except MKL, which gives
-  BLAS-bound linear-model fitting a consistent real speed-up (commonly in the
-  1.3-1.5x range).</p>
+  <p>This dashboard compares builds of plain scikit-learn. The code is the
+  same, only the BLAS/OpenMP runtime changes (for example conda-forge's MKL,
+  or its libgomp and libomp OpenBLAS builds). The PyPI wheel is the baseline.
+  </p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Read each cell like in
+    <a href="per_hardware.html">the software/implementations dashboard</a>:
+    fit or predict speed-up (log scale) per estimator category, one line per
+    build.
+    </p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <ul>
+      <li><b>MKL is a good pick for linear models</b>: it speeds up BLAS-bound
+      linear model fits, commonly by 1.3x to 1.5x.</li>
+      <li><b>HistGradientBoosting varies more between builds</b>. On laptops, this
+      comes from differences in active wait (how long idle OpenMP threads spin
+      before sleeping), which conda-forge disables by default. Without active
+      wait, HGB fits on small and medium datasets can be much slower. On the
+      high-end server, the LLVM/Intel OpenMP runtimes seem faster than
+      libgomp. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
+      for the analysis, and
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>
+      for a fix in progress, based on the insights from the
+      <a href="hgb_scaling.html">HistGradientBoosting thread-scalability breakdown</a> plots.</li>
+      <li><b>ExtraTrees fits are ~25% slower on conda-forge builds</b>.
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/34876">scikit-learn#34876</a>
+      fixes it and will land in the next release.</li>
+    </ul>
+  </details>
 </section>"""
 
 
@@ -101,6 +120,7 @@ def result_matches(
     if candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     append_cpu_fallback_warning(candidate, warnings)
 
     return (
@@ -113,7 +133,7 @@ def render_hardware_page(
     results: list[MethodResult],
     failed_records: list[BenchmarkRecord],
     hardware_hash: str,
-) -> str:
+) -> str | None:
     results = [res for res in results if res.hardware_hash == hardware_hash]
     results = [
         res for res in results
@@ -129,7 +149,7 @@ def render_hardware_page(
         and not is_sklearn_dev_variant(record)
     ]
     if not results:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
     hardwares_set = {res.hardware_hash for res in results}
     if len(hardwares_set) > 1:
         raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
@@ -139,7 +159,7 @@ def render_hardware_page(
         predicate=lambda res: is_vanilla_sklearn(res.software_hash)
     )
     if not base_results:
-        return f'<section class="empty">No vanilla {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+        return None
     baseline_label = build_variant(base_results[0])
 
     variant_colors = variant_color_map(
@@ -177,6 +197,10 @@ def render_hardware_page(
                 failed_records=candidate_failed_by_category.get(category, []),
             )
         })
+    if not candidate_failed_records and not any(
+        matches for by_method in matches_by_category.values() for matches in by_method.values()
+    ):
+        return None
     failed_by_category = groupby(failed_records, lambda record: record.category)
 
     # A failed record means find_matches never sees a pair for that case, so the

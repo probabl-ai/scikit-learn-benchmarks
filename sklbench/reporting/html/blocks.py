@@ -21,7 +21,10 @@ def _slug_id(label: str) -> str:
 
 
 def render_software_tabs(
-    elements: list[str], *, variant_colors: dict[str, str] | None = None
+    elements: list[str],
+    *,
+    variant_colors: dict[str, str] | None = None,
+    labels: list[str] | None = None,
 ):
     if not elements:
         return ""
@@ -31,8 +34,11 @@ def render_software_tabs(
     buttons = []
     panels = []
     for index, element in enumerate(elements):
-        match = re.search(r"<h3>(.*?)</h3>", element)
-        label = match.group(1) if match else f"Environment {index + 1}"
+        if labels is not None:
+            label = labels[index]
+        else:
+            match = re.search(r"<h3>(.*?)</h3>", element)
+            label = match.group(1) if match else f"Environment {index + 1}"
         marker = f"tab-{tabs_id}-{index}"
         style = ""
         color = variant_colors.get(label)
@@ -105,7 +111,9 @@ def render_software_hardware_tabs(
     return render_software_tabs(elements, variant_colors=variant_colors)
 
 
-def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
+def render_hardware_tabs(pages: list[tuple[str, str | None]]) -> str:
+    """Pages whose html is None have nothing to show and get no tab."""
+    pages = [(label, html) for label, html in pages if html is not None]
     if not pages:
         return '<section class="empty">No matching benchmark results.</section>'
     tabs_id = "hardware-tabs"
@@ -148,6 +156,7 @@ def assemble_plots_in_grid(
     columns=None,
     details_by_row=None,
     details_after_grid=None,
+    notes_by_row=None,
 ):
     row_key = rows if isinstance(rows, str) else list(rows)[0]
     column_key = columns if isinstance(columns, str) else list(columns)[0]
@@ -173,8 +182,13 @@ def assemble_plots_in_grid(
         details_by_row = {}
     if details_after_grid is None:
         details_after_grid = []
+    if notes_by_row is None:
+        notes_by_row = {}
     cells = []
     for row_value in row_values:
+        note = notes_by_row.get(row_value)
+        if note and any(key[0] == row_value for key in by_position):
+            cells.append(f'<p class="plot-row-note">{note}</p>')
         for column_value in column_values:
             plot = by_position.get((row_value, column_value))
             if plot is None:

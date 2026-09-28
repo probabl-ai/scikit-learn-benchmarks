@@ -185,10 +185,13 @@ class MethodResult:
         """
         If two results don't share the same minimal_match_key, it will
         never makes sense to compare them.
+
+        `source_config` is excluded so that a subset config (e.g.
+        configs/all_models_16gb.py) matches its parent's identical cases.
         """
         case = without_keys(
             self.case,
-            excluded_names={"implementation", "max_bins"},
+            excluded_names={"implementation", "max_bins", "source_config"},
         )
         case["method"] = self.method
         return stable_json(case)
@@ -264,12 +267,10 @@ def _runs_to_values(runs: list[dict]) -> dict:
         for method, time_ms in run.get("time_ms", {}).items():
             values["time_ms"].setdefault(method, []).append(float(time_ms))
 
+        # Keep the first repeat's: real datasets are re-split per repeat, so
+        # the encoded `features` count can differ between repeats.
         for method, data_desc in run.get("data_desc", {}).items():
-            if method in values["data_desc"]:
-                if stable_json(data_desc) != stable_json(values["data_desc"][method]):
-                    raise ValueError(f"Inconsistent data_desc across repeats for {method}")
-            else:
-                values["data_desc"][method] = data_desc
+            values["data_desc"].setdefault(method, data_desc)
 
         for method, method_metrics in run.get("metrics", {}).items():
             metric_values = values["metrics"].setdefault(method, {})
@@ -641,6 +642,48 @@ def append_iterations_warning(
                 icon="🔁",
                 short_message=f"({base_iterations[0]} vs {candidate_iterations[0]})",
                 message="Number of iteration differs: this might mean algorithms differ",
+            )
+        )
+
+
+def fitted_solver(case: dict, library: str, attributes: dict) -> str | None:
+    """The solver the estimator actually used (its fitted `solver_`), rather
+    than the requested param, since solvers are often auto-selected."""
+    solver_values = attributes.get("solver")
+    if solver_values:
+        return solver_values[0]
+    estimator = case.get("algorithm", {}).get("estimator")
+    if library == "sklearnex" and estimator == "Ridge":
+        # sklearnex's Ridge never records a fitted `solver_` (unlike
+        # stock sklearn), and its oneDAL fit path only ever runs for
+        # the requested "auto" solver, solving via oneDAL's "norm_eq"
+        # algorithm - the same normal-equations approach sklearn's
+        # own "cholesky" solver uses. A `solver` value's presence
+        # here would mean sklearnex fell back to stock sklearn for at
+        # least one repeat (see `MethodResult.is_sklearnex_fallback`),
+        # which does record it - so its absence means every repeat
+        # took the oneDAL path.
+        return "cholesky"
+    return None
+
+
+def append_solver_warning(
+    base_res: MethodResult, candidate: MethodResult, warnings: list
+):
+    base_solver = fitted_solver(
+        base_res.case, base_res.implementation.library, base_res.attributes
+    )
+    candidate_solver = fitted_solver(
+        candidate.case, candidate.implementation.library, candidate.attributes
+    )
+    if base_solver is None or candidate_solver is None:
+        return
+    if base_solver != candidate_solver:
+        warnings.append(
+            MatchWarning(
+                icon="🧮",
+                short_message=f"({base_solver} vs {candidate_solver})",
+                message="Solver differs",
             )
         )
 
