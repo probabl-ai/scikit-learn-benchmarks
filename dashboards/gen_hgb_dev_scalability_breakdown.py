@@ -69,6 +69,31 @@ from sklbench.reporting.html import (
 from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
 
 
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard compares HistGradientBoosting's fit time, phase by phase,
+  between a scikit-learn branch and <code>main</code> across thread counts.
+  It shows which phases a branch speeds up or slows down, and at which thread
+  counts.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>There is one tab per machine, OpenMP runtime and thread setting
+    (active wait, <code>OMP_PROC_BIND</code>), and one plot per workload. For
+    each requested (maximum) thread count (<code>OMP_NUM_THREADS</code>), the left bar
+    is the branch and the right bar is <code>main</code>. The software tabs
+    above the plots name both builds.</p>
+    <p>Each bar is the median fit time, stacked by phase (see the legend).
+    Compare the same segment across the two bars to see which phase the
+    branch changes. The number in parentheses on the x-axis is the thread
+    count the branch used to grow the trees, which can be lower than
+    requested on branches that reduce it for small workloads.</p>
+    <p>If several branches were run in the same tab, only the most recent one
+    is shown. Use the <a href="hgb_speedup_breakdown.html">HGB speed-up
+    breakdown</a> to compare several branches. A tab without a
+    <code>main</code> run shows a single bar per thread count.</p>
+  </details>
+</section>"""
+
+
 def _base_build(builds) -> str | None:
     """The `sklearn-dev@<owner>:main` build among `builds`, if any - see
     gen_hgb_dev_speedup_breakdown.py's `_base_build` for why this is picked
@@ -261,7 +286,7 @@ def generate(output_dir: Path) -> None:
 
     html = BASE_TEMPLATE.render(
         title="HGB fit-time breakdown (thread scalability, sklearn-dev)",
-        rows=[render_hardware_tabs(pages)],
+        rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_dev_scaling.html"
     output.write_text(html)
