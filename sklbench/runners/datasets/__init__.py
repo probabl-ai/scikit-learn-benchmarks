@@ -16,6 +16,7 @@
 
 import os
 
+import numpy as np
 import pandas as pd
 
 from ...config import EstimatorCase
@@ -69,9 +70,24 @@ def load_raw_data(
 
 def _measure_order(data) -> str | None:
     """The array's actual memory layout ("C"/"F"), for libraries that expose
-    numpy-style contiguity flags. None for pandas/other formats with no
-    equivalent concept.
+    numpy-style contiguity flags. None for other formats with no equivalent
+    concept.
+
+    A pandas DataFrame is "df(<layout>)", where <layout> is what `to_numpy()`
+    would return - i.e. what an estimator handed the frame directly gets from
+    `check_array`. Worked out from the blocks rather than by calling
+    `to_numpy()`, which copies mixed-dtype frames and this runs inside the
+    timed preprocessing step: a single ndarray block is stored transposed, as
+    `(n_columns, n_rows)`, and a multi-block frame is always interleaved into
+    a fresh F array.
     """
+    if isinstance(data, pd.DataFrame):
+        blocks = data._mgr.blocks
+        if len(blocks) == 1 and isinstance(blocks[0].values, np.ndarray):
+            layout = _measure_order(blocks[0].values.T)
+        else:
+            layout = "F"
+        return f"df({layout})" if layout is not None else "df"
     flags = getattr(data, "flags", None)
     if flags is None:
         return None
@@ -81,10 +97,15 @@ def _measure_order(data) -> str | None:
         if flags["F_CONTIGUOUS"]:
             return "F"
     except (KeyError, TypeError):
-        # e.g. pandas' DataFrame.flags, which is an unrelated
-        # duplicate-labels object that also happens to be named "flags".
         return None
     return None
+
+
+def _order_desc(subset_desc: dict) -> dict:
+    """`raw_order` (before preprocessing) and `order` (after) - also copied
+    onto the "preprocessing" desc, whose shape is the raw input's, so that
+    every method's row can show the same "raw->final" layout pair."""
+    return {key: subset_desc[key] for key in ("raw_order", "order")}
 
 
 def _shape_desc(data) -> dict:
@@ -114,7 +135,14 @@ def preprocess_data(
 
     if data_params.generation_kwargs is not None:
         data, description = convert_subsets(bench_case, dict(raw_data), dict(data_description))
-        description["preprocessing"] = _shape_desc(raw_data["x_train"])
+        for subset_name, subset in zip(("x_train", "x_test"), data):
+            subset_desc = description[subset_name]
+            subset_desc["order"] = subset_desc["order"] or _measure_order(subset)
+            subset_desc["raw_order"] = _measure_order(raw_data[subset_name])
+        description["preprocessing"] = {
+            **_shape_desc(raw_data["x_train"]),
+            **_order_desc(description["x_train"]),
+        }
         return data, description
 
     implementation = bench_case.implementation
@@ -157,6 +185,7 @@ def preprocess_data(
         data_dict["y_train"] = label_transfer_to_device.fit_transform(data_dict["y_train"])
         data_dict["y_test"] = label_transfer_to_device.transform(data_dict["y_test"])
 
+    raw_order = _measure_order(raw_data["x"])
     subset_description = dict(data_description)
     for subset_name in ("x_train", "x_test"):
         subset_description[subset_name] = {
@@ -164,10 +193,14 @@ def preprocess_data(
             # Real datasets rarely force an order in the config, so fall back
             # to measuring the array actually produced by preprocessing.
             "order": data_params.order or _measure_order(data_dict[subset_name]),
+            "raw_order": raw_order,
             "dtype": data_params.dtype,
             **_shape_desc(data_dict[subset_name]),
         }
-    subset_description["preprocessing"] = _shape_desc(raw_data["x"])
+    subset_description["preprocessing"] = {
+        **_shape_desc(raw_data["x"]),
+        **_order_desc(subset_description["x_train"]),
+    }
 
     return (
         tuple(data_dict[name] for name in ["x_train", "x_test", "y_train", "y_test"]),

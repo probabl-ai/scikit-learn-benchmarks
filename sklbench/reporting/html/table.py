@@ -193,14 +193,19 @@ def _row_columns_kind(inputs: RowInputs) -> str | None:
 
 
 def _row_order(inputs: RowInputs) -> str | None:
-    """The data's memory layout ("C" or "F"): the config-forced value where a
-    config varies it (see configs/_synthetic_linear.py's `order` field), else
-    the measured layout of the loaded array (real datasets - see
-    sklbench/runners/datasets/__init__.py's `_measure_order`)."""
-    order = inputs.case.get("data", {}).get("order")
-    if order is not None:
+    """The data's memory layout: the config-forced value where a config varies
+    it (see configs/_synthetic_linear.py's `order` field), else the measured
+    layouts before and after preprocessing as "raw->final" (e.g. "F->C",
+    "df->C" - see sklbench/runners/datasets/__init__.py's `_measure_order`).
+    Just the final layout for results recorded before `raw_order` existed."""
+    forced_order = inputs.case.get("data", {}).get("order")
+    if forced_order is not None:
+        return forced_order
+    order = inputs.data_desc.get("order")
+    raw_order = inputs.data_desc.get("raw_order")
+    if raw_order is None or order is None:
         return order
-    return inputs.data_desc.get("order")
+    return f"{raw_order}->{order}"
 
 
 def _row_env(inputs: RowInputs) -> dict:
