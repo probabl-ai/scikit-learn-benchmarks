@@ -50,3 +50,9 @@ architecture, and how to add benchmark cases or publish results.
 
 See [COMPARISONS_PR.md](COMPARISONS_PR.md) to benchmark an upstream
 scikit-learn PR against `main` automatically.
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE). Parts of `sklbench/` are derived
+from Intel's [scikit-learn_bench](https://github.com/IntelPython/scikit-learn_bench),
+see [NOTICE](NOTICE).
