@@ -1,33 +1,18 @@
 """Thread-count scalability dashboard for `configs/models_scalability.py`.
 
-One tab per hardware; within a tab, a software-envs panel (tabbed
-`SOFTWARE_TEMPLATE` cards, one per plain-CPU Pixi environment it sweeps -
-see `_software_tabs_html`, same pattern as e.g. `gen_softwares_comparison.py`) followed
-by one row of plots per (estimator, dataset) pair from that config -
-preceded by a small panel naming the dataset (shape, class count) and the
-estimator's fixed hyperparameters, see `_row_detail_html` - and one column
-per swept environment (`sklearn-pypi`, `sklearn-cf-mkl`, `intel`). Each row
-is its own single-row grid (rather than one grid for the whole tab)
-precisely so that detail panel can sit right above its own row instead of a
-shared grid's `details_by_row` trailing placement (see
-`assemble_plots_in_grid`). Each cell is a fit-time vs. core-count line plot.
-RandomForestClassifier/ExtraTreesClassifier are the only estimators there
-with both a `with_siblings=True` and `=False` variant (see
-`models_scalability.py`'s `_with_scaling_bench` docstring for why) - both are
-drawn as separate lines on the same cell so the SMT-vs-no-SMT gap reads
-directly off one plot rather than needing a second row, and `_row_detail_html`
-adds a plain-language note explaining that "with SMT"/"without SMT" split
-(see `SMT_NOTES`) - on hardware without SMT cores, only the `with_siblings`
-variant is ever generated (again see `_with_scaling_bench`), so the note
-there just says so instead of explaining a legend the plot doesn't have
-anything to contrast. Their fit times are also normalized to a fixed forest
-size (see `NORMALIZED_N_ESTIMATORS`) and plotted on a log y-axis, since that
-config scales `n_estimators` with core count and normalized fit time spans
-two-plus orders of magnitude across the core sweep - a linear axis would
-flatten most of that range into an unreadable near-zero tail. A dashed
-"perfect scalability" reference line (see `_perfect_scaling_reference`) is
-added to their cells too, so the real curve's departure from ideal linear
-scaling reads directly off the plot.
+One tab per hardware; within a tab, a software-envs panel (see
+`_software_tabs_html`) followed by a grid with one fit-time vs. core-count
+plot per (estimator, dataset) pair, each swept environment drawn as its own
+colored line (see `ENV_COLORS`), same layout as `gen_hptuning_scalability.py`.
+
+RandomForestClassifier/ExtraTreesClassifier also have a `with_siblings=False`
+variant on hardware with SMT cores (see `models_scalability.py`'s
+`_with_scaling_bench`). The main grid only shows the default SMT variant; the
+comparison gets its own section below it, one plot per (estimator, env) - see
+`_smt_section_html`. Their fit times are normalized to a fixed forest
+size (see `NORMALIZED_N_ESTIMATORS`), since that config scales `n_estimators`
+with core count, and plotted on a log y-axis with a per-environment dashed
+perfect-scalability reference (see `_perfect_scaling_reference`).
 
 Records from that config are identified by `metadata.source_config` (see
 `SOURCE_CONFIGS` and `sklbench.reporting.matching.matches_source_configs`),
@@ -48,10 +33,10 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     SOFTWARE_TEMPLATE,
-    assemble_plots_in_grid,
     render_hardware_tabs,
     render_software_tabs,
     scaling_line_plot_html,
+    variant_color_map,
 )
 from sklbench.reporting.matching import (
     MethodResult, date_range, matches_source_configs, read_all_results,
@@ -63,13 +48,13 @@ ABOUT_HTML = """<section class="panel">
   <code>.fit()</code> call changes with the number of CPU cores.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>Each tab is a machine, each row an (estimator, dataset) pair with its
-    shape and hyperparameters above it, and each column a software
-    environment. Both axes are in log scale. For tree models, the dashed line
-    is perfect scaling, so the gap to it is the lost efficiency.
-    RandomForest and ExtraTrees have separate "with SMT" and "without SMT"
-    lines on machines with hyper-threading. Look for curves that flatten or
-    go up.</p>
+    <p>Each tab is a machine and each plot an (estimator, dataset) pair,
+    with one line per software environment. The x-axis is in log scale. For
+    tree models, the y-axis is in log scale too, and each environment has a
+    grey dashed perfect-scaling line starting from its first point, so the
+    gap to it is the lost efficiency. Look for curves that flatten or go up. On machines
+    with hyper-threading, a section below compares RandomForest and
+    ExtraTrees with and without SMT, one plot per environment.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -85,22 +70,12 @@ ABOUT_HTML = """<section class="panel">
   </details>
 </section>"""
 
-# RF/ET are the only estimators with a `with SMT`/`without SMT` split (see
-# module docstring and `SIBLINGS_LABELS`) - this explains that legend where
-# it's meaningful (GNR, which actually has SMT siblings to compare) and
-# says why it's absent otherwise (the laptop's `without SMT` series is never
-# generated - see `models_scalability.py`'s `_with_scaling_bench`, which
-# only yields it `if is_tree and has_smt_cores`).
-SMT_NOTES = {
-    "534824": (
-        "\"with SMT\" pins both logical siblings of each selected "
-        "physical core; \"without SMT\" restricts to one logical thread "
-        "per physical core. This hardware has SMT (simultaneous "
-        "multithreading, aka hyper-threading): twice as many logical "
-        "cores as physical cores."
-    ),
-    "3b5e61": "This hardware has no SMT cores.",
-}
+SMT_NOTE = (
+    "SMT (simultaneous multithreading, aka hyper-threading) gives each "
+    "physical core two logical cores. \"SMT\" pins both logical siblings of "
+    "each selected physical core (the default used above); \"no SMT\" uses "
+    "one logical thread per physical core."
+)
 
 # (estimator, dataset) pairs from `MODEL_DATASET_PAIRS` in
 # configs/models_scalability.py, in that file's row order.
@@ -114,13 +89,14 @@ MODELS = [
 MODEL_ORDER = [estimator for estimator, _ in MODELS]
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
 
-ENV_ORDER = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
 SOURCE_CONFIGS = ["configs/models_scalability.py"]
-SOURCE_ENVS = ENV_ORDER
+# The `intel` pixi env is sklearn patched with sklearnex; plots name the library.
+ENV_LABELS = {"intel": "sklearnex"}
+ENV_ORDER = [ENV_LABELS.get(env, env) for env in SOURCE_ENVS]
+ENV_COLORS = variant_color_map(ENV_ORDER)
 
-SIBLINGS_LABELS = {True: "with SMT", False: "without SMT"}
-SIBLINGS_COLORS = {"with SMT": "#636EFA", "without SMT": "#EF553B"}
-SINGLE_SERIES_LABEL = "fit time"
+SMT_LABELS = {True: "SMT", False: "no SMT"}
 
 # `models_scalability.py`'s `_with_scaling_bench` sizes tree ensembles as
 # `max(24, cores_count * 8)` so every worker has its own tree to build at
@@ -151,7 +127,8 @@ def _with_siblings(result: MethodResult) -> bool:
 
 
 def _env(result: MethodResult) -> str:
-    return software_build_name(result.software_hash)
+    build = software_build_name(result.software_hash)
+    return ENV_LABELS.get(build, build)
 
 
 def _n_estimators(result: MethodResult) -> int | None:
@@ -183,24 +160,16 @@ def _fit_seconds(result: MethodResult, *, estimator: str) -> float:
     return seconds * NORMALIZED_N_ESTIMATORS / n_estimators
 
 
-def _series_for_cell(results: list[MethodResult], estimator: str) -> dict:
-    if estimator not in TREE_ESTIMATORS:
-        return {
-            SINGLE_SERIES_LABEL: [
-                (_cores(r), _fit_seconds(r, estimator=estimator), _hover_extra(r))
-                for r in results
-            ]
-        }
-    series = {}
-    for with_siblings, label in SIBLINGS_LABELS.items():
-        points = [
-            (_cores(r), _fit_seconds(r, estimator=estimator), _hover_extra(r))
-            for r in results
-            if _with_siblings(r) == with_siblings
-        ]
-        if points:
-            series[label] = points
-    return series
+def _point(result: MethodResult, estimator: str) -> tuple:
+    return (_cores(result), _fit_seconds(result, estimator=estimator), _hover_extra(result))
+
+
+def _series(groups: dict[str, list[MethodResult]], estimator: str) -> dict:
+    return {
+        label: [_point(r, estimator) for r in results]
+        for label, results in groups.items()
+        if results
+    }
 
 
 def _y_title(estimator: str) -> str:
@@ -210,23 +179,32 @@ def _y_title(estimator: str) -> str:
 
 
 PERFECT_SCALING_LABEL = "perfect scalability"
+REFERENCE_Y_FLOOR = 0.7
 
 
-def _perfect_scaling_reference(series: dict) -> dict[str, list[tuple[float, float]]]:
-    """A dashed y = y0 * x0 / x reference line, anchored to the lowest core
-    count in `series` (usually 1 core) - the fit time that core count would
-    need at every other swept core count for this cell's scaling to be
-    perfectly linear. `with SMT` is preferred as the anchor series since it's
-    the full sweep (see `models_scalability.py`'s `_with_scaling_bench`
-    docstring for why `without SMT` doesn't get high core counts on its own -
-    both variants share the same swept core counts either way, so the choice
-    only affects the anchor point, not the line's x range)."""
-    anchor_series = series.get("with SMT") or next(iter(series.values()), [])
-    if not anchor_series:
+def _perfect_scaling_reference(
+    series: dict, anchor_labels: list[str]
+) -> dict[str, list[list[tuple[float, float]]]]:
+    """One y = y0 * x0 / x segment per anchor series, starting at its first
+    point and cut once it drops below `REFERENCE_Y_FLOOR` times the cell's
+    fastest point, so a slow single-core baseline doesn't stretch the
+    y-axis."""
+    all_points = [point for points in series.values() for point in points]
+    if not all_points:
         return {}
-    x0, y0 = min(anchor_series, key=lambda point: point[0])[:2]
-    xs = sorted({point[0] for points in series.values() for point in points})
-    return {PERFECT_SCALING_LABEL: [(x, y0 * x0 / x) for x in xs]}
+    y_floor = REFERENCE_Y_FLOOR * min(point[1] for point in all_points)
+    xs = sorted({point[0] for point in all_points})
+    segments = []
+    for label in anchor_labels:
+        if label not in series:
+            continue
+        x0, y0 = min(series[label], key=lambda point: point[0])[:2]
+        segment = [(x, y0 * x0 / x) for x in xs if x >= x0 and y0 * x0 / x >= y_floor]
+        x_floor = y0 * x0 / y_floor
+        if x0 < x_floor < xs[-1]:
+            segment.append((x_floor, y_floor))
+        segments.append(segment)
+    return {PERFECT_SCALING_LABEL: segments}
 
 
 def _dataset_line(result: MethodResult) -> str:
@@ -251,14 +229,90 @@ def _params_line(result: MethodResult, estimator: str) -> str:
     return f"params: {formatted}"
 
 
-def _row_detail_html(result: MethodResult, estimator: str, hardware_hash: str) -> str:
+def _cell_subtitle_html(result: MethodResult, estimator: str) -> str:
     lines = [_dataset_line(result), _params_line(result, estimator)]
-    if estimator in TREE_ESTIMATORS:
-        smt_note = SMT_NOTES.get(hardware_hash)
-        if smt_note:
-            lines.append(smt_note)
-    subtitles = "".join(f'<div class="plot-subtitle">{escape(line)}</div>' for line in lines)
-    return f'<section class="panel"><h3>{escape(estimator)}</h3>{subtitles}</section>'
+    return "".join(f'<div class="plot-subtitle">{escape(line)}</div>' for line in lines)
+
+
+def _plot_cell_html(
+    title: str,
+    subtitle: str,
+    series: dict,
+    estimator: str,
+    *,
+    colors: dict[str, str],
+    line_dashes: dict[str, str] | None = None,
+    reference_anchors: list[str],
+) -> str:
+    is_tree = estimator in TREE_ESTIMATORS
+    plot = scaling_line_plot_html(
+        series,
+        colors=colors,
+        line_dashes=line_dashes,
+        x_title="cores",
+        y_title=_y_title(estimator),
+        y_unit="s",
+        x_log=True,
+        y_log=is_tree,
+        reference_lines=(
+            _perfect_scaling_reference(series, reference_anchors) if is_tree else None
+        ),
+    )
+    return f'<section class="plot-cell"><h3>{escape(title)}</h3>{subtitle}{plot}</section>'
+
+
+def _grid_html(cells: list[str]) -> str:
+    return (
+        '<section class="plot-grid" '
+        'style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));">'
+        + "".join(cells)
+        + "</section>"
+    )
+
+
+def _smt_section_html(hw_results: list[MethodResult]) -> list[str]:
+    """Page rows comparing SMT vs. no SMT, one plot per (tree estimator,
+    env) - empty on hardware without SMT cores, where no "no SMT" variant is
+    generated."""
+    if all(_with_siblings(result) for result in hw_results):
+        return []
+    rows = [
+        '<div class="page-row"><section class="panel"><h3>SMT vs. no SMT</h3>'
+        f'<div class="plot-subtitle">{escape(SMT_NOTE)}</div></section></div>'
+    ]
+    for estimator in MODEL_ORDER:
+        if estimator not in TREE_ESTIMATORS:
+            continue
+        cells = []
+        for env in ENV_ORDER:
+            env_results = [
+                result
+                for result in hw_results
+                if result.case["algorithm"]["estimator"] == estimator and _env(result) == env
+            ]
+            series = _series(
+                {
+                    label: [r for r in env_results if _with_siblings(r) == with_siblings]
+                    for with_siblings, label in SMT_LABELS.items()
+                },
+                estimator,
+            )
+            if len(series) < 2:
+                continue
+            cells.append(
+                _plot_cell_html(
+                    f"{estimator} / {env}",
+                    _cell_subtitle_html(env_results[0], estimator),
+                    series,
+                    estimator,
+                    colors={label: ENV_COLORS[env] for label in series},
+                    line_dashes={SMT_LABELS[False]: "dash"},
+                    reference_anchors=[SMT_LABELS[True]],
+                )
+            )
+        if cells:
+            rows.append(f'<div class="page-row">{_grid_html(cells)}</div>')
+    return rows if len(rows) > 1 else []
 
 
 def _software_tabs_html(hw_results: list[MethodResult]) -> str:
@@ -290,51 +344,32 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
         f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_results))}</div>',
         f'<div class="page-row">{_software_tabs_html(hw_results)}</div>',
     ]
+    cells = []
     for estimator in MODEL_ORDER:
         estimator_results = [
             result
             for result in hw_results
-            if result.case["algorithm"]["estimator"] == estimator
+            if result.case["algorithm"]["estimator"] == estimator and _with_siblings(result)
         ]
-        if not estimator_results:
-            continue
-
-        plots = []
-        for env in ENV_ORDER:
-            env_results = [result for result in estimator_results if _env(result) == env]
-            if not env_results:
-                continue
-            series = _series_for_cell(env_results, estimator)
-            is_tree = estimator in TREE_ESTIMATORS
-            plots.append(
-                {
-                    "model": estimator,
-                    "env": env,
-                    "point_count": len(env_results),
-                    "plot": scaling_line_plot_html(
-                        series,
-                        colors=SIBLINGS_COLORS,
-                        x_title="cores",
-                        y_title=_y_title(estimator),
-                        y_unit="s",
-                        x_log=True,
-                        y_log=is_tree,
-                        reference_lines=(
-                            _perfect_scaling_reference(series) if is_tree else None
-                        ),
-                    ),
-                }
-            )
-        if not plots:
-            continue
-
-        detail_html = _row_detail_html(estimator_results[0], estimator, hardware_hash)
-        grid = assemble_plots_in_grid(
-            plots,
-            rows={"model": [estimator]},
-            columns={"env": ENV_ORDER},
+        series = _series(
+            {env: [r for r in estimator_results if _env(r) == env] for env in ENV_ORDER},
+            estimator,
         )
-        sections.append(f'<div class="page-row">{detail_html}{grid}</div>')
+        if not series:
+            continue
+        cells.append(
+            _plot_cell_html(
+                estimator,
+                _cell_subtitle_html(estimator_results[0], estimator),
+                series,
+                estimator,
+                colors=ENV_COLORS,
+                reference_anchors=ENV_ORDER,
+            )
+        )
+    if cells:
+        sections.append(f'<div class="page-row">{_grid_html(cells)}</div>')
+    sections.extend(_smt_section_html(hw_results))
 
     return "".join(sections)
 

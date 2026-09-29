@@ -457,12 +457,13 @@ def scaling_line_plot_html(
     series: dict[str, list[tuple[float, float]]],
     *,
     colors: dict[str, str] | None = None,
+    line_dashes: dict[str, str] | None = None,
     x_title: str = "threads",
     y_title: str = "fit time (ms)",
     y_unit: str = "ms",
     x_log: bool = False,
     y_log: bool = False,
-    reference_lines: dict[str, list[tuple[float, float]]] | None = None,
+    reference_lines: dict[str, list[list[tuple[float, float]]]] | None = None,
     size_domain: tuple[float, float] = (0, 100),
 ) -> str:
     """Simple line plot of `y_title` vs `x_title`, one line per series key
@@ -495,8 +496,13 @@ def scaling_line_plot_html(
     marker size.
 
     `reference_lines` draws additional dashed, marker-less, grey lines (e.g.
-    an ideal-scaling reference) in the same `{label: [(x, y), ...]}` shape as
-    `series`, kept visually distinct from the real data traces."""
+    an ideal-scaling reference), kept visually distinct from the real data
+    traces. Each label maps to a list of segments (`[[(x, y), ...], ...]`),
+    drawn as one trace with gaps between them, so several same-meaning
+    segments share one legend entry.
+
+    `line_dashes` maps a series label to a Plotly dash style (e.g. "dash"),
+    for series sharing a color that still need telling apart."""
     chart_id = f"scaling-line-{next(chart_ids)}"
     fig = go.Figure()
     all_x_values = set()
@@ -511,6 +517,10 @@ def scaling_line_plot_html(
         color = (colors or {}).get(label)
         marker_sizes = _marker_sizes(points, size_domain)
         marker = {"color": color} if color else {}
+        line = dict(marker)
+        dash = (line_dashes or {}).get(label)
+        if dash:
+            line["dash"] = dash
         if marker_sizes is not None:
             # `_marker_sizes` returns areas (px^2) already, so `sizemode`
             # must be "area" too - Plotly's default `"diameter"` would
@@ -524,7 +534,7 @@ def scaling_line_plot_html(
                 x=x_values,
                 y=y_values,
                 mode="lines+markers",
-                line={"color": color} if color else {},
+                line=line,
                 marker=marker,
                 customdata=hover_extra,
                 hovertemplate=(
@@ -538,11 +548,16 @@ def scaling_line_plot_html(
                 showlegend=len(series) > 1,
             )
         )
-    for label, points in sorted((reference_lines or {}).items()):
-        points = sorted(points, key=lambda point: point[0])
-        x_values = [point[0] for point in points]
-        y_values = [point[1] for point in points]
-        all_x_values.update(x_values)
+    for label, segments in sorted((reference_lines or {}).items()):
+        x_values, y_values = [], []
+        for segment in segments:
+            segment = sorted(segment, key=lambda point: point[0])
+            if x_values:
+                x_values.append(None)
+                y_values.append(None)
+            x_values.extend(point[0] for point in segment)
+            y_values.extend(point[1] for point in segment)
+            all_x_values.update(point[0] for point in segment)
         fig.add_trace(
             go.Scatter(
                 name=label,
