@@ -1,0 +1,362 @@
+from pathlib import Path
+
+from dashboards import HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS
+from sklbench.reporting.utils import (
+    partition_iterable, groupby, stable_json, without_keys,
+)
+
+from sklbench.reporting.matching import (
+    append_iterations_warning, append_solver_warning, append_max_bins_warning, read_all_results,
+    read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
+    MatchWarning, MethodResult, append_cpu_fallback_warning,
+    matches_source_configs,
+    add_preprocessing_time, is_real_dataset,
+)
+
+from sklbench.reporting.envs import (
+    is_vanilla_sklearn, read_env, software_build_name, summarize_software_env,
+    summarize_hardware_env,
+)
+from sklbench.reporting.html import (
+    BASE_TEMPLATE,
+    DATE_RANGE_TEMPLATE,
+    HARDWARE_TEMPLATE,
+    SOFTWARE_TEMPLATE,
+    assemble_plots_in_grid,
+    detailed_results_table_html,
+    speedup_plot_html,
+    render_software_tabs,
+    render_hardware_tabs,
+    variant_color_map,
+)
+
+
+BASE_IMPLEMENTATION = "sklearn"
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard compares implementations on the same machine:
+  scikit-learn-intelex and Array API backends (PyTorch, dpnp) against stock
+  scikit-learn. Since the hardware is fixed, a speed-up comes from the
+  software: faster algorithms, better use of the CPU (vectorization,
+  threading), or offloading to the GPU.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Pick a machine tab. The top of the tab describes the machine and each
+    software environment (versions, BLAS and OpenMP libraries).</p>
+    <p>The plots are arranged in a grid: one row per estimator category
+    (linear, tree-based, clustering) and one column for <code>fit</code> and
+    one for <code>predict</code>. In each plot:</p>
+    <ul>
+      <li>the x-axis lists the estimators, with one color per implementation;</li>
+      <li>each point is one benchmark case (dataset and hyperparameters);</li>
+      <li>the y-axis is the speed-up over stock scikit-learn, in log scale.
+      Points above the dashed 1x line are faster than scikit-learn.</li>
+    </ul>
+    <p>The marker shape flags cases to double check:</p>
+    <ul>
+      <li>circle (●): metrics and setup match scikit-learn;</li>
+      <li>square (■): metrics match but the setup differs, for instance a
+      different solver or number of iterations, or scikit-learn-intelex using
+      histogram-based splits where scikit-learn uses exact ones;</li>
+      <li>open diamond (◇): the metrics differ;</li>
+      <li>grey point (<span style="color: grey">●</span>):
+      scikit-learn-intelex fell back to scikit-learn;</li>
+      <li>cross (✕): failed run.</li>
+    </ul>
+    <p>The notes under each plot count these cases.</p>
+    <p>Hover a point to see its case. Click it to find its row in "Detailed
+    results", the table below each row, which has the exact timings and
+    metrics and can be filtered by column.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li><code>sklearnex-cpu</code> is the <b>most consistently fast option</b>.
+      Tree-based models sometimes get impressive speed-ups, especially on the
+      high-end server, <b>up to 30x</b>. Linear models gain less.</li>
+      <li>Array API backends are <b>mixed</b>. Only LogisticRegression and
+      Ridge are benchmarked for now:
+        <ul>
+          <li>LogisticRegression on GPU is <b>fairly fast</b>.</li>
+          <li>Ridge uses the SVD solver instead of Cholesky under Array API,
+          which is <b>probably why it's slower</b>.</li>
+          <li>PyTorch on CPU parallelizes every operation, and this overhead
+          <b>hurts LogisticRegression</b>. That's why it's slower than
+          scikit-learn, even though you could expect performance similar to
+          the baseline NumPy implementation.</li>
+        </ul>
+      </li>
+    </ul>
+  </details>
+</section>"""
+PREPROCESSING_TOGGLE_HTML = (
+    '<section class="panel">'
+    '<label class="preprocessing-toggle">'
+    '<input type="checkbox" class="preprocessing-toggle-checkbox">'
+    " Include preprocessing time in fit speed-ups (real datasets only)"
+    "</label>"
+    "</section>"
+)
+TREE_BINNING_NOTE = (
+    "Tree-based plots: within each implementation, cases without binning "
+    "(exact splits) are on the left, cases with binning (histogram-based "
+    "splits) on the right."
+)
+
+
+def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
+    return (
+        result.implementation.short_name == BASE_IMPLEMENTATION
+        and not is_vanilla_sklearn(result.software_hash)
+    )
+
+
+def _case_key(case: dict) -> str:
+    """Case identity ignoring implementation/max_bins - shared by a base result
+    and the candidate(s) it would be compared against (or vice versa)."""
+    return stable_json(without_keys(case, excluded_names={"implementation", "max_bins"}))
+
+
+def result_matches(
+    base_res: MethodResult, candidate: MethodResult
+) -> tuple[bool, list[MatchWarning]]:
+    """
+    Assumptions:
+    - hardware matches
+    - candidate implementation is not sklearn
+    - base_res implementation is sklearn
+
+    returns:
+    - True/False
+    - warnings
+    """
+    assert base_res.hardware_hash == candidate.hardware_hash
+    assert base_res.implementation.short_name == BASE_IMPLEMENTATION
+    assert candidate.implementation.short_name != BASE_IMPLEMENTATION
+
+    warnings = []
+
+    if candidate.is_sklearnex_tree:
+        append_max_bins_warning(base_res, candidate, warnings)
+    append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
+    append_cpu_fallback_warning(candidate, warnings)
+
+    return (
+        base_res.minimal_match_key == candidate.minimal_match_key,
+        warnings
+    )
+
+
+def _render_speedup_grid(
+    results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
+    *,
+    variant_colors: dict[str, str],
+) -> str:
+    """Renders the category x fit/predict speed-up grid for one variant of
+    the page (the default view, or the "with preprocessing" view - real
+    datasets only, preprocessing time folded into fit)."""
+    base_results, other_results = partition_iterable(
+        results,
+        predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
+    )
+    if not base_results:
+        return f'<section class="empty">No {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+    baseline_label = software_build_name(base_results[0].software_hash)
+
+    grouped_results = groupby(
+        (res for res in base_results if res.method in ("fit", "predict")),
+        lambda res: (res.category, res.method),
+    )
+
+    # Non-baseline (candidate) failures: shown on the plots too, at the bottom
+    # of their model-variant column, since we don't know from a failed record
+    # whether fit or predict is what failed.
+    candidate_failed_records = [
+        record for record in failed_records
+        if record.implementation.short_name != BASE_IMPLEMENTATION
+    ]
+    candidate_failed_by_category = groupby(
+        candidate_failed_records, lambda record: record.category
+    )
+
+    plots = []
+    matches_by_category = {}
+    for (category, method), group_base_results in grouped_results.items():
+        matches = find_matches(group_base_results, other_results, result_matches)
+        matches_by_category.setdefault(category, {})[method] = matches
+        # create a JS snippet for plotly:
+        plots.append({
+            "category": category,
+            "method": method,
+            "point_count": len(matches),
+            "plot": speedup_plot_html(
+                matches,
+                baseline_label=baseline_label,
+                variant_colors=variant_colors,
+                failed_records=candidate_failed_by_category.get(category, []),
+            )
+        })
+    failed_by_category = groupby(failed_records, lambda record: record.category)
+
+    # A failed record means find_matches never sees a pair for that case, so the
+    # side that *did* succeed - the base when a candidate failed, or any
+    # candidate when the base itself failed - would otherwise silently vanish
+    # from the table too. Look those up by case identity so they still show up
+    # (with no speedup, since there's nothing successful to compare against).
+    base_by_case_key: dict[str, list[MethodResult]] = {}
+    for base in base_results:
+        base_by_case_key.setdefault(_case_key(base.case), []).append(base)
+    other_by_case_key: dict[str, list[MethodResult]] = {}
+    for other in other_results:
+        other_by_case_key.setdefault(_case_key(other.case), []).append(other)
+
+    unmatched_base_by_category: dict[str, list[MethodResult]] = {}
+    unmatched_candidate_by_category: dict[str, list[MethodResult]] = {}
+    for record in failed_records:
+        key = _case_key(record.case)
+        if record.implementation.short_name == BASE_IMPLEMENTATION:
+            for candidate in other_by_case_key.get(key, []):
+                unmatched_candidate_by_category.setdefault(candidate.category, []).append(candidate)
+        else:
+            for base in base_by_case_key.get(key, []):
+                unmatched_base_by_category.setdefault(base.category, []).append(base)
+
+    details_by_category = {
+        category: detailed_results_table_html(
+            category,
+            matches_by_category.get(category, {}),
+            baseline_label=baseline_label,
+            variant_label=lambda result: result.implementation.short_name,
+            failed_records=[
+                (record, record.implementation.short_name)
+                for record in failed_by_category.get(category, [])
+            ],
+            unmatched_base_results=unmatched_base_by_category.get(category, []),
+            unmatched_candidate_results=unmatched_candidate_by_category.get(category, []),
+        )
+        for category in (
+            set(matches_by_category) | set(failed_by_category)
+            | set(unmatched_base_by_category) | set(unmatched_candidate_by_category)
+        )
+    }
+
+    return assemble_plots_in_grid(
+        plots,
+        rows={"category": ["linear", "tree-based", "clustering"]},
+        columns={"method": ["fit", "predict"]},
+        details_by_row=details_by_category,
+        notes_by_row={"tree-based": TREE_BINNING_NOTE},
+    )
+
+
+def render_hardware_page(
+    results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
+    hardware_hash: str,
+) -> str | None:
+    results = [res for res in results if res.hardware_hash == hardware_hash]
+    results = [res for res in results if not is_alt_sklearn_build(res)]
+    failed_records = [
+        record for record in failed_records
+        if record.hardware_hash == hardware_hash and not is_alt_sklearn_build(record)
+    ]
+    if not results:
+        return None
+    hardwares_set = {res.hardware_hash for res in results}
+    if len(hardwares_set) > 1:
+        raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
+
+    base_results, other_results = partition_iterable(
+        results,
+        predicate=lambda res: res.implementation.short_name == BASE_IMPLEMENTATION
+    )
+    if not base_results or not other_results:
+        return None
+    baseline_label = software_build_name(base_results[0].software_hash)
+
+    variant_colors = variant_color_map(
+        sorted({res.implementation.short_name for res in other_results})
+    )
+
+    default_grid_html = _render_speedup_grid(
+        results, failed_records, variant_colors=variant_colors
+    )
+    preprocessing_grid_html = _render_speedup_grid(
+        add_preprocessing_time([res for res in results if is_real_dataset(res)]),
+        [record for record in failed_records if is_real_dataset(record)],
+        variant_colors=variant_colors,
+    )
+    speedup_views_html = (
+        '<div class="speedup-view-switch">'
+        f'<div class="speedup-view speedup-view-default">{default_grid_html}</div>'
+        f'<div class="speedup-view speedup-view-preprocessing">{preprocessing_grid_html}</div>'
+        "</div>"
+    )
+
+    hardware_hash, = hardwares_set
+    hardware_env = read_env("hardware", hardware_hash)
+
+    base_sw_env = read_env("software", base_results[0].software_hash)
+    base_implem = base_results[0].implementation
+
+    base_summary = summarize_software_env(
+        base_sw_env,
+        base_implem,
+        software_hash=base_results[0].software_hash,
+    )
+    base_summary["name"] = baseline_label
+    softwares = [base_summary]
+    for implem_name, implem_results in groupby(other_results, lambda res: res.implementation.short_name).items():
+        res = implem_results[0]
+        env = read_env("software", res.software_hash)
+        softwares.append(
+            summarize_software_env(
+                env,
+                res.implementation,
+                software_hash=res.software_hash,
+            )
+        )
+
+    rows = [
+        DATE_RANGE_TEMPLATE.render(date_range(results)),
+        HARDWARE_TEMPLATE.render(summarize_hardware_env(hardware_env)),
+        render_software_tabs([
+            SOFTWARE_TEMPLATE.render(**summary)
+            for summary in softwares
+        ], variant_colors=variant_colors),
+        speedup_views_html,
+    ]
+    return "".join(f'<div class="page-row">{row}</div>' for row in rows)
+
+
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+SOURCE_ENVS = GENERAL_SOURCE_ENVS
+
+
+def generate(output_dir: Path) -> None:
+    results = [
+        res for res in read_all_results()
+        if matches_source_configs(res.case, SOURCE_CONFIGS)
+    ]
+    failed_records = [
+        record for record in read_failed_records()
+        if matches_source_configs(record.case, SOURCE_CONFIGS)
+    ]
+    hardware_hashes_with_results = {res.hardware_hash for res in results}
+    hardware_pages = [
+        (hardware_name, render_hardware_page(results, failed_records, hardware_hash))
+        for hardware_hash, hardware_name in HARDWARE_NAMES.items()
+        if hardware_hash in hardware_hashes_with_results
+    ]
+
+    html = BASE_TEMPLATE.render(rows=[
+        ABOUT_HTML,
+        PREPROCESSING_TOGGLE_HTML,
+        render_hardware_tabs(hardware_pages),
+    ])
+
+    output = output_dir / "per_hardware.html"
+    output.write_text(html)
+    print(f"Dashboard written to {output}")

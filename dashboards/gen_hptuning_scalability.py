@@ -9,31 +9,31 @@ log-spaced from 1 up to half the machine's physical cores (see
 `configs/hptuning.py`'s `_case`/`get_n_cores_list` usage) specifically to see
 whether that composition scales or falls over. One small multiple per
 (estimator, dataset): seconds per fit vs. outer `n_jobs`, with each swept
-environment (`sklearn-pypi`/`sklearn-cf-mkl`/`intel`) as its own colored line
+environment (`sklearn-pypi`/`sklearn-cf-mkl`/`sklearnex`) as its own colored line
 on the same plot (see `ENV_COLORS`) rather than a separate plot per
-environment, so a build's effect on scaling reads directly off one cell. A
-mean-CPU-utilization-vs-`n_jobs` panel (from the record's `system_telemetry`
-- meant to tell "busy but inefficient", e.g. HGB's own thread pool colliding
-with concurrent outer candidates, apart from "idle", e.g. dispatch/IPC
-overhead dominating over too-cheap candidates) is commented out for now
-rather than removed - see `_row_cell_html`.
+environment, so a build's effect on scaling reads directly off one cell. Mean
+CPU utilization (from the record's `system_telemetry` - meant to tell "busy
+but inefficient", e.g. HGB's own thread pool colliding with concurrent outer
+candidates, apart from "idle", e.g. dispatch/IPC overhead dominating over
+too-cheap candidates) sizes each point's marker rather than getting its own
+panel - see `_env_series`.
 
-Seconds *per fit* (`duration_s * n_jobs / (n_iter * cv_n_splits)` - see
-`_seconds_per_fit`), not raw wall time: `configs/hptuning.py`'s `n_iter`
-grows with `n_jobs` (≈3x n_jobs beyond its "at least 10" floor - see its
-`_case`), so the total search work isn't fixed across the sweep and raw wall
-time isn't directly comparable point to point - a flat raw-wall-time line
-past the floor is already the *best* case (constant work per worker), not a
-sign of zero speedup. Dividing by fits *per worker* (not total fits - that
-would divide out an extra, misleading factor of `n_jobs`) turns "perfectly
-efficient" into "flat line" directly, with no separate reference curve
-needed to say so.
+Seconds *per fit* (`duration_s / (n_iter * cv_n_splits)` - see
+`_seconds_per_fit`), i.e. mean wall-clock time per `.fit()` call across the
+whole search, not raw wall time: `configs/hptuning.py`'s `n_iter` is fixed
+per machine (same value for every point in a row's `n_jobs` sweep - see its
+`_case`), so this is just `duration_s` rescaled by a row-constant factor and
+answers the actual question directly - does raising outer `n_jobs` let the
+machine push through more fits per second? A line dropping roughly ∝
+`1 / n_jobs` is ideal (linear) scaling; flat means more outer workers buy
+nothing; rising means outer parallelism is actively hurting (typically
+oversubscription against an inner parallelism the candidate already uses -
+see RF/ET's explicit `n_jobs=-1`).
 
-Records are identified by the presence of a `hptuning` case section - unique
-to `HPTuningCase` (see `sklbench/config/models/hptuning.py`), not set by any
-other config, so this doesn't need to import `configs/hptuning.py` itself
-(same convention as e.g. `gen_models_scalability.py`'s `metadata.n_cores`
-check). `duration_s`/`cpu_percent` aren't columns `MethodResult`/
+Records are identified by `metadata.source_config` (see `SOURCE_CONFIGS` and
+`sklbench.reporting.matching.matches_source_configs`), stamped at load time
+by `sklbench.config.loader.load_cases_from_script`. `duration_s`/
+`cpu_percent` aren't columns `MethodResult`/
 `read_all_results()` understands (that machinery expects a `time_ms` dict
 keyed by run method, e.g. "fit"/"predict" - `sklbench/runners/hptuning.py`
 writes flat `duration_s`/`best_score` rows instead), so this reads raw
@@ -59,15 +59,22 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     SOFTWARE_TEMPLATE,
+    format_duration_ms,
     render_hardware_tabs,
     render_software_tabs,
     scaling_line_plot_html,
     variant_color_map,
 )
-from sklbench.reporting.matching import BenchmarkRecord, Implementation, date_range, read_benchmark_records
+from sklbench.reporting.matching import (
+    BenchmarkRecord, Implementation, date_range, matches_source_configs,
+    read_benchmark_records,
+)
 
 
-ENV_ORDER = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+# The `intel` pixi env is sklearn patched with sklearnex; plots name the library.
+ENV_LABELS = {"intel": "sklearnex"}
+ENV_ORDER = [ENV_LABELS.get(env, env) for env in SOURCE_ENVS]
 ENV_COLORS = variant_color_map(ENV_ORDER)
 
 ESTIMATOR_ORDER = [
@@ -85,8 +92,54 @@ DURATION_METRIC = "s / fit"
 CPU_METRIC = "CPU utilization (%)"
 
 
-def _is_hptuning(record: BenchmarkRecord) -> bool:
-    return "hptuning" in record.case
+SOURCE_CONFIGS = ["configs/hptuning.py"]
+
+ABOUT_HTML = """<section class="panel">
+  <p>RandomizedSearchCV has two levels of parallelism: its outer
+  <code>n_jobs</code> runs candidates in parallel, and each candidate can use
+  threads itself. This dashboard sweeps the outer <code>n_jobs</code> to
+  check how the two levels interact.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Inner parallelism depends on the estimator: <code>n_jobs=-1</code> for
+    RandomForest and ExtraTrees, OpenMP for HistGradientBoosting, BLAS for
+    Ridge and LogisticRegression. There is one tab per machine and one plot
+    per (estimator, dataset) pair. The x-axis is the outer
+    <code>n_jobs</code> (log scale), the y-axis is the mean time per
+    <code>.fit()</code> call over the search, with one line per environment
+    and marker size for mean CPU usage. The line shape tells how the two
+    levels interact:</p>
+    <ul>
+      <li>going down as 1/n_jobs: a single fit has little inner parallelism,
+      and the search scales with outer workers;</li>
+      <li>flat: a single fit was likely already using all cores, so outer
+      workers bring nothing;</li>
+      <li>rising: oversubscription, or bad interactions between joblib and
+      the inner threading layer (they don't coordinate).</li>
+    </ul>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>These results match what the
+    <a href="models_scalability.html">models core-count scalability</a>
+    dashboard shows. On the benchmarked cases:</p>
+    <ul>
+      <li>Ridge and LogisticRegression: outer parallelism helps, but <b>less
+      than one could hope</b>. These workloads are probably memory bound, so
+      more cores don't help much.</li>
+      <li>HistGradientBoosting: outer parallelism <b>works well on small
+      datasets or on a big machine</b>, because HGB's own threads are
+      counter-productive there (see the
+      <a href="hgb_scaling.html">HistGradientBoosting thread-scalability
+      breakdown</a>).</li>
+      <li>RandomForest and ExtraTrees: on susy, the curve is <b>mostly
+      flat</b>, as expected since a single fit already uses all cores. On the
+      datasets with preprocessing, the search <b>still speeds up with outer
+      workers</b>. This is a surprise: preprocessing may take a non-negligible
+      part of each fit, but this needs investigation.</li>
+    </ul>
+  </details>
+</section>"""
 
 
 def _estimator(record: BenchmarkRecord) -> str:
@@ -98,6 +151,16 @@ def _dataset_name(record: BenchmarkRecord) -> str:
     return data.get("dataset") or data.get("source") or "unknown"
 
 
+def _data_desc_raw(run: dict) -> dict:
+    """`data_desc`'s pre-preprocessing shape - subsampled (per
+    `hptuning.max_samples`) but not yet through whatever `preprocessing_kind`
+    transform the pipeline applies. Older records (from before the runner
+    split `data_desc` into `raw`/`fit` - see `sklbench/runners/hptuning.py`)
+    stored this same shape flat instead of nested under `"raw"`."""
+    desc = run.get("data_desc") or {}
+    return desc.get("raw", desc)
+
+
 def _dataset_shape(record: BenchmarkRecord) -> tuple[int | None, int | None]:
     generation_kwargs = record.case.get("data", {}).get("generation_kwargs")
     if generation_kwargs:
@@ -107,9 +170,23 @@ def _dataset_shape(record: BenchmarkRecord) -> tuple[int | None, int | None]:
     # run's own `data_desc` instead (same for every n_jobs point of a given
     # spec, since `max_samples` doesn't vary with n_jobs).
     for run in record.runs:
-        desc = run.get("data_desc") or {}
+        desc = _data_desc_raw(run)
         if desc.get("n_samples") and desc.get("n_features"):
             return desc["n_samples"], desc["n_features"]
+    return None, None
+
+
+def _fit_shape(row_records: list[BenchmarkRecord]) -> tuple[int | None, int | None]:
+    """Shape actually seen by `.fit()`, after whatever `preprocessing_kind`
+    transform the pipeline applies (e.g. one-hot encoding categorical
+    columns expanding `n_features`) - `(None, None)` for records from
+    before the runner captured this (see `_data_desc_raw`), or when no run
+    in this row has it."""
+    for record in row_records:
+        for run in record.runs:
+            fit = (run.get("data_desc") or {}).get("fit") or {}
+            if fit.get("n_samples") and fit.get("n_features"):
+                return fit["n_samples"], fit["n_features"]
     return None, None
 
 
@@ -139,7 +216,8 @@ def _n_fits(record: BenchmarkRecord) -> int:
 
 
 def _env(record: BenchmarkRecord) -> str:
-    return software_build_name(record.software_hash)
+    build = software_build_name(record.software_hash)
+    return ENV_LABELS.get(build, build)
 
 
 def _env_sort_key(env: str) -> tuple[int, str]:
@@ -171,21 +249,16 @@ def _duration_s(record: BenchmarkRecord) -> float | None:
 
 
 def _seconds_per_fit(record: BenchmarkRecord) -> float | None:
-    """Wall-clock time to process one fit's worth of work, accounting for
-    how many of `_n_fits(record)` fits ran concurrently: `duration_s *
-    n_jobs / n_fits`, i.e. `duration_s / (n_fits / n_jobs)` - dividing by
-    fits *per worker*, not by the total fit count. Dividing by the total
-    instead (no `* n_jobs`) would shrink by a full extra factor of `n_jobs`
-    even under perfectly efficient scaling - `n_jobs` parallel workers
-    produce that total in the first place, so wall time is already "divided
-    by n_jobs" once before this function does anything; dividing by the
-    (n_jobs-inflated) total fit count on top of that divides by it again.
-    This version is flat exactly when outer/inner parallelism composes
-    perfectly, which a plain `duration_s / n_fits` is not."""
+    """Mean wall-clock time per `.fit()` call across the whole search:
+    `duration_s / n_fits` - i.e. the reciprocal of fits-per-second
+    throughput. Decreasing with `n_jobs` means more outer workers are
+    letting the machine get through fits faster; flat/rising means they
+    aren't (or are actively hurting, e.g. oversubscription against a
+    candidate's own inner parallelism)."""
     duration = _duration_s(record)
     if duration is None:
         return None
-    return duration * _n_jobs(record) / _n_fits(record)
+    return duration / _n_fits(record)
 
 
 def _cpu_percent_mean(record: BenchmarkRecord) -> float | None:
@@ -200,8 +273,29 @@ def _cpu_percent_mean(record: BenchmarkRecord) -> float | None:
     return mean(samples) if samples else None
 
 
+def _memory_percent_max(record: BenchmarkRecord) -> float | None:
+    if record.record_path is None:
+        return None
+    raw = json.loads(record.record_path.read_text())
+    samples = [
+        sample["memory"]["used_percent"]
+        for sample in raw.get("system_telemetry", [])
+        if sample.get("memory", {}).get("used_percent") is not None
+    ]
+    return max(samples) if samples else None
+
+
 def _hover_extra(record: BenchmarkRecord) -> str:
-    extra = f"n_iter: {_n_iter(record)}"
+    parts = [f"n_iter: {_n_iter(record)}"]
+    duration = _duration_s(record)
+    if duration is not None:
+        parts.append(f"wall time: {format_duration_ms(duration * 1000)}")
+    cpu_percent = _cpu_percent_mean(record)
+    if cpu_percent is not None:
+        parts.append(f"CPU load: {cpu_percent:.0f}%")
+    memory_percent = _memory_percent_max(record)
+    if memory_percent is not None:
+        parts.append(f"max memory: {memory_percent:.0f}%")
     if record.failed_case is not None:
         # A record can carry both partial `runs` and a `failed_case` (e.g.
         # 1 of 3 repeats completed before the orchestrator's time limit hit)
@@ -210,8 +304,8 @@ def _hover_extra(record: BenchmarkRecord) -> str:
         # needs its own flag here instead, since its point is a noisier,
         # single-repeat (or otherwise incomplete) median rather than the
         # usual n_runs one.
-        extra += " (incomplete run - hit time limit)"
-    return extra
+        parts.append("timed out (incomplete run)")
+    return "<br>".join(parts)
 
 
 def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
@@ -233,34 +327,55 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
 def _params_line(record: BenchmarkRecord) -> str:
     params = record.case.get("algorithm", {}).get("estimator_params", {})
     if not params:
-        return "params: (defaults)"
+        return "Params: (defaults)"
     formatted = ", ".join(f"{key}={value}" for key, value in sorted(params.items()))
-    return f"params: {formatted}"
+    return f"Params: {formatted}"
 
 
 def _row_title(row_key: tuple) -> str:
-    estimator, dataset, n_samples, n_features = row_key
-    dims = f"{n_samples:,} x {n_features}" if n_samples and n_features else "shape unknown"
-    return f"{estimator} / {dataset} ({dims})"
+    estimator, dataset, _, _ = row_key
+    return f"{estimator} / {dataset}"
 
 
-def _row_subtitle_html(record: BenchmarkRecord) -> str:
-    return f'<div class="plot-subtitle">{escape(_params_line(record))}</div>'
+def _shape_line(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
+    _, _, n_samples, n_features = row_key
+    if not n_samples or not n_features:
+        return "Shape: unknown"
+    line = f"Shape: {n_samples:,} x {n_features}"
+    preprocessing_kind = row_records[0].case.get("data", {}).get("preprocessing_kind")
+    # Measured on the best candidate's fitted preprocessor, so a tuned
+    # encoder param (e.g. `min_frequency`) makes it candidate-dependent.
+    _, fit_n_features = _fit_shape(row_records)
+    if preprocessing_kind and fit_n_features:
+        line += f" (→ x {fit_n_features:,} after pre-processing)"
+    return line
+
+
+def _row_subtitle_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
+    return "".join(
+        f'<div class="plot-subtitle">{escape(line)}</div>'
+        for line in (_shape_line(row_key, row_records), _params_line(row_records[0]))
+    )
 
 
 def _env_series(
     row_records: list[BenchmarkRecord], point_fn
-) -> dict[str, list[tuple[float, float, str]]]:
+) -> dict[str, list[tuple[float, float, str, float | None]]]:
     """`point_fn(record) -> float | None` per env, keyed by env label - one
     line per environment on the same plot (`ENV_COLORS` keeps a build's color
-    consistent across cells) rather than a separate plot per environment."""
+    consistent across cells) rather than a separate plot per environment.
+    Each point's marker is additionally sized by mean CPU utilization (see
+    `scaling_line_plot_html`'s 4th point element) - a visual signal for
+    "busy but inefficient" (e.g. HGB's own thread pool colliding with
+    concurrent outer candidates) alongside the exact number already in
+    `_hover_extra`'s hover text."""
     series = {}
     for env in sorted({_env(record) for record in row_records}, key=_env_sort_key):
         env_records = sorted(
             (record for record in row_records if _env(record) == env), key=_n_jobs
         )
         points = [
-            (_n_jobs(record), value, _hover_extra(record))
+            (_n_jobs(record), value, _hover_extra(record), _cpu_percent_mean(record))
             for record in env_records
             if (value := point_fn(record)) is not None
         ]
@@ -271,12 +386,6 @@ def _env_series(
 
 def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
     duration_series = _env_series(row_records, _seconds_per_fit)
-    # CPU-utilization cell disabled for now - it'd need its own `plot-cell`
-    # (a different unit/axis than seconds-per-fit, so it can't be folded
-    # into `duration_series`'s plot as more lines) rather than a second
-    # env-column, now that environments are merged into one plot's series
-    # instead of separate side-by-side plots - see the module docstring.
-    # cpu_series = _env_series(row_records, _cpu_percent_mean)
     if not duration_series:
         return ""
 
@@ -287,9 +396,11 @@ def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
         y_title=DURATION_METRIC,
         y_unit="s",
         x_log=True,
+        # Marker size ~ mean CPU utilization (%) - see `_env_series`.
+        size_domain=(0, 100),
     )
     title = escape(_row_title(row_key))
-    subtitle = _row_subtitle_html(row_records[0])
+    subtitle = _row_subtitle_html(row_key, row_records)
     return f'<section class="plot-cell"><h3>{title}</h3>{subtitle}{plot}</section>'
 
 
@@ -343,10 +454,10 @@ def _row_sort_key(row_key: tuple) -> tuple:
     return (order, dataset, n_samples or 0, n_features or 0)
 
 
-def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str:
+def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str | None:
     hw_records = [record for record in records if record.hardware_hash == hardware_hash]
     if not hw_records:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
 
     sections = [
         f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_records))}</div>',
@@ -380,7 +491,10 @@ def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> 
 
 def generate(output_dir: Path) -> None:
     records = _dedup_latest(
-        [record for record in read_benchmark_records() if _is_hptuning(record)]
+        [
+            record for record in read_benchmark_records()
+            if matches_source_configs(record.case, SOURCE_CONFIGS)
+        ]
     )
     hardware_hashes = sorted(
         {record.hardware_hash for record in records},
@@ -400,8 +514,8 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="hptuning outer-parallelism scalability",
-        rows=[render_hardware_tabs(hardware_pages)],
+        title="RandomizedSearchCV outer-parallelism scalability",
+        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "hptuning_scalability.html"
     output.write_text(html)

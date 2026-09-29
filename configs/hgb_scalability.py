@@ -1,8 +1,8 @@
 import sys
 from math import sqrt
 
-from _scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
-from real_datasets import generate_cases as generate_real_dataset_cases
+from _utils.scaling import cpu_affinity_for_physical_cores, get_n_cores_list, has_hybrid_cores
+from _real_datasets import generate_cases as generate_real_dataset_cases
 
 
 DFT_MAX_ITER = 100
@@ -123,7 +123,7 @@ def _case(workload: dict, task: str, columns_kind: str, thread_count: int) -> di
 def _with_thread_count(case: dict, thread_count: int) -> dict:
     """Apply the same thread-scaling bench overrides as `_case` above to a
     case that already carries its own algorithm/data (e.g. from
-    `real_datasets.py`), without touching those sections.
+    `_real_datasets.py`), without touching those sections.
 
     The explicit OMP_NUM_THREADS is needed regardless: sklearn's
     `_openmp_helpers.pyx` picks its default OpenMP thread count via
@@ -157,7 +157,7 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
     }
 
 
-# 5 of `real_datasets.py`'s HGB-tuned datasets, picked to span its size range
+# 5 of `_real_datasets.py`'s HGB-tuned datasets, picked to span its size range
 # (~26K to 4.5M train rows: small-medium/small-medium/medium-big/medium-big/
 # biggest) while also varying whether the data has categorical columns at
 # all:
@@ -181,7 +181,7 @@ REAL_SCALING_DATASETS = {
 
 
 def _real_dataset_cases() -> list[dict]:
-    """Reuse a subset of `real_datasets.py`'s tuned HistGradientBoosting*
+    """Reuse a subset of `_real_datasets.py`'s tuned HistGradientBoosting*
     cases (real data, realistic hyperparameters) as extra scaling workloads,
     instead of duplicating dataset/hyperparameter choices here.
     `early_stopping=False` is fixed on every one of those cases specifically

@@ -12,13 +12,13 @@ CONFIGS_DIR = Path(__file__).resolve().parent.parent / "configs"
 
 @pytest.fixture(scope="module")
 def synthetic_linear():
-    """Import configs/synthetic_linear.py the same way
+    """Import configs/_synthetic_linear.py the same way
     `sklbench.config.loader._load_module_from_path` does - it's a script
     meant to be run with `configs/` on `sys.path` (for its own
-    `from _common import ...` / `from _numa import ...`), not an importable
-    package.
+    `from _utils.common import ...` / `from _utils.numa import ...`), not an
+    importable package.
     """
-    path = CONFIGS_DIR / "synthetic_linear.py"
+    path = CONFIGS_DIR / "_synthetic_linear.py"
     spec = importlib.util.spec_from_file_location("synthetic_linear", path)
     module = importlib.util.module_from_spec(spec)
     configs_dir = str(CONFIGS_DIR)

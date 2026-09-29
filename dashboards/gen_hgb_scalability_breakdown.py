@@ -22,8 +22,7 @@ builds (a specific commit/PR branch, see CONTRIBUTING.md's
 `setup_sklearn_ref.sh` / `run.sh env@owner:ref` workflow) rather than a
 stable environment build, so mixing them into this dashboard's per-build
 tabs would make a tab mean "whatever PR happened to run last" instead of a
-fixed build. See `gen_hgb_dev_scalability_breakdown.py` for the sklearn-dev-only
-counterpart.
+fixed build.
 """
 from html import escape
 import json
@@ -46,7 +45,6 @@ from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    PLOTLY_DEFAULT_COLORS,
     SOFTWARE_TEMPLATE,
     phase_breakdown_plot_html,
     render_hardware_tabs,
@@ -54,12 +52,58 @@ from sklbench.reporting.html import (
 from sklbench.reporting.matching import (
     BenchmarkRecord,
     date_range,
-    is_scaling_benchmark,
+    matches_source_configs,
     read_benchmark_records,
 )
 
 
-# TODO: re-rerun 534824 (High-end Intel server) results.
+SOURCE_CONFIGS = [
+    "configs/hgb_scalability.py",
+]
+# hgb_scalability.py always benchmarks plain `library: "sklearn"` (no
+# sklearnex/Array API variants) - only sklearn-pypi and sklearn-cf-default
+# are actually run here (on both laptop and server hardware), so those are
+# the only two envs that matter.
+SOURCE_ENVS = [
+    "sklearn-pypi",
+    "sklearn-cf-default",
+]
+
+ABOUT_HTML = """<section class="panel">
+  <p>A thread scaling curve shows whether a fit got faster, but not why. This
+  dashboard breaks HistGradientBoosting's fit time into its phases (binning,
+  histogram computation, split finding) to see which ones scale.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>There is one tab per machine, build and thread affinity setting, and
+    one stacked bar per workload. The x-axis is the requested thread count
+    (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
+    parentheses when known. If a bar stops shrinking or grows as threads are
+    added, the extra threads bring nothing or cost time, and the segments
+    show which phase is responsible.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>On the high-end server, the <b>best thread count grows with the
+      workload</b>. The smallest workloads (e.g. XS, ames_housing) are fastest on
+      1 thread, medium ones (e.g. covtype, M) on 4 to 8 threads, and the
+      largest (year_prediction_msd, susy) on 16 to 32. Only L-stumps keeps
+      speeding up up to 64 threads (~17x). No workload benefits from the whole
+      server: <b>every fit is 2x to 30x slower at 128 or 172 threads</b> than at its
+      best thread count, with the biggest jump from 64 to 128 threads.</li>
+      <li>On the laptop, active wait matters for small and medium workloads.
+      <b>Without active wait (the conda-forge build)</b>, they get <b>several times slower at 8
+      and 16 threads</b>: XS goes from 74ms on 1 thread to 919ms on 8, covtype
+      from 11s on 4 threads to 38s on 8. With it (PyPI), they stay roughly
+      flat or keep improving up to 8 threads. The largest workloads scale up
+      to 16 threads either way. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>.</li>
+    </ul>
+  </details>
+</section>"""
+
 
 # Bottom-to-top stack order: phases with a roughly thread-count-independent
 # cost first, so their band stays a constant height and the phases that
@@ -85,7 +129,11 @@ PHASE_LABELS = {
     "find_split_time": "find split",
     "hist_time": "compute hist",
 }
-PHASE_COLORS = dict(zip(PHASE_ORDER, PLOTLY_DEFAULT_COLORS))
+# Plotly's default colors rather than SERIES_COLORS: adjacent stacked phases
+# are easier to tell apart with these.
+PHASE_COLORS = dict(zip(PHASE_ORDER, [
+    "#636EFA", "#EF553B", "#00CC96", "#AB63FA", "#FFA15A", "#19D3F3",
+]))
 
 # Raw attribute names (seconds) summed from grow_time's/binning_time's
 # sub-phases plus the outer fit-time residual - see instrumented_hgb.py for
@@ -104,15 +152,12 @@ _SECONDS_ATTRIBUTES = [
 
 
 def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
-    """Whether `record` is an instrumented-HGB result from a thread-scaling
-    sweep config (`configs/hgb_scalability.py` or alike, e.g.
-    `hgb_scalability_proc_bind.py`/`hgb_scalability_force_active_wait.py` - anything
-    tagging `metadata.benchmark_type: scaling`), as opposed to some other
-    config's HGB result that happens to carry phase timings too, since
-    `sklbench.runners.estimator.loading.wrapped_estimators` instruments every
-    HistGradientBoosting* estimator unconditionally regardless of which
-    config ran it."""
-    if not is_scaling_benchmark(record):
+    """Whether `record` is an instrumented-HGB result from `SOURCE_CONFIGS`,
+    as opposed to some other config's HGB result that happens to carry phase
+    timings too, since `sklbench.runners.estimator.loading.wrapped_estimators`
+    instruments every HistGradientBoosting* estimator unconditionally
+    regardless of which config ran it."""
+    if not matches_source_configs(record.case, SOURCE_CONFIGS):
         return False
     estimator = record.case.get("algorithm", {}).get("estimator", "")
     if "HistGradientBoosting" not in estimator:
@@ -122,10 +167,7 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
 
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
-# "sklearn-dev-libomp@..." (see configs/_implementations.py). Re-derived here
-# rather than imported from gen_hgb_dev_speedup_breakdown.py, per this codebase's
-# convention of each gen_*.py dashboard owning its own such helpers instead
-# of importing another dashboard module's internals.
+# "sklearn-dev-libomp@..." (see configs/_utils/implementations.py).
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 
 
@@ -259,8 +301,8 @@ def _phase_breakdown_ms(record: BenchmarkRecord) -> dict | None:
         "hist_time": grow_parts["hist_time"],
         "total_ms": fit_ms,
         # Raw per-repeat fit times (ms), for callers that need to gauge
-        # measurement noise around `total_ms` (e.g. gen_hgb_dev_speedup_breakdown.py)
-        # rather than just the de-noised median point estimate.
+        # measurement noise around `total_ms` rather than just the
+        # de-noised median point estimate.
         "total_ms_repeats": fit_ms_repeats,
     }
 
@@ -390,12 +432,12 @@ def _env_summary_rows(records: list[BenchmarkRecord]) -> list[str]:
     ]
 
 
-def render_env_page(records: list[BenchmarkRecord]) -> str:
+def render_env_page(records: list[BenchmarkRecord]) -> str | None:
     by_workload: dict[str, list[BenchmarkRecord]] = {}
     for record in records:
         by_workload.setdefault(_workload_name(record), []).append(record)
     if not by_workload:
-        return '<section class="empty">No instrumented HGB results for this hardware.</section>'
+        return None
 
     cells = []
     for name in sorted(by_workload, key=lambda n: _workload_size(by_workload[n][0])):
@@ -475,7 +517,7 @@ def _env_key(record: BenchmarkRecord) -> tuple[str, str, bool, str | None]:
 def _env_label(hardware_hash: str, software_hash: str, active_wait: bool, proc_bind: str | None) -> str:
     hardware_label = HARDWARE_NAMES.get(hardware_hash, hardware_hash)
     return (
-        f"{hardware_label} — {software_build_name(software_hash)}"
+        f"{hardware_label} · {software_build_name(software_hash)}"
         f"{active_wait_label_suffix(active_wait)}"
         f"{proc_bind_label_suffix(proc_bind)}"
     )
@@ -521,8 +563,8 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HGB fit-time breakdown (thread scalability)",
-        rows=[render_hardware_tabs(pages)],
+        title="HistGradientBoosting fit-time breakdown (thread scalability)",
+        rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"
     output.write_text(html)

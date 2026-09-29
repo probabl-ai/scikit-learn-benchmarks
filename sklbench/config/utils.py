@@ -1,28 +1,8 @@
-import hashlib
-import json
-import random
 from functools import lru_cache
 
 import sklearn
 
 from .models import Implementation, EstimatorCase
-
-
-def deterministic_random_choice(seed: object, choices: list, n: int = 1):
-    """Deterministically pick one of `choices` based on the JSON content of `seed`.
-
-    The same `seed` always yields the same choice, regardless of call order or
-    process-level random state, so config scripts stay reproducible while still
-    varying a parameter across cases without spelling out every combination.
-    """
-    digest = hashlib.sha256(
-        json.dumps(seed, sort_keys=True).encode("utf-8")
-    ).digest()
-    rng = random.Random(digest)
-    if n == 1:
-        return rng.choice(choices)
-    else:
-        return rng.choices(choices, k=n)
 
 
 def _sklearn_version() -> tuple[int, int]:
@@ -34,7 +14,9 @@ def supported_logistic_regression_solvers(implem: Implementation | dict):
     if isinstance(implem, dict):
         implem = Implementation(**implem)
     if implem.library == "sklearnex":
-        return {'lbfgs', 'newton-cg'}
+        # Any other solver silently falls back to stock scikit-learn. On CPU,
+        # newton-cg is only dispatched to oneDAL in sklearnex's preview mode.
+        return {"newton-cg"} if implem.device == "gpu" else {"lbfgs"}
     elif implem.library == "sklearn":
         if implem.data_library is None:
             # normal sklearn
@@ -49,28 +31,33 @@ def supported_logistic_regression_solvers(implem: Implementation | dict):
 
 
 def select_logistic_regression_solver(implem, solvers):
+    """First of `solvers` that `implem` supports, else the last one, in which
+    case `filter_unsupported_cases` drops the case."""
     allowed = supported_logistic_regression_solvers(implem)
     for solver in solvers:
         if solver in allowed:
             return solver
-    raise ValueError(f"No supported solvers in {solvers}")
+    return solvers[-1]
 
 
-def filter_array_api_supported_cases_if_needed(cases):
+def filter_unsupported_cases(cases):
     for case in cases:
         case = EstimatorCase(**case)
         implem = case.implementation
-        if not implem.is_array_api():
-            yield case
-            continue
-
         estimator = case.algorithm.estimator
-        is_sklearnex = implem.library == "sklearnex"
         if estimator == "LogisticRegression":
             solver = case.algorithm.estimator_params.get('solver', 'lbfgs')
             if solver not in supported_logistic_regression_solvers(implem):
                 continue
-        elif estimator == "RidgeClassifier" and is_sklearnex:
+            yield case
+            continue
+
+        if not implem.is_array_api():
+            yield case
+            continue
+
+        is_sklearnex = implem.library == "sklearnex"
+        if estimator == "RidgeClassifier" and is_sklearnex:
             continue
         elif estimator in ("Ridge", "RidgeClassifier"):
             solver = case.algorithm.estimator_params.get('solver', 'auto')
@@ -151,13 +138,13 @@ def filter_gpu_cases_if_unavailable(cases):
     (oneAPI `gpu`/`xpu`, NVIDIA `cuda`, or Apple `mps`) that isn't actually
     present on this machine.
 
-    Implementation selection (`configs/_implementations.py`) is keyed off
+    Implementation selection (`configs/_utils/implementations.py`) is keyed off
     `PIXI_ENVIRONMENT_NAME` alone, not detected hardware, so e.g. running the
     `intel` Pixi environment on a CPU-only host still generates
     `SKLEARNEX_GPU_IMPLEMENTATION` cases. Those fail at runtime with
     `dpctl._sycl_device.SyclDeviceCreationError` (or the NVIDIA equivalent)
     instead of a clean skip - drop them here instead, the same way
-    `filter_array_api_supported_cases_if_needed` drops cases an
+    `filter_unsupported_cases` drops cases an
     implementation doesn't actually support.
     """
     for case in cases:

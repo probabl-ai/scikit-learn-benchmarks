@@ -16,7 +16,7 @@ from ..envs import (
     openmp_runtime_short_label,
     profile_viewer_url,
 )
-from ..matching import BenchmarkRecord, Match, MethodResult
+from ..matching import BenchmarkRecord, Match, MethodResult, fitted_solver
 from ..utils import stable_json, without_keys
 
 
@@ -143,7 +143,7 @@ def _result_params(case: dict) -> dict:
 
 # Model params shown in the detailed results table, beyond this the table gets
 # too wide to be useful. "solver" is overwritten with the fitted
-# `estimator.solver_` (see `_row_hyperparams`) rather than the requested param,
+# `estimator.solver_` (see `fitted_solver`) rather than the requested param,
 # since solvers are often auto-selected.
 HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
 
@@ -153,22 +153,9 @@ def _row_hyperparams(inputs: RowInputs) -> dict:
     hyperparams = {}
     for name in HYPERPARAM_DISPLAY_ALLOWLIST:
         if name == "solver":
-            solver_values = inputs.attributes.get("solver")
-            if solver_values:
-                hyperparams["solver"] = solver_values[0]
-                continue
-            estimator = inputs.case.get("algorithm", {}).get("estimator")
-            if inputs.library == "sklearnex" and estimator == "Ridge":
-                # sklearnex's Ridge never records a fitted `solver_` (unlike
-                # stock sklearn), and its oneDAL fit path only ever runs for
-                # the requested "auto" solver, solving via oneDAL's "norm_eq"
-                # algorithm - the same normal-equations approach sklearn's
-                # own "cholesky" solver uses. A `solver` value's presence
-                # here would mean sklearnex fell back to stock sklearn for at
-                # least one repeat (see `MethodResult.is_sklearnex_fallback`),
-                # which does record it - so its absence means every repeat
-                # took the oneDAL path.
-                hyperparams["solver"] = "cholesky"
+            solver = fitted_solver(inputs.case, inputs.library, inputs.attributes)
+            if solver is not None:
+                hyperparams["solver"] = solver
                 continue
         if name in params:
             hyperparams[name] = params[name]
@@ -201,19 +188,24 @@ def _row_dataset(inputs: RowInputs) -> str:
 def _row_columns_kind(inputs: RowInputs) -> str | None:
     """The synthetic tree datasets' column-type mix (e.g. "mix", "binary",
     "continuous", "long-tail") - only set in generation_kwargs for
-    tree-based configs (see configs/synthetic_trees.py, hgb_scalability.py)."""
+    tree-based configs (see configs/_synthetic_trees.py, hgb_scalability.py)."""
     return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
 def _row_order(inputs: RowInputs) -> str | None:
-    """The data's memory layout ("C" or "F"): the config-forced value where a
-    config varies it (see configs/synthetic_linear.py's `order` field), else
-    the measured layout of the loaded array (real datasets - see
-    sklbench/runners/datasets/__init__.py's `_measure_order`)."""
-    order = inputs.case.get("data", {}).get("order")
-    if order is not None:
+    """The data's memory layout: the config-forced value where a config varies
+    it (see configs/_synthetic_linear.py's `order` field), else the measured
+    layouts before and after preprocessing as "raw->final" (e.g. "F->C",
+    "df->C" - see sklbench/runners/datasets/__init__.py's `_measure_order`).
+    Just the final layout for results recorded before `raw_order` existed."""
+    forced_order = inputs.case.get("data", {}).get("order")
+    if forced_order is not None:
+        return forced_order
+    order = inputs.data_desc.get("order")
+    raw_order = inputs.data_desc.get("raw_order")
+    if raw_order is None or order is None:
         return order
-    return inputs.data_desc.get("order")
+    return f"{raw_order}->{order}"
 
 
 def _row_env(inputs: RowInputs) -> dict:
@@ -230,7 +222,7 @@ def _row_openmp(inputs: RowInputs) -> str:
     links against - a build property rather than a case one, but only
     interesting once more than one OpenMP runtime shows up in the same
     table (e.g. comparing a `sklearn-dev` build against `sklearn-dev-libomp`
-    - see configs/_implementations.py)."""
+    - see configs/_utils/implementations.py)."""
     return openmp_runtime_short_label(inputs.software_hash)
 
 
@@ -270,7 +262,7 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
-    configs/synthetic_trees.py and append_max_bins_warning in matching.py).
+    configs/_synthetic_trees.py and append_max_bins_warning in matching.py).
     Empty for sklearn (doesn't vary this param) and for non-tree estimators
     (max_bins isn't a thing for them, same "tree-based" split MethodResult
     uses for `is_sklearnex_tree`)."""
@@ -427,6 +419,15 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "Status", "status", _row_status, custom_show=_status_column_visible
     ),
+    # Set in `_add_result_method` from the "fit" result, with the ratio to
+    # the baseline's n_iter when they differ.
+    ColumnSpec(
+        "n_iter",
+        "n_iter",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+    ),
     ColumnSpec(
         "fit time",
         "fit_time",
@@ -491,6 +492,7 @@ def _base_row(
         "variant": variant,
         "n_samples": n_samples,
         "n_features": n_features,
+        "n_iter": None,
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
@@ -561,6 +563,29 @@ def _new_failed_row(
     )
 
 
+def _n_iter(result: MethodResult) -> float | None:
+    """Median over repeats. A per-repeat value can be a list (e.g.
+    LogisticRegression's per-class `n_iter_`), reduced to its max."""
+    per_repeat = [
+        max(value) if isinstance(value, list) else value
+        for value in result.attributes.get("n_iter", [])
+    ]
+    per_repeat = [value for value in per_repeat if isinstance(value, (int, float))]
+    return median(per_repeat) if per_repeat else None
+
+
+def _format_n_iter(result: MethodResult, base_result: MethodResult | None) -> str | None:
+    n_iter = _n_iter(result)
+    if n_iter is None:
+        return None
+    label = f"{n_iter:.0f}"
+    base_n_iter = _n_iter(base_result) if base_result is not None else None
+    if base_n_iter and n_iter != base_n_iter:
+        ratio = n_iter / base_n_iter
+        label += f" ({ratio:.0f}x)" if ratio >= 10 else f" ({ratio:.2g}x)"
+    return label
+
+
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
     result_time = median(result.times)
     if result_time == 0:
@@ -590,6 +615,7 @@ def _add_result_method(
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
         row["n_features"] = result.data_desc.get("features")
+        row["n_iter"] = _format_n_iter(result, base_result)
     row[f"{method}_time"] = median(result.times)
     row[f"{method}_speedup"] = (
         _speedup(base_result, result) if base_result is not None else None

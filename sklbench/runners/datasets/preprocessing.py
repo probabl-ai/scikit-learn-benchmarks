@@ -22,6 +22,7 @@ import sklearn
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import FeatureUnion, make_pipeline
 from sklearn.preprocessing import (
     FunctionTransformer,
@@ -62,6 +63,7 @@ def split_and_preprocess_data(
     default_split: dict | None = None,
     preprocessing_kind: str | None = None,
     preprocessing_kwargs: dict | None = None,
+    random_state: int | None = None,
 ) -> dict[str, Array]:
     """Split `data_dict` and, if `preprocessing_kind` is set, encode it.
 
@@ -70,7 +72,7 @@ def split_and_preprocess_data(
     which places it in its own pipeline. With no `preprocessing_kind`,
     there's no such function, so it's applied directly here instead.
     """
-    data_dict = split_data(data_dict, split_kwargs, default_split)
+    data_dict = split_data(data_dict, split_kwargs, default_split, random_state)
     if preprocessing_kind is not None:
         preprocessing_func = PREPROCESSINGS[preprocessing_kind]
         data_dict['x_train'], data_dict['x_test'] = preprocessing_func(
@@ -96,19 +98,26 @@ def train_test_split_wrapper(*args, **kwargs):
 
 
 def split_data(
-    data: dict, split_kwargs: dict | None, default_split: dict | None
+    data: dict,
+    split_kwargs: dict | None,
+    default_split: dict | None,
+    random_state: int | None = None,
 ) -> tuple[dict, dict]:
     """Split loaded `{"x": ..., "y": ...}` data into train/test subsets.
 
     Uses the dataset's own `default_split` (set by individual loaders) as a
-    base, overridden by the case's `split_kwargs`.
+    base, overridden by the case's `split_kwargs`. `random_state` overrides
+    the loader's seed but not one set explicitly in `split_kwargs`.
 
     `default_split` is JSON-serialized to disk, so it cannot carry the actual
     `y` array for stratification. A loader that needs a stratified split sets
     `"stratify": "y"` as a string sentinel instead; it is resolved here to
     the real `y` array before being passed to `train_test_split`.
     """
-    kwargs = (default_split or {}) | (split_kwargs or {})
+    kwargs = dict(default_split or {})
+    if random_state is not None:
+        kwargs["random_state"] = random_state
+    kwargs |= split_kwargs or {}
     kwargs.setdefault("random_state", 42)
 
     x = data["x"]
@@ -161,14 +170,26 @@ def build_transfer_to_device(
     )
 
 
-def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
-    """`transfer_to_device` (see `build_transfer_to_device`), when given, is
+def trees_preprocessor(
+    encoding : str = "ordinal",
+    remove_nans: bool = False,
+    numeric_impute_strategy: str = "mean",
+    transfer_to_device=None,
+):
+    """`remove_nans`, when set, makes the output NaN-free, needed for
+    tree implementations that (unlike HGB) don't handle missing values
+    natively: numeric columns are imputed with `numeric_impute_strategy`
+    (`SimpleImputer`), and unseen categories at transform time are encoded
+    as -2 instead of NaN. Missing categories already always encode to -1
+    (`encoded_missing_value`), regardless of `remove_nans`.
+
+    `transfer_to_device` (see `build_transfer_to_device`), when given, is
     placed last."""
 
     encoders = {
         "ordinal": OrdinalEncoder(
             handle_unknown="use_encoded_value",
-            unknown_value=np.nan,
+            unknown_value=-2 if remove_nans else np.nan,
             encoded_missing_value=-1,
             min_frequency=5
         ),
@@ -178,9 +199,13 @@ def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
             min_frequency=5,
         ),
         # TODO? target encoding
-    } 
+    }
 
     encoder = encoders[encoding]
+
+    numeric_transformer = (
+        SimpleImputer(strategy=numeric_impute_strategy) if remove_nans else "passthrough"
+    )
 
     preprocessor = ColumnTransformer(
         transformers=[
@@ -189,8 +214,12 @@ def trees_preprocessor(encoding : str = "ordinal", transfer_to_device=None):
                 encoder,
                 make_column_selector(dtype_include=["category"]),
             ),
+            (
+                "numeric",
+                numeric_transformer,
+                make_column_selector(dtype_exclude=["category"]),
+            ),
         ],
-        remainder='passthrough'
     )
 
     # TODO? returning categorical type as done for HGB

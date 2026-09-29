@@ -24,17 +24,18 @@ as "Baseline": swapping which MethodResult list is `base_results` in
 inverted after the fact.
 """
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from html import escape
 from itertools import permutations
 import json
 from pathlib import Path
 
-from dashboards import GPU_NAMES, HARDWARE_NAMES
+from dashboards import (
+    GPU_NAMES, HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
-    HARDWARE_TEMPLATE,
-    SOFTWARE_TEMPLATE,
     assemble_plots_in_grid,
     detailed_results_table_html,
     render_software_tabs,
@@ -49,19 +50,43 @@ from sklbench.reporting.envs import (
 )
 from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
-    append_iterations_warning,
+    append_iterations_warning, append_solver_warning,
     append_max_bins_warning,
     find_matches,
     read_all_results,
     date_range,
-    is_models_scalability_result,
-    is_scaling_benchmark,
+    matches_source_configs,
     BenchmarkRecord,
     Match,
     MatchWarning,
     MethodResult,
 )
 from sklbench.reporting.utils import stable_json, without_keys
+
+
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard compares machines running the same software. Every build
+  or implementation present on both machines is matched, so a speed-up comes
+  from the hardware.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Pick a baseline and a comparison machine. The dropdowns only offer CPU
+    vs CPU or GPU vs GPU pairs that have comparable results. Each cell shows
+    the fit or predict speed-up (log scale) per estimator category, one line
+    per build or implementation.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>the modern Intel laptop and the high-end Intel server are <b>close to
+      parity</b>;</li>
+      <li>the low-end Intel laptop is <b>~3-5x slower</b> than both;</li>
+      <li>on the shared <code>sklearn-pypi</code> build, Apple's M4 CPU tends
+      to be <b>slightly faster</b> than the Intel machines.</li>
+    </ul>
+  </details>
+</section>"""
 
 
 BASE_IMPLEMENTATION = "sklearn"
@@ -71,21 +96,21 @@ METHODS = ["fit", "predict"]
 # A result's `implementation.device` is what separates a machine's CPU
 # results from its GPU ones - "None"/"default" and the plain "cpu" tag both
 # mean "ran on the CPU" (see e.g. Implementation.short_name), while
-# "gpu"/"xpu"/"mps" are the three device tags this repo's configs use across
-# sklearnex GPU offload, dpnp/pytorch Array API on an Intel GPU, and pytorch
-# Array API on Apple's MPS backend, respectively.
+# "gpu"/"xpu"/"mps"/"cuda" are the device tags this repo's configs use across
+# sklearnex GPU offload, dpnp/pytorch Array API on an Intel GPU, pytorch
+# Array API on Apple's MPS backend, and pytorch/cupy Array API on an NVIDIA
+# GPU, respectively.
 CPU_DEVICES = {None, "default", "cpu"}
-GPU_DEVICES = {"gpu", "xpu", "mps"}
+GPU_DEVICES = {"gpu", "xpu", "mps", "cuda"}
 
 # Unlike CPU, where every build/implementation variant present on both sides
 # gets compared, GPU pairings are restricted to the one backend that's
 # actually portable across GPU vendors: the Array API pytorch backend
-# (data_library "torch"), which runs on both Intel's "xpu" device and
-# Apple's "mps" one. sklearnex's native GPU offload (oneDAL) and the dpnp
-# Array API backend are both Intel-only - no Apple (or other-vendor)
-# counterpart exists for either - so they're excluded from GPU variant
-# results outright rather than left to fall out of an incidental label
-# intersection (see `variant_results`).
+# (data_library "torch"), which runs on Intel's "xpu", Apple's "mps" and
+# NVIDIA's "cuda" devices. sklearnex's native GPU offload (oneDAL) and the
+# dpnp Array API backend are Intel-only, and cupy is NVIDIA-only, so they're
+# excluded from GPU variant results outright rather than left to fall out of
+# an incidental label intersection (see `variant_results`).
 GPU_PORTABLE_DATA_LIBRARIES = {"torch"}
 
 
@@ -146,13 +171,17 @@ def variant_label(result: MethodResult | BenchmarkRecord) -> str:
     return implementation.short_name
 
 
-# `n_jobs` and RF/ET's `n_estimators` are both derived in `real_datasets.py`
+# `n_jobs` and RF/ET's `n_estimators` are both derived in `_real_datasets.py`
 # from `N_JOBS = floor(0.9 * cpu_count(...))` - the *local* machine's core
 # count at config-generation time - so they legitimately differ between two
 # machines' runs of what's otherwise the identical case. Excluded from the
 # match key for the same reason `n_jobs` already is: this comparison should
 # still pair these up rather than treat them as different workloads.
-_MATCH_EXCLUDED_NAMES = {"implementation", "max_bins", "n_jobs", "n_estimators"}
+# `source_config` is excluded for the same reason as in
+# `MethodResult.minimal_match_key`.
+_MATCH_EXCLUDED_NAMES = {
+    "implementation", "max_bins", "n_jobs", "n_estimators", "source_config",
+}
 
 # Same normalization/target as gen_models_scalability.py's
 # `NORMALIZED_N_ESTIMATORS`: RF/ET fit and predict time both scale
@@ -225,6 +254,7 @@ def result_matches(
     if base_res.implementation.library == BASE_IMPLEMENTATION and candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     # Unlike the other dashboards' base/candidate pairing (always
     # sklearn-vs-accelerated on the same machine), either side here can be
     # the GPU one (e.g. comparing the same "sklearn-torch" variant's MPS
@@ -243,41 +273,124 @@ def _comparison_page(rows: list[str]) -> str:
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
-def _hardware_env_badge(variant: HardwareVariant) -> str:
+def _vs_table(
+    baseline_variant: HardwareVariant,
+    candidate_variant: HardwareVariant,
+    rows: list[tuple[str, str, str]],
+    uncompared: frozenset[str] = frozenset(),
+) -> str:
+    """`rows` are `(name, baseline_html, candidate_html)`. A row whose two
+    sides are identical collapses into one merged cell so that the
+    highlighted, split rows are exactly the differences. `uncompared` rows
+    (e.g. per-side links) are always split and never highlighted."""
+    body = []
+    for name, baseline_html, candidate_html in rows:
+        if name in uncompared:
+            cells = f"<td>{baseline_html}</td><td>{candidate_html}</td>"
+        elif baseline_html == candidate_html:
+            cells = f'<td class="same" colspan="2">{baseline_html}</td>'
+        else:
+            cells = (
+                f'<td class="differs">{baseline_html}</td>'
+                f'<td class="differs">{candidate_html}</td>'
+            )
+        body.append(f"<tr><th scope=\"row\">{escape(name)}</th>{cells}</tr>")
     return (
-        f"<h3>{escape(variant.label)}</h3>"
-        + HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", variant.hardware_hash)))
+        '<table class="vs-table"><thead><tr><th></th>'
+        f"<th>Baseline: {escape(baseline_variant.label)}</th>"
+        f"<th>Comparison: {escape(candidate_variant.label)}</th>"
+        f"</tr></thead><tbody>{''.join(body)}</tbody></table>"
     )
 
 
-def _software_env_badges(
+def _lines(items: list[str]) -> str:
+    return "<br>".join(escape(item) for item in items) or '<span class="muted">none</span>'
+
+
+def _hardware_rows(summary: dict) -> dict[str, str]:
+    price = summary["price_label"] or "unknown"
+    gpus = []
+    for gpu in summary["gpus"]:
+        detail = f"{gpu['memory_gb']} GB"
+        if gpu["integrated"]:
+            detail += ", integrated"
+        gpus.append(f"{gpu['name']} ({detail})")
+    return {
+        "CPU": escape(str(summary["cpu_name"])),
+        "Architecture": escape(str(summary["architecture"])),
+        "Cores": escape(
+            f"{summary['physical_cores']} physical, {summary['logical_cpus']} logical"
+        ),
+        "RAM": escape(f"{summary['ram_gb']} GB"),
+        "Price": escape(price),
+        "GPU(s)": _lines(gpus),
+    }
+
+
+def _hardware_panel(
+    baseline_variant: HardwareVariant, candidate_variant: HardwareVariant
+) -> str:
+    baseline, candidate = (
+        _hardware_rows(summarize_hardware_env(read_env("hardware", variant.hardware_hash)))
+        for variant in (baseline_variant, candidate_variant)
+    )
+    rows = [(name, baseline[name], candidate[name]) for name in baseline]
+    return (
+        '<section class="panel"><h2>Hardware</h2>'
+        + _vs_table(baseline_variant, candidate_variant, rows)
+        + "</section>"
+    )
+
+
+def _software_rows(summary: dict) -> dict[str, str]:
+    rows = {"Python": escape(summary["python_version"])}
+    for package in summary["packages"]:
+        cell = escape(str(package["version"]))
+        if package["kind"]:
+            cell += f' <span class="muted">({escape(package["kind"])})</span>'
+        rows[package["name"]] = cell
+    # threadpoolctl reports libraries in load order, which isn't stable
+    # across machines.
+    rows["Threadpools"] = _lines(sorted(summary["threadpools"]))
+    rows["OpenMP"] = _lines(summary["openmp"])
+    rows["Full environment"] = (
+        f'<a href="{escape(summary["software_env_json_url"])}">view pixi env JSON</a>'
+    )
+    return rows
+
+
+def _software_panel(
     label: str,
     baseline_variant: HardwareVariant,
     candidate_variant: HardwareVariant,
     baseline_results: list[MethodResult],
     candidate_results: list[MethodResult],
-) -> list[str]:
-    """One badge per side for this build/implementation label - unlike a
-    single-hardware-family dashboard, the two sides here can genuinely run a
-    different pinned env for the "same" label (e.g. the pytorch version
-    backing "sklearn-torch" on an Intel GPU vs on Apple's MPS backend), so
-    both are shown rather than picking one as representative."""
-    badges = []
-    for side_variant, side_results in (
-        (baseline_variant, baseline_results),
-        (candidate_variant, candidate_results),
-    ):
-        source = next((r for r in side_results if variant_label(r) == label), None)
-        if source is None:
-            continue
-        summary = summarize_software_env(
-            read_env("software", source.software_hash),
-            source.implementation,
-            software_hash=source.software_hash,
+) -> str:
+    """Both sides are shown because the "same" label can still run a
+    different pinned env on each machine (e.g. the pytorch version backing
+    "sklearn-torch" on an Intel GPU vs on Apple's MPS backend)."""
+    sides = []
+    for side_results in (baseline_results, candidate_results):
+        source = next(r for r in side_results if variant_label(r) == label)
+        sides.append(
+            _software_rows(
+                summarize_software_env(
+                    read_env("software", source.software_hash),
+                    source.implementation,
+                    software_hash=source.software_hash,
+                )
+            )
         )
-        summary["name"] = f"{label} — {side_variant.label}"
-        badges.append(SOFTWARE_TEMPLATE.render(**summary))
-    return badges
+    baseline, candidate = sides
+    missing = '<span class="muted">not installed</span>'
+    names = list(baseline) + [name for name in candidate if name not in baseline]
+    rows = [
+        (name, baseline.get(name, missing), candidate.get(name, missing))
+        for name in names
+    ]
+    return _vs_table(
+        baseline_variant, candidate_variant, rows, uncompared=frozenset({"Full environment"})
+    )
 
 
 def render_comparison(
@@ -350,6 +463,7 @@ def render_comparison(
                     "plot": speedup_plot_html(
                         category_method_matches,
                         baseline_label=baseline_variant.label,
+                        y_title=f"speed-up of {candidate_variant.label} vs {baseline_variant.label}",
                         variant_colors=trace_colors,
                         trace_variant=match_variant_label,
                         x_variant=match_variant_label,
@@ -362,21 +476,20 @@ def render_comparison(
     if total_matches == 0:
         return empty
 
-    software_badges = [
-        badge
-        for label in shared_labels
-        for badge in _software_env_badges(
+    software_panels = [
+        _software_panel(
             label, baseline_variant, candidate_variant, baseline_results, candidate_results
         )
+        for label in shared_labels
     ]
 
     html = _comparison_page(
         [
             DATE_RANGE_TEMPLATE.render(date_range(baseline_results + candidate_results)),
+            _hardware_panel(baseline_variant, candidate_variant),
             render_software_tabs(
-                [_hardware_env_badge(baseline_variant), _hardware_env_badge(candidate_variant)]
+                software_panels, variant_colors=trace_colors, labels=shared_labels
             ),
-            render_software_tabs(software_badges, variant_colors=trace_colors),
             assemble_plots_in_grid(
                 plots,
                 rows={"category": CATEGORIES},
@@ -498,9 +611,13 @@ def render_selector(all_results: list[MethodResult]) -> str:
         }});
       }}
 
-      function showPanel() {{
+      function showPanel(updateHash = true) {{
         const baseline = baselineSelect.value;
         const candidate = candidateSelect.value;
+        if (updateHash) {{
+          const params = new URLSearchParams({{baseline, compare: candidate}});
+          history.replaceState(null, "", `#${{params}}`);
+        }}
         const panelId = pairPanels[`${{baseline}}|${{candidate}}`] || "hw-compare-empty";
         document.querySelectorAll(".hw-compare-panels > .tab-panel").forEach((panel) => {{
           panel.classList.toggle("active", panel.id === panelId);
@@ -522,30 +639,60 @@ def render_selector(all_results: list[MethodResult]) -> str:
         populate(candidateSelect, options, kept ? kept.key : options[0] && options[0].key);
         showPanel();
       }});
-      candidateSelect.addEventListener("change", showPanel);
+      candidateSelect.addEventListener("change", () => showPanel());
 
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      let initialBaseline = "{default_baseline.key}";
+      let initialCandidate = "{default_candidate.key}";
+      if (pairPanels[`${{hashParams.get("baseline")}}|${{hashParams.get("compare")}}`]) {{
+        initialBaseline = hashParams.get("baseline");
+        initialCandidate = hashParams.get("compare");
+      }}
       populate(
         baselineSelect,
         variants.filter((v) => candidatesFor(v.key).length > 0),
-        "{default_baseline.key}"
+        initialBaseline
       );
-      populate(candidateSelect, candidatesFor(baselineSelect.value), "{default_candidate.key}");
-      showPanel();
+      populate(candidateSelect, candidatesFor(baselineSelect.value), initialCandidate);
+      // Don't rewrite the URL on load, so an unmodified default page keeps a clean URL.
+      showPanel(false);
     }})();
     </script>
     """
+
+
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+# The conda-forge BLAS/OpenMP build variants are a software comparison
+# (gen_builds_comparison.py); across hardware they'd only multiply the lines
+# per cell, so sklearn-cf-mkl alone stands in for the conda-forge builds.
+SOURCE_ENVS = [
+    env
+    for env in GENERAL_SOURCE_ENVS
+    if not env.startswith("sklearn-cf-") or env == "sklearn-cf-mkl"
+]
+
+
+@lru_cache(maxsize=None)
+def _pixi_env_name(software_hash: str) -> str:
+    return read_env("software", software_hash)["pixi_environment_name"]
+
+
+def _is_excluded_env(result: MethodResult) -> bool:
+    name = _pixi_env_name(result.software_hash)
+    return name.startswith("sklearn-cf-") and name not in SOURCE_ENVS
 
 
 def generate(output_dir: Path) -> None:
     all_results = [
         _drop_metrics_and_reliability_signals(result)
         for result in read_all_results()
-        if not is_scaling_benchmark(result) and not is_models_scalability_result(result)
+        if matches_source_configs(result.case, SOURCE_CONFIGS)
+        and not _is_excluded_env(result)
     ]
 
     html = BASE_TEMPLATE.render(
         title="sklbench hardware comparison dashboard",
-        rows=[render_selector(all_results)],
+        rows=[ABOUT_HTML, render_selector(all_results)],
     )
 
     output = output_dir / "hardware_comparisons.html"

@@ -19,8 +19,8 @@ ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"
 
 ENV_SENSITIVE_CONFIGS = {
     Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
-    Path("configs/all_models_fast.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): ARRAY_API_ENVS,
+    Path("configs/all_models_16gb.py"): ARRAY_API_ENVS,
     Path("configs/models_scalability.py"): GENERAL_ENVS,
     Path("configs/all_models_logistic_lbfgs_only.py"): ARRAY_API_ENVS,
     # hptuning.py only ever selects non-array-API (no data_library),
@@ -73,7 +73,10 @@ def generate_cases():
 
     assert len(cases) == 1
     assert isinstance(cases[0], EstimatorCase)
-    assert cases[0].metadata == {}
+    # load_cases_from_script stamps metadata.source_config with the
+    # (repo-relative, or absolute if outside the repo) invoked config path.
+    assert cases[0].metadata.keys() == {"source_config"}
+    assert cases[0].metadata["source_config"].endswith("config.py")
 
 
 def test_estimator_case_routes_to_estimator_runner():
@@ -152,8 +155,8 @@ def test_all_models_configs_support_array_api_pixi_environments(monkeypatch):
     assert all(case.implementation.is_array_api() for case in non_scaling_cases)
 
 
-def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
-    from sklbench.config.utils import filter_array_api_supported_cases_if_needed
+def test_filter_unsupported_cases_excludes_sklearnex_ridge_classifier():
+    from sklbench.config.utils import filter_unsupported_cases
 
     cases = [
         {
@@ -177,7 +180,7 @@ def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
         },
     ]
 
-    kept = list(filter_array_api_supported_cases_if_needed(cases))
+    kept = list(filter_unsupported_cases(cases))
 
     assert [case.algorithm.estimator for case in kept] == ["Ridge"]
 

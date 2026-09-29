@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from dashboards import HARDWARE_NAMES
+from dashboards import HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS
 from sklbench.reporting.utils import (
     partition_iterable, groupby, stable_json, without_keys,
 )
 
 from sklbench.reporting.matching import (
-    append_iterations_warning, append_max_bins_warning, read_all_results,
+    append_iterations_warning, append_solver_warning, append_max_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
-    is_scaling_benchmark, is_models_scalability_result,
+    matches_source_configs,
 )
 
 from sklbench.reporting.envs import (
@@ -31,6 +31,41 @@ from sklbench.reporting.html import (
 
 
 BASE_IMPLEMENTATION = "sklearn"
+ABOUT_HTML = """<section class="panel">
+  <p>This dashboard compares builds of plain scikit-learn. The code is the
+  same, only the BLAS/OpenMP runtime changes (for example conda-forge's MKL,
+  or its libgomp and libomp OpenBLAS builds). The PyPI wheel is the baseline.
+  </p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Read each cell like in
+    <a href="per_hardware.html">the software/implementations dashboard</a>:
+    fit or predict speed-up (log scale) per estimator category, one line per
+    build.
+    </p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <ul>
+      <li><b>MKL is a good pick for linear models</b>: it speeds up BLAS-bound
+      linear model fits, commonly by 1.3x to 1.5x.</li>
+      <li><b>HistGradientBoosting varies more between builds</b>. On laptops, this
+      comes from differences in active wait (how long idle OpenMP threads spin
+      before sleeping), which conda-forge disables by default. Without active
+      wait, HGB fits on small and medium datasets can be much slower. On the
+      high-end server, the LLVM/Intel OpenMP runtimes seem faster than
+      libgomp. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
+      for the analysis, and
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>
+      for a fix in progress, based on the insights from the
+      <a href="hgb_scaling.html">HistGradientBoosting thread-scalability breakdown</a> plots.</li>
+      <li><b>ExtraTrees fits are ~25% slower on conda-forge builds</b>.
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/34876">scikit-learn#34876</a>
+      fixes it and will land in the next release.</li>
+    </ul>
+  </details>
+</section>"""
 
 
 def is_other_library_build(result: MethodResult | BenchmarkRecord) -> bool:
@@ -42,10 +77,9 @@ def is_array_api_variant(result: MethodResult | BenchmarkRecord) -> bool:
 
 
 def is_sklearn_dev_variant(result: MethodResult | BenchmarkRecord) -> bool:
-    """`sklearn-dev`/`sklearn-dev-libomp`/... builds get their own dedicated
-    branch-vs-branch dashboards (gen_hgb_dev_scalability_breakdown.py,
-    gen_hgb_dev_speedup_breakdown.py) rather than being folded in here as more
-    build variants."""
+    """`sklearn-dev`/`sklearn-dev-libomp`/... are one-off git-checkout builds
+    (a specific commit/PR branch, not a stable environment build), so they're
+    excluded here rather than folded in as more build variants."""
     return is_sklearn_dev_build(software_build_name(result.software_hash))
 
 
@@ -86,6 +120,7 @@ def result_matches(
     if candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     append_cpu_fallback_warning(candidate, warnings)
 
     return (
@@ -98,7 +133,7 @@ def render_hardware_page(
     results: list[MethodResult],
     failed_records: list[BenchmarkRecord],
     hardware_hash: str,
-) -> str:
+) -> str | None:
     results = [res for res in results if res.hardware_hash == hardware_hash]
     results = [
         res for res in results
@@ -114,7 +149,7 @@ def render_hardware_page(
         and not is_sklearn_dev_variant(record)
     ]
     if not results:
-        return '<section class="empty">No benchmark results for this hardware.</section>'
+        return None
     hardwares_set = {res.hardware_hash for res in results}
     if len(hardwares_set) > 1:
         raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
@@ -124,7 +159,7 @@ def render_hardware_page(
         predicate=lambda res: is_vanilla_sklearn(res.software_hash)
     )
     if not base_results:
-        return f'<section class="empty">No vanilla {BASE_IMPLEMENTATION} baseline results for this hardware.</section>'
+        return None
     baseline_label = build_variant(base_results[0])
 
     variant_colors = variant_color_map(
@@ -162,6 +197,10 @@ def render_hardware_page(
                 failed_records=candidate_failed_by_category.get(category, []),
             )
         })
+    if not candidate_failed_records and not any(
+        matches for by_method in matches_by_category.values() for matches in by_method.values()
+    ):
+        return None
     failed_by_category = groupby(failed_records, lambda record: record.category)
 
     # A failed record means find_matches never sees a pair for that case, so the
@@ -247,14 +286,18 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
+SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
+SOURCE_ENVS = GENERAL_SOURCE_ENVS
+
+
 def generate(output_dir: Path) -> None:
     results = [
         res for res in read_all_results()
-        if not is_scaling_benchmark(res) and not is_models_scalability_result(res)
+        if matches_source_configs(res.case, SOURCE_CONFIGS)
     ]
     failed_records = [
         record for record in read_failed_records()
-        if not is_scaling_benchmark(record) and not is_models_scalability_result(record)
+        if matches_source_configs(record.case, SOURCE_CONFIGS)
     ]
     hardware_hashes_with_results = {res.hardware_hash for res in results}
     hardware_pages = [
@@ -266,6 +309,7 @@ def generate(output_dir: Path) -> None:
     html = BASE_TEMPLATE.render(
         title="sklbench builds comparison dashboard",
         rows=[
+            ABOUT_HTML,
             render_hardware_tabs(hardware_pages),
         ],
     )

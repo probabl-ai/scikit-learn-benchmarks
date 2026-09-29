@@ -5,7 +5,7 @@ from .blocks import (
     render_software_tabs,
 )
 from .plot import (
-    PLOTLY_DEFAULT_COLORS,
+    SERIES_COLORS,
     format_duration_ms,
     phase_breakdown_plot_html,
     phase_variant_speedup_plot_html,
@@ -26,7 +26,7 @@ __all__ = [
     "DATE_RANGE_TEMPLATE",
     "HARDWARE_TEMPLATE",
     "SOFTWARE_TEMPLATE",
-    "PLOTLY_DEFAULT_COLORS",
+    "SERIES_COLORS",
     "assemble_plots_in_grid",
     "format_duration_ms",
     "phase_breakdown_plot_html",

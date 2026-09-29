@@ -5,9 +5,11 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tomllib
 from typing import Callable
 from urllib.parse import quote
 
+from ..config.registry import REPO_ROOT
 from .matching import Implementation
 
 
@@ -18,6 +20,42 @@ def read_env(kind: str, hash: str):
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
     with open(path, "r") as f:
         return json.load(f)
+
+
+@lru_cache(maxsize=None)
+def env_platforms() -> dict[str, frozenset[str]]:
+    """Pixi platform(s) each `[environments]` entry in `pixi.toml` can
+    actually be installed on, resolved as the intersection of its features'
+    `platforms` (a feature with no `platforms` of its own inherits the
+    top-level list). This is the authoritative source for "which envs run
+    where" - e.g. `skl-mps` -> {"osx-arm64"}, `intel`/`skl-intel` ->
+    {"linux-64"}, `skl-nvidia` -> {"linux-64-cuda-12-9"} - so
+    `scripts/what_to_rerun.py --hardware` filters against it instead of a
+    separately maintained table."""
+    with open(REPO_ROOT / "pixi.toml", "rb") as f:
+        pixi = tomllib.load(f)
+
+    # A workspace platform entry is either a plain string or, for a custom
+    # variant like linux-64-cuda-12-9, a table naming itself (see
+    # [workspace].platforms in pixi.toml).
+    def _platform_name(entry):
+        return entry["name"] if isinstance(entry, dict) else entry
+
+    default_platforms = frozenset(
+        _platform_name(p) for p in pixi["workspace"]["platforms"]
+    )
+    feature_platforms = {
+        name: frozenset(feature.get("platforms", default_platforms))
+        for name, feature in pixi.get("feature", {}).items()
+    }
+
+    platforms_by_env = {}
+    for env_name, feature_names in pixi["environments"].items():
+        platforms = default_platforms
+        for feature_name in feature_names:
+            platforms &= feature_platforms.get(feature_name, default_platforms)
+        platforms_by_env[env_name] = platforms
+    return platforms_by_env
 
 
 # Several pixi envs build sklearn differently (pip, conda, MKL, OpenBLAS...);
@@ -38,7 +76,7 @@ def is_vanilla_sklearn(software_hash: str) -> bool:
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
-# "sklearn-dev-libomp@..." (see configs/_implementations.py).
+# "sklearn-dev-libomp@..." (see configs/_utils/implementations.py).
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 
 
@@ -491,6 +529,10 @@ HARDWARE_COMMERCIAL_INFO = {
     "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
     "Apple M4": {"price_usd": 1_599, "release_year": 2024},
     "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    # Self-built desktop, estimated from 2019 part prices (CPU $329, GPU $349).
+    "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
+    # Cloud-only CPU; priced as the rented 4 vCPU + NVIDIA L4 VM it was benchmarked on.
+    "AMD EPYC 7R13 Processor": {"price_per_hour_usd": 1, "release_year": 2024},
 }
 
 # GPUs that are an integrated tile of a CPU package above rather than a separately
@@ -499,9 +541,20 @@ HARDWARE_COMMERCIAL_INFO = {
 # of showing a second, fabricated-looking dollar figure.
 INTEGRATED_GPUS = {"Intel(R) Arc(TM) B390 GPU"}
 
+# Discrete GPUs whose price is already included in the machine price of the CPU
+# entry above.
+GPUS_PRICED_WITH_CPU = INTEGRATED_GPUS | {"NVIDIA GeForce RTX 2060", "NVIDIA L4"}
+
 
 def _commercial_info(name: str) -> dict:
-    return HARDWARE_COMMERCIAL_INFO.get(name, {"price_usd": None, "release_year": None})
+    info = HARDWARE_COMMERCIAL_INFO.get(name, {})
+    if "price_usd" in info:
+        price = f"${info['price_usd']:,}"
+    elif "price_per_hour_usd" in info:
+        price = f"~${info['price_per_hour_usd']:,}/h (cloud VM)"
+    else:
+        return {"price_label": None}
+    return {"price_label": f"{price}, released {info['release_year']}"}
 
 
 def summarize_hardware_env(env: dict):
@@ -516,6 +569,17 @@ def summarize_hardware_env(env: dict):
 
     cpu_name = cpu.get("name", "?")
 
+    # dpctl/pynvml can't see Apple Silicon GPUs, but every M-series chip has one,
+    # reachable through PyTorch's MPS backend and sharing the system's unified memory.
+    # Added here rather than at detection so existing hardware hashes stay stable.
+    if not gpus and cpu_name.startswith("Apple M"):
+        gpus = {
+            "mps": {
+                "name": f"{cpu_name} GPU",
+                "memory size[GB]": env.get("RAM size[GB]", "?"),
+            }
+        }
+
     return {
         "cpu_name": cpu_name,
         "architecture": cpu.get("architecture", "?"),
@@ -528,7 +592,9 @@ def summarize_hardware_env(env: dict):
                 "id": device_id,
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
-                "integrated": gpu.get("name", "?") in INTEGRATED_GPUS,
+                "integrated": gpu.get("name", "?") in INTEGRATED_GPUS
+                or device_id == "mps",
+                "priced_with_cpu": gpu.get("name", "?") in GPUS_PRICED_WITH_CPU,
                 **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()
