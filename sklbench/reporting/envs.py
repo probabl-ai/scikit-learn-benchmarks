@@ -569,6 +569,17 @@ def summarize_hardware_env(env: dict):
 
     cpu_name = cpu.get("name", "?")
 
+    # dpctl/pynvml can't see Apple Silicon GPUs, but every M-series chip has one,
+    # reachable through PyTorch's MPS backend and sharing the system's unified memory.
+    # Added here rather than at detection so existing hardware hashes stay stable.
+    if not gpus and cpu_name.startswith("Apple M"):
+        gpus = {
+            "mps": {
+                "name": f"{cpu_name} GPU",
+                "memory size[GB]": env.get("RAM size[GB]", "?"),
+            }
+        }
+
     return {
         "cpu_name": cpu_name,
         "architecture": cpu.get("architecture", "?"),
@@ -581,7 +592,8 @@ def summarize_hardware_env(env: dict):
                 "id": device_id,
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
-                "integrated": gpu.get("name", "?") in INTEGRATED_GPUS,
+                "integrated": gpu.get("name", "?") in INTEGRATED_GPUS
+                or device_id == "mps",
                 "priced_with_cpu": gpu.get("name", "?") in GPUS_PRICED_WITH_CPU,
                 **_commercial_info(gpu.get("name", "?")),
             }
