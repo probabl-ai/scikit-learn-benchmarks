@@ -55,9 +55,9 @@ A few configs inspect the machine to size or filter their matrix:
 - `sklbench/config/utils.py` probes for GPU backends lazily (`dpctl` for
   oneAPI/xpu/gpu, `pynvml` for CUDA, `torch.backends.mps` for MPS).
   `filter_gpu_cases_if_unavailable` drops cases that target hardware the
-  machine doesn't have, and `filter_array_api_supported_cases_if_needed`
-  drops Array API solver/order combinations the implementation doesn't
-  support. Public config scripts apply both after generating the full matrix.
+  machine doesn't have, and `filter_unsupported_cases` drops solver/order
+  combinations the implementation doesn't support (Array API, and sklearnex
+  LogisticRegression solvers that would fall back to stock scikit-learn). Public config scripts apply both after generating the full matrix.
 
 ## Per-workload case generators
 

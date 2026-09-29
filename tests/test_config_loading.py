@@ -154,8 +154,8 @@ def test_all_models_configs_support_array_api_pixi_environments(monkeypatch):
     assert all(case.implementation.is_array_api() for case in non_scaling_cases)
 
 
-def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
-    from sklbench.config.utils import filter_array_api_supported_cases_if_needed
+def test_filter_unsupported_cases_excludes_sklearnex_ridge_classifier():
+    from sklbench.config.utils import filter_unsupported_cases
 
     cases = [
         {
@@ -179,7 +179,7 @@ def test_filter_array_api_supported_cases_excludes_sklearnex_ridge_classifier():
         },
     ]
 
-    kept = list(filter_array_api_supported_cases_if_needed(cases))
+    kept = list(filter_unsupported_cases(cases))
 
     assert [case.algorithm.estimator for case in kept] == ["Ridge"]
 
