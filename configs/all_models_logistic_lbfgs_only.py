@@ -30,8 +30,7 @@ def _is_target(case) -> bool:
     if case.algorithm.estimator != "LogisticRegression" or solver != "lbfgs":
         return False
     # covtype's LogisticRegression case is too slow for this sweep's already
-    # wide (scale x thread-count) matrix, and isn't expected to be affected
-    # by the PR anyway (real_datasets.py doesn't pass Fortran-ordered X).
+    # wide (scale x thread-count x order) matrix.
     if case.data.dataset == "covtype":
         return False
     return True
