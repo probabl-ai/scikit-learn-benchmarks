@@ -3,6 +3,7 @@ import os
 import subprocess as sp
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import psutil
@@ -180,11 +181,63 @@ def run_runner_from_case(
     n_runs_override: int | None = None,
     timeout_override: float | None = None,
 ) -> tuple[int, list[dict], dict | None]:
-    bench_case_dict = bench_case.json_dict()
     n_runs = n_runs_override if n_runs_override is not None else bench_case.bench.n_runs
     bench_time_limit = (
         timeout_override if timeout_override is not None else bench_case.bench.time_limit
     )
+    # Isolation only applies to the normal timed run, not the reduced-n_runs
+    # py-spy/cProfile passes (`n_runs_override` is only ever set alongside
+    # one of these) - those profile a single process's behavior on purpose.
+    if (
+        bench_case.bench.subprocess_per_repeat
+        and py_spy_output is None
+        and cprofile_output is None
+    ):
+        return _run_isolated_repeats(bench_case, n_runs, bench_time_limit)
+    return _run_runner_once(
+        bench_case, n_runs, bench_time_limit, py_spy_output, cprofile_output
+    )
+
+
+def _run_isolated_repeats(
+    bench_case: Case,
+    n_runs: int,
+    bench_time_limit: float,
+) -> tuple[int, list[dict], dict | None]:
+    """Run `n_runs` repeats of `bench_case` as `n_runs` separate one-repeat
+    subprocesses instead of one subprocess looping `n_runs` times.
+
+    `bench_time_limit` is treated as a total budget shared across all
+    repeats (matching the single-process case, where it already bounds the
+    whole `n_runs` loop) rather than a per-repeat budget, so this doesn't
+    let a case run up to `n_runs` times longer than its single-process
+    equivalent.
+    """
+    deadline = time.monotonic() + bench_time_limit
+    rows: list[dict] = []
+    return_code = 0
+    failed_case: dict | None = None
+    for _ in range(n_runs):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        return_code, repeat_rows, failed_case = _run_runner_once(
+            bench_case, 1, remaining, py_spy_output=None, cprofile_output=None
+        )
+        rows.extend(repeat_rows)
+        if return_code != 0:
+            break
+    return return_code, rows, failed_case
+
+
+def _run_runner_once(
+    bench_case: Case,
+    n_runs: int,
+    bench_time_limit: float,
+    py_spy_output: Path | None,
+    cprofile_output: Path | None,
+) -> tuple[int, list[dict], dict | None]:
+    bench_case_dict = bench_case.json_dict()
     with tempfile.TemporaryDirectory(prefix="sklbench-run-") as tmp_dir:
         tmp_path = Path(tmp_dir)
         case_file = tmp_path / "case.json"
