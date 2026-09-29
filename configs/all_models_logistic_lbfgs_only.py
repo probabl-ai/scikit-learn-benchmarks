@@ -1,6 +1,6 @@
 from all_models import generate_cases as generate_all_models_cases
-from _implementations import implementations_for_pixi_env
-from synthetic_linear import _linear_cases_for, linear_data_shapes
+from _utils.implementations import implementations_for_pixi_env
+from _synthetic_linear import _linear_cases_for, linear_data_shapes
 
 
 ALGORITHM = {"estimator": "LogisticRegression", "estimator_params": {"solver": "lbfgs"}}
@@ -58,6 +58,12 @@ def _with_blas_threads(case: dict, n_threads: int | None) -> dict:
         "bench": {
             **bench,
             "py_spy_profiling": False,
+            # This sweep's before/after comparison is exactly the shape
+            # issue #80 warns about: a single-process draw of NUMA memory
+            # placement can look like a solver regression. Isolate each
+            # repeat into its own subprocess so the reported number is an
+            # average over draws instead of one of them.
+            "subprocess_per_repeat": True,
             "env": {
                 **(bench.get("env") or {}),
                 **env
