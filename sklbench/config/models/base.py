@@ -32,6 +32,17 @@ class Bench(Section):
     py_spy_profiling: bool = Field(default_factory=_py_spy_profiling_default)
     py_spy_native: bool = True
     cprofile_profiling: bool = False
+    # Runs each of `n_runs` repeats in its own fresh subprocess instead of
+    # looping them inside one subprocess. On a multi-NUMA-node machine, all
+    # repeats sharing one process also share that process's one memory-
+    # placement/thread-scheduling draw (see `configs/_utils/numa.py` and
+    # https://github.com/probabl-ai/scikit-learn-benchmarks/issues/80), so
+    # the reported timing can reflect a single lucky/unlucky draw rather
+    # than a representative sample. Isolating repeats trades wall-clock
+    # time (n_runs fresh interpreter/BLAS startups instead of one) for
+    # n_runs independent draws of that noise, which a before/after
+    # comparison can then average over instead of being dominated by it.
+    subprocess_per_repeat: bool = False
 
 
 class BaseCase(BaseModel):
