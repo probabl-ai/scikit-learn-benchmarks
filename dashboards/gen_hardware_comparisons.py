@@ -79,11 +79,21 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li>the modern Intel laptop and the high-end Intel server are <b>close to
-      parity</b>;</li>
-      <li>the low-end Intel laptop is <b>~3-5x slower</b> than both;</li>
-      <li>on the shared <code>sklearn-pypi</code> build, Apple's M4 CPU tends
-      to be <b>slightly faster</b> than the Intel machines.</li>
+      <li>The high-end Intel server <b>mostly helps random forests and extra
+      trees</b>. Their fit is ~3x faster than on the modern Intel laptop with
+      scikit-learn, and ~15x faster with sklearnex. Their predict is close to
+      parity with scikit-learn.</li>
+      <li>For linear models, the server is <b>often slower than the
+      laptop</b>. A single fit doesn't use many cores well, so the laptop's
+      faster cores probably win.</li>
+      <li>HistGradientBoosting results are <b>hard to interpret</b>, because
+      of known scalability issues on laptops with conda-forge builds and on
+      machines with many cores. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
+      and the <a href="hgb_scaling.html">HistGradientBoosting
+      thread-scalability breakdown</a>.</li>
+      <li>On the PyPI build, the Apple M4 CPU is <b>~1.3x to 2x slower</b>
+      than the modern Intel laptop.</li>
     </ul>
   </details>
 </section>"""
