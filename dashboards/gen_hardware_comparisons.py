@@ -430,6 +430,11 @@ def render_comparison(
     if not shared_labels:
         return empty
     trace_colors = variant_color_map(shared_labels)
+    plot_subtitle = (
+        '<div class="plot-subtitle">'
+        f"{escape(candidate_variant.label)} vs {escape(baseline_variant.label)} (baseline)"
+        "</div>"
+    )
 
     plots = []
     matches_by_category = {}
@@ -470,10 +475,10 @@ def render_comparison(
                     "category": category,
                     "method": method,
                     "point_count": len(category_method_matches),
-                    "plot": speedup_plot_html(
+                    "plot": plot_subtitle + speedup_plot_html(
                         category_method_matches,
                         baseline_label=baseline_variant.label,
-                        y_title=f"speed-up of {candidate_variant.label} vs {baseline_variant.label}",
+                        y_title="speed-up",
                         variant_colors=trace_colors,
                         trace_variant=match_variant_label,
                         x_variant=match_variant_label,
