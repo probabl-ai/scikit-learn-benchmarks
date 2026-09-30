@@ -80,10 +80,9 @@ ABOUT_HTML = """<section class="panel">
           <li>LogisticRegression on GPU is <b>fairly fast</b>.</li>
           <li>Ridge uses the SVD solver instead of Cholesky under Array API,
           which is <b>probably why it's slower</b>.</li>
-          <li>PyTorch on CPU parallelizes every operation, and this overhead
-          <b>hurts LogisticRegression</b>. That's why it's slower than
-          scikit-learn, even though you could expect performance similar to
-          the baseline NumPy implementation.</li>
+          <li>PyTorch on CPU parallelizes every operation, including small
+          vector operations. That's why LogisticRegression is slower than
+          scikit-learn with NumPy.</li>
         </ul>
       </li>
     </ul>
