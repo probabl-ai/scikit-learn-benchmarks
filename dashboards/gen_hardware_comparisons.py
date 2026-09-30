@@ -79,8 +79,8 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li>The high-end Intel server <b>mostly helps random forests and extra
-      trees</b>. Their fit is ~3x faster than on the modern Intel laptop with
+      <li>The high-end Intel Xeon server <b>mostly helps random forests and extra
+      trees</b>. Their fit is ~3x faster than on the Intel Ultra laptop with
       scikit-learn, and ~15x faster with sklearnex. Their predict is close to
       parity with scikit-learn.</li>
       <li>For linear models, the server is <b>often slower than the
@@ -93,7 +93,7 @@ ABOUT_HTML = """<section class="panel">
       and the <a href="hgb_scaling.html">HistGradientBoosting
       thread-scalability breakdown</a>.</li>
       <li>On the PyPI build, the Apple M4 CPU is <b>~1.3x to 2x slower</b>
-      than the modern Intel laptop.</li>
+      than the Intel Ultra laptop.</li>
     </ul>
   </details>
 </section>"""
