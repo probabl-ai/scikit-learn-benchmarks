@@ -101,14 +101,29 @@ ABOUT_HTML = """<section class="panel">
   check how the two levels interact.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>Inner parallelism depends on the estimator: <code>n_jobs=-1</code> for
-    RandomForest and ExtraTrees, OpenMP for HistGradientBoosting, BLAS for
-    Ridge and LogisticRegression. There is one tab per machine and one plot
-    per (estimator, dataset) pair. The x-axis is the outer
-    <code>n_jobs</code> (log scale), the y-axis is the mean time per
-    <code>.fit()</code> call over the search, with one line per environment
-    and marker size for mean CPU usage. The line shape tells how the two
-    levels interact:</p>
+    <p>The outer <code>n_jobs</code> uses joblib's default backend (loky),
+    which fits candidates in separate worker processes. Inner parallelism
+    depends on the estimator:</p>
+    <ul>
+      <li>HistGradientBoosting uses OpenMP threads, Ridge and
+      LogisticRegression use BLAS threads. joblib limits both to
+      <code>n_cores // n_jobs</code> threads in each worker process.</li>
+      <li>RandomForest and ExtraTrees fit their trees with joblib's threading
+      backend and <code>n_jobs=-1</code>. joblib does not limit this nested
+      call, so each worker process starts one thread per core, which can lead
+      to oversubscription.
+      <a href="https://github.com/joblib/joblib/pull/1825">joblib#1825</a>
+      would limit nested <code>n_jobs=-1</code> calls like it does for OpenMP
+      and BLAS.</li>
+      <li>scikit-learn-intelex uses
+      <a href="https://uxlfoundation.github.io/oneTBB/">oneTBB</a> threads,
+      which joblib does not limit either.</li>
+    </ul>
+    <p>There is one tab per machine and one plot per (estimator, dataset)
+    pair. The x-axis is the outer <code>n_jobs</code> (log scale), the y-axis
+    is the mean time per <code>.fit()</code> call over the search, with one
+    line per environment. The marker size is the CPU load (100% means all cores
+    busy). The line shape tells how the two levels interact:</p>
     <ul>
       <li>going down as 1/n_jobs: a single fit has little inner parallelism,
       and the search scales with outer workers;</li>
@@ -117,6 +132,9 @@ ABOUT_HTML = """<section class="panel">
       <li>rising: oversubscription, or bad interactions between joblib and
       the inner threading layer (they don't coordinate).</li>
     </ul>
+    <p>In general, we expect more outer workers to run in parallel the
+    sequential parts of each fit, so the search gets faster and the CPU
+    load goes up.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -124,19 +142,27 @@ ABOUT_HTML = """<section class="panel">
     <a href="models_scalability.html">models core-count scalability</a>
     dashboard shows. On the benchmarked cases:</p>
     <ul>
-      <li>Ridge and LogisticRegression: outer parallelism helps, but <b>less
-      than one could hope</b>. These workloads are probably memory bound, so
+      <li>More outer workers make the search faster with a higher CPU
+      load in most cases, as expected. The exceptions are
+      HistGradientBoosting and the linear models on the Xeon server: they get
+      faster while the CPU load goes down. I'm not sure why.</li>
+      <li>Ridge and LogisticRegression: outer parallelism helps, but less
+      than one could hope. These workloads are probably memory bound, so
       more cores don't help much.</li>
-      <li>HistGradientBoosting: outer parallelism <b>works well on small
-      datasets or on a big machine</b>, because HGB's own threads are
+      <li>HistGradientBoosting: outer parallelism works well on small
+      datasets or on a big machine, because HGB's own threads are
       counter-productive there (see the
       <a href="hgb_scaling.html">HistGradientBoosting thread-scalability
       breakdown</a>).</li>
-      <li>RandomForest and ExtraTrees: on susy, the curve is <b>mostly
-      flat</b>, as expected since a single fit already uses all cores. On the
-      datasets with preprocessing, the search <b>still speeds up with outer
-      workers</b>. This is a surprise: preprocessing may take a non-negligible
-      part of each fit, but this needs investigation.</li>
+      <li>RandomForest and ExtraTrees: on susy, the curve is mostly
+      flat, as expected since a single fit already uses all cores. On the
+      smaller datasets with preprocessing, the search still speeds up with
+      outer workers and the CPU load goes up. Oversubscription is mostly
+      harmless on the laptop. On the Xeon server, RandomForestClassifier gets
+      up to ~1.8x slower beyond ~22 outer workers.</li>
+      <li>scikit-learn-intelex: oversubscription is harmless on the laptop.
+      On the Xeon server, the search gets up to ~2x slower beyond ~22 outer
+      workers, for the trees and for <b>Ridge</b>.</li>
     </ul>
   </details>
 </section>"""

@@ -60,12 +60,12 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li><b>tree ensembles scale best</b>, especially with
-      <code>scikit-learn-intelex</code>, which reaches ~50-60% parallel
+      <li><b>tree ensembles</b> scale best, especially with
+      <b><code>scikit-learn-intelex</code></b>, which reaches ~50-60% parallel
       efficiency at the highest core counts;</li>
-      <li>Ridge and LogisticRegression <b>barely benefit from more cores</b>, with
-      stock or MKL BLAS;</li>
-      <li>KMeans <b>can get slower</b> past some core count.</li>
+      <li><b>Ridge</b> and <b>LogisticRegression</b> barely benefit from more cores, with
+      stock or <b>MKL</b> BLAS;</li>
+      <li><b>KMeans</b> can get slower past some core count.</li>
     </ul>
   </details>
 </section>"""

@@ -79,22 +79,22 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li>The high-end Intel Xeon server <b>mostly helps random forests and extra
-      trees</b>. With scikit-learn, their fit is ~2x to 4x faster than on the
+      <li>The high-end Intel Xeon server mostly helps <b>random forests</b> and <b>extra
+      trees</b>. With <b>scikit-learn</b>, their fit is ~2x to 4x faster than on the
       Intel Ultra laptop. Their predict is close to parity.</li>
-      <li>scikit-learn-intelex <b>makes much better use of the server's 172
-      cores</b>. With it, random forests and extra trees fit <b>~10x to 15x
-      faster</b> on the server than on the laptop.</li>
-      <li>For linear models, the server is <b>often slower than the
-      laptop</b>. A single fit doesn't use many cores well, so the laptop's
+      <li><b>scikit-learn-intelex</b> makes much better use of the server's 172
+      cores. With it, <b>random forests</b> and <b>extra trees</b> fit ~10x to 15x
+      faster on the server than on the laptop.</li>
+      <li>For <b>linear models</b>, the server is often slower than the
+      laptop. A single fit doesn't use many cores well, so the laptop's
       faster cores probably win.</li>
-      <li>HistGradientBoosting results are <b>hard to interpret</b>, because
-      of known scalability issues on laptops with conda-forge builds and on
+      <li><b>HistGradientBoosting</b> results are hard to interpret, because
+      of known scalability issues on laptops with <b>conda-forge</b> builds and on
       machines with many cores. See
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
       and the <a href="hgb_scaling.html">HistGradientBoosting
       thread-scalability breakdown</a>.</li>
-      <li>On the PyPI build, the Apple M4 CPU is <b>~1.3x to 2x slower</b>
+      <li>On the <b>PyPI</b> build, the Apple M4 CPU is ~1.3x to 2x slower
       than the Intel Ultra laptop.</li>
     </ul>
   </details>

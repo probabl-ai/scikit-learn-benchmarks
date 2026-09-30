@@ -83,33 +83,33 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li><code>sklearnex-cpu</code> is the <b>most consistently fast option</b>.
-      Linear models gain less than tree-based models and KMeans.</li>
-      <li>sklearnex tree-based models are <b>fast, but don't behave exactly
-      like scikit-learn</b>:
+      <li><b><code>sklearnex-cpu</code></b> is the most consistently fast option.
+      <b>Linear models</b> gain less than <b>tree-based models</b> and <b>KMeans</b>.</li>
+      <li><b>sklearnex tree-based models</b> are fast, but don't behave exactly
+      like scikit-learn:
         <ul>
-          <li>By default, sklearnex random forests and extra trees <b>bin
-          features</b> (<code>max_bins=256</code>), which scikit-learn doesn't
-          implement yet. Binning <b>roughly doubles or triples the fit
-          speed-up</b>. Cases run with exact splits
+          <li>By default, sklearnex random forests and extra trees bin
+          features (<code>max_bins=256</code>), which scikit-learn doesn't
+          implement yet. Binning roughly doubles or triples the fit
+          speed-up. Cases run with exact splits
           (<code>max_bins=n_samples</code>) are on the left of each
           implementation in the tree-based plots.</li>
-          <li>Two <b>oneDAL bugs</b> make some fits worse:
+          <li>Two <b>oneDAL</b> bugs make some fits worse:
           <a href="https://github.com/uxlfoundation/oneDAL/issues/3648">oneDAL#3648</a>
           (ExtraTreesRegressor) and
           <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">oneDAL#3771</a>
           (<code>max_leaf_nodes</code>).</li>
         </ul>
       </li>
-      <li>sklearnex KMeans <b>fits ~3x faster</b> and is never slower than
+      <li><b>sklearnex KMeans</b> fits ~3x faster and is never slower than
       scikit-learn.</li>
-      <li>Array API backends are <b>mixed</b>. Only LogisticRegression and
-      Ridge are benchmarked for now:
+      <li><b>Array API</b> backends are mixed. Only <b>LogisticRegression</b> and
+      <b>Ridge</b> are benchmarked for now:
         <ul>
-          <li>LogisticRegression on GPU is <b>fairly fast</b>.</li>
+          <li>LogisticRegression on GPU is fairly fast.</li>
           <li>Ridge uses the SVD solver instead of Cholesky under Array API,
-          which is <b>probably why it's slower</b>.</li>
-          <li>PyTorch on CPU parallelizes every operation, including small
+          which is probably why it's slower.</li>
+          <li><b>PyTorch</b> on CPU parallelizes every operation, including small
           vector operations. That's why LogisticRegression is slower than
           scikit-learn with NumPy.</li>
         </ul>

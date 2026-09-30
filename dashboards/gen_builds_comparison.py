@@ -47,20 +47,20 @@ ABOUT_HTML = """<section class="panel">
   <details class="about-section">
     <summary>Findings</summary>
     <ul>
-      <li><b>MKL is a good pick for linear models</b>: it speeds up BLAS-bound
+      <li><b>MKL</b> is a good pick for <b>linear models</b>: it speeds up BLAS-bound
       linear model fits, commonly by 1.3x to 1.5x.</li>
-      <li><b>HistGradientBoosting varies more between builds</b>. On laptops, this
+      <li><b>HistGradientBoosting</b> varies more between builds. On laptops, this
       comes from differences in active wait (how long idle OpenMP threads spin
-      before sleeping), which conda-forge disables by default. Without active
+      before sleeping), which <b>conda-forge</b> disables by default. Without active
       wait, HGB fits on small and medium datasets can be much slower. On the
-      high-end server, the LLVM/Intel OpenMP runtimes seem faster than
-      libgomp. See
+      high-end server, the <b>LLVM/Intel OpenMP</b> runtimes seem faster than
+      <b>libgomp</b>. See
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
       for the analysis, and
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>
       for a fix in progress, based on the insights from the
       <a href="hgb_scaling.html">HistGradientBoosting thread-scalability breakdown</a> plots.</li>
-      <li><b>ExtraTrees fits are ~25% slower on conda-forge builds</b>.
+      <li><b>ExtraTrees</b> fits are ~25% slower on <b>conda-forge</b> builds.
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34876">scikit-learn#34876</a>
       fixes it and will land in the next release.</li>
     </ul>
