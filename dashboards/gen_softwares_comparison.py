@@ -84,8 +84,25 @@ ABOUT_HTML = """<section class="panel">
     <p>On the benchmarked cases:</p>
     <ul>
       <li><code>sklearnex-cpu</code> is the <b>most consistently fast option</b>.
-      Tree-based models sometimes get impressive speed-ups, especially on the
-      high-end server, <b>up to 30x</b>. Linear models gain less.</li>
+      Linear models gain less than tree-based models and KMeans.</li>
+      <li>sklearnex tree-based models are <b>fast, but don't behave exactly
+      like scikit-learn</b>:
+        <ul>
+          <li>By default, sklearnex random forests and extra trees <b>bin
+          features</b> (<code>max_bins=256</code>), which scikit-learn doesn't
+          implement yet. Binning <b>roughly doubles or triples the fit
+          speed-up</b>. Cases run with exact splits
+          (<code>max_bins=n_samples</code>) are on the left of each
+          implementation in the tree-based plots.</li>
+          <li>Two <b>oneDAL bugs</b> make some fits worse:
+          <a href="https://github.com/uxlfoundation/oneDAL/issues/3648">oneDAL#3648</a>
+          (ExtraTreesRegressor) and
+          <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">oneDAL#3771</a>
+          (<code>max_leaf_nodes</code>).</li>
+        </ul>
+      </li>
+      <li>sklearnex KMeans <b>fits ~3x faster</b> and is never slower than
+      scikit-learn.</li>
       <li>Array API backends are <b>mixed</b>. Only LogisticRegression and
       Ridge are benchmarked for now:
         <ul>
