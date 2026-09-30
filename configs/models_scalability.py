@@ -159,10 +159,13 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
 
     if is_tree:
         # At least 4 trees per logical core (so 8 per physical core)
-        case = _merge_dicts(
-            case,
-            {"algorithm": {"estimator_params": {"n_estimators": max(16, cores_count * 8)}}},
-        )
+        estimator_params = {"n_estimators": max(16, cores_count * 8)}
+        if not is_sklearn:
+            # Exact (unbinned) splits, like sklearn's
+            estimator_params["max_bins"] = SUBSAMPLE_DATASETS[
+                (case["algorithm"]["estimator"], case["data"]["dataset"])
+            ]
+        case = _merge_dicts(case, {"algorithm": {"estimator_params": estimator_params}})
 
     yield case
 
