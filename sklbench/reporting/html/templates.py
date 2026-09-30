@@ -223,15 +223,19 @@ BASE_TEMPLATE = Template("""<!doctype html>
       if (!comparisonKey) {
         return;
       }
-      for (const details of document.querySelectorAll("details.detailed-results")) {
-        if (chartEl.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          await sklbenchOpenDetails(details);
-          break;
-        }
-      }
-      const table = Object.values(window.sklbenchTables).find(
-        (t) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey)
+      const details = Array.from(document.querySelectorAll("details.detailed-results")).find(
+        (el) => chartEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING
       );
+      if (details) {
+        await sklbenchOpenDetails(details);
+      }
+      // The same case can show up in tables of hidden tabs or views, so
+      // prefer the table right after the clicked chart.
+      const tables = Object.entries(window.sklbenchTables);
+      const hasKey = ([, t]) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey);
+      const inDetails = ([id]) => details && details.contains(document.getElementById(id));
+      const entry = tables.find((e) => inDetails(e) && hasKey(e)) || tables.find(hasKey);
+      const table = entry && entry[1];
       if (table) {
         await table.sklbenchBuilt;
         table.sklbenchApplyMatchSort(comparisonKey);
@@ -394,6 +398,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
     {% if array_api_docs_url %}
     <p><a href="{{ array_api_docs_url }}">Array API</a> active</p>
     {% endif %}
+    {{ actions_html|default("") }}
   </div>
   <div>
     <h3>Packages</h3>

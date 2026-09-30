@@ -836,8 +836,7 @@ def _has_histogram_splits_warning(match: Match) -> bool:
     return any("histogram-based splits" in warning.message for warning in match.warnings)
 
 
-def _x_variant(match: Match) -> str:
-    variant = match.matched_result.implementation.short_name
+def _x_variant(match: Match, variant: str) -> str:
     if match.matched_result.category != "tree-based":
         return variant
 
@@ -868,7 +867,7 @@ def speedup_plot_html(
     if trace_variant is None:
         trace_variant = _trace_variant
     if x_variant is None:
-        x_variant = _x_variant
+        x_variant = lambda match: _x_variant(match, trace_variant(match))
     if variant_sort_key is None:
         variant_sort_key = lambda variant: variant
     if comparison_key is None:
