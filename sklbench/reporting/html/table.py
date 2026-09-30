@@ -381,6 +381,8 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         header_filter=False,
         header_sort=False,
     ),
+    # Only filled when the caller passes `hardware_label`.
+    ColumnSpec("Hardware", "hardware", visibility=ColumnVisibility.IF_ANY),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
     ColumnSpec(
@@ -489,6 +491,7 @@ def _base_row(
 ) -> dict:
     row = {
         "comparison_key": comparison_key,
+        "hardware": None,
         "variant": variant,
         "n_samples": n_samples,
         "n_features": n_features,
@@ -602,11 +605,14 @@ def _add_result_method(
     json_url_fn: Callable[[Path], str | None],
     profile_url_fn: Callable[[Path], str | None],
     base_result: MethodResult | None = None,
+    hardware_label: Callable[[MethodResult], str] | None = None,
 ):
     key = _row_key(result, variant)
     row = rows.setdefault(
         key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
     )
+    if hardware_label is not None:
+        row["hardware"] = hardware_label(result)
     # Globally unique per row (fit/predict merge into the same row above) -
     # lets a table-row click pin the exact clicked row first among rows
     # sharing its comparison_key (see matchFirstSorter in templates.py).
@@ -696,6 +702,7 @@ def detailed_results_table_html(
     open: bool = False,
     collapsible: bool = True,
     variant_column_title: str = "Variant name",
+    hardware_label: Callable[[MethodResult], str] | None = None,
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
@@ -718,6 +725,7 @@ def detailed_results_table_html(
                 comparison_key=comparison_key(base),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
+                hardware_label=hardware_label,
             )
             _add_result_method(
                 rows_by_key,
@@ -727,6 +735,7 @@ def detailed_results_table_html(
                 comparison_key=comparison_key(result),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
+                hardware_label=hardware_label,
             )
 
     for record, variant in failed_records:
@@ -748,6 +757,7 @@ def detailed_results_table_html(
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
+            hardware_label=hardware_label,
         )
 
     for result in unmatched_candidate_results:
@@ -758,6 +768,7 @@ def detailed_results_table_html(
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
+            hardware_label=hardware_label,
         )
 
     if not rows_by_key:

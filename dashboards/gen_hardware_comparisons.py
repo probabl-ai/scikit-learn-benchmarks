@@ -50,7 +50,7 @@ from sklbench.reporting.envs import (
 )
 from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
-    append_iterations_warning, append_solver_warning,
+    append_solver_warning,
     append_max_bins_warning,
     find_matches,
     read_all_results,
@@ -222,14 +222,12 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
 # Cross-hardware comparisons in this dashboard routinely pair up results
 # whose model isn't actually identical - RF/ET's `n_estimators` varies by
 # machine (see `_normalize_tree_result`) - so `Match.metrics_differences`
-# and the iteration-count check in `append_iterations_warning` would just
-# flag that expected divergence as a reliability warning on every other
-# point. Clearing `metrics` and dropping the specific attributes those
-# checks read (`has_onedal_estimator`, which also drives
-# `is_sklearnex_fallback`'s "fell back to scikit-learn" marker; `n_iter`)
+# would just flag that expected divergence as a reliability warning on every
+# other point. Clearing `metrics` and dropping `has_onedal_estimator` (which
+# also drives `is_sklearnex_fallback`'s "fell back to scikit-learn" marker)
 # suppresses that noise while leaving other attributes (e.g. `solver`,
-# shown in the detailed table) untouched.
-_DROPPED_ATTRIBUTES = {"has_onedal_estimator", "n_iter"}
+# `n_iter`, shown in the detailed table) untouched.
+_DROPPED_ATTRIBUTES = {"has_onedal_estimator"}
 
 
 def _drop_metrics_and_reliability_signals(result: MethodResult) -> MethodResult:
@@ -265,7 +263,8 @@ def result_matches(
     # apply there.
     if base_res.implementation.library == BASE_IMPLEMENTATION and candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
-    append_iterations_warning(base_res, candidate, warnings)
+    # No `append_iterations_warning`: n_iter is only shown in the detailed
+    # table here, not flagged on the plots.
     append_solver_warning(base_res, candidate, warnings)
     # Unlike the other dashboards' base/candidate pairing (always
     # sklearn-vs-accelerated on the same machine), either side here can be
@@ -492,6 +491,10 @@ def render_comparison(
 
     if total_matches == 0:
         return empty
+    hardware_labels = {
+        baseline_variant.hardware_hash: baseline_variant.label,
+        candidate_variant.hardware_hash: candidate_variant.label,
+    }
 
     software_panels = [
         _software_panel(
@@ -515,8 +518,10 @@ def render_comparison(
                     category: detailed_results_table_html(
                         category,
                         category_matches,
-                        baseline_label=baseline_variant.label,
+                        baseline_label=variant_label,
                         variant_label=variant_label,
+                        variant_column_title="Implementation",
+                        hardware_label=lambda result: hardware_labels[result.hardware_hash],
                         comparison_key=_table_comparison_key,
                     )
                     for category, category_matches in matches_by_category.items()
