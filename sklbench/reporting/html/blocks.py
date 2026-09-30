@@ -208,10 +208,13 @@ def assemble_plots_in_grid(
                 )
                 continue
             title = f"{row_value} / {column_value}"
-            point_count = plot.get("point_count")
-            if point_count is not None:
-                point_label = "point" if point_count == 1 else "points"
-                title = f"{title} ({point_count} {point_label})"
+            # Distinct benchmark cases, not points: one case gives a point per
+            # compared variant.
+            case_count = plot.get("case_count")
+            if case_count is not None:
+                column_label = f"{column_value} time" if column_key == "method" else column_value
+                case_label = "case" if case_count == 1 else "cases"
+                title = f"{row_value} - {column_label} - {case_count} {case_label}"
             cells.append(
                 _plot_cell_html(title, plot["plot"], method=plot.get("method"))
             )

@@ -267,17 +267,21 @@ def _render_speedup_grid(
             for match in find_matches(max_bins_base_results, other_results, result_matches)
         ]
         matches_by_category.setdefault(category, {})[method] = matches
+        plot_failed_records = candidate_failed_by_category.get(category, [])
         # create a JS snippet for plotly:
         plots.append({
             "category": category,
             "method": method,
-            "point_count": len(matches),
+            "case_count": len(
+                {_case_key(match.base_result.case) for match in matches}
+                | {_case_key(record.case) for record in plot_failed_records}
+            ),
             "plot": speedup_plot_html(
                 matches,
                 baseline_label=baseline_label,
                 variant_colors=variant_colors,
                 trace_variant=lambda match: variant_label(match.matched_result),
-                failed_records=candidate_failed_by_category.get(category, []),
+                failed_records=plot_failed_records,
             )
         })
     failed_by_category = groupby(failed_records, lambda record: record.category)

@@ -80,9 +80,11 @@ ABOUT_HTML = """<section class="panel">
     <p>On the benchmarked cases:</p>
     <ul>
       <li>The high-end Intel Xeon server <b>mostly helps random forests and extra
-      trees</b>. Their fit is ~3x faster than on the Intel Ultra laptop with
-      scikit-learn, and ~15x faster with sklearnex. Their predict is close to
-      parity with scikit-learn.</li>
+      trees</b>. With scikit-learn, their fit is ~2x to 4x faster than on the
+      Intel Ultra laptop. Their predict is close to parity.</li>
+      <li>scikit-learn-intelex <b>makes much better use of the server's 172
+      cores</b>. With it, random forests and extra trees fit <b>~10x to 15x
+      faster</b> on the server than on the laptop.</li>
       <li>For linear models, the server is <b>often slower than the
       laptop</b>. A single fit doesn't use many cores well, so the laptop's
       faster cores probably win.</li>
@@ -430,11 +432,6 @@ def render_comparison(
     if not shared_labels:
         return empty
     trace_colors = variant_color_map(shared_labels)
-    plot_subtitle = (
-        '<div class="plot-subtitle">'
-        f"{escape(candidate_variant.label)} vs {escape(baseline_variant.label)} (baseline)"
-        "</div>"
-    )
 
     plots = []
     matches_by_category = {}
@@ -474,11 +471,16 @@ def render_comparison(
                 {
                     "category": category,
                     "method": method,
-                    "point_count": len(category_method_matches),
-                    "plot": plot_subtitle + speedup_plot_html(
+                    "case_count": len(
+                        {
+                            _table_comparison_key(match.base_result)
+                            for match in category_method_matches
+                        }
+                    ),
+                    "plot": speedup_plot_html(
                         category_method_matches,
                         baseline_label=baseline_variant.label,
-                        y_title="speed-up",
+                        y_title=f"{candidate_variant.label} speed-up",
                         variant_colors=trace_colors,
                         trace_variant=match_variant_label,
                         x_variant=match_variant_label,

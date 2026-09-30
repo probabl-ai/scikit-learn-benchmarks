@@ -1032,6 +1032,20 @@ def speedup_plot_html(
                 "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
             }
         ],
+        annotations=[
+            {
+                "xref": "paper",
+                "x": 0,
+                "xanchor": "left",
+                "yref": "y",
+                "y": 0,
+                "yanchor": "bottom",
+                "text": f"1x = {baseline_label}",
+                "showarrow": False,
+                "font": {"size": 11, "color": REFERENCE_LINE_COLOR},
+                "bgcolor": "rgba(255, 255, 255, 0.7)",
+            }
+        ],
         margin={"l": 70, "r": 20, "t": 20, "b": 110},
         showlegend=True,
         legend={"orientation": "h"},

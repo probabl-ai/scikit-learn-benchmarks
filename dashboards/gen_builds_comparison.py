@@ -183,18 +183,22 @@ def render_hardware_page(
     for (category, method), group_base_results in grouped_results.items():
         matches = find_matches(group_base_results, other_results, result_matches)
         matches_by_category.setdefault(category, {})[method] = matches
+        plot_failed_records = candidate_failed_by_category.get(category, [])
         # create a JS snippet for plotly:
         plots.append({
             "category": category,
             "method": method,
-            "point_count": len(matches),
+            "case_count": len(
+                {_case_key(match.base_result.case) for match in matches}
+                | {_case_key(record.case) for record in plot_failed_records}
+            ),
             "plot": speedup_plot_html(
                 matches,
                 baseline_label=baseline_label,
                 variant_colors=variant_colors,
                 trace_variant=match_build_variant,
                 x_variant=match_build_variant,
-                failed_records=candidate_failed_by_category.get(category, []),
+                failed_records=plot_failed_records,
             )
         })
     if not candidate_failed_records and not any(
