@@ -160,7 +160,7 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     if is_tree:
         # At least 4 trees per logical core (so 8 per physical core)
         estimator_params = {"n_estimators": max(16, cores_count * 8)}
-        if not is_sklearn:
+        if not is_sklearn and case["algorithm"]["estimator"] == "RandomForestClassifier":
             # Exact (unbinned) splits, like sklearn's
             estimator_params["max_bins"] = SUBSAMPLE_DATASETS[
                 (case["algorithm"]["estimator"], case["data"]["dataset"])
