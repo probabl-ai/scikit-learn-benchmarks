@@ -49,6 +49,11 @@ ABOUT_HTML = """<section class="panel">
     <ul>
       <li><b>MKL</b> is a good pick for <b>linear models</b>: it speeds up BLAS-bound
       linear model fits, commonly by 1.3x to 1.5x.</li>
+      <li>On the laptop, every <b>conda-forge</b> build fits
+      <b>LogisticRegression</b> much faster than the <b>PyPI</b> one, up to
+      ~10x on some datasets. This comes from the <b>OpenBLAS</b> shipped in scipy
+      and is going to be fixed in scipy soon, see
+      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>.</li>
       <li><b>HistGradientBoosting</b> varies more between builds. On laptops, this
       comes from differences in active wait (how long idle OpenMP threads spin
       before sleeping), which <b>conda-forge</b> disables by default. Without active
