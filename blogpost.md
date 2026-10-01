@@ -142,7 +142,7 @@ F-ordered data in LogisitcRegression helps: <!-- TODO: update link -->
 
 ## What we found
 
-<!-- TODO figure: screenshot of the implementations dashboard (tree-based fit row, Xeon server) -->
+![alt text](linear_implem_dashboard.png)
 
 ### scikit-learn-intelex is the most consistently fast option on CPU
 
@@ -171,8 +171,6 @@ Part of the tree speed-up comes from binning: sklearnex uses
 When both libraries use the same exact-split algorithm, the gap is much
 smaller. This is a strong argument for adding binning to scikit-learn's
 trees, see the last section.
-
-<!-- TODO: reduce this section below -->
 
 The caveat is that sklearnex only supports
 [a subset of estimators and parameters](https://uxlfoundation.github.io/scikit-learn-intelex/latest/algorithms.html),
