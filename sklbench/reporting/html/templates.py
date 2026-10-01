@@ -435,7 +435,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
 SOFTWARE_TABS_TEMPLATE = Template("""<section class="tabs" id="{{ tabs_id }}">
   <div class="tab-buttons">
   {% for button in buttons %}
-    <button class="tab-button{% if button.active %} active{% endif %}" type="button" data-tab-target="{{ button.marker }}"{% if button.style %} style="{{ button.style }}"{% endif %}>{{ button.label|e }}</button>
+    <button class="tab-button{% if button.active %} active{% endif %}{% if button.is_baseline %} is-baseline{% endif %}" type="button" data-tab-target="{{ button.marker }}"{% if button.style %} style="{{ button.style }}"{% endif %}>{{ button.label|e }}</button>
   {% endfor %}
   </div>
   {% for panel in panels %}

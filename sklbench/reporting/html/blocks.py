@@ -25,6 +25,7 @@ def render_software_tabs(
     *,
     variant_colors: dict[str, str] | None = None,
     labels: list[str] | None = None,
+    baseline_label: str | None = None,
 ):
     if not elements:
         return ""
@@ -45,7 +46,13 @@ def render_software_tabs(
         if color is not None:
             style = f"background: {color}1F;"
         buttons.append(
-            {"active": index == 0, "label": label, "marker": marker, "style": style}
+            {
+                "active": index == 0,
+                "label": label,
+                "marker": marker,
+                "style": style,
+                "is_baseline": label == baseline_label,
+            }
         )
         panels.append({"active": index == 0, "html": element, "marker": marker})
     return SOFTWARE_TABS_TEMPLATE.render(

@@ -279,7 +279,7 @@ def render_hardware_page(
         render_software_tabs([
             SOFTWARE_TEMPLATE.render(**summary)
             for summary in softwares
-        ], variant_colors=variant_colors),
+        ], variant_colors=variant_colors, baseline_label=baseline_label),
         assemble_plots_in_grid(
             plots,
             rows={"category": ["linear", "tree-based", "clustering"]},
