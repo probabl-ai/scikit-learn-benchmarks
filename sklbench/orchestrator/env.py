@@ -35,7 +35,13 @@ def get_threadpool_info():
     threadpools = threadpool_info()
     for threadpool in threadpools:
         threadpool.pop("filepath", None)
-    return threadpools
+    # threadpool_info() lists libraries in load order, which varies between
+    # runs of the same env and would otherwise change the software hash.
+    return sorted(threadpools, key=_threadpool_sort_key)
+
+
+def _threadpool_sort_key(threadpool: dict) -> str:
+    return json.dumps(threadpool, sort_keys=True)
 
 
 def _parse_openmp_display_env(output: str) -> dict[str, str]:
