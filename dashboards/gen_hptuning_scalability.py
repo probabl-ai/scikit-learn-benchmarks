@@ -107,7 +107,10 @@ ABOUT_HTML = """<section class="panel">
     <ul>
       <li>HistGradientBoosting uses OpenMP threads, Ridge and
       LogisticRegression use BLAS threads. joblib limits both to
-      <code>n_cores // n_jobs</code> threads in each worker process.</li>
+      <code>n_logical_cpus // n_jobs</code> threads in each worker process.
+      With SMT, that is 2 threads per physical core: on the Xeon server
+      (172 cores, 344 logical CPUs), <code>n_jobs=86</code> gives 4 threads
+      per worker. The laptop has no SMT.</li>
       <li>RandomForest and ExtraTrees fit their trees with joblib's threading
       backend and <code>n_jobs=-1</code>. joblib does not limit this nested
       call, so each worker process starts one thread per core, which can lead
