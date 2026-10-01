@@ -229,13 +229,15 @@ was fixed in a more recent OpenBLAS, which scipy now ships
 The fix is in scipy 2.0, and should be backported to 1.18.2.
 
 A smaller one, but in scikit-learn itself: `ExtraTrees` fits were ~25% slower
-on conda-forge than with PyPI. Meson silently downgrades `-O3` to `-O2` under
-conda-forge's compiler flags
-([#34865](https://github.com/scikit-learn/scikit-learn/issues/34865)), and
-with `-O2`, `isnan` isn't inlined in the hot loops of the trees
+on conda-forge than with PyPI. conda-forge compiles against the headers of an
+old glibc (2.17), where `isnan` is a macro that calls a glibc function instead
+of the compiler builtin. So every `isnan` in the hot loops of the trees became
+a real function call
 ([analysis in #34869](https://github.com/scikit-learn/scikit-learn/issues/34869)).
-[#34876](https://github.com/scikit-learn/scikit-learn/pull/34876) fixes it and
-will be in the next release.
+[#34876](https://github.com/scikit-learn/scikit-learn/pull/34876) replaces it
+with `x != x` and will be in the next release. Other conda-forge packages with
+`isnan` in a hot loop are probably affected too, so I
+[reported it to conda-forge](https://github.com/conda-forge/ctng-compiler-activation-feedstock/issues/108).
 
 None of this shows up if you only benchmark code. The same scikit-learn
 version can be 10x slower or faster depending on how it was installed.
@@ -412,8 +414,7 @@ Array API support also keeps progressing, with an Intel GPU CI in
 
 ## What's next for the benchmarks
 
-- More estimators: `PCA`, `LogisticRegressionCV` and `RidgeCV`, and end-to-end
-  pipelines (preprocessing and model).
+- More estimators: `PCA`, `LogisticRegressionCV` and `RidgeCV`.
 - XGBoost, LightGBM and CatBoost, to compare `HistGradientBoosting*` with them
   systematically.
 - Discrete Intel GPUs, and more CUDA results to compare them with.
