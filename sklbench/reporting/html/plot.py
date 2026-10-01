@@ -342,8 +342,8 @@ def phase_breakdown_plot_html(
     x_title: str = "threads",
     series_order: list[str] | None = None,
 ) -> str:
-    """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
-    count), one bar per `points` entry. Each point is
+    """Stacked bar of phase timings vs. an x-axis category (e.g. thread
+    count), one bar per `points` entry, plotted in seconds. Each point is
     `{"x": ..., "phases": {phase_name: ms}, "total_ms": ...}`, with an
     optional `"x_label"` overriding `str(x)` as the tick label (e.g. to show
     an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
@@ -386,8 +386,8 @@ def phase_breakdown_plot_html(
                 go.Bar(
                     name=phase_labels[phase],
                     x=x_values,
-                    y=y_values,
-                    base=list(cumulative_ms) if multi_series else None,
+                    y=[y / 1000 for y in y_values],
+                    base=[base / 1000 for base in cumulative_ms] if multi_series else None,
                     offsetgroup=series if multi_series else None,
                     marker={"color": phase_colors[phase]},
                     showlegend=False,
@@ -409,7 +409,7 @@ def phase_breakdown_plot_html(
     fig.update_layout(
         barmode="overlay" if multi_series else "stack",
         xaxis={"type": "category", "title": x_title},
-        yaxis={"title": "time (ms)", "rangemode": "tozero"},
+        yaxis={"title": "time (s)", "rangemode": "tozero"},
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         showlegend=False,
         template=PLOT_TEMPLATE,
