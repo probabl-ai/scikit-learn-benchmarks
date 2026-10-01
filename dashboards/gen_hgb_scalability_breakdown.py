@@ -83,22 +83,25 @@ ABOUT_HTML = """<section class="panel">
   </details>
   <details class="about-section">
     <summary>Findings</summary>
-    <p>On the benchmarked cases:</p>
+    <p>On the benchmarked cases, adding more threads can be highly counter-productive:</p>
     <ul>
-      <li>On the high-end server, the best thread count grows with the
-      workload. The smallest workloads (e.g. XS, ames_housing) are fastest on
-      1 thread, medium ones (e.g. covtype, M) on 4 to 8 threads, and the
-      largest (year_prediction_msd, susy) on 16 to 32. Only L-stumps keeps
-      speeding up up to 64 threads (~17x). No workload benefits from the whole
-      server: every fit is 2x to 30x slower at 128 or 172 threads than at its
-      best thread count, with the biggest jump from 64 to 128 threads.</li>
-      <li>On the laptop, active wait matters for small and medium workloads.
-      Without active wait (the <b>conda-forge</b> build), they get several times slower at 8
-      and 16 threads: XS goes from 74ms on 1 thread to 919ms on 8, covtype
+      <li>On the <b>high-end server</b>, the best thread count grows with the
+      workload. The smallest workloads are fastest on 1 thread, medium ones
+      stop scaling after 4 to 8 threads, and the largest after 16 to 64.
+      Past the best thread count, fits get slower, sometimes dramatically:
+      every workload is 2x to 30x slower at 128 or 172 threads than at its
+      best thread count.</li>
+      <li>On the <b>laptop</b>, active wait matters for small and medium workloads.
+      Without active wait (the <b>conda-forge</b> build), they get several
+      times slower at 8 and 16 threads: for instance, covtype goes
       from 11s on 4 threads to 38s on 8. With it (<b>PyPI</b>), they stay roughly
       flat or keep improving up to 8 threads. The largest workloads scale up
-      to 16 threads either way. See
+      to 16 threads either way. For details about active wait, see
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>.</li>
+      <li>We're working on fixing this. With
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>,
+      using all the threads is rarely much slower than the best thread
+      count.</li>
     </ul>
   </details>
 </section>"""
