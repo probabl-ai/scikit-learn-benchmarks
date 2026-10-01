@@ -78,10 +78,8 @@ ABOUT_HTML = """<section class="panel">
       <li><b>scikit-learn-intelex</b> scales these three models much further,
       but on the Xeon server, they get slower past 16 to 64 cores.</li>
       <li>With the <b>PyPI</b> build, <b>LogisticRegression</b> gets slower
-      as soon as it runs on more than one logical CPU. On the Xeon server,
-      going from one logical CPU (0.5) to one core with its SMT sibling (1)
-      makes it ~2x slower, and it is ~2.5x slower at 4 cores. It also gets
-      slower with more cores on the laptop. The <b>OpenBLAS</b> shipped with scipy 1.18 wakes
+      as soon as it runs on more than one logical CPU. The <b>OpenBLAS</b>
+      shipped with scipy 1.18 wakes
       all its threads for tiny operations in L-BFGS-B. This is fixed in
       scipy 2.0 (see
       <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>).</li>
