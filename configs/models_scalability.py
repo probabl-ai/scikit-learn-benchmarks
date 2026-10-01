@@ -235,4 +235,5 @@ def generate_cases() -> list[dict]:
         for implem in implementations
         for half_core_case in _with_half_core_bench(case, implem)
     ]
-    return scaled_cases + half_core_cases
+    # TMP: half-core points only, revert right after dispatching.
+    return half_core_cases
