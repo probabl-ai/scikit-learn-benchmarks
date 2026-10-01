@@ -269,6 +269,12 @@ def _hover_text(match: Match) -> str:
         f"<b>speed-up: {match.speedup:.2g}x</b> "
         f"({format_duration_ms(median(base.times))} vs {format_duration_ms(median(result.times))})",
     ]
+    if "hptuning" in base.case and "hptuning" in result.case:
+        # `HPTuning.n_jobs` defaults to 1, which is left out of serialized cases.
+        lines.append(
+            f"outer n_jobs: {base.case['hptuning'].get('n_jobs', 1)} vs "
+            f"{result.case['hptuning'].get('n_jobs', 1)}"
+        )
     lines.extend(_metrics_differ_lines(match))
     if result.is_sklearnex_fallback:
         lines.append("<i>fell back to scikit-learn</i>")

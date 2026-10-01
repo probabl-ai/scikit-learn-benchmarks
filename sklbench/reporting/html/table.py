@@ -279,6 +279,13 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     return "default"
 
 
+def _row_search_n_jobs(inputs: RowInputs) -> int | None:
+    """`RandomizedSearchCV(n_jobs=...)` for hyper-parameter search results.
+    `HPTuning.n_jobs` defaults to 1, which is left out of serialized cases."""
+    search = inputs.case.get("hptuning")
+    return None if search is None else search.get("n_jobs", 1)
+
+
 def _row_status(inputs: RowInputs) -> str:
     return inputs.status
 
@@ -422,6 +429,14 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnGroupSpec("env", _row_env),
     ColumnSpec(
         "Status", "status", _row_status, custom_show=_status_column_visible
+    ),
+    ColumnSpec(
+        "outer n_jobs",
+        "search_n_jobs",
+        _row_search_n_jobs,
+        ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
     ),
     # Set in `_add_result_method` from the "fit" result, with the ratio to
     # the baseline's n_iter when they differ.
