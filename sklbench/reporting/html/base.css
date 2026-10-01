@@ -545,3 +545,17 @@ ul.compact {
 .tabulator .tabulator-footer .tabulator-page.active {
   color: var(--accent);
 }
+/* Detailed-results rows are banded per comparison_key group (see the
+   table's renderComplete handler), so plain row striping would blur them. */
+.detailed-results-table .tabulator-row.tabulator-row-even {
+  background: white;
+}
+.detailed-results-table .tabulator-row.row-group-alt {
+  background: #eef1f4;
+}
+.detailed-results-table .tabulator-row.row-group-start {
+  border-top: 1px solid var(--line);
+}
+.detailed-results-table .tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}

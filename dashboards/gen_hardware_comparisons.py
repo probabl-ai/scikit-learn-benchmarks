@@ -223,20 +223,30 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
 # whose model isn't actually identical - RF/ET's `n_estimators` varies by
 # machine (see `_normalize_tree_result`) - so `Match.metrics_differences`
 # would just flag that expected divergence as a reliability warning on every
-# other point. Clearing `metrics` and dropping `has_onedal_estimator` (which
-# also drives `is_sklearnex_fallback`'s "fell back to scikit-learn" marker)
-# suppresses that noise while leaving other attributes (e.g. `solver`,
+# other point. Plots get matches without `metrics` (see
+# `_without_metrics`), the detailed table keeps them for its score columns.
+# Dropping `has_onedal_estimator` (which also drives
+# `is_sklearnex_fallback`'s "fell back to scikit-learn" marker) suppresses
+# the same kind of noise while leaving other attributes (e.g. `solver`,
 # `n_iter`, shown in the detailed table) untouched.
 _DROPPED_ATTRIBUTES = {"has_onedal_estimator"}
 
 
-def _drop_metrics_and_reliability_signals(result: MethodResult) -> MethodResult:
+def _drop_reliability_signals(result: MethodResult) -> MethodResult:
     attributes = {
         name: value
         for name, value in result.attributes.items()
         if name not in _DROPPED_ATTRIBUTES
     }
-    return replace(result, metrics={}, attributes=attributes)
+    return replace(result, attributes=attributes)
+
+
+def _without_metrics(match: Match) -> Match:
+    return replace(
+        match,
+        base_result=replace(match.base_result, metrics={}),
+        matched_result=replace(match.matched_result, metrics={}),
+    )
 
 
 def _match_key(result: MethodResult) -> str:
@@ -477,7 +487,7 @@ def render_comparison(
                         }
                     ),
                     "plot": speedup_plot_html(
-                        category_method_matches,
+                        [_without_metrics(match) for match in category_method_matches],
                         baseline_label=baseline_variant.label,
                         y_title=f"{candidate_variant.label} speed-up",
                         variant_colors=trace_colors,
@@ -523,6 +533,10 @@ def render_comparison(
                         variant_column_title="Implementation",
                         hardware_label=lambda result: hardware_labels[result.hardware_hash],
                         comparison_key=_table_comparison_key,
+                        # Bigger forests on bigger machines score better.
+                        scores_comparable=lambda base, result: (
+                            _n_estimators(base) == _n_estimators(result)
+                        ),
                     )
                     for category, category_matches in matches_by_category.items()
                 },
@@ -706,7 +720,7 @@ def _is_excluded_env(result: MethodResult) -> bool:
 
 def generate(output_dir: Path) -> None:
     all_results = [
-        _drop_metrics_and_reliability_signals(result)
+        _drop_reliability_signals(result)
         for result in read_all_results()
         if matches_source_configs(result.case, SOURCE_CONFIGS)
         and not _is_excluded_env(result)

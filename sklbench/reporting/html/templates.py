@@ -62,6 +62,24 @@ BASE_TEMPLATE = Template("""<!doctype html>
       return label;
     }
 
+    // Test score, colored when significantly better or worse than the
+    // baseline (`<field>_cmp`, see `_add_scores` in table.py).
+    function sklbenchScoreFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "";
+      }
+      const label = value.toFixed(3);
+      const comparison = cell.getData()[`${cell.getColumn().getField()}_cmp`];
+      if (comparison === "better") {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (comparison === "worse") {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
     function sklbenchLinkFormatter(cell, formatterParams) {
       const value = cell.getValue();
       if (!value) {
@@ -80,6 +98,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
           prepared.formatter = sklbenchDurationFormatter;
         } else if (prepared.formatterName === "speedup") {
           prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "score") {
+          prepared.formatter = sklbenchScoreFormatter;
         } else if (prepared.formatterName === "link") {
           prepared.formatter = sklbenchLinkFormatter;
           prepared.formatterParams = {label: prepared.linkLabel || "open"};
@@ -95,11 +115,9 @@ BASE_TEMPLATE = Template("""<!doctype html>
         window.sklbenchTables[tableId].redraw(true);
         return;
       }
-      const initialSort = [
-        {column: "estimator", dir: "asc"},
-        {column: "dataset", dir: "asc"},
-        {column: "variant", dir: "asc"},
-      ];
+      // Rows of the same case (same comparison_key) stay together, in the
+      // order precomputed by `_add_group_ranks` in table.py.
+      const initialSort = [{column: "comparison_key", dir: "asc"}];
       // Row click (in the table, or on a matching speed-up plot point via
       // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
       // comparison_key on top instead of filtering everything else out, so
@@ -110,25 +128,39 @@ BASE_TEMPLATE = Template("""<!doctype html>
       // row - see table.py's _row_key/_add_result_method) so that specific
       // row sorts first among same-comparison_key siblings. A plot-point
       // click has no single row to pin, so this stays null and rows sharing
-      // matchSortKey fall back to the row_id tiebreaker for a deterministic
-      // (not "whatever Tabulator does for ties") order.
+      // matchSortKey keep their within_rank order.
       let matchedRowId = null;
+      // The clicked row's (or plot trace's) variant: its other rows, e.g.
+      // the same implementation on the other machine, come right after it.
+      let matchedVariant = null;
       const matchFirstSorter = (a, b, aRow, bRow) => {
+        const aData = aRow.getData();
+        const bData = bRow.getData();
         const aMatches = a === matchSortKey ? 0 : 1;
         const bMatches = b === matchSortKey ? 0 : 1;
         if (aMatches !== bMatches) {
           return aMatches - bMatches;
         }
-        if (aMatches === 0 && matchedRowId) {
-          const aIsClicked = aRow.getData().row_id === matchedRowId;
-          const bIsClicked = bRow.getData().row_id === matchedRowId;
-          if (aIsClicked !== bIsClicked) {
-            return aIsClicked ? -1 : 1;
+        if (aData.group_rank !== bData.group_rank) {
+          return aData.group_rank - bData.group_rank;
+        }
+        if (aMatches === 0) {
+          if (matchedRowId) {
+            const aIsClicked = aData.row_id === matchedRowId;
+            const bIsClicked = bData.row_id === matchedRowId;
+            if (aIsClicked !== bIsClicked) {
+              return aIsClicked ? -1 : 1;
+            }
+          }
+          if (matchedVariant) {
+            const aSameVariant = aData.variant === matchedVariant;
+            const bSameVariant = bData.variant === matchedVariant;
+            if (aSameVariant !== bSameVariant) {
+              return aSameVariant ? -1 : 1;
+            }
           }
         }
-        const aId = aRow.getData().row_id || "";
-        const bId = bRow.getData().row_id || "";
-        return aId < bId ? -1 : aId > bId ? 1 : 0;
+        return aData.within_rank - bData.within_rank;
       };
       const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
         if (column.field === "comparison_key") {
@@ -147,6 +179,26 @@ BASE_TEMPLATE = Template("""<!doctype html>
         initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
           ([field, value]) => ({field, value})
         ),
+      });
+      // Alternating background per run of rows sharing a comparison_key, in
+      // the current sort/filter order, so groups stay visible whatever the
+      // sort.
+      table.on("renderComplete", () => {
+        let band = 0;
+        let previousKey;
+        table.getRows("active").forEach((row) => {
+          const key = row.getData().comparison_key;
+          const isGroupStart = key !== previousKey;
+          if (isGroupStart && previousKey !== undefined) {
+            band = 1 - band;
+          }
+          previousKey = key;
+          const el = row.getElement();
+          if (el) {
+            el.classList.toggle("row-group-alt", band === 1);
+            el.classList.toggle("row-group-start", isGroupStart);
+          }
+        });
       });
       // Briefly flashes every row sharing comparisonKey (the ones
       // applyMatchSort just brought to the top) so it's visible they moved.
@@ -169,9 +221,10 @@ BASE_TEMPLATE = Template("""<!doctype html>
           setTimeout(() => el.classList.remove("row-just-matched"), 1000);
         });
       };
-      const applyMatchSort = (comparisonKey, rowId) => {
+      const applyMatchSort = (comparisonKey, rowId, variant) => {
         matchSortKey = comparisonKey;
         matchedRowId = rowId || null;
+        matchedVariant = variant || null;
         table.setSort([{column: "comparison_key", dir: "asc"}]);
         requestAnimationFrame(() => highlightMatches(comparisonKey));
       };
@@ -183,7 +236,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
         if (!comparisonKey) {
           return;
         }
-        applyMatchSort(comparisonKey, row.getData().row_id);
+        applyMatchSort(comparisonKey, row.getData().row_id, row.getData().variant);
       });
       // Exposed so a click on a matching speed-up plot point
       // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
@@ -219,7 +272,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
     // (or the whole grid's) "Detailed results" <details> right after its
     // plot(s) in document order, so the nearest one following the clicked
     // chart is its table - open that first in case it's still collapsed.
-    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey) {
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
       if (!comparisonKey) {
         return;
       }
@@ -238,7 +291,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
       const table = entry && entry[1];
       if (table) {
         await table.sklbenchBuilt;
-        table.sklbenchApplyMatchSort(comparisonKey);
+        table.sklbenchApplyMatchSort(comparisonKey, null, variant);
       }
     }
 
@@ -251,7 +304,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
         chart.on("plotly_click", (eventData) => {
           const point = eventData.points && eventData.points[0];
           if (point) {
-            sklbenchApplyPlotMatchSort(chart, point.customdata);
+            // Speed-up plot traces are named after the table's variant.
+            sklbenchApplyPlotMatchSort(chart, point.customdata, point.data && point.data.name);
           }
         });
       });
