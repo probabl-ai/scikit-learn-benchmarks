@@ -1,0 +1,24 @@
+1| Intel partnership
+Context: Intel Partnership (with Probabl), focused on performance, especially on performance on many cores machines. Link to blogpost on Probabl’s website about the partnership.
+
+On a remonté des problèmes upstreams (scikit-learn-intelex, pytorch XPU, etc.) et on a commencé des améliorations dans scikit-learn.
+2| Present the methodology of the benchmarks (15 lines max)
+[look at the repo, including texts in the dashboards]
+Mention list of estimators, list of hardware.
+Mention: more to come. TODO for me: list planned work on the benchmarks
+Share link to repo, link to dashboard.
+3| Results & Findings worth sharing
+
+[Look at the “findings” in the dashboards and summarize them]
+Should be more or less the same thing than what is said on the index page.
+4| Planned performance work
+
+[Be brief, we’ll do detailed blog posts on biggest pieces of work]
+-	HGB (improve scalability)
+-	Encoders: pandas path leveraging categorical dtype
+-	Trees (binning)
+-	Ridge & LogisticRegression (small improvements)
+At the end: present myself
+Me: mix of data science and computer science/algorithms/competitive programming experience. I’m what you could call a "Performance engineer” (though I’m still learning).
+I work at Probabl on scikit-learn.
+

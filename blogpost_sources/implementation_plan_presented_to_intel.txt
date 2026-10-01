@@ -1,0 +1,87 @@
+Implementation plan
+
+T0: GOSIM / 2026-05 (DONE)
+-	2.3: Preliminary array API GPU tests on the laptop
+-	Presentations at GOSIM
+
+T0+4 2026-08 (WIP)
+-	2.3:
+-	Array API GPU CI operational
+-	Manual trigger for isolated runners work, we use it on a regular basis (scikit-learn-intel-workflow)
+-	Ensure that tests pass on B70 or similar (they pass on B390 and Iris Xe Graphics, waiting for hardware access for B70)
+-	Help plan and reach some milestone towards getting array API support out of experimental
+-	Updated plan to move out of experimental (#33444)
+-	Mixed namespace testing for estimators and metrics (#28668 and related PRs)
+-	Integration testing (#34824)
+-	2.1/2.4/3.0: Representative scikit-learn tabular pipelines
+-	2.4:
+-	Audit of OpenMP / OpenBLAS / MKL / free-threading problematic interactions: (#34764, #34736, #34437, latest comments on #17334)
+-	Design of required API changes in threadpoolctl / sklearn’s use of joblib’s threading backend to mitigate oversubscription problems (#214, #228)
+-	2.1: Audit existing Phoronix benchmarks:  Phoronix: scikit-learn workload audit
+-	2.1: finalize “v1” of benchmarking program
+-	Repo, dashboard permalink (frozen on 09/02/26), “live” dashboard (updated at each push on main)
+-	Helped diagnose performance issues & bugs: 7 opened issues in scikit-learn-intelex, 2 in OneDal (with fixes PRs), 1 in OpenBlas, 1 in  torch-XPU
+-	Fixed set of models/workloads, librairies/builds, hardware.
+-	Collect Xeon results on GNR (sklearn & sklearnex)
+-	Collect B70 or similar GPU results on GNR (Array API) (waiting for hardware access). But collected B390 results.
+-	Speed-ups dashboards, scalability plots, profiling with py-spy.
+-	Usable for measuring performance impact of a given scikit-learn PR. Ex: #31
+-	Include representative scikit-learn tabular pipelines
+-	2.2: Starting work on performance engineering
+-	Pipeline bottleneck: encoders: #34386 (merged), #34680 (merged) & #34678 (in review)
+-	HistGradientBoosting scalability: harder than expected. Experiments. PR ready for review #34935, tested on many hardwares & many OS/OpenMP configurations
+-	2.5:
+-	Document Intel GPU support with links to installation instructions in array API documentation.
+-	Update scikit-learn website (dev) to include the Intel logo and link to the announcement of the partnership on the Probabl blog.
+-	3.0:
+-	Agreement with NVIDIA to also be part of the plugin system effort.
+T0+5 2026-09
+-	2.1:
+-	Benchmarks continued helping diagnose issues in sklearnex/OneDal
+-	Benchmarks ready for sharing publicly with a broad audience
+-	Identified setup of benchmarked use cases to serve as next iteration of Phoronix benchmark.
+-	Contact Phoronix author to discuss collaboration modalities. (blocker: some public communication would help introducing the context)
+-	2.2: Optimization of scikit-learn:
+-	Ridge
+-	Investigate LogisticRegression scalability (done in scipy#26193-comment and PR #34903)
+-	2.3:
+-	Array API user facing example
+-	2.4
+-	Investigate compilation chain/flags in conda-forge recipe
+-	2.5
+-	First iteration of performance documentation improvements:
+-	Builds & installation guidelines
+-	For example: Optimized usage of categorical dtypes in scikit-learn pipelines.
+-	Blog posts about first results, link to updated documentation, link to benchmark dashboards/repository (with time for validation of the draft by Intel if requested).
+T0+6 2026-11
+-	2.1: Refine benchmarks for needs of ongoing performance work:
+-	Representative pipelines: Add PCA, LogisticRegressionCV and RidgeCV
+-	Add xgbboost, lightGBM, catboost
+-	2.2: Optimization of scikit-learn, depending on findings from benchmarks
+-	Investigate possible pipeline bottleneck: SplineTransformer
+-	Investigate if KMeans performance can be improved in scikit-learn with currently available tools (Cython, BLAS)
+-	RF:
+-	Explore pre-sorting & radix sort
+-	Implement binning
+-	HGB? Based on comparison with competitors
+-	Memory/Layout related optimizations in end-to-end pipelines and linear models?
+-	Ridge cholesky implementation for Array API Ridge
+-
+-	2.3:
+-	Array API GPU CI integrated in the main dev repo with a label (once the release process is isolated from the dev repo)
+-	Infrastructure ready for Array API out of experimental (pending SciPy support)
+-	2.4:
+-	Release of threadpoolctl with explicit handling of process-wide vs thread-local runtime adjustments.
+-	Prototype of nested threading oversubscription protection in scikit-learn or joblib.
+-	2.5:
+-	Second iteration of performance documentation improvements: guide intel users for best performance (laptop and datacenters).
+-	3.0 start of Validation of Technical Viability of the plugin system:
+-	Identified list of high priority estimators / functions in scikit-learn.
+-	For those, run extensive behavior comparisons to identify gaps
+-	Review past plugin system design discussions in light of:
+-	Comparative benchmark results
+-	Array API support.
+
+T0+12 2027-05
+-	2.2: Optimization of scikit-learn: have most of optimization work listed above merged for 1.11 release
+
