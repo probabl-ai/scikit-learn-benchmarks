@@ -14,8 +14,8 @@ HARDWARE_NAMES = {
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
     "b281b2": "Apple M4 laptop",
-    "5ce575": "CUDA L4 GPU 16GB VM",
-    "d189c4": "CUDA L4 GPU 32GB VM",
+    "5ce575": "L4 VM (4 CPU, 16 GB RAM)",
+    "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
 
 GPU_NAMES = {
