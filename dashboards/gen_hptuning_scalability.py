@@ -96,36 +96,36 @@ SOURCE_CONFIGS = ["configs/hptuning.py"]
 
 ABOUT_HTML = """<section class="panel">
   <p>RandomizedSearchCV has two levels of parallelism: its outer
-  <code>n_jobs</code> runs candidates in parallel, and each candidate can use
-  threads itself. This dashboard sweeps the outer <code>n_jobs</code> to
+  <code><dfn>n_jobs</dfn></code> runs <dfn>candidates</dfn> in parallel, and each candidate can use
+  <dfn>threads</dfn> itself. This dashboard sweeps the outer <code>n_jobs</code> to
   check how the two levels interact.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>The outer <code>n_jobs</code> uses joblib's default backend (loky),
-    which fits candidates in separate worker processes. Inner parallelism
+    <p>The outer <code><dfn>n_jobs</dfn></code> uses <dfn term="joblib">joblib</dfn>'s default backend (<dfn>loky</dfn>),
+    which fits candidates in separate <dfn>worker processes</dfn>. Inner parallelism
     depends on the estimator:</p>
     <ul>
-      <li>HistGradientBoosting uses OpenMP threads, Ridge and
-      LogisticRegression use BLAS threads. joblib limits both to
+      <li>HistGradientBoosting uses <dfn>OpenMP threads</dfn>, Ridge and
+      LogisticRegression use <dfn term="blas">BLAS</dfn> threads. joblib limits both to
       <code>n_logical_cpus // n_jobs</code> threads in each worker process.
-      With SMT, that is 2 threads per physical core: on the Xeon server
-      (172 cores, 344 logical CPUs), <code>n_jobs=86</code> gives 4 threads
+      With <dfn>SMT</dfn>, that is 2 threads per <dfn>physical core</dfn>: on the Xeon server
+      (172 cores, 344 <dfn>logical CPUs</dfn>), <code>n_jobs=86</code> gives 4 threads
       per worker. The laptop has no SMT.</li>
-      <li>RandomForest and ExtraTrees fit their trees with joblib's threading
-      backend and <code>n_jobs=-1</code>. joblib does not limit this nested
+      <li>RandomForest and ExtraTrees fit their trees with joblib's <dfn>threading
+      backend</dfn> and <code>n_jobs=-1</code>. joblib does not limit this nested
       call, so each worker process starts one thread per core, which can lead
-      to oversubscription.
+      to <dfn>oversubscription</dfn>.
       <a href="https://github.com/joblib/joblib/pull/1825">joblib#1825</a>
       would limit nested <code>n_jobs=-1</code> calls like it does for OpenMP
       and BLAS.</li>
       <li>scikit-learn-intelex uses
-      <a href="https://uxlfoundation.github.io/oneTBB/">oneTBB</a> threads,
+      <dfn>oneTBB</dfn> threads,
       which joblib does not limit either.</li>
     </ul>
     <p>There is one tab per machine and one plot per (estimator, dataset)
     pair. The x-axis is the outer <code>n_jobs</code> (log scale), the y-axis
-    is the mean time per <code>.fit()</code> call over the search, with one
-    line per environment. The marker size is the CPU load (100% means all cores
+    is the mean time per <code><dfn>.fit()</dfn></code> call over the search, with one
+    line per <dfn>environment</dfn>. The marker size is the <dfn>CPU load</dfn> (100% means all cores
     busy). The line shape tells how the two levels interact:</p>
     <ul>
       <li>going down as 1/n_jobs: a single fit has little inner parallelism,
@@ -145,12 +145,12 @@ ABOUT_HTML = """<section class="panel">
     <a href="models_scalability.html">models core-count scalability</a>
     dashboard shows. On the benchmarked cases:</p>
     <ul>
-      <li>More outer workers make the search faster with a higher CPU
+      <li>More <dfn>outer workers</dfn> make the search faster with a higher CPU
       load in most cases, as expected. The exceptions are
       HistGradientBoosting and the linear models on the Xeon server: they get
-      faster while the CPU load goes down. I'm not sure why.</li>
+      faster while the CPU load goes down. It's unclear why.</li>
       <li>Ridge and LogisticRegression: outer parallelism helps, but less
-      than one could hope. These workloads are probably memory bound, so
+      than one could hope. These workloads are probably <dfn>memory bound</dfn>, so
       more cores don't help much.</li>
       <li>HistGradientBoosting: outer parallelism works well on small
       datasets or on a big machine, because HGB's own threads are
@@ -159,8 +159,8 @@ ABOUT_HTML = """<section class="panel">
       breakdown</a>).</li>
       <li>RandomForest and ExtraTrees: on susy, the curve is mostly
       flat, as expected since a single fit already uses all cores. On the
-      smaller datasets with preprocessing, the search still speeds up with
-      outer workers and the CPU load goes up. Oversubscription is mostly
+      smaller datasets with <dfn>preprocessing</dfn>, the search still speeds up with
+      outer workers and the CPU load goes up. <dfn>Oversubscription</dfn> is mostly
       harmless on the laptop. On the Xeon server, RandomForestClassifier gets
       up to ~1.8x slower beyond ~22 outer workers.</li>
       <li>scikit-learn-intelex: oversubscription is harmless on the laptop.

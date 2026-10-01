@@ -70,14 +70,14 @@ SOURCE_ENVS = [
 ]
 
 ABOUT_HTML = """<section class="panel">
-  <p>A thread scaling curve shows whether a fit got faster, but not why. This
-  dashboard breaks HistGradientBoosting's fit time into its phases (binning,
-  histogram computation, split finding) to see which ones scale.</p>
+  <p>A <dfn term="threads">thread</dfn> scaling curve shows whether a <dfn>fit</dfn> got faster, but not why. This
+  dashboard breaks HistGradientBoosting's fit time into its phases (<dfn>binning</dfn>,
+  <dfn>histogram computation</dfn>, <dfn>split finding</dfn>) to see which ones scale.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>There is one tab per machine, build and thread affinity setting, and
+    <p>There is one tab per machine, <dfn>build</dfn> and <dfn>thread affinity</dfn> setting, and
     one stacked bar per workload. The x-axis is the requested thread count
-    (<code>OMP_NUM_THREADS</code>). If a bar stops shrinking or grows as
+    (<code><dfn>OMP_NUM_THREADS</dfn></code>). If a bar stops shrinking or grows as
     threads are added, the extra threads bring nothing or cost time, and the segments
     show which phase is responsible.</p>
   </details>
@@ -91,10 +91,10 @@ ABOUT_HTML = """<section class="panel">
       Past the best thread count, fits get slower, sometimes dramatically:
       every workload is 2x to 30x slower at 128 or 172 threads than at its
       best thread count.</li>
-      <li>On the <b>laptop</b>, active wait matters for small and medium workloads.
-      Without active wait (the <b>conda-forge</b> build), they get several
+      <li>On the <b>laptop</b>, <dfn>active wait</dfn> matters for small and medium workloads.
+      Without active wait (the <b><dfn>conda-forge</dfn></b> build), they get several
       times slower at 8 and 16 threads: for instance, covtype goes
-      from 11s on 4 threads to 38s on 8. With it (<b>PyPI</b>), they stay roughly
+      from 11s on 4 threads to 38s on 8. With it (<b><dfn>PyPI</dfn></b>), they stay roughly
       flat or keep improving up to 8 threads. The largest workloads scale up
       to 16 threads either way. For details about active wait, see
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>.</li>

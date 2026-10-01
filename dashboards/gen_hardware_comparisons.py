@@ -68,14 +68,14 @@ from sklbench.reporting.utils import stable_json, without_keys
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard compares machines running the same software. Every build
-  or implementation present on both machines is matched, so a speed-up comes
+  <p>This dashboard compares machines running the same software. Every <dfn>build</dfn>
+  or <dfn>implementation</dfn> present on both machines is matched, so a <dfn>speed-up</dfn> comes
   from the hardware.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>Pick a baseline and a comparison machine. The dropdowns only offer CPU
+    <p>Pick a <dfn>baseline</dfn> and a comparison machine. The dropdowns only offer CPU
     vs CPU or GPU vs GPU pairs that have comparable results. Each cell shows
-    the fit or predict speed-up (log scale) per estimator category, one line
+    the <dfn>fit</dfn> or <dfn>predict</dfn> speed-up (log scale) per estimator category, one line
     per build or implementation. The last cell compares the time per fit in
     hyper-parameter searches, where many fits run in parallel.</p>
   </details>
@@ -93,19 +93,19 @@ ABOUT_HTML = """<section class="panel">
       laptop. A single fit doesn't use many cores well, so the laptop's
       faster cores probably win.</li>
       <li>Hyper-parameter searches are where the server pays off. Running
-      many candidates in parallel fills its cores, and it gets through fits
+      many <dfn>candidates</dfn> in parallel fills its cores, and it gets through fits
       ~10x to 15x faster than the laptop, even for the <b>linear models</b>.
-      That is close to the ratio of physical cores (172 vs 16). The gain is
+      That is close to the ratio of <dfn>physical cores</dfn> (172 vs 16). The gain is
       smaller for <b>HistGradientBoosting</b> on small datasets. <b>Random
       forests</b> and <b>extra trees</b> aren't compared yet, because their
       forest size differs between the two machines.</li>
       <li><b>HistGradientBoosting</b> results are hard to interpret, because
-      of known scalability issues on laptops with <b>conda-forge</b> builds and on
+      of known scalability issues on laptops with <b><dfn>conda-forge</dfn></b> builds and on
       machines with many cores. See
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
       and the <a href="hgb_scaling.html">HistGradientBoosting
       thread-scalability breakdown</a>.</li>
-      <li>On the <b>PyPI</b> build, the Apple M4 CPU is ~1.3x to 2x slower
+      <li>On the <b><dfn>PyPI</dfn></b> build, the Apple M4 CPU is ~1.3x to 2x slower
       than the Intel Core Ultra laptop.</li>
     </ul>
   </details>
@@ -664,7 +664,7 @@ SEARCH_NOTE = (
     "RandomizedSearchCV from the "
     '<a href="hptuning_scalability.html">hyper-parameter search dashboard</a>. '
     "Time per fit over the whole search, with each machine at its fastest outer "
-    "<code>n_jobs</code>. The search size scales with the machine (2 candidates "
+    "<code><dfn>n_jobs</dfn></code>. The search size scales with the machine (2 <dfn>candidates</dfn> "
     "per core on the laptop, 1 on the server), so this is the speed-up for a search "
     "big enough to fill each machine. Searches whose data or forest size differs "
     "between the two machines are left out."

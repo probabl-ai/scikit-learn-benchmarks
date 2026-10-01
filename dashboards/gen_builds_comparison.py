@@ -32,34 +32,34 @@ from sklbench.reporting.html import (
 
 BASE_IMPLEMENTATION = "sklearn"
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard compares builds of plain scikit-learn. The code is the
-  same, only the BLAS/OpenMP runtime changes (for example conda-forge's MKL,
-  or its libgomp and libomp OpenBLAS builds). The PyPI wheel is the baseline.
+  <p>This dashboard compares <dfn>builds</dfn> of plain scikit-learn. The code is the
+  same, only the <dfn>BLAS/OpenMP runtime</dfn> changes (for example <dfn>conda-forge</dfn>'s <dfn>MKL</dfn>,
+  or its <dfn>libgomp</dfn> and <dfn>libomp</dfn> <dfn>OpenBLAS</dfn> builds). The <dfn>PyPI wheel</dfn> is the <dfn>baseline</dfn>.
   </p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Read each cell like in
     <a href="per_hardware.html">the software/implementations dashboard</a>:
-    fit or predict speed-up (log scale) per estimator category, one line per
+    <dfn>fit</dfn> or <dfn>predict</dfn> <dfn>speed-up</dfn> (log scale) per estimator category, one line per
     build.
     </p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
     <ul>
-      <li><b>MKL</b> is a good pick for <b>linear models</b>: it speeds up BLAS-bound
+      <li><b><dfn>MKL</dfn></b> is a good pick for <b>linear models</b>: it speeds up <dfn term="blas">BLAS</dfn>-bound
       linear model fits, commonly by 1.3x to 1.5x.</li>
-      <li>On the laptop, every <b>conda-forge</b> build fits
-      <b>LogisticRegression</b> much faster than the <b>PyPI</b> one, up to
-      ~10x on some datasets. This comes from the <b>OpenBLAS</b> shipped in scipy
+      <li>On the laptop, every <b><dfn>conda-forge</dfn></b> build fits
+      <b>LogisticRegression</b> much faster than the <b><dfn>PyPI</dfn></b> one, up to
+      ~10x on some datasets. This comes from the <b><dfn>OpenBLAS</dfn></b> shipped in scipy
       and is going to be fixed in scipy soon, see
       <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>.</li>
       <li><b>HistGradientBoosting</b> varies more between builds. On laptops, this
-      comes from differences in active wait (how long idle OpenMP threads spin
+      comes from differences in <dfn>active wait</dfn> (how long idle <dfn>OpenMP threads</dfn> spin
       before sleeping), which <b>conda-forge</b> disables by default. Without active
       wait, HGB fits on small and medium datasets can be much slower. On the
-      high-end server, the <b>LLVM/Intel OpenMP</b> runtimes seem faster than
-      <b>libgomp</b>. See
+      high-end server, the <b><dfn>LLVM/Intel OpenMP</dfn></b> runtimes seem faster than
+      <b><dfn>libgomp</dfn></b>. See
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
       for the analysis, and
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>

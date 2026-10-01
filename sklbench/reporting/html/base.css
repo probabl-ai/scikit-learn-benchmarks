@@ -559,3 +559,58 @@ ul.compact {
 .detailed-results-table .tabulator-row.tabulator-selectable:hover {
   background: var(--sk-orange-tint-9);
 }
+/* Technical terms with a hover definition (see sklbench/reporting/html/glossary.py). */
+.term {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted rgba(72, 86, 107, 0.6);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.term:focus {
+  outline: none;
+}
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+.term-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 14px rgba(34, 40, 50, 0.14);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
+}
+/* Invisible bridge over the gap, so the pointer can reach the tooltip's link. */
+.term-tip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.term:hover > .term-tip,
+.term:focus-within > .term-tip {
+  display: block;
+}
+.term-tip a {
+  white-space: nowrap;
+}

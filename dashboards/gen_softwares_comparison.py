@@ -39,39 +39,39 @@ BASELINE_ONLY_BUILDS = {"sklearn-cf-mkl"}
 # base.css's --muted, so these tabs don't look like a plotted variant.
 BASELINE_ONLY_TAB_COLOR = "#48566b"
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard compares implementations on the same machine: stock
-  scikit-learn, scikit-learn-intelex and Array API backends (PyTorch, dpnp,
-  CuPy). Since the hardware is fixed, a speed-up comes from the software:
-  faster algorithms, better use of the CPU (vectorization, threading), or
+  <p>This dashboard compares <dfn>implementations</dfn> on the same machine: stock
+  scikit-learn, scikit-learn-intelex and <dfn>Array API</dfn> backends (<dfn>PyTorch</dfn>, <dfn>dpnp</dfn>,
+  <dfn>CuPy</dfn>). Since the hardware is fixed, a <dfn>speed-up</dfn> comes from the software:
+  faster algorithms, better use of the CPU (<dfn>vectorization</dfn>, <dfn>threading</dfn>), or
   offloading to the GPU.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Pick a machine tab. The top of the tab describes the machine and each
-    software environment (versions, BLAS and OpenMP libraries). The baseline
-    defaults to stock scikit-learn from PyPI. To change it, open another
-    software tab and click "Pick as baseline". The conda-forge MKL build
+    <dfn>software environment</dfn> (versions, <dfn>BLAS</dfn> and <dfn>OpenMP</dfn> libraries). The <dfn>baseline</dfn>
+    defaults to stock scikit-learn from <dfn>PyPI</dfn>. To change it, open another
+    software tab and click "Pick as baseline". The <dfn>conda-forge</dfn> <dfn>MKL</dfn> build
     (<code>sklearn-cf-mkl</code>) can be picked as a baseline too, but isn't
     plotted otherwise.</p>
     <p>The plots are arranged in a grid: one row per estimator category
-    (linear, tree-based, clustering) and one column for <code>fit</code> and
-    one for <code>predict</code>. In each plot:</p>
+    (linear, tree-based, clustering) and one column for <code><dfn>fit</dfn></code> and
+    one for <code><dfn>predict</dfn></code>. In each plot:</p>
     <ul>
       <li>the x-axis lists the estimators, with one color per implementation.
       An implementation keeps its color on every machine and for every
       baseline;</li>
-      <li>each point is one benchmark case (dataset and hyperparameters);</li>
+      <li>each point is one benchmark case (dataset and <dfn>hyperparameters</dfn>);</li>
       <li>the y-axis is the speed-up over the baseline, in log scale. Points
       above the dashed 1x line are faster than the baseline.</li>
     </ul>
     <p>The marker shape flags cases to double check:</p>
     <ul>
-      <li>circle (●): metrics and setup match the baseline;</li>
+      <li>circle (●): <dfn>metrics</dfn> and setup match the baseline;</li>
       <li>square (■): metrics match but the setup differs, for instance a
-      different solver or number of iterations, or scikit-learn-intelex using
-      histogram-based splits where scikit-learn uses exact ones;</li>
+      different <dfn>solver</dfn> or number of iterations, or scikit-learn-intelex using
+      <dfn>histogram-based splits</dfn> where scikit-learn uses <dfn term="exact splits">exact ones</dfn>;</li>
       <li>open diamond (◇): the metrics differ;</li>
       <li>grey point (<span style="color: grey">●</span>):
-      scikit-learn-intelex fell back to scikit-learn;</li>
+      scikit-learn-intelex <dfn>fell back</dfn> to scikit-learn;</li>
       <li>cross (✕): failed run.</li>
     </ul>
     <p>The notes under each plot count these cases.</p>
@@ -88,28 +88,28 @@ ABOUT_HTML = """<section class="panel">
       <li><b>sklearnex tree-based models</b> are fast, but don't behave exactly
       like scikit-learn:
         <ul>
-          <li>By default, sklearnex random forests and extra trees bin
-          features (<code>max_bins=256</code>), which scikit-learn doesn't
+          <li>By default, sklearnex random forests and extra trees <dfn>bin
+          features</dfn> (<code><dfn term="max_bins">max_bins=256</dfn></code>), which scikit-learn doesn't
           implement yet. Binning roughly doubles or triples the fit
-          speed-up. Cases run with exact splits
+          speed-up. Cases run with <dfn>exact splits</dfn>
           (<code>max_bins=n_samples</code>) are on the left of each
           implementation in the tree-based plots.</li>
-          <li>Two <b>oneDAL</b> bugs make some fits worse:
+          <li>Two <b><dfn>oneDAL</dfn></b> bugs make some fits worse:
           <a href="https://github.com/uxlfoundation/oneDAL/issues/3648">oneDAL#3648</a>
           (ExtraTreesRegressor) and
           <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">oneDAL#3771</a>
-          (<code>max_leaf_nodes</code>).</li>
+          (<code><dfn>max_leaf_nodes</dfn></code>).</li>
         </ul>
       </li>
       <li><b>sklearnex KMeans</b> fits ~3x faster and is never slower than
       scikit-learn.</li>
-      <li><b>Array API</b> backends are mixed. Only <b>LogisticRegression</b> and
+      <li><b><dfn>Array API</dfn></b> backends are mixed. Only <b>LogisticRegression</b> and
       <b>Ridge</b> are benchmarked for now:
         <ul>
           <li>LogisticRegression on GPU is fairly fast.</li>
-          <li>Ridge uses the SVD solver instead of Cholesky under Array API,
+          <li>Ridge uses the <dfn>SVD</dfn> solver instead of <dfn>Cholesky</dfn> under Array API,
           which is probably why it's slower.</li>
-          <li><b>PyTorch</b> on CPU parallelizes every operation, including small
+          <li><b><dfn>PyTorch</dfn></b> on CPU parallelizes every operation, including small
           vector operations. That's why LogisticRegression is slower than
           scikit-learn with NumPy.</li>
         </ul>
@@ -121,14 +121,14 @@ PREPROCESSING_TOGGLE_HTML = (
     '<section class="panel">'
     '<label class="preprocessing-toggle">'
     '<input type="checkbox" class="preprocessing-toggle-checkbox">'
-    " Include preprocessing time in fit speed-ups (real datasets only)"
+    " Include <dfn>preprocessing</dfn> time in fit speed-ups (real datasets only)"
     "</label>"
     "</section>"
 )
 TREE_BINNING_NOTE = (
-    "Tree-based plots: within each implementation, cases without binning "
-    "(exact splits) are on the left, cases with binning (histogram-based "
-    "splits) on the right."
+    "Tree-based plots: within each implementation, cases without <dfn>binning</dfn> "
+    "(<dfn>exact splits</dfn>) are on the left, cases with binning (<dfn>histogram-based "
+    "splits</dfn>) on the right."
 )
 
 

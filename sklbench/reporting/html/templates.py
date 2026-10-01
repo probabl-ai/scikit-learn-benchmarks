@@ -3,6 +3,8 @@ from importlib.resources import files
 from jinja2 import Template
 from plotly.offline import get_plotlyjs_version
 
+from .glossary import expand_terms
+
 
 PLOTLY_CDN = f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
 TABULATOR_CSS = "https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css"
@@ -391,6 +393,24 @@ BASE_TEMPLATE = Template("""<!doctype html>
         }
       });
     });
+
+    // Shift a term's tooltip left when it would overflow the viewport's
+    // right edge (e.g. a term near the end of a line on a phone).
+    function sklbenchPlaceTermTip(event) {
+      const term = event.target.closest && event.target.closest(".term");
+      if (!term) {
+        return;
+      }
+      const tip = term.querySelector(".term-tip");
+      tip.style.left = "0px";
+      const overflow = tip.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+      if (overflow > 0) {
+        const termLeft = term.getBoundingClientRect().left;
+        tip.style.left = `${-Math.min(overflow, termLeft - 8)}px`;
+      }
+    }
+    document.addEventListener("mouseover", sklbenchPlaceTermTip);
+    document.addEventListener("focusin", sklbenchPlaceTermTip);
   </script>
 </head>
 <body>
@@ -399,7 +419,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
   </header>
   <main>
   {% for row in rows %}
-  <div class="page-row">{{ row }}</div>
+  <div class="page-row">{{ expand_terms(row) }}</div>
   {% endfor %}
   </main>
 </body>
@@ -409,6 +429,7 @@ BASE_TEMPLATE.globals["plotly_cdn"] = PLOTLY_CDN
 BASE_TEMPLATE.globals["tabulator_css"] = TABULATOR_CSS
 BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
+BASE_TEMPLATE.globals["expand_terms"] = expand_terms
 
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">
   {% if empty %}

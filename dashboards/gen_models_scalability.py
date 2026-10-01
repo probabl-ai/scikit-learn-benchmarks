@@ -49,18 +49,18 @@ from sklbench.reporting.matching import (
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard shows how the wall-clock time of a single
-  <code>.fit()</code> call changes with the number of CPU cores.</p>
+  <p>This dashboard shows how the <dfn>wall-clock time</dfn> of a single
+  <code><dfn>.fit()</dfn></code> call changes with the number of <dfn>CPU cores</dfn>.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Each tab is a machine and each plot an (estimator, dataset) pair,
-    with one line per software environment. The x-axis is in log scale. For
+    with one line per <dfn>software environment</dfn>. The x-axis is in log scale. For
     tree models, the y-axis is in log scale too, and each environment has a
-    grey dashed perfect-scaling line starting from its first point, so the
+    grey dashed <dfn>perfect-scaling line</dfn> starting from its first point, so the
     gap to it is the lost efficiency. Look for curves that flatten or go up. On machines
-    with hyper-threading, the 0.5 point of the non-tree models is a single
-    logical CPU, without its SMT sibling, so the step from 0.5 to 1 shows what
-    SMT brings on one core. For RandomForest and ExtraTrees, a section below
+    with <dfn>hyper-threading</dfn>, the 0.5 point of the non-tree models is a single
+    <dfn>logical CPU</dfn>, without its <dfn>SMT sibling</dfn>, so the step from 0.5 to 1 shows what
+    <dfn>SMT</dfn> brings on one core. For RandomForest and ExtraTrees, a section below
     compares runs with and without SMT, one plot per environment.</p>
   </details>
   <details class="about-section">
@@ -71,22 +71,22 @@ ABOUT_HTML = """<section class="panel">
       172 cores of the Xeon server. <b>scikit-learn-intelex</b> makes
       RandomForest several times faster, but doesn't scale better. On the
       laptop, the gains get smaller past 4 cores, probably because the other
-      cores are slower E-cores.</li>
+      cores are slower <dfn>E-cores</dfn>.</li>
       <li><b>Ridge</b>, <b>LogisticRegression</b> and <b>KMeans</b> with
       scikit-learn stop scaling after a few cores, and can get slower with
       more cores on the Xeon server.</li>
       <li><b>scikit-learn-intelex</b> scales these three models much further,
       but on the Xeon server, they get slower past 16 to 64 cores.</li>
-      <li>With the <b>PyPI</b> build, <b>LogisticRegression</b> gets slower
-      as soon as it runs on more than one logical CPU. The <b>OpenBLAS</b>
+      <li>With the <b><dfn>PyPI</dfn></b> build, <b>LogisticRegression</b> gets slower
+      as soon as it runs on more than one <dfn>logical CPU</dfn>. The <b><dfn>OpenBLAS</dfn></b>
       shipped with scipy 1.18 wakes
-      all its threads for tiny operations in L-BFGS-B. This is fixed in
+      all its <dfn>threads</dfn> for tiny operations in <dfn>L-BFGS-B</dfn>. This is fixed in
       scipy 2.0 (see
       <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>),
       and should also be fixed in 1.18.2
       (<a href="https://github.com/scipy/scipy/pull/26199">scipy#26199</a>).</li>
       <li>On the laptop, scikit-learn-intelex LogisticRegression looks much
-      faster from 8 cores on, but that's a <b>oneDAL</b> bug: on 4 threads or
+      faster from 8 cores on, but that's a <b><dfn>oneDAL</dfn></b> bug: on 4 threads or
       more, L-BFGS stops too early and returns a worse model. See
       <a href="https://github.com/uxlfoundation/oneDAL/issues/3820">oneDAL#3820</a>.</li>
     </ul>
@@ -94,8 +94,8 @@ ABOUT_HTML = """<section class="panel">
 </section>"""
 
 SMT_NOTE = (
-    "SMT (simultaneous multithreading, aka hyper-threading) gives each "
-    "physical core two logical cores. \"SMT\" pins both logical siblings of "
+    "<dfn>SMT</dfn> (simultaneous multithreading, aka hyper-threading) gives each "
+    "<dfn>physical core</dfn> two <dfn>logical cores</dfn>. \"SMT\" pins both logical siblings of "
     "each selected physical core (the default used above); \"no SMT\" uses "
     "one logical thread per physical core."
 )
@@ -316,7 +316,7 @@ def _smt_section_html(hw_results: list[MethodResult]) -> list[str]:
         return []
     rows = [
         '<div class="page-row"><section class="panel"><h3>SMT vs. no SMT</h3>'
-        f'<div class="plot-subtitle">{escape(SMT_NOTE)}</div></section></div>'
+        f'<div class="plot-subtitle">{SMT_NOTE}</div></section></div>'
     ]
     for estimator in MODEL_ORDER:
         if estimator not in TREE_ESTIMATORS:
