@@ -77,9 +77,8 @@ ABOUT_HTML = """<section class="panel">
     <summary>How to read</summary>
     <p>There is one tab per machine, build and thread affinity setting, and
     one stacked bar per workload. The x-axis is the requested thread count
-    (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
-    parentheses when known. If a bar stops shrinking or grows as threads are
-    added, the extra threads bring nothing or cost time, and the segments
+    (<code>OMP_NUM_THREADS</code>). If a bar stops shrinking or grows as
+    threads are added, the extra threads bring nothing or cost time, and the segments
     show which phase is responsible.</p>
   </details>
   <details class="about-section">
@@ -186,21 +185,6 @@ def _raw_bench_env(record: BenchmarkRecord) -> dict:
 def _thread_count(record: BenchmarkRecord) -> int | None:
     threads = _raw_bench_env(record).get("OMP_NUM_THREADS")
     return int(threads) if threads is not None else None
-
-
-def _tree_n_threads(record: BenchmarkRecord) -> int | None:
-    """The actual OpenMP thread count used to grow the trees (excluding
-    binning) - see `instrumented_hgb.py`. Absent on records captured before
-    that attribute existed, or on builds without thread-count tuning, in
-    which case it's just `_thread_count(record)`."""
-    return next(
-        (
-            run["attributes"]["tree_n_threads"]
-            for run in record.runs
-            if "tree_n_threads" in (run.get("attributes") or {})
-        ),
-        None,
-    )
 
 
 def _has_active_wait(record: BenchmarkRecord) -> bool:
@@ -359,11 +343,7 @@ def _workload_subtitle(record: BenchmarkRecord) -> str:
     number of boosting iterations run (from the fitted estimator's
     `n_iter_`), not the `max_iter` param - the two only diverge when
     `early_stopping` is on, but reading the real value avoids being wrong in
-    that case. The actual tree-growing thread count (`tree_n_threads`, which
-    can be lower than `OMP_NUM_THREADS` on branches that size it down for
-    small workloads) varies per thread-count point within a workload, so
-    it's shown in the x-axis tick labels instead (see `render_env_page`),
-    not here."""
+    that case."""
     estimator_params = record.case.get("algorithm", {}).get("estimator_params", {})
     parts = []
     n_iter = next(
@@ -409,9 +389,7 @@ def _legend_html() -> str:
         for phase in PHASE_ORDER
     )
     axis_note = (
-        '<div class="plot-subtitle">x-axis: requested threads (OMP_NUM_THREADS)'
-        " - in parens, the actual thread count used to grow trees"
-        " (absent on records without that instrumentation)</div>"
+        '<div class="plot-subtitle">x-axis: requested threads (OMP_NUM_THREADS)</div>'
     )
     return f'<div class="phase-legend">{items}</div>{axis_note}'
 
@@ -447,12 +425,9 @@ def render_env_page(records: list[BenchmarkRecord]) -> str | None:
             threads = _thread_count(record)
             if breakdown is None or threads is None:
                 continue
-            tree_n_threads = _tree_n_threads(record)
-            x_label = f"{threads} ({tree_n_threads})" if tree_n_threads is not None else str(threads)
             points.append(
                 {
                     "x": threads,
-                    "x_label": x_label,
                     "phases": breakdown,
                     "total_ms": breakdown["total_ms"],
                 }
