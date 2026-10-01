@@ -9,7 +9,7 @@ from pathlib import Path
 # the machine kind plus a recognizable product line (Xeon, Ultra, M4, L4),
 # not exact model numbers or vendor codenames.
 HARDWARE_NAMES = {
-    "3b5e61": "Intel Ultra laptop",
+    "3b5e61": "Intel Core Ultra laptop",
     "534824": "High-end Intel Xeon server",
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
@@ -18,7 +18,7 @@ HARDWARE_NAMES = {
 }
 
 GPU_NAMES = {
-    "3b5e61": "Intel Ultra laptop GPU",
+    "3b5e61": "Intel Core Ultra laptop GPU",
     "b281b2": "Apple M4 laptop GPU",
     "5dcf30": "NVIDIA RTX 2060",
     "5ce575": "NVIDIA L4",

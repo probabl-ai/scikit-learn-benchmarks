@@ -81,7 +81,7 @@ ABOUT_HTML = """<section class="panel">
     <ul>
       <li>The high-end Intel Xeon server mostly helps <b>random forests</b> and <b>extra
       trees</b>. With <b>scikit-learn</b>, their fit is ~2x to 4x faster than on the
-      Intel Ultra laptop. Their predict is close to parity.</li>
+      Intel Core Ultra laptop. Their predict is close to parity.</li>
       <li><b>scikit-learn-intelex</b> makes much better use of the server's 172
       cores. With it, <b>random forests</b> and <b>extra trees</b> fit ~10x to 15x
       faster on the server than on the laptop.</li>
@@ -95,7 +95,7 @@ ABOUT_HTML = """<section class="panel">
       and the <a href="hgb_scaling.html">HistGradientBoosting
       thread-scalability breakdown</a>.</li>
       <li>On the <b>PyPI</b> build, the Apple M4 CPU is ~1.3x to 2x slower
-      than the Intel Ultra laptop.</li>
+      than the Intel Core Ultra laptop.</li>
     </ul>
   </details>
 </section>"""

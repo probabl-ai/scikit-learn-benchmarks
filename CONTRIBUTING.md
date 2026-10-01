@@ -244,7 +244,7 @@ To find what to rerun after a config change, use `scripts/what_to_rerun.py`:
 
 ```bash
 pixi run -e reporting python scripts/what_to_rerun.py --dashboard all
-pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Intel Ultra laptop"
+pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Intel Core Ultra laptop"
 pixi run -e reporting python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 ```
 
