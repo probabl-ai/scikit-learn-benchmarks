@@ -82,7 +82,9 @@ ABOUT_HTML = """<section class="panel">
       shipped with scipy 1.18 wakes
       all its threads for tiny operations in L-BFGS-B. This is fixed in
       scipy 2.0 (see
-      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>).</li>
+      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>),
+      and should also be fixed in 1.18.2
+      (<a href="https://github.com/scipy/scipy/pull/26199">scipy#26199</a>).</li>
       <li>On the laptop, scikit-learn-intelex LogisticRegression looks much
       faster from 8 cores on, but that's a <b>oneDAL</b> bug: on 4 threads or
       more, L-BFGS stops too early and returns a worse model. See
