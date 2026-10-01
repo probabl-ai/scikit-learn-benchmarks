@@ -60,12 +60,25 @@ ABOUT_HTML = """<section class="panel">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li><b>tree ensembles</b> scale best, especially with
-      <b><code>scikit-learn-intelex</code></b>, which reaches ~50-60% parallel
-      efficiency at the highest core counts;</li>
-      <li><b>Ridge</b> and <b>LogisticRegression</b> barely benefit from more cores, with
-      stock or <b>MKL</b> BLAS;</li>
-      <li><b>KMeans</b> can get slower past some core count.</li>
+      <li><b>RandomForest</b> and <b>ExtraTrees</b> scale best, up to the
+      172 cores of the Xeon server. <b>scikit-learn-intelex</b> makes
+      RandomForest several times faster, but doesn't scale better. On the
+      laptop, the gains get smaller past 4 cores, probably because the other
+      cores are slower E-cores.</li>
+      <li><b>Ridge</b>, <b>LogisticRegression</b> and <b>KMeans</b> with
+      scikit-learn stop scaling after a few cores, and can get slower with
+      more cores on the Xeon server.</li>
+      <li><b>scikit-learn-intelex</b> scales these three models much further,
+      but on the Xeon server, they get slower past 16 to 64 cores.</li>
+      <li>With the <b>PyPI</b> build, LogisticRegression gets slower with more
+      cores on the laptop. The <b>OpenBLAS</b> shipped with scipy 1.18 wakes
+      all its threads for tiny operations in L-BFGS-B. This is fixed in
+      scipy 2.0 (see
+      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>).</li>
+      <li>On the laptop, scikit-learn-intelex LogisticRegression looks much
+      faster from 8 cores on, but that's a <b>oneDAL</b> bug: on 4 threads or
+      more, L-BFGS stops too early and returns a worse model. See
+      <a href="https://github.com/uxlfoundation/oneDAL/issues/3820">oneDAL#3820</a>.</li>
     </ul>
   </details>
 </section>"""
