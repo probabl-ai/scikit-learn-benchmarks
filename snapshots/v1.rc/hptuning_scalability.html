@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RandomizedSearchCV outer-parallelism scalability</title>
+  <link href="https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-4.1.1.min.js"></script>
+  <script src="https://unpkg.com/tabulator-tables@6.5.0/dist/js/tabulator.min.js"></script>
+  <style>
+:root {
+  color-scheme: light;
+  /* scikit-learn documentation palette: pydata-sphinx-theme neutrals plus
+     the sklearn cyan/orange brand colors (doc/scss/colors.scss). */
+  --text: #222832;
+  --muted: #48566b;
+  --line: #d1d5da;
+  --line-soft: #e5e7ea;
+  --surface: #f3f4f5;
+  --accent: #0a7d91;
+  --accent-hover: #8045e5;
+  --sk-cyan: #29abe2;
+  --sk-cyan-shades-2: #1c7ea8;
+  --sk-cyan-shades-3: #15688c;
+  --sk-orange: #f7931e;
+  --sk-orange-tint-3: #fcb575;
+  --sk-orange-tint-8: #ffead9;
+  --sk-orange-tint-9: #fff5ec;
+  --warn: #8a1f11;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  background: white;
+}
+main {
+  margin: 0 auto;
+  padding: 24px;
+}
+.site-header {
+  padding: 28px 24px;
+  background: linear-gradient(
+    120deg,
+    var(--sk-cyan-shades-3) 0%,
+    var(--sk-cyan) 17%,
+    var(--sk-orange-tint-8) 59%,
+    var(--sk-orange-tint-3) 100%
+  );
+}
+.site-header h1 {
+  margin: 0;
+  color: white;
+  text-shadow: 0 0 8px var(--sk-cyan-shades-3);
+}
+.site-header a {
+  color: inherit;
+  text-decoration: none;
+}
+.site-header .site-home {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 0 6px var(--sk-cyan-shades-3);
+}
+.site-header .site-home:hover {
+  text-decoration: underline;
+}
+h1, h2, h3 { font-weight: 500; line-height: 1.25; }
+h1 { margin: 0 0 20px; font-size: 30px; }
+h2 { margin: 0 0 12px; font-size: 20px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+a:hover {
+  color: var(--accent-hover);
+  text-decoration-thickness: 2px;
+}
+code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: #912583;
+  background: var(--surface);
+}
+.page-row {
+  margin-bottom: 24px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  background: white;
+}
+.panel p {
+  margin: 5px 0;
+}
+.about-section {
+  margin-top: 8px;
+}
+.about-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+.muted {
+  color: var(--muted);
+}
+.tabs {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+.tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.tab-button:hover {
+  color: var(--text);
+}
+.tab-button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tab-button.active {
+  color: var(--text);
+  background: white;
+  box-shadow: inset 0 -3px 0 var(--sk-orange);
+}
+.tab-panel {
+  display: none;
+  padding: 16px;
+}
+.tab-panel.active {
+  display: block;
+}
+.software-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  gap: 12px 28px;
+  align-items: start;
+}
+.package-list {
+  columns: 2;
+  column-gap: 40px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 5px 0;
+  padding-left: 18px;
+}
+@media (max-width: 900px) {
+  .software-details {
+    grid-template-columns: 1fr;
+  }
+  .package-list {
+    width: auto;
+  }
+}
+.vs-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.vs-table th,
+.vs-table td {
+  border: 1px solid var(--line-soft);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.vs-table thead th {
+  background: var(--surface);
+}
+.vs-table tbody th {
+  width: 1%;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
+}
+.vs-table td.same {
+  text-align: center;
+  color: var(--muted);
+}
+.vs-table td.differs {
+  width: 45%;
+  background: var(--sk-orange-tint-9);
+}
+.plot-grid {
+  display: grid;
+  gap: 18px;
+}
+.plot-cell {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  background: white;
+}
+.plot-cell h3 {
+  color: var(--muted);
+  font-weight: 600;
+}
+.plot-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plot-cell-title {
+  margin: 0;
+}
+.predict-collapse-toggle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 15px;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+.predict-collapse-toggle:hover {
+  background: var(--surface);
+}
+.plot-grid.method-grid {
+  transition: grid-template-columns 0.2s ease;
+}
+body.predict-collapsed .plot-grid.method-grid {
+  grid-template-columns: var(--collapsed-columns) !important;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] {
+  padding: 8px 4px;
+  overflow: hidden;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-title,
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-body {
+  display: none;
+}
+body.predict-collapsed .plot-cell.empty[data-method="predict"] {
+  padding: 8px 4px;
+  font-size: 0;
+}
+body.predict-collapsed .predict-collapse-toggle {
+  transform: rotate(180deg);
+}
+.preprocessing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.speedup-view-preprocessing {
+  display: none;
+}
+body.with-preprocessing .speedup-view-default {
+  display: none;
+}
+body.with-preprocessing .speedup-view-preprocessing {
+  display: block;
+}
+.baseline-view {
+  display: none;
+}
+.baseline-view.active {
+  display: block;
+}
+.baseline-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border: 1.5px solid var(--variant-color, var(--accent));
+  border-radius: 999px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.baseline-pick::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--variant-color, var(--accent));
+}
+.baseline-pick:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 12%, white);
+}
+.baseline-pick:disabled {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 16%, white);
+  cursor: default;
+}
+.baseline-pick:disabled::before {
+  display: none;
+}
+.tab-button.is-baseline::after {
+  content: "baseline";
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.hw-compare-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.hw-compare-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hw-compare-row select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--text);
+  min-width: 220px;
+}
+.hw-compare-vs {
+  color: var(--muted);
+  font-weight: 600;
+  padding-bottom: 7px;
+}
+.plot-subtitle {
+  margin: -6px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plot-cell-body > .plot-subtitle:first-child {
+  margin-top: 2px;
+}
+.plotly-graph-div {
+  width: 100%;
+  height: 540px;
+}
+.plot-detail-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.plot-row-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.phase-breakdown {
+  gap: 24px;
+}
+.phase-breakdown .plot-cell {
+  padding: 16px;
+}
+.phase-breakdown .plotly-graph-div {
+  height: 320px;
+}
+.phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.phase-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.detailed-results {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: white;
+}
+.detailed-results summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.detailed-results-title {
+  color: var(--muted);
+  font-weight: 600;
+}
+.detailed-results-table {
+  margin-top: 12px;
+}
+.detailed-results-table .tabulator-row {
+  cursor: pointer;
+}
+.detailed-results-table .tabulator-row.row-just-matched {
+  animation: row-just-matched-flash 1s ease-out;
+}
+@keyframes row-just-matched-flash {
+  from {
+    background-color: rgba(247, 147, 30, 0.35);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.speedup-positive {
+  color: #18794e;
+  font-weight: 600;
+}
+.speedup-negative {
+  color: #b42318;
+  font-weight: 600;
+}
+.plot-notes {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.plot-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 3px 0;
+}
+.plot-note ul {
+  margin: 3px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plot-marker {
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.plot-marker-circle {
+  font-size: 20px;
+}
+.plot-marker-square,
+.plot-marker-diamond {
+  font-size: 16px;
+}
+.plot-marker-x {
+  font-size: 16px;
+  color: var(--muted);
+}
+.warning-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.warning-icon {
+  text-align: center;
+}
+.empty {
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 6px;
+}
+ul.compact {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.dashboard-list {
+  border-collapse: collapse;
+}
+.dashboard-list td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+}
+.dashboard-list tr:last-child td {
+  border-bottom: none;
+}
+.dashboard-list td:first-child {
+  padding-right: 24px;
+  white-space: nowrap;
+}
+.dashboard-list td:last-child {
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .dashboard-list td:first-child {
+    white-space: normal;
+  }
+}
+.tabulator {
+  border-color: var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+}
+.tabulator .tabulator-header,
+.tabulator .tabulator-header .tabulator-col {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+.tabulator .tabulator-tableholder .tabulator-table,
+.tabulator-row,
+.tabulator-row .tabulator-cell {
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+.tabulator-row.tabulator-row-even {
+  background: #fafbfb;
+}
+.tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+.tabulator .tabulator-footer {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.tabulator .tabulator-footer .tabulator-page.active {
+  color: var(--accent);
+}
+/* Detailed-results rows are banded per comparison_key group (see the
+   table's renderComplete handler), so plain row striping would blur them. */
+.detailed-results-table .tabulator-row.tabulator-row-even {
+  background: white;
+}
+.detailed-results-table .tabulator-row.row-group-alt {
+  background: #eef1f4;
+}
+.detailed-results-table .tabulator-row.row-group-start {
+  border-top: 1px solid var(--line);
+}
+.detailed-results-table .tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+/* Technical terms with a hover definition (see sklbench/reporting/html/glossary.py). */
+.term {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted rgba(72, 86, 107, 0.6);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.term:focus {
+  outline: none;
+}
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+.term-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 14px rgba(34, 40, 50, 0.14);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
+}
+/* Invisible bridge over the gap, so the pointer can reach the tooltip's link. */
+.term-tip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.term:hover > .term-tip,
+.term:focus-within > .term-tip {
+  display: block;
+}
+.term-tip a {
+  white-space: nowrap;
+}
+
+  </style>
+  <script>
+    window.sklbenchTables = window.sklbenchTables || {};
+
+    function sklbenchFormatDuration(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (value < 10) {
+        return `${value.toPrecision(2)}ms`;
+      }
+      if (value < 1000) {
+        return `${Math.round(value)}ms`;
+      }
+      if (value < 10000) {
+        return `${(value / 1000).toPrecision(2)}s`;
+      }
+      return `${Math.round(value / 1000)}s`;
+    }
+
+    function sklbenchDurationFormatter(cell) {
+      return sklbenchFormatDuration(cell.getValue());
+    }
+
+    function sklbenchSpeedupFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      const label = `${value.toPrecision(2)}x`;
+      if (value > 1.1) {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (value < 0.9) {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    // Test score, colored when significantly better or worse than the
+    // baseline (`<field>_cmp`, see `_add_scores` in table.py).
+    function sklbenchScoreFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "";
+      }
+      const label = value.toFixed(3);
+      const comparison = cell.getData()[`${cell.getColumn().getField()}_cmp`];
+      if (comparison === "better") {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (comparison === "worse") {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    function sklbenchLinkFormatter(cell, formatterParams) {
+      const value = cell.getValue();
+      if (!value) {
+        return "N/A";
+      }
+      const field = cell.getColumn().getField();
+      const rowLabel = cell.getData()[`${field}_label`];
+      const label = rowLabel || formatterParams.label || "open";
+      return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
+    }
+
+    function sklbenchPrepareColumns(columns) {
+      return columns.map((column) => {
+        const prepared = {...column};
+        if (prepared.formatterName === "duration") {
+          prepared.formatter = sklbenchDurationFormatter;
+        } else if (prepared.formatterName === "speedup") {
+          prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "score") {
+          prepared.formatter = sklbenchScoreFormatter;
+        } else if (prepared.formatterName === "link") {
+          prepared.formatter = sklbenchLinkFormatter;
+          prepared.formatterParams = {label: prepared.linkLabel || "open"};
+        }
+        delete prepared.formatterName;
+        delete prepared.linkLabel;
+        return prepared;
+      });
+    }
+
+    function sklbenchInitTable(tableId, rows, columns, defaultHeaderFilters) {
+      if (window.sklbenchTables[tableId]) {
+        window.sklbenchTables[tableId].redraw(true);
+        return;
+      }
+      // Rows of the same case (same comparison_key) stay together, in the
+      // order precomputed by `_add_group_ranks` in table.py.
+      const initialSort = [{column: "comparison_key", dir: "asc"}];
+      // Row click (in the table, or on a matching speed-up plot point via
+      // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
+      // comparison_key on top instead of filtering everything else out, so
+      // clicking a column header to sort by something else naturally
+      // supersedes it.
+      let matchSortKey = null;
+      // Set only for a table-row click (row.getData().row_id is unique per
+      // row - see table.py's _row_key/_add_result_method) so that specific
+      // row sorts first among same-comparison_key siblings. A plot-point
+      // click has no single row to pin, so this stays null and rows sharing
+      // matchSortKey keep their within_rank order.
+      let matchedRowId = null;
+      // The clicked row's (or plot trace's) variant: its other rows, e.g.
+      // the same implementation on the other machine, come right after it.
+      let matchedVariant = null;
+      const matchFirstSorter = (a, b, aRow, bRow) => {
+        const aData = aRow.getData();
+        const bData = bRow.getData();
+        const aMatches = a === matchSortKey ? 0 : 1;
+        const bMatches = b === matchSortKey ? 0 : 1;
+        if (aMatches !== bMatches) {
+          return aMatches - bMatches;
+        }
+        if (aData.group_rank !== bData.group_rank) {
+          return aData.group_rank - bData.group_rank;
+        }
+        if (aMatches === 0) {
+          if (matchedRowId) {
+            const aIsClicked = aData.row_id === matchedRowId;
+            const bIsClicked = bData.row_id === matchedRowId;
+            if (aIsClicked !== bIsClicked) {
+              return aIsClicked ? -1 : 1;
+            }
+          }
+          if (matchedVariant) {
+            const aSameVariant = aData.variant === matchedVariant;
+            const bSameVariant = bData.variant === matchedVariant;
+            if (aSameVariant !== bSameVariant) {
+              return aSameVariant ? -1 : 1;
+            }
+          }
+        }
+        return aData.within_rank - bData.within_rank;
+      };
+      const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
+        if (column.field === "comparison_key") {
+          return {...column, sorter: matchFirstSorter};
+        }
+        return column;
+      });
+      const table = new Tabulator(`#${tableId}`, {
+        data: rows,
+        columns: preparedColumns,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 25,
+        paginationSizeSelector: [10, 25, 50, 100, true],
+        initialSort,
+        initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
+          ([field, value]) => ({field, value})
+        ),
+      });
+      // Alternating background per run of rows sharing a comparison_key, in
+      // the current sort/filter order, so groups stay visible whatever the
+      // sort.
+      table.on("renderComplete", () => {
+        let band = 0;
+        let previousKey;
+        table.getRows("active").forEach((row) => {
+          const key = row.getData().comparison_key;
+          const isGroupStart = key !== previousKey;
+          if (isGroupStart && previousKey !== undefined) {
+            band = 1 - band;
+          }
+          previousKey = key;
+          const el = row.getElement();
+          if (el) {
+            el.classList.toggle("row-group-alt", band === 1);
+            el.classList.toggle("row-group-start", isGroupStart);
+          }
+        });
+      });
+      // Briefly flashes every row sharing comparisonKey (the ones
+      // applyMatchSort just brought to the top) so it's visible they moved.
+      // Re-triggers cleanly even if the previous flash hasn't finished: the
+      // class is dropped and a reflow forced before re-adding it, since
+      // re-adding an already-present class wouldn't restart the CSS
+      // animation in base.css.
+      const highlightMatches = (comparisonKey) => {
+        table.getRows().forEach((row) => {
+          if (row.getData().comparison_key !== comparisonKey) {
+            return;
+          }
+          const el = row.getElement();
+          if (!el) {
+            return;
+          }
+          el.classList.remove("row-just-matched");
+          void el.offsetWidth;
+          el.classList.add("row-just-matched");
+          setTimeout(() => el.classList.remove("row-just-matched"), 1000);
+        });
+      };
+      const applyMatchSort = (comparisonKey, rowId, variant) => {
+        matchSortKey = comparisonKey;
+        matchedRowId = rowId || null;
+        matchedVariant = variant || null;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
+        requestAnimationFrame(() => highlightMatches(comparisonKey));
+      };
+      table.on("rowClick", (event, row) => {
+        if (event.target.closest("a, button")) {
+          return;
+        }
+        const comparisonKey = row.getData().comparison_key;
+        if (!comparisonKey) {
+          return;
+        }
+        applyMatchSort(comparisonKey, row.getData().row_id, row.getData().variant);
+      });
+      // Exposed so a click on a matching speed-up plot point
+      // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
+      // builds asynchronously - table.setSort isn't safe to call until
+      // "tableBuilt" fires, which a plot click (unlike a click on an
+      // already-rendered row) can easily race.
+      table.sklbenchRows = rows;
+      table.sklbenchApplyMatchSort = applyMatchSort;
+      table.sklbenchBuilt = new Promise((resolve) => table.on("tableBuilt", resolve));
+      window.sklbenchTables[tableId] = table;
+    }
+
+    // A table only builds (sklbenchInitTable runs) the first time its
+    // "Detailed results" <details> is opened - see the toggle listener next
+    // to each sklbenchInitTable call. Opening it programmatically still goes
+    // through that same listener, but the "toggle" event it relies on is
+    // dispatched as a separate task rather than synchronously, so callers
+    // await this before assuming the table exists.
+    function sklbenchOpenDetails(details) {
+      if (details.open) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        details.addEventListener("toggle", () => resolve(), {once: true});
+        details.open = true;
+      });
+    }
+
+    // Speed-up plot points carry the same comparison_key as their detailed-
+    // results table row (see speedup_plot_html's `comparison_key` param) -
+    // clicking one applies the same "bring matching rows to top" sort as
+    // clicking the table row. `assemble_plots_in_grid` always places a row's
+    // (or the whole grid's) "Detailed results" <details> right after its
+    // plot(s) in document order, so the nearest one following the clicked
+    // chart is its table - open that first in case it's still collapsed.
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
+      if (!comparisonKey) {
+        return;
+      }
+      const details = Array.from(document.querySelectorAll("details.detailed-results")).find(
+        (el) => chartEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      if (details) {
+        await sklbenchOpenDetails(details);
+      }
+      // The same case can show up in tables of hidden tabs or views, so
+      // prefer the table right after the clicked chart.
+      const tables = Object.entries(window.sklbenchTables);
+      const hasKey = ([, t]) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey);
+      const inDetails = ([id]) => details && details.contains(document.getElementById(id));
+      const entry = tables.find((e) => inDetails(e) && hasKey(e)) || tables.find(hasKey);
+      const table = entry && entry[1];
+      if (table) {
+        await table.sklbenchBuilt;
+        table.sklbenchApplyMatchSort(comparisonKey, null, variant);
+      }
+    }
+
+    function sklbenchWirePlotClicks() {
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.sklbenchClickWired || typeof chart.on !== "function") {
+          return;
+        }
+        chart.sklbenchClickWired = true;
+        chart.on("plotly_click", (eventData) => {
+          const point = eventData.points && eventData.points[0];
+          if (point) {
+            // Speed-up plot traces are named after the table's variant.
+            sklbenchApplyPlotMatchSort(chart, point.customdata, point.data && point.data.name);
+          }
+        });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
+
+    // Each chart's inline Plotly.newPlot() call runs synchronously while the
+    // page is still parsing, so it can bake in a stale width from before the
+    // surrounding CSS grid has settled into its final column sizes (visible
+    // as an oversized/clipped first chart until something - a tab switch, a
+    // window resize - happens to trigger Plotly.Plots.resize). Re-measure
+    // every chart once immediately after full page load to catch that case
+    // without waiting on a user-triggered resize.
+    window.addEventListener("load", () => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+          if (chart.offsetParent !== null) {
+            Plotly.Plots.resize(chart);
+          }
+        });
+      });
+    });
+
+    function sklbenchRelativeTime(isoString, nowMs) {
+      const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
+      if (seconds < 60) {
+        return "just now";
+      }
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) {
+        return `${minutes}m ago`;
+      }
+      const hours = Math.floor(seconds / 3600);
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+
+    function sklbenchFormatDateRanges() {
+      const nowMs = Date.now();
+      document.querySelectorAll(".date-range").forEach((el) => {
+        const start = sklbenchRelativeTime(el.dataset.start, nowMs);
+        const end = sklbenchRelativeTime(el.dataset.end, nowMs);
+        const range = start === end ? start : `${start} to ${end}`;
+        el.textContent = `${el.dataset.count} benchmark records from ${range}`;
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
+    setInterval(sklbenchFormatDateRanges, 60000);
+
+    function sklbenchSetPredictCollapsed(collapsed) {
+      document.body.classList.toggle("predict-collapsed", collapsed);
+      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
+        button.setAttribute("aria-expanded", String(!collapsed));
+      });
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".predict-collapse-toggle");
+      if (!button) {
+        return;
+      }
+      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
+    });
+
+    document.addEventListener("change", (event) => {
+      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
+        return;
+      }
+      document.body.classList.toggle("with-preprocessing", event.target.checked);
+      if (event.target.checked) {
+        sklbenchSetPredictCollapsed(true);
+      }
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    });
+
+    // Shift a term's tooltip left when it would overflow the viewport's
+    // right edge (e.g. a term near the end of a line on a phone).
+    function sklbenchPlaceTermTip(event) {
+      const term = event.target.closest && event.target.closest(".term");
+      if (!term) {
+        return;
+      }
+      const tip = term.querySelector(".term-tip");
+      tip.style.left = "0px";
+      const overflow = tip.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+      if (overflow > 0) {
+        const termLeft = term.getBoundingClientRect().left;
+        tip.style.left = `${-Math.min(overflow, termLeft - 8)}px`;
+      }
+    }
+    document.addEventListener("mouseover", sklbenchPlaceTermTip);
+    document.addEventListener("focusin", sklbenchPlaceTermTip);
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    
+    <a class="site-home" href="index.html">&larr; All dashboards</a>
+    <h1>RandomizedSearchCV outer-parallelism scalability</h1>
+  </header>
+  <main>
+  
+  <div class="page-row"><section class="panel">
+  <p>RandomizedSearchCV has two levels of parallelism: its outer
+  <code><span class="term" tabindex="0">n_jobs<span class="term-tip" role="tooltip">Parameter setting how many jobs scikit-learn runs in parallel with joblib. -1 means one per CPU. <a href="https://scikit-learn.org/stable/glossary.html#term-n_jobs" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span></code> runs <span class="term" tabindex="0">candidates<span class="term-tip" role="tooltip">Hyperparameter combinations tried by the search. Each one is fitted and scored on every cross-validation split.</span></span> in parallel, and each candidate can use
+  <span class="term" tabindex="0">threads<span class="term-tip" role="tooltip">Units of execution that share the memory of their process. Each one can run on its own CPU core.</span></span> itself. This dashboard sweeps the outer <code>n_jobs</code> to
+  check how the two levels interact.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>The outer <code><span class="term" tabindex="0">n_jobs<span class="term-tip" role="tooltip">Parameter setting how many jobs scikit-learn runs in parallel with joblib. -1 means one per CPU. <a href="https://scikit-learn.org/stable/glossary.html#term-n_jobs" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span></code> uses <span class="term" tabindex="0">joblib<span class="term-tip" role="tooltip">The library scikit-learn uses to run tasks in parallel, in worker processes or threads. <a href="https://scikit-learn.org/stable/glossary.html#term-joblib" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span>'s default backend (<span class="term" tabindex="0">loky<span class="term-tip" role="tooltip">joblib&#x27;s default backend. It runs tasks in separate worker processes that are reused across calls.</span></span>),
+    which fits candidates in separate <span class="term" tabindex="0">worker processes<span class="term-tip" role="tooltip">Separate Python processes running tasks in parallel. Unlike threads, they don&#x27;t share memory.</span></span>. Inner parallelism
+    depends on the estimator:</p>
+    <ul>
+      <li>HistGradientBoosting uses <span class="term" tabindex="0">OpenMP threads<span class="term-tip" role="tooltip">Standard for running the loops of compiled code on several threads. scikit-learn&#x27;s Cython code (HistGradientBoosting, KMeans, ...) uses it.</span></span>, Ridge and
+      LogisticRegression use <span class="term" tabindex="0">BLAS<span class="term-tip" role="tooltip">Basic Linear Algebra Subprograms: the library that runs the matrix and vector products of NumPy and SciPy. OpenBLAS and MKL are two implementations of it.</span></span> threads. joblib limits both to
+      <code>n_logical_cpus // n_jobs</code> threads in each worker process.
+      With <span class="term" tabindex="0">SMT<span class="term-tip" role="tooltip">Simultaneous multithreading, called hyper-threading by Intel: one physical core runs two threads at once by sharing its execution units.</span></span>, that is 2 threads per <span class="term" tabindex="0">physical core<span class="term-tip" role="tooltip">One hardware core of the CPU. With SMT, it shows up as two logical CPUs.</span></span>: on the Xeon server
+      (172 cores, 344 <span class="term" tabindex="0">logical CPUs<span class="term-tip" role="tooltip">What the operating system sees as one CPU. With SMT, each physical core shows up as two logical CPUs.</span></span>), <code>n_jobs=86</code> gives 4 threads
+      per worker. The laptop has no SMT.</li>
+      <li>RandomForest and ExtraTrees fit their trees with joblib's <span class="term" tabindex="0">threading
+      backend<span class="term-tip" role="tooltip">joblib backend that runs tasks in threads of the same process. It only helps when the code releases the GIL, as tree building does.</span></span> and <code>n_jobs=-1</code>. joblib does not limit this nested
+      call, so each worker process starts one thread per core, which can lead
+      to <span class="term" tabindex="0">oversubscription<span class="term-tip" role="tooltip">More busy threads than CPU cores. They compete for the cores and the operating system keeps switching between them, which slows everything down.</span></span>.
+      <a href="https://github.com/joblib/joblib/pull/1825">joblib#1825</a>
+      would limit nested <code>n_jobs=-1</code> calls like it does for OpenMP
+      and BLAS.</li>
+      <li>scikit-learn-intelex uses
+      <span class="term" tabindex="0">oneTBB<span class="term-tip" role="tooltip">oneAPI Threading Building Blocks: Intel&#x27;s C++ library for parallel tasks. oneDAL uses it to run on several threads, with its own thread pool, separate from OpenMP and BLAS. <a href="https://uxlfoundation.github.io/oneTBB/" target="_blank" rel="noopener">More</a></span></span> threads,
+      which joblib does not limit either.</li>
+    </ul>
+    <p>There is one tab per machine and one plot per (estimator, dataset)
+    pair. The x-axis is the outer <code>n_jobs</code> (log scale), the y-axis
+    is the mean time per <code><span class="term" tabindex="0">.fit()<span class="term-tip" role="tooltip">Training a model on data. <a href="https://scikit-learn.org/stable/glossary.html#term-fit" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span></code> call over the search, with one
+    line per <span class="term" tabindex="0">environment<span class="term-tip" role="tooltip">One Pixi environment of this repository: a fixed set of package versions and builds.</span></span>. The marker size is the <span class="term" tabindex="0">CPU load<span class="term-tip" role="tooltip">Mean share of all the machine&#x27;s CPUs that were busy during the run. 100% means all cores busy.</span></span> (100% means all cores
+    busy). The line shape tells how the two levels interact:</p>
+    <ul>
+      <li>going down as 1/n_jobs: a single fit has little inner parallelism,
+      and the search scales with outer workers;</li>
+      <li>flat: a single fit was likely already using all cores, so outer
+      workers bring nothing;</li>
+      <li>rising: oversubscription, or bad interactions between joblib and
+      the inner threading layer (they don't coordinate).</li>
+    </ul>
+    <p>In general, we expect more outer workers to run in parallel the
+    sequential parts of each fit, so the search gets faster and the CPU
+    load goes up.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>These results match what the
+    <a href="models_scalability.html">models core-count scalability</a>
+    dashboard shows. On the benchmarked cases:</p>
+    <ul>
+      <li>More <span class="term" tabindex="0">outer workers<span class="term-tip" role="tooltip">Separate Python processes running tasks in parallel. Unlike threads, they don&#x27;t share memory.</span></span> make the search faster with a higher CPU
+      load in most cases, as expected. The exceptions are
+      HistGradientBoosting and the linear models on the Xeon server: they get
+      faster while the CPU load goes down. It's unclear why.</li>
+      <li>Ridge and LogisticRegression: outer parallelism helps, but less
+      than one could hope. These workloads are probably <span class="term" tabindex="0">memory bound<span class="term-tip" role="tooltip">Limited by how fast data moves from memory rather than by computation, so more cores don&#x27;t help much.</span></span>, so
+      more cores don't help much.</li>
+      <li>HistGradientBoosting: outer parallelism works well on small
+      datasets or on a big machine, because HGB's own threads are
+      counter-productive there (see the
+      <a href="hgb_scaling.html">HistGradientBoosting thread-scalability
+      breakdown</a>).</li>
+      <li>RandomForest and ExtraTrees: on susy, the curve is mostly
+      flat, as expected since a single fit already uses all cores. On the
+      smaller datasets with <span class="term" tabindex="0">preprocessing<span class="term-tip" role="tooltip">Steps run before the model, such as encoding categorical columns and imputing missing values.</span></span>, the search still speeds up with
+      outer workers and the CPU load goes up. <span class="term" tabindex="0">Oversubscription<span class="term-tip" role="tooltip">More busy threads than CPU cores. They compete for the cores and the operating system keeps switching between them, which slows everything down.</span></span> is mostly
+      harmless on the laptop. On the Xeon server, RandomForestClassifier gets
+      up to ~1.8x slower beyond ~22 outer workers.</li>
+      <li>scikit-learn-intelex: oversubscription is harmless on the laptop.
+      On the Xeon server, the search gets up to ~2x slower beyond ~22 outer
+      workers, for the trees and for <b>Ridge</b>.</li>
+    </ul>
+  </details>
+</section></div>
+  
+  <div class="page-row"><section class="tabs" id="hardware-tabs">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="intel_core_ultra_laptop">Intel Core Ultra laptop</button>
+  
+    <button class="tab-button" type="button" data-tab-target="high_end_intel_xeon_server">High-end Intel Xeon server</button>
+  
+  </div>
+  
+  <div id="intel_core_ultra_laptop" class="tab-panel active"><div class="page-row"><section class="panel">
+  
+  <h2 class="date-range" data-count="120" data-start="2026-09-30T16:26:29.132889+00:00" data-end="2026-09-30T20:22:43.469552+00:00"></h2>
+  
+</section></div><div class="page-row"><section class="tabs" id="tabs-26">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="tab-tabs-26-0">sklearn-pypi</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-26-1">sklearn-cf-mkl</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-26-2">sklearnex</button>
+  
+  </div>
+  
+  <div id="tab-tabs-26-0" class="tab-panel active"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-pypi</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(pypi)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libscipy_openblas 0.3.31.dev (16 threads)</li>
+    
+      <li>libscipy_openblas 0.3.34.106.0 (16 threads)</li>
+    
+      <li>libgomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Fa74e91.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-26-1" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-cf-mkl</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libmkl_rt 2026.1-Product (16 threads)</li>
+    
+      <li>libomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>Intel/LLVM OpenMP (spec 201611)</li>
+    
+      <li>KMP_BLOCKTIME: 0ms</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2F1a2ea0.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-26-2" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearnex</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.8.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scikit_learn_intelex</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>daal</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.34 (16 threads)</li>
+    
+      <li>libgomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 5.2)</li>
+    
+      <li>GOMP_SPINCOUNT: 1</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2F427d02.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <script>
+    document.querySelectorAll("#tabs-26 .tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#tabs-26 .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#tabs-26 .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tabTarget).classList.add("active");
+      });
+    });
+  </script>
+</section></div><div class="page-row"><section class="plot-grid" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));"><section class="plot-cell"><h3>Ridge / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 29,127 after pre-processing)</div><div class="plot-subtitle">Params: (defaults)</div><div style="height:340px; width:100%;">                            <div id="scaling-line-220" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-220")) {                    Plotly.newPlot(                        "scaling-line-220",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 22s\u003cbr\u003eCPU load: 31%\u003cbr\u003emax memory: 15%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 48%\u003cbr\u003emax memory: 21%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 14s\u003cbr\u003eCPU load: 70%\u003cbr\u003emax memory: 32%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[95.82675549936133,131.39672607883574,179.38769369753908],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.23267388343811035,0.18415759752194086,0.15026357273260751],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 24s\u003cbr\u003eCPU load: 39%\u003cbr\u003emax memory: 18%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 52%\u003cbr\u003emax memory: 24%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 15s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 35%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[112.79807279863901,140.38245402520104,182.47432809912345],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.24829844137032828,0.19185101985931396,0.1553596630692482],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>Ridge / susy</h3><div class="plot-subtitle">Shape: 5,000,000 x 18</div><div class="plot-subtitle">Params: (defaults)</div><div style="height:340px; width:100%;">                            <div id="scaling-line-221" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-221")) {                    Plotly.newPlot(                        "scaling-line-221",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5.7s\u003cbr\u003eCPU load: 29%\u003cbr\u003emax memory: 34%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5s\u003cbr\u003eCPU load: 45%\u003cbr\u003emax memory: 45%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.9s\u003cbr\u003eCPU load: 82%\u003cbr\u003emax memory: 76%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[90.41239763248524,124.55130309154065,205.29421578759042],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.059056696792443596,0.05176978061596552,0.0825512707233429],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.1s\u003cbr\u003eCPU load: 36%\u003cbr\u003emax memory: 40%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.5s\u003cbr\u003eCPU load: 53%\u003cbr\u003emax memory: 56%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.6s\u003cbr\u003eCPU load: 80%\u003cbr\u003emax memory: 74%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[105.80715667924194,141.67092496135106,199.94238139973803],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.06359340747197469,0.06770918518304825,0.07870792349179585],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 32%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 3.5s\u003cbr\u003eCPU load: 50%\u003cbr\u003emax memory: 45%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.2s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 58%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[107.55181412907389,135.34961328572751,183.216348380479],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[4,8,16],"y":[0.04158307115236918,0.036580401162306465,0.04421191910902659],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>Ridge / year_prediction_msd</h3><div class="plot-subtitle">Shape: 50,000 x 90 (→ x 990 after pre-processing)</div><div class="plot-subtitle">Params: (defaults)</div><div style="height:340px; width:100%;">                            <div id="scaling-line-222" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-222")) {                    Plotly.newPlot(                        "scaling-line-222",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 11s\u003cbr\u003eCPU load: 48%\u003cbr\u003emax memory: 21%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 9.3s\u003cbr\u003eCPU load: 61%\u003cbr\u003emax memory: 30%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 8.7s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 47%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[131.8715006190679,159.60280910240564,189.65514799176466],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.11188214768966039,0.09709935635328293,0.09025656431913376],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 12s\u003cbr\u003eCPU load: 61%\u003cbr\u003emax memory: 21%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 9.8s\u003cbr\u003eCPU load: 68%\u003cbr\u003emax memory: 28%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 9s\u003cbr\u003eCPU load: 76%\u003cbr\u003emax memory: 47%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[158.37838031024222,173.5677476511046,191.23803556068495],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.12387344241142273,0.10238138337930043,0.09414164970318477],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 9.1s\u003cbr\u003eCPU load: 48%\u003cbr\u003emax memory: 22%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.9s\u003cbr\u003eCPU load: 61%\u003cbr\u003emax memory: 29%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.5s\u003cbr\u003eCPU load: 74%\u003cbr\u003emax memory: 45%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[131.9862331667733,159.7119683307131,186.70406842128776],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[4,8,16],"y":[0.09493239969015121,0.08188505470752716,0.07818713039159775],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>LogisticRegression / amazon_employee_access</h3><div class="plot-subtitle">Shape: 32,769 x 9 (→ x 99 after pre-processing)</div><div class="plot-subtitle">Params: max_iter=1000, solver=lbfgs</div><div style="height:340px; width:100%;">                            <div id="scaling-line-223" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-223")) {                    Plotly.newPlot(                        "scaling-line-223",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.9s\u003cbr\u003eCPU load: 31%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5.6s\u003cbr\u003eCPU load: 51%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.5s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 17%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[94.86311707756714,137.71472989905607,190.15044026955584],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.07186722258726756,0.05815155555804571,0.046468861401081085],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 14s\u003cbr\u003eCPU load: 88%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 8s\u003cbr\u003eCPU load: 84%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5.6s\u003cbr\u003eCPU load: 84%\u003cbr\u003emax memory: 16%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[218.3437053534381,209.06517094730307,208.81873571976044],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.14834951609373093,0.08298651625712712,0.05856221169233322],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 8s\u003cbr\u003eCPU load: 50%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.4s\u003cbr\u003eCPU load: 62%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5.7s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 19%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[136.72237327807906,161.9522885811006,196.06860706790752],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[4,8,16],"y":[0.0836469978094101,0.0669338380297025,0.05933206776777903],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>LogisticRegression / susy</h3><div class="plot-subtitle">Shape: 500,000 x 18</div><div class="plot-subtitle">Params: max_iter=1000, solver=lbfgs</div><div style="height:340px; width:100%;">                            <div id="scaling-line-224" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-224")) {                    Plotly.newPlot(                        "scaling-line-224",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 22s\u003cbr\u003eCPU load: 33%\u003cbr\u003emax memory: 22%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 16s\u003cbr\u003eCPU load: 50%\u003cbr\u003emax memory: 25%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 13s\u003cbr\u003eCPU load: 76%\u003cbr\u003emax memory: 31%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[98.41838060701448,135.41577039379263,190.7302009978231],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.2260111297170321,0.16484063118696213,0.1304121514161428],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 59s\u003cbr\u003eCPU load: 96%\u003cbr\u003emax memory: 22%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 32s\u003cbr\u003eCPU load: 92%\u003cbr\u003emax memory: 24%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 86%\u003cbr\u003emax memory: 30%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[235.06394151825268,226.34484453469852,212.30858020218596],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.6100563506285349,0.32978970805803937,0.19072799136241278],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.2s\u003cbr\u003eCPU load: 68%\u003cbr\u003emax memory: 22%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.5s\u003cbr\u003eCPU load: 70%\u003cbr\u003emax memory: 26%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.5s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 34%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[174.7426270077256,179.67487568936727,189.5860374413752],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[4,8,16],"y":[0.07463266203800838,0.06813117116689682,0.06801628073056538],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestRegressor / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 79 after pre-processing)</div><div class="plot-subtitle">Params: max_bins=1460, n_estimators=64, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-225" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-225")) {                    Plotly.newPlot(                        "scaling-line-225",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 15s\u003cbr\u003eCPU load: 29%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.9s\u003cbr\u003eCPU load: 44%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.4s\u003cbr\u003eCPU load: 64%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.6s\u003cbr\u003eCPU load: 77%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.5s\u003cbr\u003eCPU load: 88%\u003cbr\u003emax memory: 15%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[89.95305680262392,122.49505091328602,165.37942725495955,193.63703263238622,216.7771995446101],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[0.1558630367120107,0.08276418099800746,0.07700109481811523,0.06926190356413524,0.04712097843488058],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 15s\u003cbr\u003eCPU load: 29%\u003cbr\u003emax memory: 17%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 8s\u003cbr\u003eCPU load: 45%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.3s\u003cbr\u003eCPU load: 65%\u003cbr\u003emax memory: 15%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.6s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.6s\u003cbr\u003eCPU load: 88%\u003cbr\u003emax memory: 18%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[90.65545309472455,125.87378893232682,167.15326471495598,196.45171686643013,217.20722074703346],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[0.15925377855698267,0.08308849732081096,0.0761393407980601,0.06882169097661972,0.04774357130130132],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.1s\u003cbr\u003eCPU load: 30%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 3.3s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 9%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 2.9s\u003cbr\u003eCPU load: 49%\u003cbr\u003emax memory: 10%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 2.7s\u003cbr\u003eCPU load: 59%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 2.6s\u003cbr\u003eCPU load: 69%\u003cbr\u003emax memory: 16%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[92.5932194447752,108.64529661523618,134.36056452015376,155.60361191986829,175.59959783255502],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[0.04288702458143234,0.033932345608870186,0.030348680913448334,0.0278535857796669,0.027027815580368042],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier / kddcup09_churn</h3><div class="plot-subtitle">Shape: 50,000 x 207 (→ x 207 after pre-processing)</div><div class="plot-subtitle">Params: max_features=sqrt, n_estimators=32, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-226" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-226")) {                    Plotly.newPlot(                        "scaling-line-226",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 79s\u003cbr\u003eCPU load: 21%\u003cbr\u003emax memory: 17%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 50s\u003cbr\u003eCPU load: 43%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 42s\u003cbr\u003eCPU load: 63%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 36s\u003cbr\u003eCPU load: 86%\u003cbr\u003emax memory: 19%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 33s\u003cbr\u003eCPU load: 94%\u003cbr\u003emax memory: 27%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[72.9832196935557,121.3591974534603,164.27382629463065,213.42327044109376,230.00803046917204],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[0.8191374788681666,0.5205676977833112,0.44143690913915634,0.37132806330919266,0.34614259004592896],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 76s\u003cbr\u003eCPU load: 20%\u003cbr\u003emax memory: 19%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 49s\u003cbr\u003eCPU load: 41%\u003cbr\u003emax memory: 18%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 40s\u003cbr\u003eCPU load: 62%\u003cbr\u003emax memory: 19%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 34s\u003cbr\u003eCPU load: 85%\u003cbr\u003emax memory: 21%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 31s\u003cbr\u003eCPU load: 93%\u003cbr\u003emax memory: 29%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[72.02312730339855,116.90582719274704,161.64285884068192,210.00756516896004,227.91167710735812],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[0.7935541793704033,0.5098028108477592,0.4194961314400037,0.3530486548940341,0.3228539551297824],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 73s\u003cbr\u003eCPU load: 22%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 53s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 44s\u003cbr\u003eCPU load: 56%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 38s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 20%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 35s\u003cbr\u003eCPU load: 90%\u003cbr\u003emax memory: 33%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[75.55823666877508,106.78391912474643,149.11711749664718,183.70012223320526,221.62476712792844],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[0.7570910652478536,0.552375594774882,0.4534543330470721,0.398114671309789,0.36321694900592166],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier / susy</h3><div class="plot-subtitle">Shape: 300,000 x 18</div><div class="plot-subtitle">Params: max_bins=300000, n_estimators=32, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-227" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-227")) {                    Plotly.newPlot(                        "scaling-line-227",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 86s\u003cbr\u003eCPU load: 77%\u003cbr\u003emax memory: 25%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 83s\u003cbr\u003eCPU load: 92%\u003cbr\u003emax memory: 25%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 84s\u003cbr\u003eCPU load: 95%\u003cbr\u003emax memory: 25%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 86s\u003cbr\u003eCPU load: 95%\u003cbr\u003emax memory: 28%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 84s\u003cbr\u003eCPU load: 95%\u003cbr\u003emax memory: 42%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[194.50527192232317,225.29328529429716,232.6054520146793,233.43426421625827,233.2428083826647],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[0.8961075047651926,0.8606210301319758,0.8767415235439936,0.891488013168176,0.8794598057866096],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 88s\u003cbr\u003eCPU load: 77%\u003cbr\u003emax memory: 29%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 84s\u003cbr\u003eCPU load: 93%\u003cbr\u003emax memory: 28%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 86s\u003cbr\u003eCPU load: 95%\u003cbr\u003emax memory: 27%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 86s\u003cbr\u003eCPU load: 96%\u003cbr\u003emax memory: 32%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 85s\u003cbr\u003eCPU load: 95%\u003cbr\u003emax memory: 44%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[194.74332912595074,227.71563802978275,232.79390058659587,233.87378299875556,232.01385305152843],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[0.9140097498893738,0.8711984927455584,0.8910432135065397,0.8989744385083517,0.8860414773225784],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 55s\u003cbr\u003eCPU load: 81%\u003cbr\u003emax memory: 20%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 53s\u003cbr\u003eCPU load: 85%\u003cbr\u003emax memory: 22%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 52s\u003cbr\u003eCPU load: 88%\u003cbr\u003emax memory: 24%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 52s\u003cbr\u003eCPU load: 89%\u003cbr\u003emax memory: 28%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 57s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 34%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[202.1090441353659,210.321296817319,217.1413434387675,218.87274459589318,196.97574703301964],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[0.5718148623903593,0.548489491144816,0.5419114554921786,0.5453844716151556,0.5986432184775671],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>ExtraTreesRegressor / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 79 after pre-processing)</div><div class="plot-subtitle">Params: max_bins=1460, n_estimators=64, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-228" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-228")) {                    Plotly.newPlot(                        "scaling-line-228",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 13s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.6s\u003cbr\u003eCPU load: 47%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7s\u003cbr\u003eCPU load: 65%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.4s\u003cbr\u003eCPU load: 77%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.3s\u003cbr\u003eCPU load: 87%\u003cbr\u003emax memory: 15%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[88.997854203461,129.72625910019113,167.15326471495598,194.65344638356873,216.22431514149434],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[0.13225618998209634,0.07892096787691116,0.07271388173103333,0.06615507354338963,0.0449642688035965],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 12s\u003cbr\u003eCPU load: 25%\u003cbr\u003emax memory: 17%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6.4s\u003cbr\u003eCPU load: 44%\u003cbr\u003emax memory: 17%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 6s\u003cbr\u003eCPU load: 61%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5.4s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 3.3s\u003cbr\u003eCPU load: 84%\u003cbr\u003emax memory: 18%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[82.79649581061871,121.91145070999717,160.27129660799108,189.55378585119345,209.88662170577848],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[0.12597509721914926,0.06667732199033101,0.06297302742799123,0.056215678652127586,0.03424445788065592],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.1s\u003cbr\u003eCPU load: 31%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 3.2s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 9%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 2.9s\u003cbr\u003eCPU load: 48%\u003cbr\u003emax memory: 10%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 2.6s\u003cbr\u003eCPU load: 60%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 2.6s\u003cbr\u003eCPU load: 71%\u003cbr\u003emax memory: 17%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[94.62046225619966,107.0542181662697,131.9954479068252,158.0547327736815,180.80285438187784],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[0.04283348719278971,0.03373034795125326,0.030328782896200817,0.02747320632139842,0.02745291342337926],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>HistGradientBoostingRegressor / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 79 after pre-processing)</div><div class="plot-subtitle">Params: early_stopping=False</div><div style="height:340px; width:100%;">                            <div id="scaling-line-229" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-229")) {                    Plotly.newPlot(                        "scaling-line-229",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 21s\u003cbr\u003eCPU load: 40%\u003cbr\u003emax memory: 10%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 9.5s\u003cbr\u003eCPU load: 55%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 3.8s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 15%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[113.93871890055098,146.32948798760427,184.0648723602608],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.2221641664703687,0.09895037611325581,0.03939101845026016],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 7.6s\u003cbr\u003eCPU load: 66%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 5.4s\u003cbr\u003eCPU load: 71%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 4.3s\u003cbr\u003eCPU load: 86%\u003cbr\u003emax memory: 15%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[171.02345553676633,181.6246726798425,212.354124319684],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.07965604215860367,0.05619808038075765,0.04466047137975693],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>HistGradientBoostingRegressor / year_prediction_msd</h3><div class="plot-subtitle">Shape: 30,000 x 90 (→ x 90 after pre-processing)</div><div class="plot-subtitle">Params: early_stopping=False</div><div style="height:340px; width:100%;">                            <div id="scaling-line-230" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-230")) {                    Plotly.newPlot(                        "scaling-line-230",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 37s\u003cbr\u003eCPU load: 56%\u003cbr\u003emax memory: 15%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 22s\u003cbr\u003eCPU load: 63%\u003cbr\u003emax memory: 18%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 21s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 21%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[148.7479590834557,163.2883437608224,183.16797099520636],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[0.38403846820195514,0.2301797072092692,0.2161285604039828],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 90%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 16s\u003cbr\u003eCPU load: 91%\u003cbr\u003emax memory: 17%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 16s\u003cbr\u003eCPU load: 92%\u003cbr\u003emax memory: 21%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[221.083099679987,224.6306153328678,225.22404459221204],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[0.18596136818329492,0.1681518852710724,0.16371698677539825],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>HistGradientBoostingClassifier / kddcup09_churn</h3><div class="plot-subtitle">Shape: 50,000 x 207 (→ x 207 after pre-processing)</div><div class="plot-subtitle">Params: early_stopping=False</div><div style="height:340px; width:100%;">                            <div id="scaling-line-231" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-231")) {                    Plotly.newPlot(                        "scaling-line-231",                        [{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 113s\u003cbr\u003eCPU load: 59%\u003cbr\u003emax memory: 15%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 95s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 20%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 85s\u003cbr\u003eCPU load: 93%\u003cbr\u003emax memory: 30%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[155.80184120586344,195.24811405832014,228.184438489887],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[4,8,16],"y":[1.1808936893939972,0.9942087133725485,0.8884856378038725],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 106s\u003cbr\u003eCPU load: 73%\u003cbr\u003emax memory: 15%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 93s\u003cbr\u003eCPU load: 85%\u003cbr\u003emax memory: 20%","\u003cbr\u003en_iter: 32\u003cbr\u003ewall time: 85s\u003cbr\u003eCPU load: 94%\u003cbr\u003emax memory: 29%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[185.33184892818514,210.65343896273143,230.26783494563617],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[4,8,16],"y":[1.1076919088761012,0.9656486113866171,0.882840096950531],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[4,8,16],"ticktext":["4","8","16"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section></section></div></div>
+  
+  <div id="high_end_intel_xeon_server" class="tab-panel"><div class="page-row"><section class="panel">
+  
+  <h2 class="date-range" data-count="164" data-start="2026-09-30T17:17:11.052073+00:00" data-end="2026-09-30T22:43:12.653664+00:00"></h2>
+  
+</section></div><div class="page-row"><section class="tabs" id="tabs-27">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="tab-tabs-27-0">sklearn-pypi</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-27-1">sklearn-cf-mkl</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-27-2">sklearnex</button>
+  
+  </div>
+  
+  <div id="tab-tabs-27-0" class="tab-panel active"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-pypi</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(pypi)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libscipy_openblas 0.3.31.dev (64 threads)</li>
+    
+      <li>libscipy_openblas 0.3.34.106.0 (64 threads)</li>
+    
+      <li>libgomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Faa7689.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-27-1" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-cf-mkl</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libmkl_rt 2026.1-Product (172 threads)</li>
+    
+      <li>libomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>Intel/LLVM OpenMP (spec 201611)</li>
+    
+      <li>KMP_BLOCKTIME: 200ms</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Fa9115d.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-27-2" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearnex</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.8.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scikit_learn_intelex</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>daal</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.34 (128 threads)</li>
+    
+      <li>libgomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 5.2)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Fc5932f.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <script>
+    document.querySelectorAll("#tabs-27 .tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#tabs-27 .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#tabs-27 .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tabTarget).classList.add("active");
+      });
+    });
+  </script>
+</section></div><div class="page-row"><section class="plot-grid" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));"><section class="plot-cell"><h3>Ridge / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 29,127 after pre-processing)</div><div class="plot-subtitle">Params: (defaults)</div><div style="height:340px; width:100%;">                            <div id="scaling-line-232" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-232")) {                    Plotly.newPlot(                        "scaling-line-232",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 11s\u003cbr\u003eCPU load: 15%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8.1s\u003cbr\u003eCPU load: 12%\u003cbr\u003emax memory: 7%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 6.7s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 6.9s\u003cbr\u003eCPU load: 8%\u003cbr\u003emax memory: 10%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[61.27280299458576,54.183111328316244,50.7250241588283,45.99479093217121],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.022281597289004067,0.0156917461129122,0.013012141220329343,0.01344898689624875],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 12s\u003cbr\u003eCPU load: 13%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8s\u003cbr\u003eCPU load: 13%\u003cbr\u003emax memory: 7%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 6s\u003cbr\u003eCPU load: 12%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 7.1s\u003cbr\u003eCPU load: 9%\u003cbr\u003emax memory: 10%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[56.734947674275986,56.36393314060619,53.56739915211914,48.628670797014365],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.022472414397454076,0.01555462216222009,0.011611181636189306,0.013781925504521807],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>Ridge / susy</h3><div class="plot-subtitle">Shape: 5,000,000 x 18</div><div class="plot-subtitle">Params: (defaults)</div><div style="height:340px; width:100%;">                            <div id="scaling-line-233" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-233")) {                    Plotly.newPlot(                        "scaling-line-233",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 4.1s\u003cbr\u003eCPU load: 16%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.8s\u003cbr\u003eCPU load: 14%\u003cbr\u003emax memory: 10%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.2s\u003cbr\u003eCPU load: 14%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.6s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 13%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[61.76820753772847,58.30414785154021,58.16080745073242,50.3845907069098],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.007969304110652716,0.005349084850429564,0.004325904587442561,0.00513376330220422],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 4.3s\u003cbr\u003eCPU load: 12%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.4s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 10%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.3s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.9s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 13%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[53.83371910134725,50.02112040486147,50.57400480797723,50.23613100607316],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.008265900519467139,0.006607230781584747,0.006330473940501842,0.005544823731562888],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.4s\u003cbr\u003eCPU load: 6%\u003cbr\u003emax memory: 7%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.8s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.1s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 7%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.8s\u003cbr\u003eCPU load: 8%\u003cbr\u003emax memory: 8%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[40.56577325157616,42.608373963087175,44.3642938729826,44.507634273790394],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[11,22,43,86],"y":[0.0045677599056746605,0.0034881211066430853,0.004156815913296485,0.0074411626009978065],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>Ridge / year_prediction_msd</h3><div class="plot-subtitle">Shape: 515,345 x 90 (→ x 990 after pre-processing)</div><div class="plot-subtitle">Params: (defaults)</div><div style="height:340px; width:100%;">                            <div id="scaling-line-234" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-234")) {                    Plotly.newPlot(                        "scaling-line-234",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 46s\u003cbr\u003eCPU load: 11%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 31s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 28%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 26s\u003cbr\u003eCPU load: 11%\u003cbr\u003emax memory: 48%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 27s\u003cbr\u003eCPU load: 9%\u003cbr\u003emax memory: 47%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[51.11921026104972,50.773657509102364,52.01060837857317,47.91644818050065],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.09011145016943761,0.06058412004810895,0.04968630805496098,0.052403422751167945],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 51s\u003cbr\u003eCPU load: 8%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 35s\u003cbr\u003eCPU load: 8%\u003cbr\u003emax memory: 28%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 28s\u003cbr\u003eCPU load: 9%\u003cbr\u003emax memory: 47%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 29s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 48%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[45.737972714057264,46.080127060618224,47.62528799135983,43.01082970381674],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.09911425030508707,0.06801055244697157,0.05332065414088641,0.056235514407934145],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 35s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 26s\u003cbr\u003eCPU load: 8%\u003cbr\u003emax memory: 23%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 26s\u003cbr\u003eCPU load: 8%\u003cbr\u003emax memory: 33%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 25s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 33%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[43.601518168684,44.92711574086025,46.1822360716891,43.72499568537985],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[11,22,43,86],"y":[0.06851800421411677,0.050959837529086324,0.04987076179001682,0.04831404094548188],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>LogisticRegression / amazon_employee_access</h3><div class="plot-subtitle">Shape: 32,769 x 9 (→ x 99 after pre-processing)</div><div class="plot-subtitle">Params: max_iter=1000, solver=lbfgs</div><div style="height:340px; width:100%;">                            <div id="scaling-line-235" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-235")) {                    Plotly.newPlot(                        "scaling-line-235",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.7s\u003cbr\u003eCPU load: 51%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.2s\u003cbr\u003eCPU load: 35%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.8s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.6s\u003cbr\u003eCPU load: 18%\u003cbr\u003emax memory: 7%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[138.08331950113322,104.20891121023506,87.574257696491,67.94378980586411],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.007248580455780029,0.0043124773705652516,0.0034828269204428028,0.003042886885561684],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 7.1s\u003cbr\u003eCPU load: 64%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 4.1s\u003cbr\u003eCPU load: 61%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.2s\u003cbr\u003eCPU load: 50%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 7%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[165.5765203060703,160.04511662489824,135.93321348901637,89.38034674666916],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.01380961024483969,0.007985181124635445,0.006146794603776562,0.0038770363312359],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.5s\u003cbr\u003eCPU load: 36%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.2s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.7s\u003cbr\u003eCPU load: 22%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.9s\u003cbr\u003eCPU load: 18%\u003cbr\u003emax memory: 8%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[105.06383431505296,88.76398302319565,75.43332574807116,66.72539639899789],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[11,22,43,86],"y":[0.006861131782679595,0.004254109175630318,0.003293718478476354,0.003724800523861434],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>LogisticRegression / susy</h3><div class="plot-subtitle">Shape: 1,000,000 x 18</div><div class="plot-subtitle">Params: max_iter=1000, solver=lbfgs</div><div style="height:340px; width:100%;">                            <div id="scaling-line-236" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-236")) {                    Plotly.newPlot(                        "scaling-line-236",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 70%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 12s\u003cbr\u003eCPU load: 58%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8.4s\u003cbr\u003eCPU load: 47%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 6.8s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 11%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[179.35742827566764,152.86785798445104,129.0890104857402,106.82487352497724],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.035103062788645424,0.02342261547266051,0.016308808049490284,0.013263301331867544],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 31s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 19s\u003cbr\u003eCPU load: 68%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 15s\u003cbr\u003eCPU load: 59%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 14s\u003cbr\u003eCPU load: 53%\u003cbr\u003emax memory: 11%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[195.63492611056986,175.521916583085,156.01452106885063,141.79058303506886],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.059137527794800984,0.03716139229693154,0.029793964337932972,0.02619914860688439],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.8s\u003cbr\u003eCPU load: 29%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.2s\u003cbr\u003eCPU load: 26%\u003cbr\u003emax memory: 7%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3s\u003cbr\u003eCPU load: 24%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.9s\u003cbr\u003eCPU load: 24%\u003cbr\u003emax memory: 12%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[91.31153287391592,84.92962730158727,79.81237499274916,79.60322831702506],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[11,22,43,86],"y":[0.007294173388518104,0.006146119546520617,0.005722666433615278,0.005588891894318337],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestRegressor / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 79 after pre-processing)</div><div class="plot-subtitle">Params: n_estimators=688, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-237" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-237")) {                    Plotly.newPlot(                        "scaling-line-237",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 211s\u003cbr\u003eCPU load: 2%\u003cbr\u003emax memory: 13%\u003cbr\u003etimed out (incomplete run)","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 90s\u003cbr\u003eCPU load: 5%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 43s\u003cbr\u003eCPU load: 9%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 22s\u003cbr\u003eCPU load: 16%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 13s\u003cbr\u003eCPU load: 24%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 9.4s\u003cbr\u003eCPU load: 34%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 9.1s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 12%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[31.672568809969423,38.073150351482546,47.83037502636175,63.50023738082261,79.70860900694699,100.98186613415442,108.7838590026837],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.40815368387126183,0.17418661367061528,0.08383840876956318,0.04305047720901726,0.025365660356920817,0.018273441828498545,0.01758028047029362],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 202s\u003cbr\u003eCPU load: 2%\u003cbr\u003emax memory: 12%\u003cbr\u003etimed out (incomplete run)","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 86s\u003cbr\u003eCPU load: 5%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 44s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 22s\u003cbr\u003eCPU load: 16%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 13s\u003cbr\u003eCPU load: 26%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 9.8s\u003cbr\u003eCPU load: 35%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 9s\u003cbr\u003eCPU load: 38%\u003cbr\u003emax memory: 12%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[31.87233043237177,38.26132235906194,49.26067165512144,63.32106187981287,84.32043059815416,102.64536920668694,109.75203539410474],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.3915965698024099,0.16716568784196248,0.08584370631580204,0.043219591295996375,0.02542440558588782,0.018904075142025023,0.017350634863210278],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 10s\u003cbr\u003eCPU load: 21%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 5.6s\u003cbr\u003eCPU load: 21%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2.8s\u003cbr\u003eCPU load: 20%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.9s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.5s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.4s\u003cbr\u003eCPU load: 29%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.9s\u003cbr\u003eCPU load: 25%\u003cbr\u003emax memory: 8%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[74.05815377782142,72.87926042458689,72.35150713070367,88.34829586085307,88.531054871883,89.7673658288502,82.0576999854026],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.020201348981191945,0.010878926099732865,0.005505132120709086,0.003768639509067979,0.00290745080903519,0.002668112747428953,0.0037522976712663046],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128],"ticktext":["1","2","4","8","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier / kddcup09_churn</h3><div class="plot-subtitle">Shape: 50,000 x 207 (→ x 207 after pre-processing)</div><div class="plot-subtitle">Params: max_bins=50000, max_features=sqrt, n_estimators=344, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-238" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-238")) {                    Plotly.newPlot(                        "scaling-line-238",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 188s\u003cbr\u003eCPU load: 4%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 140s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 64s\u003cbr\u003eCPU load: 14%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 34s\u003cbr\u003eCPU load: 27%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 28s\u003cbr\u003eCPU load: 45%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 30s\u003cbr\u003eCPU load: 48%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 42s\u003cbr\u003eCPU load: 40%\u003cbr\u003emax memory: 14%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[37.022080009383565,42.29108026180158,59.23586045679085,86.90607090503315,125.00467140470167,132.24868261491898,114.08660061590047],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.3651139592939569,0.27096107394196267,0.12345210895981899,0.06541889998339867,0.054845128410546354,0.05806879110114519,0.08091724011325097],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 190s\u003cbr\u003eCPU load: 4%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 141s\u003cbr\u003eCPU load: 7%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 63s\u003cbr\u003eCPU load: 16%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 34s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 28s\u003cbr\u003eCPU load: 44%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 32s\u003cbr\u003eCPU load: 46%\u003cbr\u003emax memory: 13%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 43s\u003cbr\u003eCPU load: 42%\u003cbr\u003emax memory: 15%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[36.71860059631889,43.27611315694921,62.96047118403078,88.9641186771537,123.07934920294247,126.4169001262966,117.87814839761245],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.36884563837864603,0.27323376670364263,0.12280372732369475,0.0654553401377774,0.05356137743291929,0.06144610532494479,0.08336938397828923],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 97s\u003cbr\u003eCPU load: 12%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 57s\u003cbr\u003eCPU load: 14%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 28s\u003cbr\u003eCPU load: 25%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 20s\u003cbr\u003eCPU load: 35%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 19s\u003cbr\u003eCPU load: 44%\u003cbr\u003emax memory: 7%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 21s\u003cbr\u003eCPU load: 41%\u003cbr\u003emax memory: 9%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 26s\u003cbr\u003eCPU load: 39%\u003cbr\u003emax memory: 12%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[54.557042808684386,58.84210610276463,81.45036484561635,104.49233427546865,122.42881996916279,115.96282407647388,111.2244465088618],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.1881521002266758,0.1100473168284394,0.054452185020890345,0.03921302667883939,0.03651534078657165,0.04046735190605932,0.051164293474005175],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128],"ticktext":["1","2","4","8","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier / susy</h3><div class="plot-subtitle">Shape: 300,000 x 18</div><div class="plot-subtitle">Params: max_bins=300000, n_estimators=344, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-239" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-239")) {                    Plotly.newPlot(                        "scaling-line-239",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 84s\u003cbr\u003eCPU load: 37%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 129s\u003cbr\u003eCPU load: 22%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 64s\u003cbr\u003eCPU load: 58%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 60s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 15%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 59s\u003cbr\u003eCPU load: 76%\u003cbr\u003emax memory: 16%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 68s\u003cbr\u003eCPU load: 67%\u003cbr\u003emax memory: 24%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 69s\u003cbr\u003eCPU load: 67%\u003cbr\u003emax memory: 26%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[106.76543970025207,75.20183483339761,153.4850993022152,183.82170560889045,192.18031009020564,172.06122066829028,171.9740164739414],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.1623264056767604,0.24928067127863565,0.1247307773708373,0.11560688970624938,0.11434923817020978,0.13136497948520867,0.13279294644215311],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 85s\u003cbr\u003eCPU load: 38%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 134s\u003cbr\u003eCPU load: 22%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 68s\u003cbr\u003eCPU load: 59%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 61s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 14%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 62s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 17%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 71s\u003cbr\u003eCPU load: 69%\u003cbr\u003emax memory: 26%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 71s\u003cbr\u003eCPU load: 70%\u003cbr\u003emax memory: 27%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[110.12345079722482,75.68803061412193,155.524774699424,188.8996099185413,196.45072717436472,177.55233513894422,179.8568077365464],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.16548013964364694,0.26064779592114823,0.1326773296030917,0.11883121359255887,0.11927961194237997,0.1375729705012122,0.13707054631654605],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 58s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 47s\u003cbr\u003eCPU load: 62%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 42s\u003cbr\u003eCPU load: 67%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 45s\u003cbr\u003eCPU load: 72%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 47s\u003cbr\u003eCPU load: 59%\u003cbr\u003emax memory: 9%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 55s\u003cbr\u003eCPU load: 40%\u003cbr\u003emax memory: 9%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 79s\u003cbr\u003eCPU load: 18%\u003cbr\u003emax memory: 10%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[182.71849645267338,161.6955789541994,172.76145789656078,183.35840895627956,154.18628528107018,115.24725370717815,66.6595598195571],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.11200011700622794,0.09179117929103763,0.08105360537536385,0.08758948292843131,0.09114662991013638,0.10635981402655904,0.1525166866391204],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128],"ticktext":["1","2","4","8","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>ExtraTreesRegressor / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 79 after pre-processing)</div><div class="plot-subtitle">Params: max_bins=1460, n_estimators=688, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-240" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-240")) {                    Plotly.newPlot(                        "scaling-line-240",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 255s\u003cbr\u003eCPU load: 2%\u003cbr\u003emax memory: 12%\u003cbr\u003etimed out (incomplete run)","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 71s\u003cbr\u003eCPU load: 5%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 36s\u003cbr\u003eCPU load: 10%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 17%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 11s\u003cbr\u003eCPU load: 29%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8.7s\u003cbr\u003eCPU load: 35%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8.2s\u003cbr\u003eCPU load: 39%\u003cbr\u003emax memory: 12%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[32.07489493646629,39.02695142445758,50.081983194093354,64.89780628869858,90.19738703127356,103.90747477912458,111.48343655123043],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.4945174009762993,0.13806958854660506,0.06959559658701106,0.03529226086860479,0.021406469419021017,0.016769062641055085,0.015808166459549303],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 248s\u003cbr\u003eCPU load: 2%\u003cbr\u003emax memory: 12%\u003cbr\u003etimed out (incomplete run)","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 60s\u003cbr\u003eCPU load: 6%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 32s\u003cbr\u003eCPU load: 11%\u003cbr\u003emax memory: 11%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 18%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 11s\u003cbr\u003eCPU load: 25%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8.3s\u003cbr\u003eCPU load: 34%\u003cbr\u003emax memory: 12%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8s\u003cbr\u003eCPU load: 38%\u003cbr\u003emax memory: 12%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[31.56835750585371,40.8333419997507,51.86845638670064,66.55338791802855,82.99965119071095,101.58030121306868,109.47245504577997],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.48113895178765287,0.11580874892168266,0.06184643645619237,0.03543296202208645,0.0216819634733274,0.01602446524671806,0.01556849433470142],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 11s\u003cbr\u003eCPU load: 22%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 5.9s\u003cbr\u003eCPU load: 21%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 3.8s\u003cbr\u003eCPU load: 21%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.5s\u003cbr\u003eCPU load: 30%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 1.4s\u003cbr\u003eCPU load: 28%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 2s\u003cbr\u003eCPU load: 23%\u003cbr\u003emax memory: 7%"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5","size":[74.66287109372928,72.38734223090562,74.10230774057024,88.43430010133774,92.00347608145172,88.90732342400344,77.51176155978412],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,5,11,22,43,86],"y":[0.02048850752586542,0.011340442091919655,0.007424602674883466,0.003921714864035909,0.002968263256457425,0.0027787103209384652,0.003955786080323449],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128],"ticktext":["1","2","4","8","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>HistGradientBoostingRegressor / ames_housing</h3><div class="plot-subtitle">Shape: 1,460 x 79 (→ x 79 after pre-processing)</div><div class="plot-subtitle">Params: early_stopping=False</div><div style="height:340px; width:100%;">                            <div id="scaling-line-241" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-241")) {                    Plotly.newPlot(                        "scaling-line-241",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 29s\u003cbr\u003eCPU load: 87%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 15s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8.5s\u003cbr\u003eCPU load: 68%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 7.9s\u003cbr\u003eCPU load: 47%\u003cbr\u003emax memory: 7%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[214.976834802646,189.32623296491107,174.7395554277083,130.37365365768565],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.05585231014000353,0.028366086556929952,0.016529455665470094,0.015335463276205137],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 47s\u003cbr\u003eCPU load: 75%\u003cbr\u003emax memory: 4%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 20s\u003cbr\u003eCPU load: 65%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 12s\u003cbr\u003eCPU load: 56%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 8s\u003cbr\u003eCPU load: 43%\u003cbr\u003emax memory: 7%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[188.97450366618978,167.20701736525893,148.02329372381632,121.02069250497735],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.09119619879611703,0.03802054843237234,0.02266362887020259,0.015523906826048858],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>HistGradientBoostingRegressor / year_prediction_msd</h3><div class="plot-subtitle">Shape: 30,000 x 90 (→ x 90 after pre-processing)</div><div class="plot-subtitle">Params: early_stopping=False</div><div style="height:340px; width:100%;">                            <div id="scaling-line-242" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-242")) {                    Plotly.newPlot(                        "scaling-line-242",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 39s\u003cbr\u003eCPU load: 85%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 20s\u003cbr\u003eCPU load: 76%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 15s\u003cbr\u003eCPU load: 69%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 12s\u003cbr\u003eCPU load: 57%\u003cbr\u003emax memory: 8%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[211.15028050237348,191.203818819847,176.34496791675554,151.4324062563616],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.07487500453180121,0.038885560608649436,0.02860296650450359,0.023447180441183636],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 52s\u003cbr\u003eCPU load: 78%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 25s\u003cbr\u003eCPU load: 64%\u003cbr\u003emax memory: 5%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 18s\u003cbr\u003eCPU load: 56%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 16s\u003cbr\u003eCPU load: 52%\u003cbr\u003emax memory: 8%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[195.7571039042008,166.43477095590697,149.41744976500635,139.80112906636947],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.1016523417576339,0.049382098885469655,0.034733561120292016,0.030575377072474753],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>HistGradientBoostingClassifier / kddcup09_churn</h3><div class="plot-subtitle">Shape: 50,000 x 207 (→ x 207 after pre-processing)</div><div class="plot-subtitle">Params: early_stopping=False</div><div style="height:340px; width:100%;">                            <div id="scaling-line-243" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-243")) {                    Plotly.newPlot(                        "scaling-line-243",                        [{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 140s\u003cbr\u003eCPU load: 54%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 71s\u003cbr\u003eCPU load: 51%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 46s\u003cbr\u003eCPU load: 52%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 37s\u003cbr\u003eCPU load: 54%\u003cbr\u003emax memory: 11%"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e","size":[144.5608385943535,137.13172038423207,139.01725788900512,144.7983518880665],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[11,22,43,86],"y":[0.2718638542086579,0.13795773650324622,0.08999775361645129,0.07155263008073319],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 186s\u003cbr\u003eCPU load: 56%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 71s\u003cbr\u003eCPU load: 44%\u003cbr\u003emax memory: 6%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 43s\u003cbr\u003eCPU load: 45%\u003cbr\u003emax memory: 8%","\u003cbr\u003en_iter: 172\u003cbr\u003ewall time: 35s\u003cbr\u003eCPU load: 53%\u003cbr\u003emax memory: 11%"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} outer n_jobs: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4","size":[147.9326200611841,122.09676937104153,125.61549697632576,141.77042006308824],"sizemode":"area","sizeref":1},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[11,22,43,86],"y":[0.3597964833873187,0.1384975702263588,0.08383767041125038,0.0669865793035936],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"outer n_jobs"},"type":"log","tickmode":"array","tickvals":[11,16,32,64,128],"ticktext":["11","16","32","64","128"]},"yaxis":{"title":{"text":"s \u002f fit"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section></section></div></div>
+  
+  <script>
+    const hardwareTabButtons = document.querySelectorAll("#hardware-tabs > .tab-buttons .tab-button");
+    function activateHardwareTab(button, updateHash = false) {
+      document.querySelectorAll("#hardware-tabs > .tab-buttons .tab-button").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll("#hardware-tabs > .tab-panel").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      const panel = document.getElementById(button.dataset.tabTarget);
+      panel.classList.add("active");
+      panel.querySelectorAll(".plotly-graph-div").forEach((chart) => Plotly.Plots.resize(chart));
+      if (updateHash) {
+        history.replaceState(null, "", `#${button.dataset.tabTarget}`);
+      }
+    }
+    hardwareTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activateHardwareTab(button, true);
+      });
+    });
+    const hardwareTabFromHash = Array.from(hardwareTabButtons).find(
+      (button) => button.dataset.tabTarget === window.location.hash.slice(1)
+    );
+    if (hardwareTabFromHash) {
+      activateHardwareTab(hardwareTabFromHash);
+    }
+  </script>
+</section></div>
+  
+  </main>
+</body>
+</html>

@@ -1,0 +1,1464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Models core-count scalability</title>
+  <link href="https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-4.1.1.min.js"></script>
+  <script src="https://unpkg.com/tabulator-tables@6.5.0/dist/js/tabulator.min.js"></script>
+  <style>
+:root {
+  color-scheme: light;
+  /* scikit-learn documentation palette: pydata-sphinx-theme neutrals plus
+     the sklearn cyan/orange brand colors (doc/scss/colors.scss). */
+  --text: #222832;
+  --muted: #48566b;
+  --line: #d1d5da;
+  --line-soft: #e5e7ea;
+  --surface: #f3f4f5;
+  --accent: #0a7d91;
+  --accent-hover: #8045e5;
+  --sk-cyan: #29abe2;
+  --sk-cyan-shades-2: #1c7ea8;
+  --sk-cyan-shades-3: #15688c;
+  --sk-orange: #f7931e;
+  --sk-orange-tint-3: #fcb575;
+  --sk-orange-tint-8: #ffead9;
+  --sk-orange-tint-9: #fff5ec;
+  --warn: #8a1f11;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  background: white;
+}
+main {
+  margin: 0 auto;
+  padding: 24px;
+}
+.site-header {
+  padding: 28px 24px;
+  background: linear-gradient(
+    120deg,
+    var(--sk-cyan-shades-3) 0%,
+    var(--sk-cyan) 17%,
+    var(--sk-orange-tint-8) 59%,
+    var(--sk-orange-tint-3) 100%
+  );
+}
+.site-header h1 {
+  margin: 0;
+  color: white;
+  text-shadow: 0 0 8px var(--sk-cyan-shades-3);
+}
+.site-header a {
+  color: inherit;
+  text-decoration: none;
+}
+.site-header .site-home {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 0 6px var(--sk-cyan-shades-3);
+}
+.site-header .site-home:hover {
+  text-decoration: underline;
+}
+h1, h2, h3 { font-weight: 500; line-height: 1.25; }
+h1 { margin: 0 0 20px; font-size: 30px; }
+h2 { margin: 0 0 12px; font-size: 20px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+a:hover {
+  color: var(--accent-hover);
+  text-decoration-thickness: 2px;
+}
+code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: #912583;
+  background: var(--surface);
+}
+.page-row {
+  margin-bottom: 24px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  background: white;
+}
+.panel p {
+  margin: 5px 0;
+}
+.about-section {
+  margin-top: 8px;
+}
+.about-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+.muted {
+  color: var(--muted);
+}
+.tabs {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+.tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.tab-button:hover {
+  color: var(--text);
+}
+.tab-button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tab-button.active {
+  color: var(--text);
+  background: white;
+  box-shadow: inset 0 -3px 0 var(--sk-orange);
+}
+.tab-panel {
+  display: none;
+  padding: 16px;
+}
+.tab-panel.active {
+  display: block;
+}
+.software-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  gap: 12px 28px;
+  align-items: start;
+}
+.package-list {
+  columns: 2;
+  column-gap: 40px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 5px 0;
+  padding-left: 18px;
+}
+@media (max-width: 900px) {
+  .software-details {
+    grid-template-columns: 1fr;
+  }
+  .package-list {
+    width: auto;
+  }
+}
+.vs-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.vs-table th,
+.vs-table td {
+  border: 1px solid var(--line-soft);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.vs-table thead th {
+  background: var(--surface);
+}
+.vs-table tbody th {
+  width: 1%;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
+}
+.vs-table td.same {
+  text-align: center;
+  color: var(--muted);
+}
+.vs-table td.differs {
+  width: 45%;
+  background: var(--sk-orange-tint-9);
+}
+.plot-grid {
+  display: grid;
+  gap: 18px;
+}
+.plot-cell {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  background: white;
+}
+.plot-cell h3 {
+  color: var(--muted);
+  font-weight: 600;
+}
+.plot-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plot-cell-title {
+  margin: 0;
+}
+.predict-collapse-toggle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 15px;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+.predict-collapse-toggle:hover {
+  background: var(--surface);
+}
+.plot-grid.method-grid {
+  transition: grid-template-columns 0.2s ease;
+}
+body.predict-collapsed .plot-grid.method-grid {
+  grid-template-columns: var(--collapsed-columns) !important;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] {
+  padding: 8px 4px;
+  overflow: hidden;
+}
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-title,
+body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-body {
+  display: none;
+}
+body.predict-collapsed .plot-cell.empty[data-method="predict"] {
+  padding: 8px 4px;
+  font-size: 0;
+}
+body.predict-collapsed .predict-collapse-toggle {
+  transform: rotate(180deg);
+}
+.preprocessing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.speedup-view-preprocessing {
+  display: none;
+}
+body.with-preprocessing .speedup-view-default {
+  display: none;
+}
+body.with-preprocessing .speedup-view-preprocessing {
+  display: block;
+}
+.baseline-view {
+  display: none;
+}
+.baseline-view.active {
+  display: block;
+}
+.baseline-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border: 1.5px solid var(--variant-color, var(--accent));
+  border-radius: 999px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.baseline-pick::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--variant-color, var(--accent));
+}
+.baseline-pick:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 12%, white);
+}
+.baseline-pick:disabled {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 16%, white);
+  cursor: default;
+}
+.baseline-pick:disabled::before {
+  display: none;
+}
+.tab-button.is-baseline::after {
+  content: "baseline";
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.hw-compare-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.hw-compare-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 13px;
+}
+.hw-compare-row select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--text);
+  min-width: 220px;
+}
+.hw-compare-vs {
+  color: var(--muted);
+  font-weight: 600;
+  padding-bottom: 7px;
+}
+.plot-subtitle {
+  margin: -6px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plot-cell-body > .plot-subtitle:first-child {
+  margin-top: 2px;
+}
+.plotly-graph-div {
+  width: 100%;
+  height: 540px;
+}
+.plot-detail-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.plot-row-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.phase-breakdown {
+  gap: 24px;
+}
+.phase-breakdown .plot-cell {
+  padding: 16px;
+}
+.phase-breakdown .plotly-graph-div {
+  height: 320px;
+}
+.phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.phase-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.detailed-results {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: white;
+}
+.detailed-results summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.detailed-results-title {
+  color: var(--muted);
+  font-weight: 600;
+}
+.detailed-results-table {
+  margin-top: 12px;
+}
+.detailed-results-table .tabulator-row {
+  cursor: pointer;
+}
+.detailed-results-table .tabulator-row.row-just-matched {
+  animation: row-just-matched-flash 1s ease-out;
+}
+@keyframes row-just-matched-flash {
+  from {
+    background-color: rgba(247, 147, 30, 0.35);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.speedup-positive {
+  color: #18794e;
+  font-weight: 600;
+}
+.speedup-negative {
+  color: #b42318;
+  font-weight: 600;
+}
+.plot-notes {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.plot-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 3px 0;
+}
+.plot-note ul {
+  margin: 3px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plot-marker {
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.plot-marker-circle {
+  font-size: 20px;
+}
+.plot-marker-square,
+.plot-marker-diamond {
+  font-size: 16px;
+}
+.plot-marker-x {
+  font-size: 16px;
+  color: var(--muted);
+}
+.warning-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.warning-icon {
+  text-align: center;
+}
+.empty {
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 6px;
+}
+ul.compact {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.dashboard-list {
+  border-collapse: collapse;
+}
+.dashboard-list td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+}
+.dashboard-list tr:last-child td {
+  border-bottom: none;
+}
+.dashboard-list td:first-child {
+  padding-right: 24px;
+  white-space: nowrap;
+}
+.dashboard-list td:last-child {
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .dashboard-list td:first-child {
+    white-space: normal;
+  }
+}
+.tabulator {
+  border-color: var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+}
+.tabulator .tabulator-header,
+.tabulator .tabulator-header .tabulator-col {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+.tabulator .tabulator-tableholder .tabulator-table,
+.tabulator-row,
+.tabulator-row .tabulator-cell {
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+.tabulator-row.tabulator-row-even {
+  background: #fafbfb;
+}
+.tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+.tabulator .tabulator-footer {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.tabulator .tabulator-footer .tabulator-page.active {
+  color: var(--accent);
+}
+/* Detailed-results rows are banded per comparison_key group (see the
+   table's renderComplete handler), so plain row striping would blur them. */
+.detailed-results-table .tabulator-row.tabulator-row-even {
+  background: white;
+}
+.detailed-results-table .tabulator-row.row-group-alt {
+  background: #eef1f4;
+}
+.detailed-results-table .tabulator-row.row-group-start {
+  border-top: 1px solid var(--line);
+}
+.detailed-results-table .tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+/* Technical terms with a hover definition (see sklbench/reporting/html/glossary.py). */
+.term {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted rgba(72, 86, 107, 0.6);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.term:focus {
+  outline: none;
+}
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+.term-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 14px rgba(34, 40, 50, 0.14);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
+}
+/* Invisible bridge over the gap, so the pointer can reach the tooltip's link. */
+.term-tip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.term:hover > .term-tip,
+.term:focus-within > .term-tip {
+  display: block;
+}
+.term-tip a {
+  white-space: nowrap;
+}
+
+  </style>
+  <script>
+    window.sklbenchTables = window.sklbenchTables || {};
+
+    function sklbenchFormatDuration(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (value < 10) {
+        return `${value.toPrecision(2)}ms`;
+      }
+      if (value < 1000) {
+        return `${Math.round(value)}ms`;
+      }
+      if (value < 10000) {
+        return `${(value / 1000).toPrecision(2)}s`;
+      }
+      return `${Math.round(value / 1000)}s`;
+    }
+
+    function sklbenchDurationFormatter(cell) {
+      return sklbenchFormatDuration(cell.getValue());
+    }
+
+    function sklbenchSpeedupFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      const label = `${value.toPrecision(2)}x`;
+      if (value > 1.1) {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (value < 0.9) {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    // Test score, colored when significantly better or worse than the
+    // baseline (`<field>_cmp`, see `_add_scores` in table.py).
+    function sklbenchScoreFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "";
+      }
+      const label = value.toFixed(3);
+      const comparison = cell.getData()[`${cell.getColumn().getField()}_cmp`];
+      if (comparison === "better") {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (comparison === "worse") {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    function sklbenchLinkFormatter(cell, formatterParams) {
+      const value = cell.getValue();
+      if (!value) {
+        return "N/A";
+      }
+      const field = cell.getColumn().getField();
+      const rowLabel = cell.getData()[`${field}_label`];
+      const label = rowLabel || formatterParams.label || "open";
+      return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
+    }
+
+    function sklbenchPrepareColumns(columns) {
+      return columns.map((column) => {
+        const prepared = {...column};
+        if (prepared.formatterName === "duration") {
+          prepared.formatter = sklbenchDurationFormatter;
+        } else if (prepared.formatterName === "speedup") {
+          prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "score") {
+          prepared.formatter = sklbenchScoreFormatter;
+        } else if (prepared.formatterName === "link") {
+          prepared.formatter = sklbenchLinkFormatter;
+          prepared.formatterParams = {label: prepared.linkLabel || "open"};
+        }
+        delete prepared.formatterName;
+        delete prepared.linkLabel;
+        return prepared;
+      });
+    }
+
+    function sklbenchInitTable(tableId, rows, columns, defaultHeaderFilters) {
+      if (window.sklbenchTables[tableId]) {
+        window.sklbenchTables[tableId].redraw(true);
+        return;
+      }
+      // Rows of the same case (same comparison_key) stay together, in the
+      // order precomputed by `_add_group_ranks` in table.py.
+      const initialSort = [{column: "comparison_key", dir: "asc"}];
+      // Row click (in the table, or on a matching speed-up plot point via
+      // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
+      // comparison_key on top instead of filtering everything else out, so
+      // clicking a column header to sort by something else naturally
+      // supersedes it.
+      let matchSortKey = null;
+      // Set only for a table-row click (row.getData().row_id is unique per
+      // row - see table.py's _row_key/_add_result_method) so that specific
+      // row sorts first among same-comparison_key siblings. A plot-point
+      // click has no single row to pin, so this stays null and rows sharing
+      // matchSortKey keep their within_rank order.
+      let matchedRowId = null;
+      // The clicked row's (or plot trace's) variant: its other rows, e.g.
+      // the same implementation on the other machine, come right after it.
+      let matchedVariant = null;
+      const matchFirstSorter = (a, b, aRow, bRow) => {
+        const aData = aRow.getData();
+        const bData = bRow.getData();
+        const aMatches = a === matchSortKey ? 0 : 1;
+        const bMatches = b === matchSortKey ? 0 : 1;
+        if (aMatches !== bMatches) {
+          return aMatches - bMatches;
+        }
+        if (aData.group_rank !== bData.group_rank) {
+          return aData.group_rank - bData.group_rank;
+        }
+        if (aMatches === 0) {
+          if (matchedRowId) {
+            const aIsClicked = aData.row_id === matchedRowId;
+            const bIsClicked = bData.row_id === matchedRowId;
+            if (aIsClicked !== bIsClicked) {
+              return aIsClicked ? -1 : 1;
+            }
+          }
+          if (matchedVariant) {
+            const aSameVariant = aData.variant === matchedVariant;
+            const bSameVariant = bData.variant === matchedVariant;
+            if (aSameVariant !== bSameVariant) {
+              return aSameVariant ? -1 : 1;
+            }
+          }
+        }
+        return aData.within_rank - bData.within_rank;
+      };
+      const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
+        if (column.field === "comparison_key") {
+          return {...column, sorter: matchFirstSorter};
+        }
+        return column;
+      });
+      const table = new Tabulator(`#${tableId}`, {
+        data: rows,
+        columns: preparedColumns,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 25,
+        paginationSizeSelector: [10, 25, 50, 100, true],
+        initialSort,
+        initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
+          ([field, value]) => ({field, value})
+        ),
+      });
+      // Alternating background per run of rows sharing a comparison_key, in
+      // the current sort/filter order, so groups stay visible whatever the
+      // sort.
+      table.on("renderComplete", () => {
+        let band = 0;
+        let previousKey;
+        table.getRows("active").forEach((row) => {
+          const key = row.getData().comparison_key;
+          const isGroupStart = key !== previousKey;
+          if (isGroupStart && previousKey !== undefined) {
+            band = 1 - band;
+          }
+          previousKey = key;
+          const el = row.getElement();
+          if (el) {
+            el.classList.toggle("row-group-alt", band === 1);
+            el.classList.toggle("row-group-start", isGroupStart);
+          }
+        });
+      });
+      // Briefly flashes every row sharing comparisonKey (the ones
+      // applyMatchSort just brought to the top) so it's visible they moved.
+      // Re-triggers cleanly even if the previous flash hasn't finished: the
+      // class is dropped and a reflow forced before re-adding it, since
+      // re-adding an already-present class wouldn't restart the CSS
+      // animation in base.css.
+      const highlightMatches = (comparisonKey) => {
+        table.getRows().forEach((row) => {
+          if (row.getData().comparison_key !== comparisonKey) {
+            return;
+          }
+          const el = row.getElement();
+          if (!el) {
+            return;
+          }
+          el.classList.remove("row-just-matched");
+          void el.offsetWidth;
+          el.classList.add("row-just-matched");
+          setTimeout(() => el.classList.remove("row-just-matched"), 1000);
+        });
+      };
+      const applyMatchSort = (comparisonKey, rowId, variant) => {
+        matchSortKey = comparisonKey;
+        matchedRowId = rowId || null;
+        matchedVariant = variant || null;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
+        requestAnimationFrame(() => highlightMatches(comparisonKey));
+      };
+      table.on("rowClick", (event, row) => {
+        if (event.target.closest("a, button")) {
+          return;
+        }
+        const comparisonKey = row.getData().comparison_key;
+        if (!comparisonKey) {
+          return;
+        }
+        applyMatchSort(comparisonKey, row.getData().row_id, row.getData().variant);
+      });
+      // Exposed so a click on a matching speed-up plot point
+      // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
+      // builds asynchronously - table.setSort isn't safe to call until
+      // "tableBuilt" fires, which a plot click (unlike a click on an
+      // already-rendered row) can easily race.
+      table.sklbenchRows = rows;
+      table.sklbenchApplyMatchSort = applyMatchSort;
+      table.sklbenchBuilt = new Promise((resolve) => table.on("tableBuilt", resolve));
+      window.sklbenchTables[tableId] = table;
+    }
+
+    // A table only builds (sklbenchInitTable runs) the first time its
+    // "Detailed results" <details> is opened - see the toggle listener next
+    // to each sklbenchInitTable call. Opening it programmatically still goes
+    // through that same listener, but the "toggle" event it relies on is
+    // dispatched as a separate task rather than synchronously, so callers
+    // await this before assuming the table exists.
+    function sklbenchOpenDetails(details) {
+      if (details.open) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        details.addEventListener("toggle", () => resolve(), {once: true});
+        details.open = true;
+      });
+    }
+
+    // Speed-up plot points carry the same comparison_key as their detailed-
+    // results table row (see speedup_plot_html's `comparison_key` param) -
+    // clicking one applies the same "bring matching rows to top" sort as
+    // clicking the table row. `assemble_plots_in_grid` always places a row's
+    // (or the whole grid's) "Detailed results" <details> right after its
+    // plot(s) in document order, so the nearest one following the clicked
+    // chart is its table - open that first in case it's still collapsed.
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
+      if (!comparisonKey) {
+        return;
+      }
+      const details = Array.from(document.querySelectorAll("details.detailed-results")).find(
+        (el) => chartEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      if (details) {
+        await sklbenchOpenDetails(details);
+      }
+      // The same case can show up in tables of hidden tabs or views, so
+      // prefer the table right after the clicked chart.
+      const tables = Object.entries(window.sklbenchTables);
+      const hasKey = ([, t]) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey);
+      const inDetails = ([id]) => details && details.contains(document.getElementById(id));
+      const entry = tables.find((e) => inDetails(e) && hasKey(e)) || tables.find(hasKey);
+      const table = entry && entry[1];
+      if (table) {
+        await table.sklbenchBuilt;
+        table.sklbenchApplyMatchSort(comparisonKey, null, variant);
+      }
+    }
+
+    function sklbenchWirePlotClicks() {
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.sklbenchClickWired || typeof chart.on !== "function") {
+          return;
+        }
+        chart.sklbenchClickWired = true;
+        chart.on("plotly_click", (eventData) => {
+          const point = eventData.points && eventData.points[0];
+          if (point) {
+            // Speed-up plot traces are named after the table's variant.
+            sklbenchApplyPlotMatchSort(chart, point.customdata, point.data && point.data.name);
+          }
+        });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
+
+    // Each chart's inline Plotly.newPlot() call runs synchronously while the
+    // page is still parsing, so it can bake in a stale width from before the
+    // surrounding CSS grid has settled into its final column sizes (visible
+    // as an oversized/clipped first chart until something - a tab switch, a
+    // window resize - happens to trigger Plotly.Plots.resize). Re-measure
+    // every chart once immediately after full page load to catch that case
+    // without waiting on a user-triggered resize.
+    window.addEventListener("load", () => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+          if (chart.offsetParent !== null) {
+            Plotly.Plots.resize(chart);
+          }
+        });
+      });
+    });
+
+    function sklbenchRelativeTime(isoString, nowMs) {
+      const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
+      if (seconds < 60) {
+        return "just now";
+      }
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) {
+        return `${minutes}m ago`;
+      }
+      const hours = Math.floor(seconds / 3600);
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+
+    function sklbenchFormatDateRanges() {
+      const nowMs = Date.now();
+      document.querySelectorAll(".date-range").forEach((el) => {
+        const start = sklbenchRelativeTime(el.dataset.start, nowMs);
+        const end = sklbenchRelativeTime(el.dataset.end, nowMs);
+        const range = start === end ? start : `${start} to ${end}`;
+        el.textContent = `${el.dataset.count} benchmark records from ${range}`;
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
+    setInterval(sklbenchFormatDateRanges, 60000);
+
+    function sklbenchSetPredictCollapsed(collapsed) {
+      document.body.classList.toggle("predict-collapsed", collapsed);
+      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
+        button.setAttribute("aria-expanded", String(!collapsed));
+      });
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    }
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".predict-collapse-toggle");
+      if (!button) {
+        return;
+      }
+      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
+    });
+
+    document.addEventListener("change", (event) => {
+      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
+        return;
+      }
+      document.body.classList.toggle("with-preprocessing", event.target.checked);
+      if (event.target.checked) {
+        sklbenchSetPredictCollapsed(true);
+      }
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.offsetParent !== null) {
+          Plotly.Plots.resize(chart);
+        }
+      });
+    });
+
+    // Shift a term's tooltip left when it would overflow the viewport's
+    // right edge (e.g. a term near the end of a line on a phone).
+    function sklbenchPlaceTermTip(event) {
+      const term = event.target.closest && event.target.closest(".term");
+      if (!term) {
+        return;
+      }
+      const tip = term.querySelector(".term-tip");
+      tip.style.left = "0px";
+      const overflow = tip.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+      if (overflow > 0) {
+        const termLeft = term.getBoundingClientRect().left;
+        tip.style.left = `${-Math.min(overflow, termLeft - 8)}px`;
+      }
+    }
+    document.addEventListener("mouseover", sklbenchPlaceTermTip);
+    document.addEventListener("focusin", sklbenchPlaceTermTip);
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    
+    <a class="site-home" href="index.html">&larr; All dashboards</a>
+    <h1>Models core-count scalability</h1>
+  </header>
+  <main>
+  
+  <div class="page-row"><section class="panel">
+  <p>This dashboard shows how the <span class="term" tabindex="0">wall-clock time<span class="term-tip" role="tooltip">Elapsed real time, as opposed to CPU time, which sums the time of all threads.</span></span> of a single
+  <code><span class="term" tabindex="0">.fit()<span class="term-tip" role="tooltip">Training a model on data. <a href="https://scikit-learn.org/stable/glossary.html#term-fit" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span></code> call changes with the number of <span class="term" tabindex="0">CPU cores<span class="term-tip" role="tooltip">One hardware core of the CPU. With SMT, it shows up as two logical CPUs.</span></span>.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Each tab is a machine and each plot an (estimator, dataset) pair,
+    with one line per <span class="term" tabindex="0">software environment<span class="term-tip" role="tooltip">One Pixi environment of this repository: a fixed set of package versions and builds.</span></span>. The x-axis is in log scale. For
+    tree models, the y-axis is in log scale too, and each environment has a
+    grey dashed <span class="term" tabindex="0">perfect-scaling line<span class="term-tip" role="tooltip">The time the fit would take if n times more cores made it n times faster.</span></span> starting from its first point, so the
+    gap to it is the lost efficiency. Look for curves that flatten or go up. On machines
+    with <span class="term" tabindex="0">hyper-threading<span class="term-tip" role="tooltip">Simultaneous multithreading, called hyper-threading by Intel: one physical core runs two threads at once by sharing its execution units.</span></span>, the 0.5 point of the non-tree models is a single
+    <span class="term" tabindex="0">logical CPU<span class="term-tip" role="tooltip">What the operating system sees as one CPU. With SMT, each physical core shows up as two logical CPUs.</span></span>, without its <span class="term" tabindex="0">SMT sibling<span class="term-tip" role="tooltip">The other logical CPU of the same physical core.</span></span>, so the step from 0.5 to 1 shows what
+    <span class="term" tabindex="0">SMT<span class="term-tip" role="tooltip">Simultaneous multithreading, called hyper-threading by Intel: one physical core runs two threads at once by sharing its execution units.</span></span> brings on one core. For RandomForest and ExtraTrees, a section below
+    compares runs with and without SMT, one plot per environment.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li><b>RandomForest</b> and <b>ExtraTrees</b> scale best, up to the
+      172 cores of the Xeon server. <b>scikit-learn-intelex</b> makes
+      RandomForest several times faster, but doesn't scale better. On the
+      laptop, the gains get smaller past 4 cores, probably because the other
+      cores are slower <span class="term" tabindex="0">E-cores<span class="term-tip" role="tooltip">Efficiency cores: smaller and slower cores that recent Intel laptop CPUs have next to their fast performance cores.</span></span>.</li>
+      <li><b>Ridge</b>, <b>LogisticRegression</b> and <b>KMeans</b> with
+      scikit-learn stop scaling after a few cores, and can get slower with
+      more cores on the Xeon server.</li>
+      <li><b>scikit-learn-intelex</b> scales these three models much further,
+      but on the Xeon server, they get slower past 16 to 64 cores.</li>
+      <li>With the <b><span class="term" tabindex="0">PyPI<span class="term-tip" role="tooltip">The Python Package Index, where pip installs packages from. Its scikit-learn wheels bundle their own OpenMP runtime, and NumPy and SciPy bundle OpenBLAS.</span></span></b> build, <b>LogisticRegression</b> gets slower
+      as soon as it runs on more than one <span class="term" tabindex="0">logical CPU<span class="term-tip" role="tooltip">What the operating system sees as one CPU. With SMT, each physical core shows up as two logical CPUs.</span></span>. The <b><span class="term" tabindex="0">OpenBLAS<span class="term-tip" role="tooltip">Open-source BLAS implementation. The NumPy and SciPy wheels on PyPI each ship their own copy of it.</span></span></b>
+      shipped with scipy 1.18 wakes
+      all its <span class="term" tabindex="0">threads<span class="term-tip" role="tooltip">Units of execution that share the memory of their process. Each one can run on its own CPU core.</span></span> for tiny operations in <span class="term" tabindex="0">L-BFGS-B<span class="term-tip" role="tooltip">Quasi-Newton optimization algorithm, behind LogisticRegression&#x27;s default lbfgs solver. L-BFGS-B is its variant with bounds.</span></span>. This is fixed in
+      scipy 2.0 (see
+      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>),
+      and should also be fixed in 1.18.2
+      (<a href="https://github.com/scipy/scipy/pull/26199">scipy#26199</a>).</li>
+      <li>On the laptop, scikit-learn-intelex LogisticRegression looks much
+      faster from 8 cores on, but that's a <b><span class="term" tabindex="0">oneDAL<span class="term-tip" role="tooltip">oneAPI Data Analytics Library: Intel&#x27;s C++ library that implements the algorithms of scikit-learn-intelex.</span></span></b> bug: on 4 threads or
+      more, L-BFGS stops too early and returns a worse model. See
+      <a href="https://github.com/uxlfoundation/oneDAL/issues/3820">oneDAL#3820</a>.</li>
+    </ul>
+  </details>
+</section></div>
+  
+  <div class="page-row"><section class="tabs" id="hardware-tabs">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="intel_core_ultra_laptop">Intel Core Ultra laptop</button>
+  
+    <button class="tab-button" type="button" data-tab-target="high_end_intel_xeon_server">High-end Intel Xeon server</button>
+  
+  </div>
+  
+  <div id="intel_core_ultra_laptop" class="tab-panel active"><div class="page-row"><section class="panel">
+  
+  <h2 class="date-range" data-count="75" data-start="2026-09-30T15:01:45.641724+00:00" data-end="2026-09-30T20:39:00.398092+00:00"></h2>
+  
+</section></div><div class="page-row"><section class="tabs" id="tabs-24">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="tab-tabs-24-0">sklearn-pypi</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-24-1">sklearn-cf-mkl</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-24-2">sklearnex</button>
+  
+  </div>
+  
+  <div id="tab-tabs-24-0" class="tab-panel active"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-pypi</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(pypi)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libscipy_openblas 0.3.31.dev (16 threads)</li>
+    
+      <li>libscipy_openblas 0.3.34.106.0 (16 threads)</li>
+    
+      <li>libgomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Fa74e91.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-24-1" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-cf-mkl</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libmkl_rt 2026.1-Product (16 threads)</li>
+    
+      <li>libomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>Intel/LLVM OpenMP (spec 201611)</li>
+    
+      <li>KMP_BLOCKTIME: 0ms</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2F1a2ea0.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-24-2" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearnex</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.8.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scikit_learn_intelex</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>daal</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.34 (16 threads)</li>
+    
+      <li>libgomp (16 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 5.2)</li>
+    
+      <li>GOMP_SPINCOUNT: 1</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2F427d02.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <script>
+    document.querySelectorAll("#tabs-24 .tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#tabs-24 .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#tabs-24 .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tabTarget).classList.add("active");
+      });
+    });
+  </script>
+</section></div><div class="page-row"><section class="plot-grid" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));"><section class="plot-cell"><h3>Ridge</h3><div class="plot-subtitle">dataset: year_prediction_msd (463,810 rows x 990 features)</div><div class="plot-subtitle">params: alpha=1.0</div><div style="height:340px; width:100%;">                            <div id="scaling-line-204" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-204")) {                    Plotly.newPlot(                        "scaling-line-204",                        [{"customdata":["","","","",""],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[8.939325511455536,4.999482181854546,3.011749165132642,2.7506257137283683,2.2184510473161936],"type":"scatter"},{"customdata":["","","","",""],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[9.262359891086817,5.341923305764794,3.3909278279170394,3.0389109067618847,2.5056090196594596],"type":"scatter"},{"customdata":["","","","",""],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[8.092627595178783,4.057686357758939,2.0326873771846294,1.4873067503795028,1.0864628190174699],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>LogisticRegression</h3><div class="plot-subtitle">dataset: covtype (200,000 rows x 100 features, 7 classes)</div><div class="plot-subtitle">params: C=10.0, max_iter=1000, solver=lbfgs</div><div style="height:340px; width:100%;">                            <div id="scaling-line-205" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-205")) {                    Plotly.newPlot(                        "scaling-line-205",                        [{"customdata":["\u003cbr\u003en_iter: 241","\u003cbr\u003en_iter: 434","\u003cbr\u003en_iter: 380","\u003cbr\u003en_iter: 423","\u003cbr\u003en_iter: 418"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[13.49570245668292,12.193324603140354,10.005607449449599,10.356839495711029,9.6380166541785],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 385","\u003cbr\u003en_iter: 406","\u003cbr\u003en_iter: 407","\u003cbr\u003en_iter: 388","\u003cbr\u003en_iter: 356"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[17.842242832295597,22.10663714352995,29.73269023001194,32.757532047107816,30.955631173215806],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 522","\u003cbr\u003en_iter: 22","\u003cbr\u003en_iter: 21"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[25.007168703712523,12.92604611068964,3.784320879727602,0.3850531717762351,0.16611764207482338],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>ExtraTreesClassifier</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-206" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-206")) {                    Plotly.newPlot(                        "scaling-line-206",                        [{"customdata":["","","","",""],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[259.02857439941727,137.140137332608,83.59838679607492,60.711319754773285,45.25775132206036],"type":"scatter"},{"customdata":["","","","",""],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[174.41125524928793,94.96180388960056,54.29757631209213,44.04497196665034,38.083701305731665],"type":"scatter"},{"customdata":["","","","",""],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[109.76876903441735,61.9155873398995,35.49717282730853,27.357206861051964,25.29047198186163],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,9.85188952776795,null,1,2,4,8,14.631629683937494,null,1,2,4,6.200458706523587],"y":[174.41125524928793,87.20562762464397,43.60281381232198,21.80140690616099,17.70333038730314,null,259.02857439941727,129.51428719970863,64.75714359985432,32.37857179992716,17.70333038730314,null,109.76876903441735,54.88438451720867,27.442192258604337,17.70333038730314],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_features=0.5, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-207" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-207")) {                    Plotly.newPlot(                        "scaling-line-207",                        [{"customdata":["","","","",""],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[163.9043137198314,83.85966042988002,46.87652108259499,36.26576868700795,25.431850366658182],"type":"scatter"},{"customdata":["","","","",""],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[171.76189915335272,88.39414847898297,47.761542568332516,37.656270249863155,26.326392582632252],"type":"scatter"},{"customdata":["","","","",""],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[30.38562676811125,15.376285908860154,7.65741952782264,6.356655987474369,4.764352144411532],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,null,1,2,4,8,16,null,1,2,4,8,9.111005426220538],"y":[171.76189915335272,85.88094957667636,42.94047478833818,21.47023739416909,10.735118697084545,null,163.9043137198314,81.9521568599157,40.97607842995785,20.488039214978926,10.244019607489463,null,30.38562676811125,15.192813384055626,7.596406692027813,3.7982033460139064,3.3350465010880725],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>KMeans</h3><div class="plot-subtitle">dataset: fashion_mnist_784 (60,000 rows x 784 features)</div><div class="plot-subtitle">params: n_clusters=100</div><div style="height:340px; width:100%;">                            <div id="scaling-line-208" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-208")) {                    Plotly.newPlot(                        "scaling-line-208",                        [{"customdata":["\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 143","\u003cbr\u003en_iter: 140","\u003cbr\u003en_iter: 87","\u003cbr\u003en_iter: 76"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16],"y":[18.61778341140598,10.259677429683506,8.457608851604164,8.930633656680584,7.449329431168735],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 86","\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 89","\u003cbr\u003en_iter: 72","\u003cbr\u003en_iter: 87"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16],"y":[17.368740894831717,11.031225360929966,7.270241970196366,7.6059909369796515,7.7730244398117065],"type":"scatter"},{"customdata":["\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91","\u003cbr\u003en_iter: 91"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16],"y":[11.174158167093992,5.647384874522686,3.2771688355132937,3.0374723775312304,2.329237691126764],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16],"ticktext":["1","2","4","8","16"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section></section></div></div>
+  
+  <div id="high_end_intel_xeon_server" class="tab-panel"><div class="page-row"><section class="panel">
+  
+  <h2 class="date-range" data-count="194" data-start="2026-09-30T15:01:38.283075+00:00" data-end="2026-10-01T07:58:04.386558+00:00"></h2>
+  
+</section></div><div class="page-row"><section class="tabs" id="tabs-25">
+  <div class="tab-buttons">
+  
+    <button class="tab-button active" type="button" data-tab-target="tab-tabs-25-0">sklearn-pypi</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-25-1">sklearn-cf-mkl</button>
+  
+    <button class="tab-button" type="button" data-tab-target="tab-tabs-25-2">sklearnex</button>
+  
+  </div>
+  
+  <div id="tab-tabs-25-0" class="tab-panel active"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-pypi</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(pypi)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(pypi)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libscipy_openblas 0.3.31.dev (64 threads)</li>
+    
+      <li>libscipy_openblas 0.3.34.106.0 (64 threads)</li>
+    
+      <li>libgomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 4.5)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Faa7689.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-25-1" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearn-cf-mkl</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.9.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>numpy</code> 2.5.3 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scipy</code> 1.18.1 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>pandas</code> 2.3.3 <span class="muted">(conda-forge)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libmkl_rt 2026.1-Product (172 threads)</li>
+    
+      <li>libomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>Intel/LLVM OpenMP (spec 201611)</li>
+    
+      <li>KMP_BLOCKTIME: 200ms</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Fa9115d.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <div id="tab-tabs-25-2" class="tab-panel"><section class="software-details">
+  <div style="min-width: 150px">
+    <h3>sklearnex</h3>
+    <p> Python 3.12.14</p>
+    
+    
+  </div>
+  <div>
+    <h3>Packages</h3>
+    <ul class="package-list">
+    
+      <li><code>scikit-learn</code> 1.8.0 <span class="muted">(conda-forge)</span></li>
+    
+      <li><code>scikit_learn_intelex</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+      <li><code>daal</code> 2026.1.0 <span class="muted">(pypi)</span></li>
+    
+    </ul>
+  </div>
+  <div>
+    <h3>Threadpools</h3>
+    <ul class="compact">
+    
+      <li>libopenblas 0.3.34 (128 threads)</li>
+    
+      <li>libgomp (344 threads)</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>OpenMP</h3>
+    <ul class="compact">
+    
+      <li>GNU libgomp (OpenMP 5.2)</li>
+    
+      <li>GOMP_SPINCOUNT: 300000</li>
+    
+    </ul>
+  </div>
+  
+  <div>
+    <h3>Full environment</h3>
+    <p><a href="https://flamegraph-viewer-839234844562.europe-west1.run.app/json?url=https%3A%2F%2Fmedia.githubusercontent.com%2Fmedia%2Fprobabl-ai%2Fscikit-learn-benchmarks%2F79488b6623b86902db4f63d9a7296555edb7f373%2Fresults%2Fsoftware-envs%2Fc5932f.json">view pixi env JSON</a></p>
+  </div>
+</section></div>
+  
+  <script>
+    document.querySelectorAll("#tabs-25 .tab-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll("#tabs-25 .tab-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll("#tabs-25 .tab-panel").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tabTarget).classList.add("active");
+      });
+    });
+  </script>
+</section></div><div class="page-row"><section class="plot-grid" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));"><section class="plot-cell"><h3>Ridge</h3><div class="plot-subtitle">dataset: year_prediction_msd (463,810 rows x 990 features)</div><div class="plot-subtitle">params: alpha=1.0</div><div style="height:340px; width:100%;">                            <div id="scaling-line-209" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-209")) {                    Plotly.newPlot(                        "scaling-line-209",                        [{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling","","","","","","","","",""],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[7.1325473710894585,7.118410193361342,4.438194466754794,3.288702524267137,2.5744908545166254,2.453432465903461,2.55115688405931,3.460868300870061,3.5562797328457236,3.9258448788896203],"type":"scatter"},{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling","","","","","","","","",""],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[7.457478533498943,7.733624303713441,4.897933781147003,3.476051648147404,2.943218865431845,2.349643333815038,7.417814889922738,7.348572436720133,7.292827360332012,7.400692629627883],"type":"scatter"},{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling","","","","","","","","",""],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[5.832220444455743,5.835319818928838,2.7738049821928144,1.424546460621059,0.7423763331025839,0.4329596972092986,0.5481549808755517,0.43490015529096127,0.6083582052960992,0.6972966836765409],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[0.5,1,2,4,8,16,32,64,128,256],"ticktext":["0.5","1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>LogisticRegression</h3><div class="plot-subtitle">dataset: covtype (200,000 rows x 100 features, 7 classes)</div><div class="plot-subtitle">params: C=10.0, max_iter=1000, solver=lbfgs</div><div style="height:340px; width:100%;">                            <div id="scaling-line-210" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-210")) {                    Plotly.newPlot(                        "scaling-line-210",                        [{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling\u003cbr\u003en_iter: 433","\u003cbr\u003en_iter: 373","\u003cbr\u003en_iter: 335","\u003cbr\u003en_iter: 379","\u003cbr\u003en_iter: 490","\u003cbr\u003en_iter: 429","\u003cbr\u003en_iter: 439","\u003cbr\u003en_iter: 394","\u003cbr\u003en_iter: 318","\u003cbr\u003en_iter: 318"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[18.858654906973243,16.987292546778917,11.936600827611983,12.212974809110165,13.23788070678711,12.543991141952574,11.043870155699551,11.722449080087245,10.43814040441066,11.132020009681582],"type":"scatter"},{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 388","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487","\u003cbr\u003en_iter: 487"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[24.366684482432902,47.21774669736624,55.930044915527105,61.17926392890513,45.897899315692484,18.86675920151174,24.29107960872352,14.344680489972234,15.676379719749093,17.929604342207313],"type":"scatter"},{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000","\u003cbr\u003en_iter: 1000"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[24.13480243459344,23.99715931992978,9.994750407524407,5.2595720095559955,3.052240550518036,1.9076440799981356,1.5755977155640721,1.4445521654561162,2.492256893776357,3.9028685642406344],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[0.5,1,2,4,8,16,32,64,128,256],"ticktext":["0.5","1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>ExtraTreesClassifier</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-211" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-211")) {                    Plotly.newPlot(                        "scaling-line-211",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[204.69185528345406,115.02105132094584,65.46226147911511,36.67714945913758,21.420026061241515,14.741543852142058,8.311219656934554,5.014469944671873,3.759845331728155],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[153.21273322333582,87.90596720064059,50.330720259808004,28.47449997498188,17.48181533184834,12.807102050282992,6.720966949251306,4.394096978012385,3.316504190483694],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[105.53200533031486,56.182467873441055,33.05636498553213,17.20208779006498,9.773008080082946,6.730111754222889,3.622461524901155,2.2191101586031436,1.748257988609027],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,125.19624369074876,null,1,2,4,8,16,32,64,128,167.26189042149142,null,1,2,4,8,16,32,64,86.23441654322727],"y":[153.21273322333582,76.60636661166791,38.303183305833954,19.151591652916977,9.575795826458489,4.787897913229244,2.393948956614622,1.223780592026319,null,204.69185528345406,102.34592764172703,51.172963820863515,25.586481910431758,12.793240955215879,6.396620477607939,3.1983102388039697,1.5991551194019848,1.223780592026319,null,105.53200533031486,52.76600266515743,26.383001332578715,13.191500666289357,6.595750333144679,3.2978751665723394,1.6489375832861697,1.223780592026319],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_features=0.5, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-212" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-212")) {                    Plotly.newPlot(                        "scaling-line-212",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[146.3935521838721,74.36473392881453,35.86499798402656,18.594176873739343,9.764124068897218,5.731900909086107,3.121674854628509,1.831476932966325,1.420774290657624],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[152.15757240075618,78.01995758200064,37.26543899101671,19.46655132487649,10.333239055762533,6.127410881163087,3.3856177931738785,1.8665493354092177,1.5841979106352122],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[30.428944947198033,15.852126799291,7.874266424914822,4.001304482517298,2.028750499448506,1.306378403751296,0.6830492784501985,0.457550412920682,0.3499909325064225],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,172,null,1,2,4,8,16,32,64,128,172,null,1,2,4,8,16,32,64,124.20299303709064],"y":[152.15757240075618,76.07878620037809,38.039393100189045,19.019696550094523,9.509848275047261,4.754924137523631,2.3774620687618153,1.1887310343809077,0.8846370488416057,null,146.3935521838721,73.19677609193604,36.59838804596802,18.29919402298401,9.149597011492006,4.574798505746003,2.2873992528730014,1.1436996264365007,0.8511253033946051,null,30.428944947198033,15.214472473599017,7.607236236799508,3.803618118399754,1.901809059199877,0.9509045295999385,0.47545226479996927,0.24499365275449572],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>KMeans</h3><div class="plot-subtitle">dataset: fashion_mnist_784 (60,000 rows x 784 features)</div><div class="plot-subtitle">params: n_clusters=100</div><div style="height:340px; width:100%;">                            <div id="scaling-line-213" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-213")) {                    Plotly.newPlot(                        "scaling-line-213",                        [{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 119","\u003cbr\u003en_iter: 89","\u003cbr\u003en_iter: 82","\u003cbr\u003en_iter: 81","\u003cbr\u003en_iter: 81","\u003cbr\u003en_iter: 86"],"hovertemplate":"sklearn-cf-mkl\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"sklearn-cf-mkl","showlegend":true,"x":[0.5,1,2,4,8,16,32,64],"y":[13.596500296145678,13.487170031294227,9.247061508707702,6.453318485058844,6.632981796748936,6.248603522777557,6.267879702150822,6.71121122315526],"type":"scatter"},{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling\u003cbr\u003en_iter: 74","\u003cbr\u003en_iter: 74","\u003cbr\u003en_iter: 97","\u003cbr\u003en_iter: 89","\u003cbr\u003en_iter: 76","\u003cbr\u003en_iter: 78","\u003cbr\u003en_iter: 78","\u003cbr\u003en_iter: 78"],"hovertemplate":"sklearn-pypi\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"sklearn-pypi","showlegend":true,"x":[0.5,1,2,4,8,16,32,64],"y":[14.777509860694408,15.698011706583202,10.974312408827245,7.80896217469126,7.056796402670443,7.093727359548211,7.251778978854418,6.997360106557608],"type":"scatter"},{"customdata":["\u003cbr\u003e1 logical CPU, no SMT sibling\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133","\u003cbr\u003en_iter: 133"],"hovertemplate":"sklearnex\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"sklearnex","showlegend":true,"x":[0.5,1,2,4,8,16,32,64,128,172],"y":[13.71551176533103,13.7474934021011,6.904149726964533,3.966372120194137,2.240129303187132,1.3217657366767526,1.221812715753913,2.102417661808431,4.081186484545469,6.363741944544017],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[0.5,1,2,4,8,16,32,64,128,256],"ticktext":["0.5","1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time (s)"},"rangemode":"tozero"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section></section></div><div class="page-row"><section class="panel"><h3>SMT vs. no SMT</h3><div class="plot-subtitle"><span class="term" tabindex="0">SMT<span class="term-tip" role="tooltip">Simultaneous multithreading, called hyper-threading by Intel: one physical core runs two threads at once by sharing its execution units.</span></span> (simultaneous multithreading, aka hyper-threading) gives each <span class="term" tabindex="0">physical core<span class="term-tip" role="tooltip">One hardware core of the CPU. With SMT, it shows up as two logical CPUs.</span></span> two <span class="term" tabindex="0">logical cores<span class="term-tip" role="tooltip">What the operating system sees as one CPU. With SMT, each physical core shows up as two logical CPUs.</span></span>. "SMT" pins both logical siblings of each selected physical core (the default used above); "no SMT" uses one logical thread per physical core.</div></section></div><div class="page-row"><section class="plot-grid" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));"><section class="plot-cell"><h3>ExtraTreesClassifier / sklearn-pypi</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-214" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-214")) {                    Plotly.newPlot(                        "scaling-line-214",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[153.21273322333582,87.90596720064059,50.330720259808004,28.47449997498188,17.48181533184834,12.807102050282992,6.720966949251306,4.394096978012385,3.316504190483694],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"no SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4","dash":"dash"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"no SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[187.7807348209899,101.98283618083224,56.0574298055144,32.58739623852307,19.16932583990274,13.696714549587341,8.024632318301883,3.8869950718435575,3.7940800610962215],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,65.99579575512982],"y":[153.21273322333582,76.60636661166791,38.303183305833954,19.151591652916977,9.575795826458489,4.787897913229244,2.393948956614622,2.3215529333385856],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>ExtraTreesClassifier / sklearn-cf-mkl</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-215" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-215")) {                    Plotly.newPlot(                        "scaling-line-215",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[204.69185528345406,115.02105132094584,65.46226147911511,36.67714945913758,21.420026061241515,14.741543852142058,8.311219656934554,5.014469944671873,3.759845331728155],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"no SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e","dash":"dash"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"no SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[248.534157598624,133.79601491615176,74.42136539320927,41.94778730161488,24.575364233896835,16.80550230339577,9.143142267203075,4.817567091049568,4.144221571271395],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,77.77366096727579],"y":[204.69185528345406,102.34592764172703,51.172963820863515,25.586481910431758,12.793240955215879,6.396620477607939,3.1983102388039697,2.6318917322097084],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>ExtraTreesClassifier / sklearnex</h3><div class="plot-subtitle">dataset: susy (2,000,000 rows x 18 features, 2 classes)</div><div class="plot-subtitle">params: max_depth=16, max_features=0.5, min_impurity_decrease=3e-06, n_jobs=8</div><div style="height:340px; width:100%;">                            <div id="scaling-line-216" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-216")) {                    Plotly.newPlot(                        "scaling-line-216",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[105.53200533031486,56.182467873441055,33.05636498553213,17.20208779006498,9.773008080082946,6.730111754222889,3.622461524901155,2.2191101586031436,1.748257988609027],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"no SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5","dash":"dash"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"no SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[130.63512170920148,68.87993987184018,38.11854040250182,19.451723001839127,10.323122476256685,7.062486950599123,3.537690111261327,2.0460819752770476,1.6062746738857958],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,93.85692874682925],"y":[105.53200533031486,52.76600266515743,26.383001332578715,13.191500666289357,6.595750333144679,3.2978751665723394,1.6489375832861697,1.124392271720057],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section></section></div><div class="page-row"><section class="plot-grid" style="grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));"><section class="plot-cell"><h3>RandomForestClassifier / sklearn-pypi</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_features=0.5, n_jobs=1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-217" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-217")) {                    Plotly.newPlot(                        "scaling-line-217",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[152.15757240075618,78.01995758200064,37.26543899101671,19.46655132487649,10.333239055762533,6.127410881163087,3.3856177931738785,1.8665493354092177,1.5841979106352122],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"no SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#2294c4","dash":"dash"},"marker":{"color":"#2294c4"},"mode":"lines+markers","name":"no SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[212.93453970574774,114.4508104713168,53.83627164119389,27.68121335102478,15.022749297349947,8.473604859318584,4.623708371036628,2.351649633146735,1.7327955414319065],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,137.2101043141455],"y":[152.15757240075618,76.07878620037809,38.039393100189045,19.019696550094523,9.509848275047261,4.754924137523631,2.3774620687618153,1.1887310343809077,1.1089385374446485],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier / sklearn-cf-mkl</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_features=0.5, n_jobs=1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-218" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-218")) {                    Plotly.newPlot(                        "scaling-line-218",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[146.3935521838721,74.36473392881453,35.86499798402656,18.594176873739343,9.764124068897218,5.731900909086107,3.121674854628509,1.831476932966325,1.420774290657624],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"no SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#f7931e","dash":"dash"},"marker":{"color":"#f7931e"},"mode":"lines+markers","name":"no SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[203.26118167722598,111.52281599352136,51.57434387365356,26.16276047338033,14.882908690924523,8.071422185457777,4.439165251096711,2.236963374525658,1.6762141393481342],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,147.19695264204134],"y":[146.3935521838721,73.19677609193604,36.59838804596802,18.29919402298401,9.149597011492006,4.574798505746003,2.2873992528730014,1.1436996264365007,0.9945420034603367],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section><section class="plot-cell"><h3>RandomForestClassifier / sklearnex</h3><div class="plot-subtitle">dataset: fraud (150,000 rows x 30 features, 2 classes)</div><div class="plot-subtitle">params: max_bins=150000, max_features=0.5, n_jobs=-1</div><div style="height:340px; width:100%;">                            <div id="scaling-line-219" class="plotly-graph-div" style="height:100%; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("scaling-line-219")) {                    Plotly.newPlot(                        "scaling-line-219",                        [{"customdata":["","","","","","","","",""],"hovertemplate":"SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[30.428944947198033,15.852126799291,7.874266424914822,4.001304482517298,2.028750499448506,1.306378403751296,0.6830492784501985,0.457550412920682,0.3499909325064225],"type":"scatter"},{"customdata":["","","","","","","","",""],"hovertemplate":"no SMT\u003cbr\u003e%{x} cores: %{y:.3g}s%{customdata}\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#8045e5","dash":"dash"},"marker":{"color":"#8045e5"},"mode":"lines+markers","name":"no SMT","showlegend":true,"x":[1,2,4,8,16,32,64,128,172],"y":[49.63999707251787,24.40679182182066,11.705136799719185,5.807179289695341,2.8210337040945888,1.6019651728129247,0.8028258629565244,0.4659757233639539,0.3311536502943179],"type":"scatter"},{"hoverinfo":"skip","line":{"color":"#48566b","dash":"dash","width":1},"mode":"lines","name":"perfect scalability","x":[1,2,4,8,16,32,64,128,131.268132827482],"y":[30.428944947198033,15.214472473599017,7.607236236799508,3.803618118399754,1.901809059199877,0.9509045295999385,0.47545226479996927,0.23772613239998464,0.23180755520602253],"type":"scatter"}],                        {"template":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}},"xaxis":{"title":{"text":"cores"},"type":"log","tickmode":"array","tickvals":[1,2,4,8,16,32,64,128,256],"ticktext":["1","2","4","8","16","32","64","128","256"]},"yaxis":{"title":{"text":"fit time \u002f 100 trees (s)"},"type":"log"},"margin":{"l":60,"r":15,"t":15,"b":44},"legend":{"orientation":"h","y":-0.25}},                        {"responsive": true}                    )                };            </script>        </div></section></section></div></div>
+  
+  <script>
+    const hardwareTabButtons = document.querySelectorAll("#hardware-tabs > .tab-buttons .tab-button");
+    function activateHardwareTab(button, updateHash = false) {
+      document.querySelectorAll("#hardware-tabs > .tab-buttons .tab-button").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll("#hardware-tabs > .tab-panel").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      const panel = document.getElementById(button.dataset.tabTarget);
+      panel.classList.add("active");
+      panel.querySelectorAll(".plotly-graph-div").forEach((chart) => Plotly.Plots.resize(chart));
+      if (updateHash) {
+        history.replaceState(null, "", `#${button.dataset.tabTarget}`);
+      }
+    }
+    hardwareTabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activateHardwareTab(button, true);
+      });
+    });
+    const hardwareTabFromHash = Array.from(hardwareTabButtons).find(
+      (button) => button.dataset.tabTarget === window.location.hash.slice(1)
+    );
+    if (hardwareTabFromHash) {
+      activateHardwareTab(hardwareTabFromHash);
+    }
+  </script>
+</section></div>
+  
+  </main>
+</body>
+</html>
