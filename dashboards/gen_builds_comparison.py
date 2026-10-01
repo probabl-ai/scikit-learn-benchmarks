@@ -295,6 +295,8 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
+# Page header and index page label.
+TITLE = "Builds comparison"
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
 SOURCE_ENVS = GENERAL_SOURCE_ENVS
 
@@ -316,7 +318,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="sklbench builds comparison dashboard",
+        title=TITLE,
         rows=[
             ABOUT_HTML,
             render_hardware_tabs(hardware_pages),

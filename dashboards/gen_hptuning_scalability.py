@@ -92,6 +92,8 @@ DURATION_METRIC = "s / fit"
 CPU_METRIC = "CPU utilization (%)"
 
 
+# Page header and index page label.
+TITLE = "RandomizedSearchCV outer-parallelism scalability"
 SOURCE_CONFIGS = ["configs/hptuning.py"]
 
 ABOUT_HTML = """<section class="panel">
@@ -543,7 +545,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="RandomizedSearchCV outer-parallelism scalability",
+        title=TITLE,
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "hptuning_scalability.html"

@@ -870,6 +870,8 @@ def render_selector(
     """
 
 
+# Page header and index page label.
+TITLE = "Hardware comparison"
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
 # The conda-forge BLAS/OpenMP build variants are a software comparison
 # (gen_builds_comparison.py); across hardware they'd only multiply the lines
@@ -900,7 +902,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="sklbench hardware comparison dashboard",
+        title=TITLE,
         rows=[ABOUT_HTML, render_selector(all_results, read_search_results())],
     )
 

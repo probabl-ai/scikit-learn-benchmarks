@@ -57,6 +57,8 @@ from sklbench.reporting.matching import (
 )
 
 
+# Page header and index page label.
+TITLE = "HistGradientBoosting thread-scalability breakdown"
 SOURCE_CONFIGS = [
     "configs/hgb_scalability.py",
 ]
@@ -541,7 +543,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HistGradientBoosting fit-time breakdown (thread scalability)",
+        title=TITLE,
         rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"

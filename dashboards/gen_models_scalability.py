@@ -113,6 +113,8 @@ MODEL_ORDER = [estimator for estimator, _ in MODELS]
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
 
 SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+# Page header and index page label.
+TITLE = "Models core-count scalability"
 SOURCE_CONFIGS = ["configs/models_scalability.py"]
 # The `intel` pixi env is sklearn patched with sklearnex; plots name the library.
 ENV_LABELS = {"intel": "sklearnex"}
@@ -437,7 +439,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="Models core-count scalability",
+        title=TITLE,
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "models_scalability.html"

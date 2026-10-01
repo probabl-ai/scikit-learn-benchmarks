@@ -302,6 +302,8 @@ if __name__ == "__main__":
     )
     html = BASE_TEMPLATE.render(
         title=title,
+        # Published on its own, without the index page.
+        home_url=None,
         rows=[f'<div class="page-row">{row}</div>' for row in rows],
     )
 

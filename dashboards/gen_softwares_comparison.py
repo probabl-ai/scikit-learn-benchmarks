@@ -472,6 +472,8 @@ document.addEventListener("click", (event) => {
 </script>"""
 
 
+# Page header and index page label.
+TITLE = "Software/implementations comparison"
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
 SOURCE_ENVS = GENERAL_SOURCE_ENVS
 
@@ -501,7 +503,7 @@ def generate(output_dir: Path) -> None:
         if hardware_hash in hardware_hashes_with_results
     ]
 
-    html = BASE_TEMPLATE.render(rows=[
+    html = BASE_TEMPLATE.render(title=TITLE, rows=[
         ABOUT_HTML,
         PREPROCESSING_TOGGLE_HTML,
         render_hardware_tabs(hardware_pages),

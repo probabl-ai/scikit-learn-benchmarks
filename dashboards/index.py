@@ -67,12 +67,15 @@ ABOUT_HTML = """<section class="panel">
 
 
 DASHBOARDS = [
-    ("Software/implementations comparison", gen_softwares_comparison, "per_hardware.html"),
-    ("Builds comparison", gen_builds_comparison, "builds_comparison.html"),
-    ("Hardware comparison", gen_hardware_comparisons, "hardware_comparisons.html"),
-    ("Models core-count scalability", gen_models_scalability, "models_scalability.html"),
-    ("RandomizedSearchCV outer-parallelism scalability", gen_hptuning_scalability, "hptuning_scalability.html"),
-    ("HistGradientBoosting thread-scalability breakdown", gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+    (module.TITLE, module, href)
+    for module, href in [
+        (gen_softwares_comparison, "per_hardware.html"),
+        (gen_builds_comparison, "builds_comparison.html"),
+        (gen_hardware_comparisons, "hardware_comparisons.html"),
+        (gen_models_scalability, "models_scalability.html"),
+        (gen_hptuning_scalability, "hptuning_scalability.html"),
+        (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+    ]
 ]
 
 DASHBOARD_DESCRIPTIONS = {
@@ -115,7 +118,8 @@ if __name__ == "__main__":
         for label, _, href in DASHBOARDS
     )
     html = BASE_TEMPLATE.render(
-        title="sklbench dashboards",
+        title="scikit-learn benchmark dashboard",
+        home_url=None,
         rows=[
             ABOUT_HTML,
             f"""

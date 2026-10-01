@@ -415,6 +415,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
 </head>
 <body>
   <header class="site-header">
+    {% set home = home_url if home_url is defined else "index.html" %}
+    {% if home %}<a class="site-home" href="{{ home }}">&larr; All dashboards</a>{% endif %}
     <h1>{{ title|default("sklbench dashboard") }}</h1>
   </header>
   <main>
