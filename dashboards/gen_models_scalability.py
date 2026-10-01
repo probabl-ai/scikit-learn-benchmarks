@@ -14,9 +14,10 @@ size (see `NORMALIZED_N_ESTIMATORS`), since that config scales `n_estimators`
 with core count, and plotted on a log y-axis with a per-environment dashed
 perfect-scalability reference (see `_perfect_scaling_reference`).
 
-On hardware with SMT cores, every line also has a "half core" point at
-`n_cores=0.5`: one logical CPU without its SMT sibling (see
-`models_scalability.py`'s `_with_half_core_bench`).
+On hardware with SMT cores, the non-tree plots also have a "half core" point
+at `n_cores=0.5`: one logical CPU without its SMT sibling (see
+`models_scalability.py`'s `_with_half_core_bench`). It's left out of the tree
+plots, where it measures the same thing as the 1-core "no SMT" point.
 
 Records from that config are identified by `metadata.source_config` (see
 `SOURCE_CONFIGS` and `sklbench.reporting.matching.matches_source_configs`),
@@ -57,11 +58,10 @@ ABOUT_HTML = """<section class="panel">
     tree models, the y-axis is in log scale too, and each environment has a
     grey dashed perfect-scaling line starting from its first point, so the
     gap to it is the lost efficiency. Look for curves that flatten or go up. On machines
-    with hyper-threading, the 0.5 point is a single logical CPU, without its
-    SMT sibling, so the step from 0.5 to 1 shows what SMT brings on one core.
-    The perfect-scaling line starts at 1 core, since an SMT sibling isn't a
-    second core. A section below compares RandomForest and ExtraTrees with
-    and without SMT, one plot per environment.</p>
+    with hyper-threading, the 0.5 point of the non-tree models is a single
+    logical CPU, without its SMT sibling, so the step from 0.5 to 1 shows what
+    SMT brings on one core. For RandomForest and ExtraTrees, a section below
+    compares runs with and without SMT, one plot per environment.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -128,6 +128,13 @@ HALF_CORE = 0.5
 # every tree point to this fixed forest size divides that confound out,
 # leaving just the scaling behavior.
 NORMALIZED_N_ESTIMATORS = 100
+
+
+def _is_half_core_tree(result: MethodResult) -> bool:
+    return (
+        _cores(result) == HALF_CORE
+        and result.case["algorithm"]["estimator"] in TREE_ESTIMATORS
+    )
 
 
 def _is_charted_pair(result: MethodResult) -> bool:
@@ -214,9 +221,7 @@ def _perfect_scaling_reference(
     series: dict, anchor_labels: list[str]
 ) -> dict[str, list[list[tuple[float, float]]]]:
     """One y = y0 * x0 / x segment per anchor series, starting at its first
-    point of at least 1 core (an SMT sibling isn't a second core, so the
-    half-core point would make SMT look like it should double throughput)
-    and cut once it drops below `REFERENCE_Y_FLOOR` times the cell's
+    point and cut once it drops below `REFERENCE_Y_FLOOR` times the cell's
     fastest point, so a slow single-core baseline doesn't stretch the
     y-axis."""
     all_points = [point for points in series.values() for point in points]
@@ -228,8 +233,7 @@ def _perfect_scaling_reference(
     for label in anchor_labels:
         if label not in series:
             continue
-        anchors = [point for point in series[label] if point[0] >= 1] or series[label]
-        x0, y0 = min(anchors, key=lambda point: point[0])[:2]
+        x0, y0 = min(series[label], key=lambda point: point[0])[:2]
         segment = [(x, y0 * x0 / x) for x in xs if x >= x0 and y0 * x0 / x >= y_floor]
         x_floor = y0 * x0 / y_floor
         if x0 < x_floor < xs[-1]:
@@ -304,11 +308,9 @@ def _grid_html(cells: list[str]) -> str:
 def _smt_section_html(hw_results: list[MethodResult]) -> list[str]:
     """Page rows comparing SMT vs. no SMT, one plot per (tree estimator,
     env) - empty on hardware without SMT cores, where no "no SMT" variant is
-    generated. The half-core point is left out: it measures the same thing
-    as the 1-core "no SMT" point."""
+    generated."""
     if all(_with_siblings(result) for result in hw_results):
         return []
-    hw_results = [result for result in hw_results if _cores(result) != HALF_CORE]
     rows = [
         '<div class="page-row"><section class="panel"><h3>SMT vs. no SMT</h3>'
         f'<div class="plot-subtitle">{escape(SMT_NOTE)}</div></section></div>'
@@ -410,7 +412,9 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
 def generate(output_dir: Path) -> None:
     results = [
         result for result in read_all_results()
-        if matches_source_configs(result.case, SOURCE_CONFIGS) and _is_charted_pair(result)
+        if matches_source_configs(result.case, SOURCE_CONFIGS)
+        and _is_charted_pair(result)
+        and not _is_half_core_tree(result)
     ]
     hardware_hashes = sorted(
         {result.hardware_hash for result in results},
