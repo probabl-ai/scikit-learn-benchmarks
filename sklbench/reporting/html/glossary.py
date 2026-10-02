@@ -263,7 +263,9 @@ TERMS = {
     # Reading the plots
     "speed-up": Term(
         "Baseline time divided by the compared time: 2x is twice as fast as "
-        "the baseline, 0.5x twice as slow.",
+        "the baseline, 0.5x twice as slow. In the detailed results, a "
+        "noisy speed-up is shown as ~1.5x (5-15% spread over the repeats) "
+        "or as a range like 1.2-1.9x (more than 15%).",
         aliases=("speed-ups", "speedup", "fit speedup", "predict speedup"),
     ),
     "baseline": Term("The reference that speed-ups are computed against."),

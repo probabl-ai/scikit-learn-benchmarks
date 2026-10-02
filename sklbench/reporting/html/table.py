@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from statistics import mean, median
+from statistics import mean, median, quantiles
 from typing import Any, Callable
 
 from ..envs import (
@@ -633,6 +633,21 @@ def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
     return median(base_result.times) / result_time
 
 
+def _speedup_interval(
+    base_result: MethodResult, result: MethodResult
+) -> tuple[float, float] | None:
+    """Speed-up range spanned by the interquartile ranges of both sides'
+    repeat times. Always contains `_speedup`; its width is what the table's
+    speed-up formatter (templates.py) uses to show the value as noisy."""
+    if len(base_result.times) < 3 or len(result.times) < 3:
+        return None
+    base_q1, _, base_q3 = quantiles(base_result.times, n=4, method="inclusive")
+    q1, _, q3 = quantiles(result.times, n=4, method="inclusive")
+    if q1 <= 0 or base_q1 <= 0:
+        return None
+    return base_q1 / q3, base_q3 / q1
+
+
 # Row field -> test metric name. Both are higher-is-better.
 SCORE_METRICS = {"roc_auc": "ROC AUC", "r2": "R2"}
 
@@ -696,6 +711,13 @@ def _add_result_method(
     row[f"{method}_speedup"] = (
         _speedup(base_result, result) if base_result is not None else None
     )
+    interval = (
+        _speedup_interval(base_result, result)
+        if base_result is not None and base_result is not result
+        else None
+    )
+    if interval is not None:
+        row[f"{method}_speedup_low"], row[f"{method}_speedup_high"] = interval
 
 
 def _column_dict(

@@ -14,7 +14,7 @@ Dashboards are published on GitHub Pages:
 
 - [Dev dashboard](https://probabl-ai.github.io/scikit-learn-benchmarks/):
   regenerated on every push to `main`, so it always has the latest results.
-- [Latest stable dashboard](https://probabl-ai.github.io/scikit-learn-benchmarks/snapshots/2026-09-02-cff6ea4/):
+- [Latest stable dashboard](https://probabl-ai.github.io/scikit-learn-benchmarks/snapshots/v1.rc/):
   a snapshot of a specific commit, published by the `Dashboard Snapshot`
   GitHub Actions workflow.
 
