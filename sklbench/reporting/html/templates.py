@@ -49,19 +49,41 @@ BASE_TEMPLATE = Template("""<!doctype html>
       return sklbenchFormatDuration(cell.getValue());
     }
 
+    function sklbenchFormatRatio(value) {
+      return value >= 100 ? `${Math.round(value)}` : value.toPrecision(2);
+    }
+
+    // `<field>_low`/`<field>_high` bound the speed-up over the interquartile
+    // ranges of both sides' repeats (see `_speedup_interval` in table.py).
+    // Below 5% of spread the value is shown as is, up to 15% as approximate,
+    // and beyond that as the interval itself.
     function sklbenchSpeedupFormatter(cell) {
       const value = cell.getValue();
       if (value === null || value === undefined || !Number.isFinite(value)) {
         return "N/A";
       }
-      const label = `${value.toPrecision(2)}x`;
+      let label = `${sklbenchFormatRatio(value)}x`;
+      let attributes = "";
+      const field = cell.getColumn().getField();
+      const low = cell.getData()[`${field}_low`];
+      const high = cell.getData()[`${field}_high`];
+      if (Number.isFinite(low) && Number.isFinite(high)) {
+        const lowLabel = sklbenchFormatRatio(low);
+        const highLabel = sklbenchFormatRatio(high);
+        attributes += ` title="median ${label}, ${lowLabel}x to ${highLabel}x over the middle half of the repeats"`;
+        const spread = Math.sqrt(high / low) - 1;
+        if (spread > 0.15) {
+          label = `${lowLabel}-${highLabel}x`;
+        } else if (spread >= 0.05) {
+          label = `~${label}`;
+        }
+      }
       if (value > 1.1) {
-        return `<span class="speedup-positive">${label}</span>`;
+        attributes += ` class="speedup-positive"`;
+      } else if (value < 0.9) {
+        attributes += ` class="speedup-negative"`;
       }
-      if (value < 0.9) {
-        return `<span class="speedup-negative">${label}</span>`;
-      }
-      return label;
+      return attributes ? `<span${attributes}>${label}</span>` : label;
     }
 
     // Test score, colored when significantly better or worse than the
