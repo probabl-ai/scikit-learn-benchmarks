@@ -27,6 +27,7 @@ ENV_SENSITIVE_CONFIGS = {
     # (skl-cpu/skl-intel/skl-nvidia/skl-mps) would filter down to zero
     # implementations and produce no cases.
     Path("configs/hptuning.py"): GENERAL_ENVS,
+    Path("configs/forests.py"): GENERAL_ENVS,
 }
 
 
