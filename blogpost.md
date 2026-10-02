@@ -315,8 +315,6 @@ machine and using a few percent of it.
 
 ### HistGradientBoosting: more threads can make it much slower
 
-<!-- TODO figure: HGB breakdown dashboard, Xeon server tab -->
-
 This is the most striking result. On the Xeon server, the best number of
 threads for a `HistGradientBoosting*` fit grows with the size of the data. The
 smallest workloads are fastest on 1 thread, medium ones stop improving after 4
@@ -324,6 +322,12 @@ to 8 threads, and the largest after 16 to 64. Past that point, fits get
 slower, sometimes dramatically: every workload is 2x to 30x slower on 128 or
 172 threads than on its best thread count. And by default, HGB uses all the
 cores of the machine.
+
+![HistGradientBoosting fit time by phase vs number of threads, on year_prediction_msd and covtype, Xeon server](hgb_dashboard.png)
+![Legend: bin fit, bin transform, other / unmeasured, apply split, find split, compute hist](hgb_dashboard_legend.png)
+
+*HistGradientBoosting fit time on the Xeon server, split by phase, for two
+real datasets of ~500k samples*
 
 An HGB fit runs ~10k small OpenMP parallel regions (finding the best split of
 a node, splitting its samples), whatever the size of the data. When the work
