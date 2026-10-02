@@ -70,3 +70,28 @@ def test_auto_numa_cpu_affinity_pins_to_the_requested_node_on_a_multi_node_host(
     monkeypatch.setattr(numa, "NUMA_NODES_SYSFS", fake_root)
 
     assert numa.auto_numa_cpu_affinity(node=1) == list(range(22, 44))
+
+
+def _make_fake_cpu_sysfs(tmp_path, cpu_sockets: dict[int, int]):
+    root = tmp_path / "cpu"
+    for cpu, socket in cpu_sockets.items():
+        topology = root / f"cpu{cpu}" / "topology"
+        topology.mkdir(parents=True)
+        (topology / "physical_package_id").write_text(f"{socket}\n")
+    return root
+
+
+def test_auto_socket_cpu_affinity_is_none_on_a_single_socket_host(numa, tmp_path, monkeypatch):
+    fake_root = _make_fake_cpu_sysfs(tmp_path, {cpu: 0 for cpu in range(8)})
+    monkeypatch.setattr(numa, "CPUS_SYSFS", fake_root)
+
+    assert numa.auto_socket_cpu_affinity() is None
+
+
+def test_auto_socket_cpu_affinity_includes_smt_siblings_of_the_socket(numa, tmp_path, monkeypatch):
+    # GNR-like layout: socket 0 owns cores 0-1 and their SMT siblings 4-5.
+    fake_root = _make_fake_cpu_sysfs(tmp_path, {0: 0, 1: 0, 2: 1, 3: 1, 4: 0, 5: 0, 6: 1, 7: 1})
+    monkeypatch.setattr(numa, "CPUS_SYSFS", fake_root)
+
+    assert numa.auto_socket_cpu_affinity(socket=0) == [0, 1, 4, 5]
+    assert numa.auto_socket_cpu_affinity(socket=1) == [2, 3, 6, 7]
