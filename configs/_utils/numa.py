@@ -15,6 +15,7 @@ https://github.com/probabl-ai/scikit-learn-benchmarks/issues/80.
 from pathlib import Path
 
 NUMA_NODES_SYSFS = Path("/sys/devices/system/node")
+CPUS_SYSFS = Path("/sys/devices/system/cpu")
 
 
 def numa_node_count() -> int:
@@ -48,3 +49,23 @@ def auto_numa_cpu_affinity(node: int = 0) -> list[int] | None:
     if numa_node_count() <= 1:
         return None
     return cpu_affinity_for_numa_node(node)
+
+
+def cpus_by_socket() -> dict[int, list[int]]:
+    """Online CPU ids grouped by physical package (socket), read from sysfs."""
+    sockets: dict[int, list[int]] = {}
+    for package_id_file in CPUS_SYSFS.glob("cpu[0-9]*/topology/physical_package_id"):
+        cpu_id = int(package_id_file.parent.parent.name.removeprefix("cpu"))
+        socket = int(package_id_file.read_text(encoding="utf-8").strip())
+        sockets.setdefault(socket, []).append(cpu_id)
+    return {socket: sorted(cpus) for socket, cpus in sorted(sockets.items())}
+
+
+def auto_socket_cpu_affinity(socket: int = 0) -> list[int] | None:
+    """CPU ids pinning to one socket (all its NUMA nodes and SMT siblings),
+    or None on a single-socket host.
+    """
+    sockets = cpus_by_socket()
+    if len(sockets) <= 1:
+        return None
+    return sockets[socket]

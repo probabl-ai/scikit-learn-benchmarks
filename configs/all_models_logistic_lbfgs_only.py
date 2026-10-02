@@ -1,6 +1,8 @@
 from all_models import generate_cases as generate_all_models_cases
 from _utils.implementations import implementations_for_pixi_env
 from _synthetic_linear import _linear_cases_for, linear_data_shapes
+from _utils.numa import auto_socket_cpu_affinity
+from sklbench.config import Bench
 
 
 ALGORITHM = {"estimator": "LogisticRegression", "estimator_params": {"solver": "lbfgs"}}
@@ -23,6 +25,14 @@ BLAS_THREAD_COUNTS = [1, 4, None]
 # which real_datasets.py otherwise loads as C-order - so the sweep covers the
 # PR's affected path (F) and its unaffected control (C).
 DATA_ORDERS = ["C", "F"]
+
+N_RUNS = 10
+
+# Pin to one socket on multi-socket runners (intel-gnr), so "all threads"
+# means one socket's cores and memory rather than BLAS threads spread over
+# both sockets and their cross-socket memory traffic. None (no-op) on
+# single-socket runners.
+CPU_AFFINITY = auto_socket_cpu_affinity(socket=0)
 
 
 def _is_target(case) -> bool:
@@ -48,6 +58,10 @@ def _extra_scale_cases() -> list[dict]:
 
 def _with_blas_threads(case: dict, n_threads: int | None) -> dict:
     bench = case.get("bench") or {}
+    # time_limit is a total budget over all repeats: scale it with the
+    # repeat count so the extra repeats aren't cut off by it.
+    n_runs = bench.get("n_runs") or Bench().n_runs
+    time_limit = (bench.get("time_limit") or Bench().time_limit) * N_RUNS / n_runs
     env = {}
     if n_threads is not None:
         env["OPENBLAS_NUM_THREADS"] = str(n_threads)
@@ -56,6 +70,9 @@ def _with_blas_threads(case: dict, n_threads: int | None) -> dict:
         "metadata": {**case.get("metadata", {}), "blas_num_threads": n_threads},
         "bench": {
             **bench,
+            "n_runs": N_RUNS,
+            "time_limit": time_limit,
+            "cpu_affinity": CPU_AFFINITY,
             "py_spy_profiling": False,
             # This sweep's before/after comparison is exactly the shape
             # issue #80 warns about: a single-process draw of NUMA memory
