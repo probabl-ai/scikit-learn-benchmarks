@@ -316,12 +316,11 @@ machine and using a few percent of it.
 ### HistGradientBoosting: more threads can make it much slower
 
 This is the most striking result. On the Xeon server, the best number of
-threads for a `HistGradientBoosting*` fit grows with the size of the data. The
-smallest workloads are fastest on 1 thread, medium ones stop improving after 4
-to 8 threads, and the largest after 16 to 64. Past that point, fits get
-slower, sometimes dramatically: every workload is 2x to 30x slower on 128 or
-172 threads than on its best thread count. And by default, HGB uses all the
-cores of the machine.
+threads for a `HistGradientBoosting*` fit grows with the size of the data: 1
+thread for the smallest workloads, 4 to 8 for medium ones, 16 to 64 for the
+largest. Past that point, fits get slower: every workload is 2x to 30x slower
+on 128 or 172 threads than on its best thread count. And by default, HGB uses
+all the cores of the machine.
 
 ![HistGradientBoosting fit time by phase vs number of threads, on year_prediction_msd and covtype, Xeon server](hgb_dashboard.png)
 ![Legend: bin fit, bin transform, other / unmeasured, apply split, find split, compute hist](hgb_dashboard_legend.png)
@@ -329,39 +328,18 @@ cores of the machine.
 *HistGradientBoosting fit time on the Xeon server, split by phase, for two
 real datasets of ~500k samples*
 
-An HGB fit runs ~10k small OpenMP parallel regions (finding the best split of
-a node, splitting its samples), whatever the size of the data. When the work
-in each region is small, the cost of starting the region dominates. That cost
-depends a lot on *active wait*: whether idle OpenMP threads spin for a while
-before going to sleep, which makes the next region much cheaper to start.
+In short, an HGB fit typically runs thousands of small OpenMP parallel regions
+whatever the size of the data, and with many threads, starting a region might cost
+more than the work inside it. That cost also depends on the OpenMP settings, which
+differ between builds. On the laptop, the conda-forge builds get worse slowdowns because
+they ironically use a more recent OpenMP runtime than the PyPI wheels. I wrote down what
+I know about it in [#34764](https://github.com/scikit-learn/scikit-learn/issues/34764).
 
-Recent OpenMP runtimes disable active wait on CPUs with heterogeneous cores,
-which includes most recent laptops. The libgomp bundled in the PyPI wheel is
-older and keeps it
-([#34437](https://github.com/scikit-learn/scikit-learn/issues/34437)), the
-conda-forge build doesn't. On the laptop, without active wait, small and
-medium workloads get several times slower at 8 and 16 threads: covtype goes
-from 11s on 4 threads to 38s on 8. With active wait, they stay roughly flat or
-keep improving.
-
-Active wait isn't free either: spinning threads compete with other thread
-pools. It's the reason `KMeans` is slow with the PyPI wheel, where libgomp's
-spinning threads get in the way of OpenBLAS's threads
-([#17334](https://github.com/scikit-learn/scikit-learn/issues/17334)). So
-there is no single right setting. I wrote down what I know about it in
-[#34764](https://github.com/scikit-learn/scikit-learn/issues/34764).
-
-[#34935](https://github.com/scikit-learn/scikit-learn/pull/34935) mitigates
-the problem in scikit-learn. It detects whether the OpenMP runtime uses active
-wait, caps the number of threads used to grow each tree based on the number of
-samples and features, and runs small splits on a single thread. It was
-uniformly positive on the 8 setups I tested (laptop or server, active wait on
-or off, libgomp or libomp), and gives 2x to 10x speed-ups for small and medium
-datasets on the server, or on laptops without active wait. Olivier Grisel
-[compared it](https://github.com/scikit-learn/scikit-learn/pull/34935#issuecomment-5817871757)
-with XGBoost, LightGBM and CatBoost on his Apple M4 laptop: with this PR, the
-accuracy vs fit time trade-off of scikit-learn closely matches theirs on small
-to medium datasets. It's under review.
+[#34935](https://github.com/scikit-learn/scikit-learn/pull/34935) implements
+different strategies to mitigate those catastrophic scenarios. It gives 2x to
+10x speed-ups for small and medium datasets on the server and on laptops with
+conda-forge-like OpenMP settings. It's under review, and the full story will
+get its own blog post.
 
 ### GPUs and the array API: early days
 
@@ -417,8 +395,9 @@ and [parallelism](https://scikit-learn.org/stable/computing/parallelism.html)
 guides of the scikit-learn documentation, with a section for Intel users,
 from laptops to data center servers.
 
-**HistGradientBoosting scalability.** See
-[#34935](https://github.com/scikit-learn/scikit-learn/pull/34935) above.
+**HistGradientBoosting scalability.** Getting
+[#34935](https://github.com/scikit-learn/scikit-learn/pull/34935) merged, then
+a dedicated blog post.
 
 **Encoders.** Profiling a typical tabular pipeline showed `OneHotEncoder` and
 `OrdinalEncoder` taking a surprising share of the time. Itamar
