@@ -84,7 +84,9 @@ The repository has a few layers:
   `dashboards/gen_*.py` module. Those modules read `results/` and write one
   HTML page each, and are not run directly. `dashboards/index_comparison.py`
   is the separate entry point for the ephemeral per-PR results of
-  `pr-comparison.yml` (see COMPARISONS_PR.md). Fully vibe-coded.
+  `pr-comparison.yml` (see COMPARISONS_PR.md). Fully vibe-coded. In the
+  dashboard prose, wrap technical terms in `<dfn>` to give them a hover
+  definition. The definitions live in `sklbench/reporting/html/glossary.py`.
 - `.github/workflows/`: CI. `dashboard-pages.yml` runs `dashboards/index.py`
   on pushes to `main`. `dashboard-preview-build.yml` and
   `dashboard-preview-deploy.yml` build and deploy a preview dashboard for
@@ -244,7 +246,7 @@ To find what to rerun after a config change, use `scripts/what_to_rerun.py`:
 
 ```bash
 pixi run -e reporting python scripts/what_to_rerun.py --dashboard all
-pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Modern Intel laptop"
+pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Intel Core Ultra laptop"
 pixi run -e reporting python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 ```
 

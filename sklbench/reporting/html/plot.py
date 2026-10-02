@@ -269,6 +269,12 @@ def _hover_text(match: Match) -> str:
         f"<b>speed-up: {match.speedup:.2g}x</b> "
         f"({format_duration_ms(median(base.times))} vs {format_duration_ms(median(result.times))})",
     ]
+    if "hptuning" in base.case and "hptuning" in result.case:
+        # `HPTuning.n_jobs` defaults to 1, which is left out of serialized cases.
+        lines.append(
+            f"outer n_jobs: {base.case['hptuning'].get('n_jobs', 1)} vs "
+            f"{result.case['hptuning'].get('n_jobs', 1)}"
+        )
     lines.extend(_metrics_differ_lines(match))
     if result.is_sklearnex_fallback:
         lines.append("<i>fell back to scikit-learn</i>")
@@ -336,8 +342,8 @@ def phase_breakdown_plot_html(
     x_title: str = "threads",
     series_order: list[str] | None = None,
 ) -> str:
-    """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
-    count), one bar per `points` entry. Each point is
+    """Stacked bar of phase timings vs. an x-axis category (e.g. thread
+    count), one bar per `points` entry, plotted in seconds. Each point is
     `{"x": ..., "phases": {phase_name: ms}, "total_ms": ...}`, with an
     optional `"x_label"` overriding `str(x)` as the tick label (e.g. to show
     an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
@@ -380,8 +386,8 @@ def phase_breakdown_plot_html(
                 go.Bar(
                     name=phase_labels[phase],
                     x=x_values,
-                    y=y_values,
-                    base=list(cumulative_ms) if multi_series else None,
+                    y=[y / 1000 for y in y_values],
+                    base=[base / 1000 for base in cumulative_ms] if multi_series else None,
                     offsetgroup=series if multi_series else None,
                     marker={"color": phase_colors[phase]},
                     showlegend=False,
@@ -403,7 +409,7 @@ def phase_breakdown_plot_html(
     fig.update_layout(
         barmode="overlay" if multi_series else "stack",
         xaxis={"type": "category", "title": x_title},
-        yaxis={"title": "time (ms)", "rangemode": "tozero"},
+        yaxis={"title": "time (s)", "rangemode": "tozero"},
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         showlegend=False,
         template=PLOT_TEMPLATE,
@@ -836,8 +842,7 @@ def _has_histogram_splits_warning(match: Match) -> bool:
     return any("histogram-based splits" in warning.message for warning in match.warnings)
 
 
-def _x_variant(match: Match) -> str:
-    variant = match.matched_result.implementation.short_name
+def _x_variant(match: Match, variant: str) -> str:
     if match.matched_result.category != "tree-based":
         return variant
 
@@ -868,7 +873,7 @@ def speedup_plot_html(
     if trace_variant is None:
         trace_variant = _trace_variant
     if x_variant is None:
-        x_variant = _x_variant
+        x_variant = lambda match: _x_variant(match, trace_variant(match))
     if variant_sort_key is None:
         variant_sort_key = lambda variant: variant
     if comparison_key is None:
@@ -1031,6 +1036,20 @@ def speedup_plot_html(
                 "y0": 0,
                 "y1": 0,
                 "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
+            }
+        ],
+        annotations=[
+            {
+                "xref": "paper",
+                "x": 0,
+                "xanchor": "left",
+                "yref": "y",
+                "y": 0,
+                "yanchor": "bottom",
+                "text": f"1x = {baseline_label}",
+                "showarrow": False,
+                "font": {"size": 11, "color": REFERENCE_LINE_COLOR},
+                "bgcolor": "rgba(255, 255, 255, 0.7)",
             }
         ],
         margin={"l": 70, "r": 20, "t": 20, "b": 110},

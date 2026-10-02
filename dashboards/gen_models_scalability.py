@@ -14,6 +14,11 @@ size (see `NORMALIZED_N_ESTIMATORS`), since that config scales `n_estimators`
 with core count, and plotted on a log y-axis with a per-environment dashed
 perfect-scalability reference (see `_perfect_scaling_reference`).
 
+On hardware with SMT cores, the non-tree plots also have a "half core" point
+at `n_cores=0.5`: one logical CPU without its SMT sibling (see
+`models_scalability.py`'s `_with_half_core_bench`). It's left out of the tree
+plots, where it measures the same thing as the 1-core "no SMT" point.
+
 Records from that config are identified by `metadata.source_config` (see
 `SOURCE_CONFIGS` and `sklbench.reporting.matching.matches_source_configs`),
 stamped at load time by `sklbench.config.loader.load_cases_from_script` -
@@ -44,35 +49,53 @@ from sklbench.reporting.matching import (
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard shows how the wall-clock time of a single
-  <code>.fit()</code> call changes with the number of CPU cores.</p>
+  <p>This dashboard shows how the <dfn>wall-clock time</dfn> of a single
+  <code><dfn>.fit()</dfn></code> call changes with the number of <dfn>CPU cores</dfn>.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Each tab is a machine and each plot an (estimator, dataset) pair,
-    with one line per software environment. The x-axis is in log scale. For
+    with one line per <dfn>software environment</dfn>. The x-axis is in log scale. For
     tree models, the y-axis is in log scale too, and each environment has a
-    grey dashed perfect-scaling line starting from its first point, so the
+    grey dashed <dfn>perfect-scaling line</dfn> starting from its first point, so the
     gap to it is the lost efficiency. Look for curves that flatten or go up. On machines
-    with hyper-threading, a section below compares RandomForest and
-    ExtraTrees with and without SMT, one plot per environment.</p>
+    with <dfn>hyper-threading</dfn>, the 0.5 point of the non-tree models is a single
+    <dfn>logical CPU</dfn>, without its <dfn>SMT sibling</dfn>, so the step from 0.5 to 1 shows what
+    <dfn>SMT</dfn> brings on one core. For RandomForest and ExtraTrees, a section below
+    compares runs with and without SMT, one plot per environment.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li><b>tree ensembles scale best</b>, especially with
-      <code>scikit-learn-intelex</code>, which reaches ~50-60% parallel
-      efficiency at the highest core counts;</li>
-      <li>Ridge and LogisticRegression <b>barely benefit from more cores</b>, with
-      stock or MKL BLAS;</li>
-      <li>KMeans <b>can get slower</b> past some core count.</li>
+      <li><b>RandomForest</b> and <b>ExtraTrees</b> scale best, up to the
+      172 cores of the Xeon server. <b>scikit-learn-intelex</b> makes
+      RandomForest several times faster, but doesn't scale better. On the
+      laptop, the gains get smaller past 4 cores, probably because the other
+      cores are slower <dfn>E-cores</dfn>.</li>
+      <li><b>Ridge</b>, <b>LogisticRegression</b> and <b>KMeans</b> with
+      scikit-learn stop scaling after a few cores, and can get slower with
+      more cores on the Xeon server.</li>
+      <li><b>scikit-learn-intelex</b> scales these three models much further,
+      but on the Xeon server, they get slower past 16 to 64 cores.</li>
+      <li>With the <b><dfn>PyPI</dfn></b> build, <b>LogisticRegression</b> gets slower
+      as soon as it runs on more than one <dfn>logical CPU</dfn>. The <b><dfn>OpenBLAS</dfn></b>
+      shipped with scipy 1.18 wakes
+      all its <dfn>threads</dfn> for tiny operations in <dfn>L-BFGS-B</dfn>. This is fixed in
+      scipy 2.0 (see
+      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>),
+      and should also be fixed in 1.18.2
+      (<a href="https://github.com/scipy/scipy/pull/26199">scipy#26199</a>).</li>
+      <li>On the laptop, scikit-learn-intelex LogisticRegression looks much
+      faster from 8 cores on, but that's a <b><dfn>oneDAL</dfn></b> bug: on 4 threads or
+      more, L-BFGS stops too early and returns a worse model. See
+      <a href="https://github.com/uxlfoundation/oneDAL/issues/3820">oneDAL#3820</a>.</li>
     </ul>
   </details>
 </section>"""
 
 SMT_NOTE = (
-    "SMT (simultaneous multithreading, aka hyper-threading) gives each "
-    "physical core two logical cores. \"SMT\" pins both logical siblings of "
+    "<dfn>SMT</dfn> (simultaneous multithreading, aka hyper-threading) gives each "
+    "<dfn>physical core</dfn> two <dfn>logical cores</dfn>. \"SMT\" pins both logical siblings of "
     "each selected physical core (the default used above); \"no SMT\" uses "
     "one logical thread per physical core."
 )
@@ -90,6 +113,8 @@ MODEL_ORDER = [estimator for estimator, _ in MODELS]
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
 
 SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+# Page header and index page label.
+TITLE = "Models core-count scalability"
 SOURCE_CONFIGS = ["configs/models_scalability.py"]
 # The `intel` pixi env is sklearn patched with sklearnex; plots name the library.
 ENV_LABELS = {"intel": "sklearnex"}
@@ -98,6 +123,9 @@ ENV_COLORS = variant_color_map(ENV_ORDER)
 
 SMT_LABELS = {True: "SMT", False: "no SMT"}
 
+# `metadata.n_cores` of `models_scalability.py`'s half-core point.
+HALF_CORE = 0.5
+
 # `models_scalability.py`'s `_with_scaling_bench` sizes tree ensembles as
 # `max(24, cores_count * 8)` so every worker has its own tree to build at
 # every swept core count - meaning n_estimators (and so raw fit time) grows
@@ -105,6 +133,13 @@ SMT_LABELS = {True: "SMT", False: "no SMT"}
 # every tree point to this fixed forest size divides that confound out,
 # leaving just the scaling behavior.
 NORMALIZED_N_ESTIMATORS = 100
+
+
+def _is_half_core_tree(result: MethodResult) -> bool:
+    return (
+        _cores(result) == HALF_CORE
+        and result.case["algorithm"]["estimator"] in TREE_ESTIMATORS
+    )
 
 
 def _is_charted_pair(result: MethodResult) -> bool:
@@ -118,7 +153,7 @@ def _is_charted_pair(result: MethodResult) -> bool:
     return (estimator, dataset) in MODELS
 
 
-def _cores(result: MethodResult) -> int:
+def _cores(result: MethodResult) -> float:
     return result.case["metadata"]["n_cores"]
 
 
@@ -146,8 +181,13 @@ def _n_iter(result: MethodResult) -> int | None:
 
 
 def _hover_extra(result: MethodResult) -> str:
+    lines = []
+    if _cores(result) == HALF_CORE:
+        lines.append("1 logical CPU, no SMT sibling")
     n_iter = _n_iter(result)
-    return f"n_iter: {n_iter}" if n_iter is not None else ""
+    if n_iter is not None:
+        lines.append(f"n_iter: {n_iter}")
+    return "<br>".join(lines)
 
 
 def _fit_seconds(result: MethodResult, *, estimator: str) -> float:
@@ -278,7 +318,7 @@ def _smt_section_html(hw_results: list[MethodResult]) -> list[str]:
         return []
     rows = [
         '<div class="page-row"><section class="panel"><h3>SMT vs. no SMT</h3>'
-        f'<div class="plot-subtitle">{escape(SMT_NOTE)}</div></section></div>'
+        f'<div class="plot-subtitle">{SMT_NOTE}</div></section></div>'
     ]
     for estimator in MODEL_ORDER:
         if estimator not in TREE_ESTIMATORS:
@@ -377,7 +417,9 @@ def render_hardware_page(results: list[MethodResult], hardware_hash: str) -> str
 def generate(output_dir: Path) -> None:
     results = [
         result for result in read_all_results()
-        if matches_source_configs(result.case, SOURCE_CONFIGS) and _is_charted_pair(result)
+        if matches_source_configs(result.case, SOURCE_CONFIGS)
+        and _is_charted_pair(result)
+        and not _is_half_core_tree(result)
     ]
     hardware_hashes = sorted(
         {result.hardware_hash for result in results},
@@ -397,7 +439,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="Models core-count scalability",
+        title=TITLE,
         rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
     )
     output = output_dir / "models_scalability.html"

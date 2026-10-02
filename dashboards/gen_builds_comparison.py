@@ -32,35 +32,40 @@ from sklbench.reporting.html import (
 
 BASE_IMPLEMENTATION = "sklearn"
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard compares builds of plain scikit-learn. The code is the
-  same, only the BLAS/OpenMP runtime changes (for example conda-forge's MKL,
-  or its libgomp and libomp OpenBLAS builds). The PyPI wheel is the baseline.
+  <p>This dashboard compares <dfn>builds</dfn> of plain scikit-learn. The code is the
+  same, only the <dfn>BLAS/OpenMP runtime</dfn> changes (for example <dfn>conda-forge</dfn>'s <dfn>MKL</dfn>,
+  or its <dfn>libgomp</dfn> and <dfn>libomp</dfn> <dfn>OpenBLAS</dfn> builds). The <dfn>PyPI wheel</dfn> is the <dfn>baseline</dfn>.
   </p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Read each cell like in
     <a href="per_hardware.html">the software/implementations dashboard</a>:
-    fit or predict speed-up (log scale) per estimator category, one line per
+    <dfn>fit</dfn> or <dfn>predict</dfn> <dfn>speed-up</dfn> (log scale) per estimator category, one line per
     build.
     </p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
     <ul>
-      <li><b>MKL is a good pick for linear models</b>: it speeds up BLAS-bound
+      <li><b><dfn>MKL</dfn></b> is a good pick for <b>linear models</b>: it speeds up <dfn term="blas">BLAS</dfn>-bound
       linear model fits, commonly by 1.3x to 1.5x.</li>
-      <li><b>HistGradientBoosting varies more between builds</b>. On laptops, this
-      comes from differences in active wait (how long idle OpenMP threads spin
-      before sleeping), which conda-forge disables by default. Without active
+      <li>On the laptop, every <b><dfn>conda-forge</dfn></b> build fits
+      <b>LogisticRegression</b> much faster than the <b><dfn>PyPI</dfn></b> one, up to
+      ~10x on some datasets. This comes from the <b><dfn>OpenBLAS</dfn></b> shipped in scipy
+      and is going to be fixed in scipy soon, see
+      <a href="https://github.com/scipy/scipy/pull/26193#issuecomment-5886021070">scipy#26193</a>.</li>
+      <li><b>HistGradientBoosting</b> varies more between builds. On laptops, this
+      comes from differences in <dfn>active wait</dfn> (how long idle <dfn>OpenMP threads</dfn> spin
+      before sleeping), which <b>conda-forge</b> disables by default. Without active
       wait, HGB fits on small and medium datasets can be much slower. On the
-      high-end server, the LLVM/Intel OpenMP runtimes seem faster than
-      libgomp. See
+      high-end server, the <b><dfn>LLVM/Intel OpenMP</dfn></b> runtimes seem faster than
+      <b><dfn>libgomp</dfn></b>. See
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
       for the analysis, and
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>
       for a fix in progress, based on the insights from the
       <a href="hgb_scaling.html">HistGradientBoosting thread-scalability breakdown</a> plots.</li>
-      <li><b>ExtraTrees fits are ~25% slower on conda-forge builds</b>.
+      <li><b>ExtraTrees</b> fits are ~25% slower on <b>conda-forge</b> builds.
       <a href="https://github.com/scikit-learn/scikit-learn/pull/34876">scikit-learn#34876</a>
       fixes it and will land in the next release.</li>
     </ul>
@@ -183,18 +188,22 @@ def render_hardware_page(
     for (category, method), group_base_results in grouped_results.items():
         matches = find_matches(group_base_results, other_results, result_matches)
         matches_by_category.setdefault(category, {})[method] = matches
+        plot_failed_records = candidate_failed_by_category.get(category, [])
         # create a JS snippet for plotly:
         plots.append({
             "category": category,
             "method": method,
-            "point_count": len(matches),
+            "case_count": len(
+                {_case_key(match.base_result.case) for match in matches}
+                | {_case_key(record.case) for record in plot_failed_records}
+            ),
             "plot": speedup_plot_html(
                 matches,
                 baseline_label=baseline_label,
                 variant_colors=variant_colors,
                 trace_variant=match_build_variant,
                 x_variant=match_build_variant,
-                failed_records=candidate_failed_by_category.get(category, []),
+                failed_records=plot_failed_records,
             )
         })
     if not candidate_failed_records and not any(
@@ -275,7 +284,7 @@ def render_hardware_page(
         render_software_tabs([
             SOFTWARE_TEMPLATE.render(**summary)
             for summary in softwares
-        ], variant_colors=variant_colors),
+        ], variant_colors=variant_colors, baseline_label=baseline_label),
         assemble_plots_in_grid(
             plots,
             rows={"category": ["linear", "tree-based", "clustering"]},
@@ -286,6 +295,8 @@ def render_hardware_page(
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
 
+# Page header and index page label.
+TITLE = "Builds comparison"
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
 SOURCE_ENVS = GENERAL_SOURCE_ENVS
 
@@ -307,7 +318,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="sklbench builds comparison dashboard",
+        title=TITLE,
         rows=[
             ABOUT_HTML,
             render_hardware_tabs(hardware_pages),

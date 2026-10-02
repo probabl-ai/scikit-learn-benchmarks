@@ -5,21 +5,21 @@ from pathlib import Path
 
 
 # Single source of truth for hardware-hash -> display name, shared by every
-# dashboard so a rename doesn't have to be repeated file by file. Names are
-# meant to be readable by non-hardware-specialists (relative age/power),
-# not model numbers or vendor codenames.
+# dashboard so a rename doesn't have to be repeated file by file. Names give
+# the machine kind plus a recognizable product line (Xeon, Ultra, M4, L4),
+# not exact model numbers or vendor codenames.
 HARDWARE_NAMES = {
-    "3b5e61": "Modern Intel laptop",
-    "534824": "High-end Intel server",
+    "3b5e61": "Intel Core Ultra laptop",
+    "534824": "High-end Intel Xeon server",
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
-    "b281b2": "Apple M4",
-    "5ce575": "Small cloud VM",
+    "b281b2": "Apple M4 laptop",
+    "5ce575": "CUDA L4 GPU VM",
 }
 
 GPU_NAMES = {
-    "3b5e61": "Modern Intel laptop GPU",
-    "b281b2": "Apple M4 GPU",
+    "3b5e61": "Intel Core Ultra laptop GPU",
+    "b281b2": "Apple M4 laptop GPU",
     "5dcf30": "NVIDIA RTX 2060",
     "5ce575": "NVIDIA L4",
 }

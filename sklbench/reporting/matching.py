@@ -241,6 +241,18 @@ def _metric_tolerance(base_values: list[float]) -> float:
     )
 
 
+def significant_metric_difference(base_values: list[Any], values: list[Any]) -> float:
+    """Mean of `values` minus mean of `base_values`, or 0.0 when it's within
+    the tolerance `Match.metrics_differences` uses (or either side isn't
+    numeric)."""
+    numeric_base = _numeric_values(base_values)
+    numeric = _numeric_values(values)
+    if numeric_base is None or numeric is None:
+        return 0.0
+    difference = mean(numeric) - mean(numeric_base)
+    return difference if abs(difference) > _metric_tolerance(numeric_base) else 0.0
+
+
 def _short_metric_value(value: float) -> str:
     return f"{value:.3g}"
 

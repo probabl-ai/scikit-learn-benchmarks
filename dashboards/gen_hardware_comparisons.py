@@ -29,10 +29,12 @@ from html import escape
 from itertools import permutations
 import json
 from pathlib import Path
+from statistics import median
 
 from dashboards import (
     GPU_NAMES, HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS,
 )
+from dashboards import gen_hptuning_scalability as hptuning
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -50,12 +52,13 @@ from sklbench.reporting.envs import (
 )
 from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
-    append_iterations_warning, append_solver_warning,
+    append_solver_warning,
     append_max_bins_warning,
     find_matches,
     read_all_results,
     date_range,
     matches_source_configs,
+    read_benchmark_records,
     BenchmarkRecord,
     Match,
     MatchWarning,
@@ -65,25 +68,45 @@ from sklbench.reporting.utils import stable_json, without_keys
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard compares machines running the same software. Every build
-  or implementation present on both machines is matched, so a speed-up comes
+  <p>This dashboard compares machines running the same software. Every <dfn>build</dfn>
+  or <dfn>implementation</dfn> present on both machines is matched, so a <dfn>speed-up</dfn> comes
   from the hardware.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>Pick a baseline and a comparison machine. The dropdowns only offer CPU
+    <p>Pick a <dfn>baseline</dfn> and a comparison machine. The dropdowns only offer CPU
     vs CPU or GPU vs GPU pairs that have comparable results. Each cell shows
-    the fit or predict speed-up (log scale) per estimator category, one line
-    per build or implementation.</p>
+    the <dfn>fit</dfn> or <dfn>predict</dfn> speed-up (log scale) per estimator category, one line
+    per build or implementation. The last cell compares the time per fit in
+    hyper-parameter searches, where many fits run in parallel.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
-      <li>the modern Intel laptop and the high-end Intel server are <b>close to
-      parity</b>;</li>
-      <li>the low-end Intel laptop is <b>~3-5x slower</b> than both;</li>
-      <li>on the shared <code>sklearn-pypi</code> build, Apple's M4 CPU tends
-      to be <b>slightly faster</b> than the Intel machines.</li>
+      <li>The high-end Intel Xeon server mostly helps <b>random forests</b> and <b>extra
+      trees</b>. With <b>scikit-learn</b>, their fit is ~2x to 4x faster than on the
+      Intel Core Ultra laptop. Their predict is close to parity.</li>
+      <li><b>scikit-learn-intelex</b> makes much better use of the server's 172
+      cores. With it, <b>random forests</b> and <b>extra trees</b> fit ~10x to 15x
+      faster on the server than on the laptop.</li>
+      <li>For <b>linear models</b>, the server is often slower than the
+      laptop. A single fit doesn't use many cores well, so the laptop's
+      faster cores probably win.</li>
+      <li>Hyper-parameter searches are where the server pays off. Running
+      many <dfn>candidates</dfn> in parallel fills its cores, and it gets through fits
+      ~10x to 15x faster than the laptop, even for the <b>linear models</b>.
+      That is close to the ratio of <dfn>physical cores</dfn> (172 vs 16). The gain is
+      smaller for <b>HistGradientBoosting</b> on small datasets. <b>Random
+      forests</b> and <b>extra trees</b> aren't compared yet, because their
+      forest size differs between the two machines.</li>
+      <li><b>HistGradientBoosting</b> results are hard to interpret, because
+      of known scalability issues on laptops with <b><dfn>conda-forge</dfn></b> builds and on
+      machines with many cores. See
+      <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
+      and the <a href="hgb_scaling.html">HistGradientBoosting
+      thread-scalability breakdown</a>.</li>
+      <li>On the <b><dfn>PyPI</dfn></b> build, the Apple M4 CPU is ~1.3x to 2x slower
+      than the Intel Core Ultra laptop.</li>
     </ul>
   </details>
 </section>"""
@@ -210,23 +233,31 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
 # Cross-hardware comparisons in this dashboard routinely pair up results
 # whose model isn't actually identical - RF/ET's `n_estimators` varies by
 # machine (see `_normalize_tree_result`) - so `Match.metrics_differences`
-# and the iteration-count check in `append_iterations_warning` would just
-# flag that expected divergence as a reliability warning on every other
-# point. Clearing `metrics` and dropping the specific attributes those
-# checks read (`has_onedal_estimator`, which also drives
-# `is_sklearnex_fallback`'s "fell back to scikit-learn" marker; `n_iter`)
-# suppresses that noise while leaving other attributes (e.g. `solver`,
-# shown in the detailed table) untouched.
-_DROPPED_ATTRIBUTES = {"has_onedal_estimator", "n_iter"}
+# would just flag that expected divergence as a reliability warning on every
+# other point. Plots get matches without `metrics` (see
+# `_without_metrics`), the detailed table keeps them for its score columns.
+# Dropping `has_onedal_estimator` (which also drives
+# `is_sklearnex_fallback`'s "fell back to scikit-learn" marker) suppresses
+# the same kind of noise while leaving other attributes (e.g. `solver`,
+# `n_iter`, shown in the detailed table) untouched.
+_DROPPED_ATTRIBUTES = {"has_onedal_estimator"}
 
 
-def _drop_metrics_and_reliability_signals(result: MethodResult) -> MethodResult:
+def _drop_reliability_signals(result: MethodResult) -> MethodResult:
     attributes = {
         name: value
         for name, value in result.attributes.items()
         if name not in _DROPPED_ATTRIBUTES
     }
-    return replace(result, metrics={}, attributes=attributes)
+    return replace(result, attributes=attributes)
+
+
+def _without_metrics(match: Match) -> Match:
+    return replace(
+        match,
+        base_result=replace(match.base_result, metrics={}),
+        matched_result=replace(match.matched_result, metrics={}),
+    )
 
 
 def _match_key(result: MethodResult) -> str:
@@ -253,7 +284,8 @@ def result_matches(
     # apply there.
     if base_res.implementation.library == BASE_IMPLEMENTATION and candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
-    append_iterations_warning(base_res, candidate, warnings)
+    # No `append_iterations_warning`: n_iter is only shown in the detailed
+    # table here, not flagged on the plots.
     append_solver_warning(base_res, candidate, warnings)
     # Unlike the other dashboards' base/candidate pairing (always
     # sklearn-vs-accelerated on the same machine), either side here can be
@@ -267,6 +299,93 @@ def result_matches(
 
 def match_variant_label(match: Match) -> str:
     return variant_label(match.matched_result)
+
+
+SEARCH_ROW = "hyper-parameter search"
+# `configs/hptuning.py` scales `n_iter` (and RF/ET's `n_estimators`) with the
+# machine and sweeps the outer `n_jobs`, so neither is part of a search's
+# identity. `n_estimators` is kept: a bigger forest is a different workload,
+# and dividing by it would hide each fit's fixed costs (preprocessing, CV
+# split), so RF/ET searches only match when their forests have the same size.
+_SEARCH_MATCH_EXCLUDED_NAMES = {"implementation", "max_bins", "n_jobs", "n_iter", "source_config"}
+
+
+def _search_match_key(result: MethodResult) -> str:
+    return stable_json(without_keys(result.case, excluded_names=_SEARCH_MATCH_EXCLUDED_NAMES))
+
+
+def _round_floats(value):
+    """`np.logspace` grids can differ in the last digit between numpy builds."""
+    if isinstance(value, float):
+        return float(f"{value:.12g}")
+    if isinstance(value, dict):
+        return {key: _round_floats(nested) for key, nested in value.items()}
+    if isinstance(value, list):
+        return [_round_floats(item) for item in value]
+    return value
+
+
+def _search_result(record: BenchmarkRecord) -> MethodResult | None:
+    """A search as a "fit" result whose times are the mean time per `.fit()`
+    call (see `gen_hptuning_scalability._seconds_per_fit`), which divides out
+    the machine-dependent `n_iter`."""
+    n_fits = hptuning._n_fits(record)
+    times = [run["duration_s"] * 1000 / n_fits for run in record.runs if "duration_s" in run]
+    if not times:
+        return None
+    n_samples, n_features = hptuning._fit_shape([record])
+    if n_samples is None:
+        n_samples, n_features = hptuning._dataset_shape(record)
+    case = _round_floats(without_keys(record.case, excluded_names={"bench"}))
+    case["implementation"] = record.case.get("implementation") or {"library": BASE_IMPLEMENTATION}
+    return MethodResult(
+        hardware_hash=record.hardware_hash,
+        software=software_build_name(record.software_hash),
+        software_hash=record.software_hash,
+        method="fit",
+        timestamp_recorded=record.timestamp_recorded,
+        case=case,
+        times=times,
+        data_desc={"samples": n_samples, "features": n_features},
+        metrics={},
+        record=record,
+    )
+
+
+def read_search_results() -> list[MethodResult]:
+    """One result per (machine, env, search), at the outer `n_jobs` with the
+    lowest time per fit: the setting a user would pick on that machine."""
+    records = hptuning._dedup_latest([
+        record
+        for record in read_benchmark_records()
+        if matches_source_configs(record.case, hptuning.SOURCE_CONFIGS)
+    ])
+    best: dict[tuple, MethodResult] = {}
+    for record in records:
+        result = _search_result(record)
+        if result is None:
+            continue
+        key = (result.hardware_hash, result.software_hash, _search_match_key(result))
+        if key not in best or median(result.times) < median(best[key].times):
+            best[key] = result
+    return list(best.values())
+
+
+def _search_matches(
+    baseline_results: list[MethodResult],
+    candidate_results: list[MethodResult],
+    labels: list[str],
+) -> list[Match]:
+    return [
+        match
+        for label in labels
+        for match in find_matches(
+            [result for result in baseline_results if variant_label(result) == label],
+            [result for result in candidate_results if variant_label(result) == label],
+            lambda base, candidate: _search_match_key(base) == _search_match_key(candidate),
+            match_key=_search_match_key,
+        )
+    ]
 
 
 def _comparison_page(rows: list[str]) -> str:
@@ -395,6 +514,7 @@ def _software_panel(
 
 def render_comparison(
     all_results: list[MethodResult],
+    search_results: list[MethodResult],
     baseline_variant: HardwareVariant,
     candidate_variant: HardwareVariant,
 ) -> tuple[str, int]:
@@ -459,11 +579,16 @@ def render_comparison(
                 {
                     "category": category,
                     "method": method,
-                    "point_count": len(category_method_matches),
+                    "case_count": len(
+                        {
+                            _table_comparison_key(match.base_result)
+                            for match in category_method_matches
+                        }
+                    ),
                     "plot": speedup_plot_html(
-                        category_method_matches,
+                        [_without_metrics(match) for match in category_method_matches],
                         baseline_label=baseline_variant.label,
-                        y_title=f"speed-up of {candidate_variant.label} vs {baseline_variant.label}",
+                        y_title=f"{candidate_variant.label} speed-up",
                         variant_colors=trace_colors,
                         trace_variant=match_variant_label,
                         x_variant=match_variant_label,
@@ -473,8 +598,19 @@ def render_comparison(
                 }
             )
 
+    search_matches = _search_matches(
+        variant_results(search_results, baseline_variant),
+        variant_results(search_results, candidate_variant),
+        shared_labels,
+    )
+    total_matches += len(search_matches)
+
     if total_matches == 0:
         return empty
+    hardware_labels = {
+        baseline_variant.hardware_hash: baseline_variant.label,
+        candidate_variant.hardware_hash: candidate_variant.label,
+    }
 
     software_panels = [
         _software_panel(
@@ -498,16 +634,85 @@ def render_comparison(
                     category: detailed_results_table_html(
                         category,
                         category_matches,
-                        baseline_label=baseline_variant.label,
+                        baseline_label=variant_label,
                         variant_label=variant_label,
+                        variant_column_title="Implementation",
+                        hardware_label=lambda result: hardware_labels[result.hardware_hash],
                         comparison_key=_table_comparison_key,
+                        # Bigger forests on bigger machines score better.
+                        scores_comparable=lambda base, result: (
+                            _n_estimators(base) == _n_estimators(result)
+                        ),
                     )
                     for category, category_matches in matches_by_category.items()
                 },
             ),
+            _search_grid(
+                search_matches,
+                baseline_variant,
+                candidate_variant,
+                trace_colors,
+                shared_labels,
+                hardware_labels,
+            ),
         ]
     )
     return html, total_matches
+
+
+SEARCH_NOTE = (
+    "RandomizedSearchCV from the "
+    '<a href="hptuning_scalability.html">hyper-parameter search dashboard</a>. '
+    "Time per fit over the whole search, with each machine at its fastest outer "
+    "<code><dfn>n_jobs</dfn></code>. The search size scales with the machine (2 <dfn>candidates</dfn> "
+    "per core on the laptop, 1 on the server), so this is the speed-up for a search "
+    "big enough to fill each machine. Searches whose data or forest size differs "
+    "between the two machines are left out."
+)
+
+
+def _search_grid(
+    matches: list[Match],
+    baseline_variant: HardwareVariant,
+    candidate_variant: HardwareVariant,
+    trace_colors: dict[str, str],
+    labels: list[str],
+    hardware_labels: dict[str, str],
+) -> str:
+    if not matches:
+        return ""
+    plot = {
+        "category": SEARCH_ROW,
+        "method": "fit",
+        "case_count": len({_search_match_key(match.base_result) for match in matches}),
+        "plot": speedup_plot_html(
+            matches,
+            baseline_label=baseline_variant.label,
+            y_title=f"{candidate_variant.label} speed-up",
+            variant_colors=trace_colors,
+            trace_variant=match_variant_label,
+            x_variant=match_variant_label,
+            variant_sort_key=labels.index,
+            comparison_key=_search_match_key,
+        ),
+    }
+    return assemble_plots_in_grid(
+        [plot],
+        rows={"category": [SEARCH_ROW]},
+        columns={"method": ["fit"]},
+        notes_by_row={SEARCH_ROW: SEARCH_NOTE},
+        details_by_row={
+            SEARCH_ROW: detailed_results_table_html(
+                SEARCH_ROW,
+                {"fit": matches},
+                baseline_label=variant_label,
+                variant_label=variant_label,
+                variant_column_title="Implementation",
+                hardware_label=lambda result: hardware_labels[result.hardware_hash],
+                comparison_key=_search_match_key,
+            )
+        },
+    )
 
 
 def _pair_key(baseline: HardwareVariant, candidate: HardwareVariant) -> str:
@@ -518,13 +723,17 @@ def _panel_id(baseline: HardwareVariant, candidate: HardwareVariant) -> str:
     return f"hw-cmp-{baseline.key}-{candidate.key}"
 
 
-def render_selector(all_results: list[MethodResult]) -> str:
+def render_selector(
+    all_results: list[MethodResult], search_results: list[MethodResult]
+) -> str:
     panels = []
     pair_panels: dict[str, str] = {}
     for baseline, candidate in permutations(HARDWARE_VARIANTS, 2):
         if baseline.family != candidate.family:
             continue
-        html, match_count = render_comparison(all_results, baseline, candidate)
+        html, match_count = render_comparison(
+            all_results, search_results, baseline, candidate
+        )
         if match_count == 0:
             continue
         panel_id = _panel_id(baseline, candidate)
@@ -661,6 +870,8 @@ def render_selector(all_results: list[MethodResult]) -> str:
     """
 
 
+# Page header and index page label.
+TITLE = "Hardware comparison"
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
 # The conda-forge BLAS/OpenMP build variants are a software comparison
 # (gen_builds_comparison.py); across hardware they'd only multiply the lines
@@ -684,15 +895,15 @@ def _is_excluded_env(result: MethodResult) -> bool:
 
 def generate(output_dir: Path) -> None:
     all_results = [
-        _drop_metrics_and_reliability_signals(result)
+        _drop_reliability_signals(result)
         for result in read_all_results()
         if matches_source_configs(result.case, SOURCE_CONFIGS)
         and not _is_excluded_env(result)
     ]
 
     html = BASE_TEMPLATE.render(
-        title="sklbench hardware comparison dashboard",
-        rows=[ABOUT_HTML, render_selector(all_results)],
+        title=TITLE,
+        rows=[ABOUT_HTML, render_selector(all_results, read_search_results())],
     )
 
     output = output_dir / "hardware_comparisons.html"
