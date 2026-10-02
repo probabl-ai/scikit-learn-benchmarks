@@ -54,12 +54,7 @@ uses 4 cores of a 172-core server, you pay for the other 168 for nothing.
 > measurable gains in both, openly and for everyone, so the whole community
 > moves forward together."* Yann Lechelle, Executive President of Probabl
 
-I've been working on it full time since late April, and this post is a first
-progress update. So far, most of what I've built is a benchmark suite, and most
-of what came out of it is a list of problems: in scikit-learn, in
-scikit-learn-intelex, in OpenBLAS, in PyTorch, and in how all these libraries
-share CPU threads. Below, I explain how the benchmarks work, what they show,
-and what we're now fixing because of them.
+I've been working on it since late April, and this post is a first progress update. So far, most of what I've built is a benchmark suite, and most of what came out of it is a list of problems: in scikit-learn, in scikit-learn-intelex, in interactions between OpenBLAS and OpenMP, in PyTorch. Below, I explain how the benchmarks work, what they show, and what we're now fixing because of them.
 
 ## Where we are after five months
 
