@@ -2,7 +2,7 @@
 #### Blog Post Template ####
 
 #### Post Information ####
-title: "What we learned benchmarking scikit-learn on Intel hardware"
+title: "Accelerating scikit-learn on Intel hardware: what the benchmarks found so far"
 date: October XX, 2026
 
 #### Post Category and Tags ####
@@ -27,24 +27,70 @@ postauthors:
   {% include postauthor.html %}
 </div>
 
-In June, Probabl and Intel
-[announced a collaboration](https://blog.probabl.ai/intel-and-probabl-announce-collaboration-to-accelerate-scikit-learn-on-intel-hardware)
-to make scikit-learn faster on Intel hardware, from laptops to data center
-servers with hundreds of cores. I've been working on it full time since late
-April. So far, most of what I've built is a benchmark suite, and most of what
-came out of it is a list of problems: in scikit-learn, in scikit-learn-intelex,
-in OpenBLAS, in PyTorch, and in how all these libraries share CPU threads.
+**TL;DR:**
 
-This post explains how the benchmarks work, what they show, and what we're now
-fixing in scikit-learn because of them. The code is on
-[GitHub](https://github.com/probabl-ai/scikit-learn-benchmarks) and the
-results are published as
-[dashboards](https://probabl-ai.github.io/scikit-learn-benchmarks/snapshots/v1.rc/).
+- We built a benchmark suite for scikit-learn on Intel hardware. The
+  [code](https://github.com/probabl-ai/scikit-learn-benchmarks) and the
+  [results](https://probabl-ai.github.io/scikit-learn-benchmarks/snapshots/v1.rc/)
+  are public.
+- The easy wins today: scikit-learn-intelex for tree-based models and
+  `KMeans`, and the MKL build of scikit-learn for linear models.
+- On a big server, put the cores in the outer loop (hyperparameter search,
+  cross-validation). A single fit rarely uses them well, and
+  HistGradientBoosting can even get up to 30x slower with all of them.
+- We reported ~20 issues to other projects, and have fixes in progress in
+  scikit-learn for HistGradientBoosting, encoders, `Ridge` and
+  `LogisticRegression`. Binning for random forests is next.
+
+In June, at VivaTech, Probabl and Intel
+[announced a collaboration](https://blog.probabl.ai/intel-and-probabl-announce-collaboration-to-accelerate-scikit-learn-on-intel-hardware)
+to make scikit-learn faster on Intel hardware: Xeon CPUs, Intel GPUs, from
+laptops to data center servers with hundreds of cores. The focus is on the
+data center, where performance directly translates into cost. If a fit only
+uses 4 cores of a 172-core server, you pay for the other 168 for nothing.
+
+> *"Enterprises run scikit-learn at scale while performance and cost directly
+> shape what they can build. Our work with Intel is about delivering
+> measurable gains in both, openly and for everyone, so the whole community
+> moves forward together."* Yann Lechelle, Executive President of Probabl
+
+I've been working on it full time since late April, and this post is a first
+progress update. So far, most of what I've built is a benchmark suite, and most
+of what came out of it is a list of problems: in scikit-learn, in
+scikit-learn-intelex, in OpenBLAS, in PyTorch, and in how all these libraries
+share CPU threads. Below, I explain how the benchmarks work, what they show,
+and what we're now fixing because of them.
+
+## Where we are after five months
+
+In short:
+
+- a benchmark suite and its
+  [dashboards](https://probabl-ai.github.io/scikit-learn-benchmarks/snapshots/v1.rc/),
+  which also check the impact of scikit-learn PRs on Intel machines before
+  they get merged;
+- ~20 issues reported to other projects: 11 to scikit-learn-intelex and
+  oneDAL, the others to PyTorch's XPU backend, OpenBLAS, joblib, loky,
+  treelite, narwhals and conda-forge. Some came with a fix, like the two
+  merged in oneDAL;
+- in scikit-learn, merged speed-ups for the encoders and for trees on
+  conda-forge, and PRs under review for HistGradientBoosting, pandas
+  categorical columns in encoders, `Ridge` and `LogisticRegression`;
+- around the benchmarks, work by others in the collaboration: official Intel
+  GPU support through the array API in scikit-learn 1.9, threadpoolctl 3.7.0,
+  and thread management in joblib and loky (more at the end of this post).
+
+Few of these are merged scikit-learn features yet. Most of the value so far is
+in knowing where the problems are, and in fixing them where they live, which is
+sometimes not scikit-learn. All of it happens in the open, in the upstream
+projects, under their own open source licenses, so every user of these
+projects benefits, whatever their hardware vendor. The fixes that land in
+scikit-learn reach users when they upgrade: same API, faster on the hardware
+they already have.
 
 ## Why a new benchmark suite?
 
-The collaboration is about performance, with a focus on machines with many
-cores. Before optimizing anything, we needed to know where scikit-learn is
+Before optimizing anything, we needed to know where scikit-learn is
 slow, on which hardware, and compared to what.
 
 Existing benchmarks didn't answer that well. The
@@ -134,9 +180,9 @@ keeping the rest fixed:
 Every point can be hovered, and links to a row in a table with the exact
 timings, metrics and warnings.
 
-I also started using the same machinery benchmarks scikit-learn pull requests, 
-through some automatation. This is for instance what I used to check preserving
-F-ordered data in LogisitcRegression helps: <!-- TODO: update link -->
+I also started using the same machinery to benchmark scikit-learn pull
+requests, through some automation. This is for instance what I used to check
+that preserving F-ordered data in `LogisticRegression` helps <!-- TODO: update link -->
 ([example](https://github.com/probabl-ai/scikit-learn-benchmarks/pull/31)).
 
 
@@ -193,9 +239,9 @@ of the tree ones. The most impactful:
   ([oneDAL#3820](https://github.com/uxlfoundation/oneDAL/issues/3820)). This
   one made sklearnex look much faster on the laptop, until we looked at the
   scores;
-- CPU `Ridge` is up much slower than scikit-learn when
-  `n_features > n_samples` because it doesn't use the dual formulation like scikit-learn
-  does:
+- CPU `Ridge` is much slower than scikit-learn when
+  `n_features > n_samples`, because it doesn't use the dual formulation like
+  scikit-learn does
   ([sklearnex#3377](https://github.com/uxlfoundation/scikit-learn-intelex/issues/3377));
 - tree models crash when `X` has missing values at predict time but not at fit
   time
@@ -264,7 +310,8 @@ nested calls too.
 
 So if you have a big machine, parallelize the outer loop (hyperparameter
 search, cross-validation) instead of counting on a single fit to use all the
-cores.
+cores. On a 172-core server, that's the difference between using most of the
+machine and using a few percent of it.
 
 ### HistGradientBoosting: more threads can make it much slower
 
@@ -343,10 +390,28 @@ under CPU affinity, and
 [treelite ignoring the missing-value direction](https://github.com/dmlc/treelite/issues/706)
 of scikit-learn trees.
 
-## What we're working on in scikit-learn
+## What's next
 
-These are the main pieces of performance work that came out of the
-benchmarks. The biggest ones will get their own blog post.
+For the next months, our priorities are:
+
+1. turn the findings into performance guidance in the scikit-learn
+   documentation; <!-- TODO: link RFC once opened -->
+2. fix the scalability of HistGradientBoosting;
+3. finish the encoder speed-ups, which turned out to be an easy-to-fix
+   bottleneck in some pipelines;
+4. add binning to random forests and extra trees, which should speed them up
+   considerably;
+5. extend the benchmarks.
+
+The biggest pieces will get their own blog post. Here is where each one
+stands.
+
+**Documentation.** Many of the findings above (which build to install, how
+to set threads, using the `category` dtype) belong in the
+[performance](https://scikit-learn.org/stable/computing/computational_performance.html)
+and [parallelism](https://scikit-learn.org/stable/computing/parallelism.html)
+guides of the scikit-learn documentation, with a section for Intel users,
+from laptops to data center servers.
 
 **HistGradientBoosting scalability.** See
 [#34935](https://github.com/scikit-learn/scikit-learn/pull/34935) above.
@@ -379,13 +444,13 @@ but less good ones
 [on the server](https://pr-126-compare-intel-gnr.sklbench-pr-comparison.pages.dev/pr_comparison)
 for now.
 
-**Ridge.** An algebra trick avoids re-centering (and copying) `X` in the
+**Smaller ones: Ridge and LogisticRegression.** For `Ridge`, an algebra trick avoids re-centering (and copying) `X` in the
 Cholesky solver, for 1.2x to 2x speed-ups
 ([#34793](https://github.com/scikit-learn/scikit-learn/pull/34793)). The
 trick is less stable numerically in some cases, so I'm still working on a
 guard for it.
 
-**LogisticRegression.** The `lbfgs` solver forces `X` to C-order, which copies
+For `LogisticRegression`, the `lbfgs` solver forces `X` to C-order, which copies
 it when it's F-ordered (as it often is when it comes from a dataframe). The
 F-order is also the layout where multi-threaded BLAS helps the most for the
 gradient computation.
@@ -393,14 +458,17 @@ gradient computation.
 caller's layout: ~1.4x to 1.5x faster fits on F-ordered `X`, and half the peak
 memory (1.6GB instead of 3.2GB for a 1M x 200 float64 `X`).
 
-**Documentation.** Many of the findings above (which build to install, how
-to set threads, using the `category` dtype) belong in the
-[performance](https://scikit-learn.org/stable/computing/computational_performance.html)
-and [parallelism](https://scikit-learn.org/stable/computing/parallelism.html)
-guides of the scikit-learn documentation. Updating them is next on the list.
+**Benchmarks.**
 
-Benchmarks aren't the only workstream of the collaboration. In parallel,
-Olivier Grisel and Itamar Turner-Trauring work on how scikit-learn and its
+- More estimators: `PCA`, `LogisticRegressionCV` and `RidgeCV`.
+- XGBoost, LightGBM and CatBoost, to compare `HistGradientBoosting*` with them
+  systematically.
+- Discrete Intel GPUs, and more CUDA results to compare them with.
+- A new version of the Phoronix scikit-learn workload, based on a subset of
+  these cases. We'd like to propose it to the Phoronix maintainers.
+
+**Threads and the array API.** These are the other workstreams of the
+collaboration. Olivier Grisel and Itamar Turner-Trauring work on how scikit-learn and its
 dependencies manage threads, in particular for free-threaded Python:
 [threadpoolctl 3.7.0](https://github.com/joblib/threadpoolctl/blob/master/CHANGES.md#370-2026-09-15)
 can now set thread-local limits for MKL and OpenBLAS, loky detects physical
@@ -409,15 +477,6 @@ cores better on big machines, and joblib is getting
 [protection against nested oversubscription](https://github.com/joblib/joblib/pull/1825).
 Array API support also keeps progressing, with an Intel GPU CI in
 [scikit-learn-intel-workflow](https://github.com/probabl-ai/scikit-learn-intel-workflow).
-
-## What's next for the benchmarks
-
-- More estimators: `PCA`, `LogisticRegressionCV` and `RidgeCV`.
-- XGBoost, LightGBM and CatBoost, to compare `HistGradientBoosting*` with them
-  systematically.
-- Discrete Intel GPUs, and more CUDA results to compare them with.
-- A new version of the Phoronix scikit-learn workload, based on a subset of
-  these cases. We'd like to propose it to the Phoronix maintainers.
 
 If you run scikit-learn on big machines, or see a result that doesn't match
 your experience, please
@@ -428,11 +487,12 @@ where the cores should go.
 
 ## About me
 
-I'm Arthur Lacote, and I work at Probabl on scikit-learn. My background is a
-mix of data science and computer science, with a fair amount of algorithms and
-competitive programming. These days I'd call myself a performance engineer,
-though I'm still learning: this project taught me much more about OpenMP than
-I expected.
+I'm Arthur Lacote, and I work at Probabl on scikit-learn since May 2026.
+My background is a mix of data science and computer science, with a fair
+amount of algorithms and competitive programming. These days I'd call myself
+a performance engineer, though I'm still learning: this project already taught 
+me about so many deeply technical aspects of perfomance, and I can see I've only
+just started.
 
 ## Acknowledgements
 
