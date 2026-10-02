@@ -21,8 +21,9 @@ usage() {
     echo "      --config configs/hgb_scaling.py" >&2
     echo "" >&2
     echo "  <env> works with any Pixi environment that path-depends on" >&2
-    echo "  sklearn-src (currently sklearn-dev and sklearn-dev-libomp), so the" >&2
-    echo "  same ref can also be compared across those environments, e.g. to" >&2
+    echo "  sklearn-src (currently sklearn-dev, sklearn-dev-libomp and" >&2
+    echo "  sklearn-dev-freethreading), so the same ref can also be compared" >&2
+    echo "  across those environments, e.g. to" >&2
     echo "  isolate an OpenMP-runtime effect on the exact same commit:" >&2
     echo "  $0 sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \\" >&2
     echo "      --config configs/hgb_scaling.py" >&2

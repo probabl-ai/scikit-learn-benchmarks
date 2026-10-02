@@ -63,6 +63,11 @@ The project uses these Pixi environments:
   scikit-learn Branches"](#running-against-scikit-learn-branches))
 - `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
   LLVM/Intel `libomp` runtime
+- `sklearn-dev-freethreading`: the same checkout as `sklearn-dev`, on the
+  free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
+
+All environments use Python 3.12, except the `sklearn-dev*` ones, which use
+Python 3.14.
 
 The repository has a few layers:
 
@@ -203,6 +208,10 @@ pass both environments to `run.sh` with the same ref:
 ./run.sh sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \
     --config configs/hgb_scalability.py
 ```
+
+`sklearn-dev-freethreading` works the same way, for comparing the regular
+and free-threaded Python 3.14 builds on the same commit. It sets
+`PYTHON_GIL=0`, because otherwise importing pandas<3 turns the GIL back on.
 
 ## PR Comparison Benchmarks
 
