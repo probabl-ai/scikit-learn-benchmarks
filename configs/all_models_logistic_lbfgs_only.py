@@ -51,7 +51,10 @@ def _extra_scale_cases() -> list[dict]:
     for implem in implementations_for_pixi_env():
         for scale in EXTRA_SCALES:
             data_shapes = linear_data_shapes(scale)
-            benchs = [{"time_limit": 2 + scale * 2} for _ in data_shapes]
+            # Each repeat is its own subprocess (subprocess_per_repeat), so
+            # the fixed startup + data-generation cost dominates at small
+            # scales: _synthetic_linear's `2 + 2 * scale` budget timed out.
+            benchs = [{"time_limit": N_RUNS * (5 + scale / 2)} for _ in data_shapes]
             cases.extend(_linear_cases_for(implem, ALGORITHM, benchs, data_shapes))
     return cases
 
