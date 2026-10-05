@@ -57,6 +57,8 @@ from sklbench.reporting.matching import (
 )
 
 
+# Page header and index page label.
+TITLE = "HistGradientBoosting thread-scalability breakdown"
 SOURCE_CONFIGS = [
     "configs/hgb_scalability.py",
     "configs/hgb_scalability_force_active_wait.py",
@@ -72,36 +74,38 @@ SOURCE_ENVS = [
 ]
 
 ABOUT_HTML = """<section class="panel">
-  <p>A thread scaling curve shows whether a fit got faster, but not why. This
-  dashboard breaks HistGradientBoosting's fit time into its phases (binning,
-  histogram computation, split finding) to see which ones scale.</p>
+  <p>A <dfn term="threads">thread</dfn> scaling curve shows whether a <dfn>fit</dfn> got faster, but not why. This
+  dashboard breaks HistGradientBoosting's fit time into its phases (<dfn>binning</dfn>,
+  <dfn>histogram computation</dfn>, <dfn>split finding</dfn>) to see which ones scale.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>There is one tab per machine, build and thread affinity setting, and
+    <p>There is one tab per machine, <dfn>build</dfn> and <dfn>thread affinity</dfn> setting, and
     one stacked bar per workload. The x-axis is the requested thread count
-    (<code>OMP_NUM_THREADS</code>), with the thread count actually used in
-    parentheses when known. If a bar stops shrinking or grows as threads are
-    added, the extra threads bring nothing or cost time, and the segments
+    (<code><dfn>OMP_NUM_THREADS</dfn></code>). If a bar stops shrinking or grows as
+    threads are added, the extra threads bring nothing or cost time, and the segments
     show which phase is responsible.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
-    <p>On the benchmarked cases:</p>
+    <p>On the benchmarked cases, adding more threads can be highly counter-productive:</p>
     <ul>
-      <li>On the high-end server, the <b>best thread count grows with the
-      workload</b>. The smallest workloads (e.g. XS, ames_housing) are fastest on
-      1 thread, medium ones (e.g. covtype, M) on 4 to 8 threads, and the
-      largest (year_prediction_msd, susy) on 16 to 32. Only L-stumps keeps
-      speeding up up to 64 threads (~17x). No workload benefits from the whole
-      server: <b>every fit is 2x to 30x slower at 128 or 172 threads</b> than at its
-      best thread count, with the biggest jump from 64 to 128 threads.</li>
-      <li>On the laptop, active wait matters for small and medium workloads.
-      <b>Without active wait (the conda-forge build)</b>, they get <b>several times slower at 8
-      and 16 threads</b>: XS goes from 74ms on 1 thread to 919ms on 8, covtype
-      from 11s on 4 threads to 38s on 8. With it (PyPI), they stay roughly
+      <li>On the <b>high-end server</b>, the best thread count grows with the
+      workload. The smallest workloads are fastest on 1 thread, medium ones
+      stop scaling after 4 to 8 threads, and the largest after 16 to 64.
+      Past the best thread count, fits get slower, sometimes dramatically:
+      every workload is 2x to 30x slower at 128 or 172 threads than at its
+      best thread count.</li>
+      <li>On the <b>laptop</b>, <dfn>active wait</dfn> matters for small and medium workloads.
+      Without active wait (the <b><dfn>conda-forge</dfn></b> build), they get several
+      times slower at 8 and 16 threads: for instance, covtype goes
+      from 11s on 4 threads to 38s on 8. With it (<b><dfn>PyPI</dfn></b>), they stay roughly
       flat or keep improving up to 8 threads. The largest workloads scale up
-      to 16 threads either way. See
+      to 16 threads either way. For details about active wait, see
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>.</li>
+      <li>We're working on fixing this. With
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>,
+      using all the threads is rarely much slower than the best thread
+      count.</li>
     </ul>
   </details>
 </section>"""
@@ -188,21 +192,6 @@ def _raw_bench_env(record: BenchmarkRecord) -> dict:
 def _thread_count(record: BenchmarkRecord) -> int | None:
     threads = _raw_bench_env(record).get("OMP_NUM_THREADS")
     return int(threads) if threads is not None else None
-
-
-def _tree_n_threads(record: BenchmarkRecord) -> int | None:
-    """The actual OpenMP thread count used to grow the trees (excluding
-    binning) - see `instrumented_hgb.py`. Absent on records captured before
-    that attribute existed, or on builds without thread-count tuning, in
-    which case it's just `_thread_count(record)`."""
-    return next(
-        (
-            run["attributes"]["tree_n_threads"]
-            for run in record.runs
-            if "tree_n_threads" in (run.get("attributes") or {})
-        ),
-        None,
-    )
 
 
 def _has_active_wait(record: BenchmarkRecord) -> bool:
@@ -361,11 +350,7 @@ def _workload_subtitle(record: BenchmarkRecord) -> str:
     number of boosting iterations run (from the fitted estimator's
     `n_iter_`), not the `max_iter` param - the two only diverge when
     `early_stopping` is on, but reading the real value avoids being wrong in
-    that case. The actual tree-growing thread count (`tree_n_threads`, which
-    can be lower than `OMP_NUM_THREADS` on branches that size it down for
-    small workloads) varies per thread-count point within a workload, so
-    it's shown in the x-axis tick labels instead (see `render_env_page`),
-    not here."""
+    that case."""
     estimator_params = record.case.get("algorithm", {}).get("estimator_params", {})
     parts = []
     n_iter = next(
@@ -411,9 +396,7 @@ def _legend_html() -> str:
         for phase in PHASE_ORDER
     )
     axis_note = (
-        '<div class="plot-subtitle">x-axis: requested threads (OMP_NUM_THREADS)'
-        " - in parens, the actual thread count used to grow trees"
-        " (absent on records without that instrumentation)</div>"
+        '<div class="plot-subtitle">x-axis: requested threads (OMP_NUM_THREADS)</div>'
     )
     return f'<div class="phase-legend">{items}</div>{axis_note}'
 
@@ -449,12 +432,9 @@ def render_env_page(records: list[BenchmarkRecord]) -> str | None:
             threads = _thread_count(record)
             if breakdown is None or threads is None:
                 continue
-            tree_n_threads = _tree_n_threads(record)
-            x_label = f"{threads} ({tree_n_threads})" if tree_n_threads is not None else str(threads)
             points.append(
                 {
                     "x": threads,
-                    "x_label": x_label,
                     "phases": breakdown,
                     "total_ms": breakdown["total_ms"],
                 }
@@ -565,7 +545,7 @@ def generate(output_dir: Path) -> None:
     ]
 
     html = BASE_TEMPLATE.render(
-        title="HistGradientBoosting fit-time breakdown (thread scalability)",
+        title=TITLE,
         rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "hgb_scaling.html"

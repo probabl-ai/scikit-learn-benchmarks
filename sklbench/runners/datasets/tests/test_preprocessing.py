@@ -5,6 +5,7 @@ import pytest
 from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
     PREPROCESSINGS,
+    build_transfer_to_device,
     split_and_preprocess_data,
     split_data,
     train_test_split_wrapper,
@@ -208,6 +209,21 @@ def test_linear_preprocessor_requires_y_train_for_target_encoding(housing_data):
         PREPROCESSINGS["linear"](
             housing_data["x"], housing_data["x"], None, nystroem=None
         )
+
+
+@pytest.mark.parametrize("order", ["C", "F"])
+def test_linear_preprocessor_with_nystroem_outputs_requested_order(housing_data, order):
+    x_train, x_test = PREPROCESSINGS["linear"](
+        housing_data["x"],
+        housing_data["x"],
+        housing_data["y"],
+        nystroem={"n_components": 20},
+        transfer_to_device=build_transfer_to_device(dformat="numpy", order=order),
+    )
+
+    contiguous = "f_contiguous" if order == "F" else "c_contiguous"
+    assert getattr(x_train.flags, contiguous)
+    assert getattr(x_test.flags, contiguous)
 
 
 def test_split_and_preprocess_data_with_linear_kind_end_to_end(housing_data):

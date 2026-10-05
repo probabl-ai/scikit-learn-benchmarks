@@ -31,38 +31,38 @@ ABOUT_HTML = """<section class="panel">
   accelerated backends. It shows which workloads benefit from
   <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/">scikit-learn-intelex</a>
   or an <a href="https://scikit-learn.org/stable/modules/array_api.html">Array API</a> backend,
-  and when a different BLAS/OpenMP build or machine changes anything.
-  Most dashboards below vary one of these (implementation, build or hardware)
+  and when a different <dfn>BLAS</dfn>/<dfn>OpenMP</dfn> <dfn>build</dfn> or machine changes anything.
+  Most dashboards below vary one of these (<dfn>implementation</dfn>, build or hardware)
   and keep the others fixed. The scalability ones look at how a fit speeds up
-  with more CPU cores. Each dashboard explains how to read it in its own intro.
+  with more <dfn>CPU cores</dfn>. Each dashboard explains how to read it in its own intro.
   </p>
 
   <h3 style="margin-top: 10px">Overall findings:</h3>
 
   <ul>
     <li>
-    <p>On the benchmarked cases, <code>scikit-learn-intelex</code> on CPUs
-    is the <b>most consistently fast option</b> among the currently benchmarked set
-    of options, especially for fitting tree-based
-    models. Other backends and builds help in narrower, workload-specific
+    <p>On the benchmarked cases, <b><code>scikit-learn-intelex</code></b> on CPUs
+    is the most consistently fast option among the currently benchmarked set
+    of options, especially for fitting <b>tree-based
+    models</b>. Other backends and builds help in narrower, workload-specific
     cases.</p>
-    <p>Note that scikit-learn-intelex <b>only accelerates a subset of estimators
-    and parameters</b> (see its
+    <p>Note that scikit-learn-intelex only accelerates a subset of estimators
+    and parameters (see its
     <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/algorithms.html">supported algorithms</a>).
-    Its <b>behavior can also differ</b> from scikit-learn, for instance in
+    Its behavior can also differ from scikit-learn, for instance in
     <a href="https://github.com/uxlfoundation/oneDAL/issues/3771">best-first tree growth</a>,
     <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3401">multiclass <code>predict_proba</code></a>
     or <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3356">missing values at predict time</a>.
     These gaps are actively worked on.</p>
     </li>
     <li>
-    For linear models, a good option for improved performance is simply to pick
-    the <b>MKL conda-forge build</b> of scikit-learn, instead of the PyPI one.
+    For <b>linear models</b>, a good option for improved performance is simply to pick
+    the <b><dfn>MKL conda-forge build</dfn></b> of scikit-learn, instead of the <dfn>PyPI</dfn> one.
     </li>
     <li>
-    Using a bigger machine <b>doesn't help a lot for a single fit</b> for most models
-    except random forests and alike. But it <b>helps a lot for multiple parallelized fits</b>, typically
-    for hyper-parameters tunning workloads.
+    Using a bigger machine doesn't help a lot for a single fit for most models
+    except <b>random forests</b> and alike. But it helps a lot for multiple parallelized fits, typically
+    for hyper-parameter tuning workloads.
     </li>
   </ul>
 </section>"""
@@ -74,11 +74,11 @@ DASHBOARDS = [
 ]
 
 DASHBOARD_DESCRIPTIONS = {
-    "per_hardware.html": "scikit-learn-intelex and Array API backends vs stock scikit-learn.",
-    "builds_comparison.html": "PyPI vs conda-forge BLAS/OpenMP builds of scikit-learn.",
+    "per_hardware.html": "scikit-learn-intelex and <dfn>Array API</dfn> backends vs stock scikit-learn.",
+    "builds_comparison.html": "<dfn>PyPI</dfn> vs <dfn>conda-forge</dfn> <dfn>BLAS/OpenMP builds</dfn> of scikit-learn.",
     "hardware_comparisons.html": "Same software on different machines.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
-    "hptuning_scalability.html": "Speed-up from evaluating search candidates in parallel.",
+    "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
     "hgb_dev_scaling.html": "Fit time per phase as the thread count grows, for scikit-learn branches.",
     "hgb_speedup_breakdown.html": "Per-phase fit speed-up of scikit-learn branches over main.",
@@ -111,11 +111,12 @@ if __name__ == "__main__":
 
     links = "".join(
         f'<tr><td><a href="{href}">{label}</a></td>'
-        f'<td>{escape(DASHBOARD_DESCRIPTIONS[href])}</td></tr>'
+        f'<td>{DASHBOARD_DESCRIPTIONS[href]}</td></tr>'
         for label, _, href in DASHBOARDS
     )
     html = BASE_TEMPLATE.render(
-        title="sklbench dashboards",
+        title="scikit-learn benchmark dashboard",
+        home_url=None,
         rows=[
             ABOUT_HTML,
             f"""

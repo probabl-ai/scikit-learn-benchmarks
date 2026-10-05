@@ -187,8 +187,10 @@ def main() -> int:
             if len(changed) > 10:
                 print(f"  ... and {len(changed) - 10} more")
 
+            # `current`, not a fresh snapshot: edits saved while generating
+            # must trigger another run.
             if _generate(args.output_dir):
-                previous = _snapshot()
+                previous = current
             else:
                 print(
                     "Generation failed; will retry on the next detected change.",

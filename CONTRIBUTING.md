@@ -63,6 +63,11 @@ The project uses these Pixi environments:
   scikit-learn Branches"](#running-against-scikit-learn-branches))
 - `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
   LLVM/Intel `libomp` runtime
+- `sklearn-dev-freethreading`: the same checkout as `sklearn-dev`, on the
+  free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
+
+All environments use Python 3.12, except the `sklearn-dev*` ones, which use
+Python 3.14.
 
 The repository has a few layers:
 
@@ -84,7 +89,9 @@ The repository has a few layers:
   `dashboards/gen_*.py` module. Those modules read `results/` and write one
   HTML page each, and are not run directly. `dashboards/index_comparison.py`
   is the separate entry point for the ephemeral per-PR results of
-  `pr-comparison.yml` (see COMPARISONS_PR.md). Fully vibe-coded.
+  `pr-comparison.yml` (see COMPARISONS_PR.md). Fully vibe-coded. In the
+  dashboard prose, wrap technical terms in `<dfn>` to give them a hover
+  definition. The definitions live in `sklbench/reporting/html/glossary.py`.
 - `.github/workflows/`: CI. `dashboard-pages.yml` runs `dashboards/index.py`
   on pushes to `main`. `dashboard-preview-build.yml` and
   `dashboard-preview-deploy.yml` build and deploy a preview dashboard for
@@ -202,6 +209,10 @@ pass both environments to `run.sh` with the same ref:
     --config configs/hgb_scalability.py
 ```
 
+`sklearn-dev-freethreading` works the same way, for comparing the regular
+and free-threaded Python 3.14 builds on the same commit. It sets
+`PYTHON_GIL=0`, because otherwise importing pandas<3 turns the GIL back on.
+
 ## PR Comparison Benchmarks
 
 To benchmark an upstream scikit-learn PR or branch against `main` from a PR
@@ -244,7 +255,7 @@ To find what to rerun after a config change, use `scripts/what_to_rerun.py`:
 
 ```bash
 pixi run -e reporting python scripts/what_to_rerun.py --dashboard all
-pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Modern Intel laptop"
+pixi run -e reporting python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown" --hardware "Intel Core Ultra laptop"
 pixi run -e reporting python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 ```
 

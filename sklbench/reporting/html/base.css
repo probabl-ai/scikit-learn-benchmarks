@@ -49,6 +49,16 @@ main {
   color: inherit;
   text-decoration: none;
 }
+.site-header .site-home {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 0 6px var(--sk-cyan-shades-3);
+}
+.site-header .site-home:hover {
+  text-decoration: underline;
+}
 h1, h2, h3 { font-weight: 500; line-height: 1.25; }
 h1 { margin: 0 0 20px; font-size: 30px; }
 h2 { margin: 0 0 12px; font-size: 20px; }
@@ -264,6 +274,60 @@ body.with-preprocessing .speedup-view-default {
 body.with-preprocessing .speedup-view-preprocessing {
   display: block;
 }
+.baseline-view {
+  display: none;
+}
+.baseline-view.active {
+  display: block;
+}
+.baseline-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border: 1.5px solid var(--variant-color, var(--accent));
+  border-radius: 999px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.baseline-pick::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--variant-color, var(--accent));
+}
+.baseline-pick:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 12%, white);
+}
+.baseline-pick:disabled {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 16%, white);
+  cursor: default;
+}
+.baseline-pick:disabled::before {
+  display: none;
+}
+.tab-button.is-baseline::after {
+  content: "baseline";
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
 .hw-compare-row {
   display: flex;
   align-items: flex-end;
@@ -296,6 +360,9 @@ body.with-preprocessing .speedup-view-preprocessing {
   margin: -6px 0 8px;
   font-size: 12px;
   color: var(--muted);
+}
+.plot-cell-body > .plot-subtitle:first-child {
+  margin-top: 2px;
 }
 .plotly-graph-div {
   width: 100%;
@@ -487,4 +554,73 @@ ul.compact {
 }
 .tabulator .tabulator-footer .tabulator-page.active {
   color: var(--accent);
+}
+/* Detailed-results rows are banded per comparison_key group (see the
+   table's renderComplete handler), so plain row striping would blur them. */
+.detailed-results-table .tabulator-row.tabulator-row-even {
+  background: white;
+}
+.detailed-results-table .tabulator-row.row-group-alt {
+  background: #eef1f4;
+}
+.detailed-results-table .tabulator-row.row-group-start {
+  border-top: 1px solid var(--line);
+}
+.detailed-results-table .tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+/* Technical terms with a hover definition (see sklbench/reporting/html/glossary.py). */
+.term {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted rgba(72, 86, 107, 0.6);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.term:focus {
+  outline: none;
+}
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+.term-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 14px rgba(34, 40, 50, 0.14);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
+}
+/* Invisible bridge over the gap, so the pointer can reach the tooltip's link. */
+.term-tip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.term:hover > .term-tip,
+.term:focus-within > .term-tip {
+  display: block;
+}
+.term-tip a {
+  white-space: nowrap;
 }

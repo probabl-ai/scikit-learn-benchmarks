@@ -24,6 +24,13 @@ from _utils.implementations import implementations_for_pixi_env
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
 BENCH = {"n_runs": 3}
+# Row counts of the datasets used at full size (`max_samples=None`), for
+# sklearnex's tree `max_bins`.
+DATASET_N_SAMPLES = {"kddcup09_churn": 50_000, "ames_housing": 1_460}
+TREES = [
+    "RandomForestClassifier", "RandomForestRegressor",
+    "ExtraTreesRegressor", "ExtraTreesClassifier"
+]
 N_ESTIMATORS = 2 * cpu_count() if cpu_count() <= 32 else cpu_count()
 
 REAL_DATASET_CASES = [
@@ -237,10 +244,6 @@ def _split_search_space(search_space: dict) -> tuple[dict, dict]:
 
 
 def get_n_iter_and_n_jobs_list(estimator: str):
-    TREES = [
-        "RandomForestClassifier", "RandomForestRegressor",
-        "ExtraTreesRegressor", "ExtraTreesClassifier"
-    ]
     is_tree = estimator in TREES
     n_cores = cpu_count(only_physical_cores=True)
     n_iter = n_cores * 2
@@ -298,12 +301,18 @@ def _case(
             preprocessing_kwargs=preprocessing_kwargs_by_library.get(implem["library"], {}),
         )
 
+        implem_estimator_params = estimator_params
+        if implem["library"] == "sklearnex" and estimator in TREES:
+            # Exact (unbinned) splits, like sklearn's
+            n_samples = max_samples if max_samples is not None else DATASET_N_SAMPLES[dataset]
+            implem_estimator_params = {**estimator_params, "max_bins": n_samples}
+
         n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator)
 
         for n_jobs in n_jobs_list:
             cases.append(HPTuningCase(
                 bench=BENCH,
-                algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
+                algorithm=Algorithm(estimator=estimator, estimator_params=implem_estimator_params),
                 data=data,
                 implementation=implem,
                 hptuning=HPTuning(

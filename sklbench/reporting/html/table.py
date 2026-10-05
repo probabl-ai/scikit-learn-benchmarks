@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from statistics import median
+from statistics import mean, median, quantiles
 from typing import Any, Callable
 
 from ..envs import (
@@ -16,7 +16,9 @@ from ..envs import (
     openmp_runtime_short_label,
     profile_viewer_url,
 )
-from ..matching import BenchmarkRecord, Match, MethodResult, fitted_solver
+from ..matching import (
+    BenchmarkRecord, Match, MethodResult, fitted_solver, significant_metric_difference,
+)
 from ..utils import stable_json, without_keys
 
 
@@ -280,6 +282,13 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     return "default"
 
 
+def _row_search_n_jobs(inputs: RowInputs) -> int | None:
+    """`RandomizedSearchCV(n_jobs=...)` for hyper-parameter search results.
+    `HPTuning.n_jobs` defaults to 1, which is left out of serialized cases."""
+    search = inputs.case.get("hptuning")
+    return None if search is None else search.get("n_jobs", 1)
+
+
 def _row_status(inputs: RowInputs) -> str:
     return inputs.status
 
@@ -384,6 +393,8 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         header_filter=False,
         header_sort=False,
     ),
+    # Only filled when the caller passes `hardware_label`.
+    ColumnSpec("Hardware", "hardware", visibility=ColumnVisibility.IF_ANY),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
     ColumnSpec(
@@ -422,6 +433,14 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "Status", "status", _row_status, custom_show=_status_column_visible
     ),
+    ColumnSpec(
+        "outer n_jobs",
+        "search_n_jobs",
+        _row_search_n_jobs,
+        ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+    ),
     # Set in `_add_result_method` from the "fit" result, with the ratio to
     # the baseline's n_iter when they differ.
     ColumnSpec(
@@ -459,6 +478,23 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         sorter="number",
         formatter_name="speedup",
     ),
+    # Test scores, set in `_add_result_method` (see `SCORE_METRICS`).
+    ColumnSpec(
+        "ROC AUC",
+        "roc_auc",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+        formatter_name="score",
+    ),
+    ColumnSpec(
+        "R2",
+        "r2",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+        formatter_name="score",
+    ),
     ColumnSpec(
         "profile link",
         "profile_url",
@@ -492,6 +528,7 @@ def _base_row(
 ) -> dict:
     row = {
         "comparison_key": comparison_key,
+        "hardware": None,
         "variant": variant,
         "n_samples": n_samples,
         "n_features": n_features,
@@ -500,6 +537,9 @@ def _base_row(
         "fit_speedup": None,
         "predict_time": None,
         "predict_speedup": None,
+        "roc_auc": None,
+        "r2": None,
+        "is_baseline": False,
         "profile_url": profile_url,
         "profile_url_label": profile_url_label,
         "json_url": json_url,
@@ -596,6 +636,49 @@ def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
     return median(base_result.times) / result_time
 
 
+def _speedup_interval(
+    base_result: MethodResult, result: MethodResult
+) -> tuple[float, float] | None:
+    """Speed-up range spanned by the interquartile ranges of both sides'
+    repeat times. Always contains `_speedup`; its width is what the table's
+    speed-up formatter (templates.py) uses to show the value as noisy."""
+    if len(base_result.times) < 3 or len(result.times) < 3:
+        return None
+    base_q1, _, base_q3 = quantiles(base_result.times, n=4, method="inclusive")
+    q1, _, q3 = quantiles(result.times, n=4, method="inclusive")
+    if q1 <= 0 or base_q1 <= 0:
+        return None
+    return base_q1 / q3, base_q3 / q1
+
+
+# Row field -> test metric name. Both are higher-is-better.
+SCORE_METRICS = {"roc_auc": "ROC AUC", "r2": "R2"}
+
+
+def _add_scores(
+    row: dict,
+    result: MethodResult,
+    base_result: MethodResult | None,
+    scores_comparable: Callable[[MethodResult, MethodResult], bool] | None,
+):
+    test_metrics = (result.metrics or {}).get("predict", {})
+    base_test_metrics = (
+        (base_result.metrics or {}).get("predict", {}) if base_result is not None else {}
+    )
+    for field, metric_name in SCORE_METRICS.items():
+        values = [v for v in test_metrics.get(metric_name, []) if isinstance(v, (int, float))]
+        if not values:
+            continue
+        row[field] = mean(values)
+        if base_result is None or base_result is result or metric_name not in base_test_metrics:
+            continue
+        if scores_comparable is not None and not scores_comparable(base_result, result):
+            continue
+        difference = significant_metric_difference(base_test_metrics[metric_name], values)
+        if difference:
+            row[f"{field}_cmp"] = "better" if difference > 0 else "worse"
+
+
 def _add_result_method(
     rows: dict[str, dict],
     *,
@@ -605,11 +688,19 @@ def _add_result_method(
     json_url_fn: Callable[[Path], str | None],
     profile_url_fn: Callable[[Path], str | None],
     base_result: MethodResult | None = None,
+    hardware_label: Callable[[MethodResult], str] | None = None,
+    is_baseline: bool = False,
+    scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
 ):
     key = _row_key(result, variant)
     row = rows.setdefault(
         key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
     )
+    if hardware_label is not None:
+        row["hardware"] = hardware_label(result)
+    if is_baseline:
+        row["is_baseline"] = True
+    _add_scores(row, result, base_result, scores_comparable)
     # Globally unique per row (fit/predict merge into the same row above) -
     # lets a table-row click pin the exact clicked row first among rows
     # sharing its comparison_key (see matchFirstSorter in templates.py).
@@ -623,6 +714,13 @@ def _add_result_method(
     row[f"{method}_speedup"] = (
         _speedup(base_result, result) if base_result is not None else None
     )
+    interval = (
+        _speedup_interval(base_result, result)
+        if base_result is not None and base_result is not result
+        else None
+    )
+    if interval is not None:
+        row[f"{method}_speedup_low"], row[f"{method}_speedup_high"] = interval
 
 
 def _column_dict(
@@ -686,6 +784,43 @@ def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
     raise AssertionError(spec.visibility)
 
 
+def _add_group_ranks(rows: list[dict]) -> None:
+    """Sets `group_rank` (order of the rows' comparison_key groups) and
+    `within_rank` (order inside a group: the baseline's variant first, then
+    each variant's rows together, baseline hardware first), read by the
+    table's default sort (see matchFirstSorter in templates.py)."""
+    groups: dict[str, list[dict]] = {}
+    for row in rows:
+        groups.setdefault(row["comparison_key"], []).append(row)
+
+    def group_sort_key(item):
+        key, group_rows = item
+        first = group_rows[0]
+        return (
+            first["estimator"],
+            first["dataset"],
+            min(row.get("n_samples") or -1 for row in group_rows),
+            min(row.get("n_features") or -1 for row in group_rows),
+            key,
+        )
+
+    for group_rank, (_, group_rows) in enumerate(sorted(groups.items(), key=group_sort_key)):
+        baseline_variants = {row["variant"] for row in group_rows if row["is_baseline"]}
+        ordered = sorted(
+            group_rows,
+            key=lambda row: (
+                row["variant"] not in baseline_variants,
+                row["variant"],
+                not row["is_baseline"],
+                row["hardware"] or "",
+                row["row_id"],
+            ),
+        )
+        for within_rank, row in enumerate(ordered):
+            row["group_rank"] = group_rank
+            row["within_rank"] = within_rank
+
+
 def detailed_results_table_html(
     category: str,
     matches_by_method: dict[str, list[Match]],
@@ -699,6 +834,8 @@ def detailed_results_table_html(
     open: bool = False,
     collapsible: bool = True,
     variant_column_title: str = "Variant name",
+    hardware_label: Callable[[MethodResult], str] | None = None,
+    scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
@@ -721,6 +858,8 @@ def detailed_results_table_html(
                 comparison_key=comparison_key(base),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
+                hardware_label=hardware_label,
+                is_baseline=True,
             )
             _add_result_method(
                 rows_by_key,
@@ -730,6 +869,8 @@ def detailed_results_table_html(
                 comparison_key=comparison_key(result),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
+                hardware_label=hardware_label,
+                scores_comparable=scores_comparable,
             )
 
     for record, variant in failed_records:
@@ -751,6 +892,8 @@ def detailed_results_table_html(
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
+            hardware_label=hardware_label,
+            is_baseline=True,
         )
 
     for result in unmatched_candidate_results:
@@ -761,6 +904,7 @@ def detailed_results_table_html(
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
+            hardware_label=hardware_label,
         )
 
     if not rows_by_key:
@@ -797,16 +941,8 @@ def detailed_results_table_html(
                 row[field] = _format_value(raw.get(name))
         rows.append(row)
 
-    rows = sorted(
-        rows,
-        key=lambda row: (
-            row["estimator"],
-            row["dataset"],
-            row["variant"],
-            row.get("n_samples") or -1,
-            row.get("n_features") or -1,
-        ),
-    )
+    _add_group_ranks(rows)
+    rows = sorted(rows, key=lambda row: (row["group_rank"], row["within_rank"]))
 
     columns = []
     for spec in COLUMNS:

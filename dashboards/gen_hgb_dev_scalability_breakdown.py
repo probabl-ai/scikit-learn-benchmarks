@@ -42,7 +42,6 @@ from dashboards.gen_hgb_scalability_breakdown import (
     _raw_bench_env,
     _subtitle_html,
     _thread_count,
-    _tree_n_threads,
     _workload_name,
     _workload_size,
     render_env_page,
@@ -92,6 +91,20 @@ ABOUT_HTML = """<section class="panel">
     <code>main</code> run shows a single bar per thread count.</p>
   </details>
 </section>"""
+
+
+def _tree_n_threads(record: BenchmarkRecord) -> int | None:
+    """The actual OpenMP thread count used to grow the trees (excluding
+    binning) - see `instrumented_hgb.py`. Absent on records captured before
+    that attribute existed, or on builds without thread-count tuning."""
+    return next(
+        (
+            run["attributes"]["tree_n_threads"]
+            for run in record.runs
+            if "tree_n_threads" in (run.get("attributes") or {})
+        ),
+        None,
+    )
 
 
 def _base_build(builds) -> str | None:
@@ -247,7 +260,10 @@ def render_env_page_comparison(
         DATE_RANGE_TEMPLATE.render(**date_range(records)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", records[0].hardware_hash))),
         software_tabs,
-        _legend_html() + grid,
+        _legend_html()
+        + '<div class="plot-subtitle">in parens: the actual thread count used to grow trees'
+        " (absent on records without that instrumentation)</div>"
+        + grid,
     ]
     return "".join(f'<div class="page-row">{row}</div>' for row in rows)
 
