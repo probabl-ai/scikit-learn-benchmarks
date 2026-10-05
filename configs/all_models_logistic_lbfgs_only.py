@@ -67,7 +67,8 @@ def _with_blas_threads(case: dict, n_threads: int | None) -> dict:
     time_limit = (bench.get("time_limit") or Bench().time_limit) * N_RUNS / n_runs
     env = {}
     if n_threads is not None:
-        env["OPENBLAS_NUM_THREADS"] = str(n_threads)
+        # Both, so the same case also caps BLAS threads in sklearn-dev-mkl.
+        env["OPENBLAS_NUM_THREADS"] = env["MKL_NUM_THREADS"] = str(n_threads)
     return {
         **case,
         "metadata": {**case.get("metadata", {}), "blas_num_threads": n_threads},
