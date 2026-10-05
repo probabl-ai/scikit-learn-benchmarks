@@ -2,6 +2,11 @@
 name = "scikit-learn-benchmarks"
 channels = ["conda-forge"]
 requires-pixi = ">=0.75"
+# Merged over pixi's default conda-forge mapping. Patches entries it gets
+# wrong: prefix.dev maps the free-threaded numpy build (used by
+# sklearn-dev-freethreading) to no PyPI package, so pixi would install a
+# second, PyPI numpy over it.
+conda-pypi-map = { "conda-forge" = "conda-pypi-map.json" }
 platforms = [
     "linux-64",
     "osx-arm64",
@@ -10,7 +15,10 @@ platforms = [
 ]
 
 [dependencies]
-python = "3.12.*"
+# No `python` pin here: pixi intersects a dependency's specs across features
+# rather than letting one override another, so a pin in [dependencies] would
+# block sklearn-dev* from moving to a newer Python. Every environment instead
+# picks one from `py312` or the sklearn-dev features below.
 ipykernel = "*"
 tabulate = "*"
 tqdm = "*"
@@ -31,6 +39,9 @@ scikit-learn-benchmarks = { path = ".", editable = true }
 openml = ">=0.15.1"
 nvidia-ml-py = "*"
 py-spy = "*"
+
+[feature.py312.dependencies]
+python = "3.12.*"
 
 [feature.sklearn-pypi.pypi-dependencies]
 scikit-learn = "==1.9.*"
@@ -100,6 +111,7 @@ mkl = "*"
 scikit-learn = "1.9.*"
 
 [feature.sklearn-dev.dependencies]
+python = "3.14.*"
 cython = "*"
 meson-python = "*"
 ninja = "*"
@@ -138,6 +150,44 @@ platforms = ["linux-64"]
 # the LLVM/Intel `libomp` runtime instead - without changing which sklearn
 # source is built or which BLAS it links against.
 _openmp_mutex = { version = "*", build = "*_kmp_llvm" }
+
+[feature.sklearn-dev-mkl]
+# conda-forge's mkl is linux-64 only here (same as `sklearn-mkl`).
+platforms = ["linux-64"]
+
+[feature.sklearn-dev-mkl.dependencies]
+# Same BLAS switch as `sklearn-mkl`: numpy/scipy from numpy-conda dispatch
+# to MKL through the libblas/liblapack metapackages. mkl pulls in
+# `_openmp_mutex=*_llvm`, so sklearn's own OpenMP loops also run on libomp.
+libblas = { version = "*", build = "*mkl*" }
+liblapack = { version = "*", build = "*mkl*" }
+mkl = "*"
+
+[feature.sklearn-dev-freethreading]
+# ipykernel has no free-threaded conda-forge build for win-64.
+platforms = ["linux-64", "osx-arm64"]
+
+[feature.sklearn-dev-freethreading.dependencies]
+# Free-threaded ("3.14t") CPython build of the same sklearn-src checkout.
+python = { version = "3.14.*", build = "*_cp314t" }
+# Same packages as feature.numpy-conda, minus fastparquet (below): pixi can't
+# drop a dependency a feature brings in, so this environment doesn't use
+# numpy-conda at all.
+numpy = "*"
+scipy = "*"
+pandas = "<3"
+h5py = "*"
+matplotlib = "*"
+
+[feature.sklearn-dev-freethreading.pypi-dependencies]
+# conda-forge has no free-threaded fastparquet build, PyPI has cp314t wheels.
+fastparquet = "*"
+
+[feature.sklearn-dev-freethreading.activation.env]
+# pandas<3's `pandas._libs.pandas_parser` doesn't declare free-threading
+# support, so importing pandas silently re-enables the GIL for the whole
+# process. Benchmarks only call pandas from the main thread.
+PYTHON_GIL = "0"
 
 [feature.intel]
 # scikit-learn-intelex-gpu and the oneAPI stack it pulls in are Linux-only.
@@ -236,20 +286,22 @@ Jinja2 = "*"
 # Explicit so a bare `pixi run` (no `-e`) still gets conda-forge numpy/scipy/
 # pandas instead of silently falling back to whatever PyPI transitively
 # resolves from openml now that they're no longer in the base [dependencies].
-default = ["numpy-conda"]
-sklearn-pypi = ["sklearn-pypi"]
-sklearn-cf-default = ["sklearn-conda", "numpy-conda"]
+default = ["py312", "numpy-conda"]
+sklearn-pypi = ["py312", "sklearn-pypi"]
+sklearn-cf-default = ["py312", "sklearn-conda", "numpy-conda"]
 # ^ this environement is the exact same than "sklearn-openblas-libgomp" in practice
 # so we never use it:
-sklearn-cf-libgomp-openblas = ["sklearn-openblas-pthreads", "numpy-conda"]
-sklearn-cf-libomp-openblas = ["sklearn-openblas-pthreads", "sklearn-openblas-pthreads-kmp-llvm", "numpy-conda"]
-sklearn-cf-libomp-openblas-omp = ["sklearn-openblas-openmp", "numpy-conda"]
-sklearn-cf-mkl = ["sklearn-mkl", "numpy-conda"]
+sklearn-cf-libgomp-openblas = ["py312", "sklearn-openblas-pthreads", "numpy-conda"]
+sklearn-cf-libomp-openblas = ["py312", "sklearn-openblas-pthreads", "sklearn-openblas-pthreads-kmp-llvm", "numpy-conda"]
+sklearn-cf-libomp-openblas-omp = ["py312", "sklearn-openblas-openmp", "numpy-conda"]
+sklearn-cf-mkl = ["py312", "sklearn-mkl", "numpy-conda"]
 sklearn-dev = ["sklearn-dev", "numpy-conda"]
 sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp", "numpy-conda"]
-skl-cpu = ["sklearn-pypi", "skl-cpu"]
-skl-intel = ["sklearn-pypi", "skl-intel"]
-skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
-skl-mps = ["sklearn-pypi", "skl-mps"]
-intel = ["intel", "numpy-conda"]
-reporting = ["reporting", "numpy-conda"]
+sklearn-dev-mkl = ["sklearn-dev", "sklearn-dev-mkl", "numpy-conda"]
+sklearn-dev-freethreading = ["sklearn-dev", "sklearn-dev-freethreading"]
+skl-cpu = ["py312", "sklearn-pypi", "skl-cpu"]
+skl-intel = ["py312", "sklearn-pypi", "skl-intel"]
+skl-nvidia = ["py312", "sklearn-pypi", "skl-nvidia"]
+skl-mps = ["py312", "sklearn-pypi", "skl-mps"]
+intel = ["py312", "intel", "numpy-conda"]
+reporting = ["py312", "reporting", "numpy-conda"]

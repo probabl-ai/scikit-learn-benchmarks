@@ -13,6 +13,12 @@ from .utils import stable_json, without_keys
 
 
 RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
+# Hardware hashes of the same machine, mapped to the one dashboards know it by
+# (`dashboards.HARDWARE_NAMES`). The hardware env includes GPU driver
+# versions, so a driver update alone mints a new hash.
+HARDWARE_HASH_ALIASES = {
+    "37bc7b": "3b5e61",  # Intel Core Ultra laptop, Level Zero 1.15 -> 1.17
+}
 METRIC_ABS_TOLERANCE_FLOOR = 0.01
 METRIC_REL_TOLERANCE_FLOOR = 0.01
 METRIC_STD_TOLERANCE_FACTOR = 3  # TODO: should be based on number of runs:
@@ -342,7 +348,9 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 ) from e
             raise
 
-        hardware_hash = result_file["hardware_hash"]
+        hardware_hash = HARDWARE_HASH_ALIASES.get(
+            result_file["hardware_hash"], result_file["hardware_hash"]
+        )
         software_hash = result_file["software_hash"]
         timestamp = _parse_result_timestamp(result_path)
         profile_path = profiles_root / f"{result_path.stem}.raw.gz"

@@ -100,6 +100,8 @@ PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-cf-mkl": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev-libomp": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-dev-mkl": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-dev-freethreading": SKLEARN_IMPLEMENTATIONS,
     "skl-cpu": ARRAY_API_CPU_IMPLEMENTATIONS,
     "skl-intel": ARRAY_API_INTEL_IMPLEMENTATIONS,
     "skl-nvidia": ARRAY_API_NVIDIA_IMPLEMENTATIONS,
