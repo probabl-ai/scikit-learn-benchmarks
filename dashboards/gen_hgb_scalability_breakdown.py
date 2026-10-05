@@ -63,6 +63,7 @@ SOURCE_CONFIGS = [
     "configs/hgb_scalability.py",
     "configs/hgb_scalability_force_active_wait.py",
     "configs/hgb_scalability_proc_bind.py",
+    "configs/hgb_scalability_blocktime.py",
 ]
 # hgb_scalability.py always benchmarks plain `library: "sklearn"` (no
 # sklearnex/Array API variants) - only sklearn-pypi and sklearn-cf-default
