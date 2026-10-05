@@ -151,6 +151,18 @@ platforms = ["linux-64"]
 # source is built or which BLAS it links against.
 _openmp_mutex = { version = "*", build = "*_kmp_llvm" }
 
+[feature.sklearn-dev-mkl]
+# conda-forge's mkl is linux-64 only here (same as `sklearn-mkl`).
+platforms = ["linux-64"]
+
+[feature.sklearn-dev-mkl.dependencies]
+# Same BLAS switch as `sklearn-mkl`: numpy/scipy from numpy-conda dispatch
+# to MKL through the libblas/liblapack metapackages. mkl pulls in
+# `_openmp_mutex=*_llvm`, so sklearn's own OpenMP loops also run on libomp.
+libblas = { version = "*", build = "*mkl*" }
+liblapack = { version = "*", build = "*mkl*" }
+mkl = "*"
+
 [feature.sklearn-dev-freethreading]
 # ipykernel has no free-threaded conda-forge build for win-64.
 platforms = ["linux-64", "osx-arm64"]
@@ -285,6 +297,7 @@ sklearn-cf-libomp-openblas-omp = ["py312", "sklearn-openblas-openmp", "numpy-con
 sklearn-cf-mkl = ["py312", "sklearn-mkl", "numpy-conda"]
 sklearn-dev = ["sklearn-dev", "numpy-conda"]
 sklearn-dev-libomp = ["sklearn-dev", "sklearn-dev-libomp", "numpy-conda"]
+sklearn-dev-mkl = ["sklearn-dev", "sklearn-dev-mkl", "numpy-conda"]
 sklearn-dev-freethreading = ["sklearn-dev", "sklearn-dev-freethreading"]
 skl-cpu = ["py312", "sklearn-pypi", "skl-cpu"]
 skl-intel = ["py312", "sklearn-pypi", "skl-intel"]

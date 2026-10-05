@@ -22,7 +22,7 @@ runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.
   - `runner`: `intel-laptop`, `intel-gnr` or `both`, the self-hosted
     machine(s) that run this entry. Defaults to `both`.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
-    currently `sklearn-dev`, `sklearn-dev-libomp` or
+    currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl` or
     `sklearn-dev-freethreading`. It builds both sides of
     the `sklearn_ref` vs `main` comparison for this entry. Defaults to
     `sklearn-dev`.

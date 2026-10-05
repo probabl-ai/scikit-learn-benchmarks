@@ -63,6 +63,8 @@ The project uses these Pixi environments:
   scikit-learn Branches"](#running-against-scikit-learn-branches))
 - `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
   LLVM/Intel `libomp` runtime
+- `sklearn-dev-mkl`: the same checkout as `sklearn-dev`, with numpy/scipy on
+  MKL instead of OpenBLAS (and `libomp`, which MKL brings in). Linux only.
 - `sklearn-dev-freethreading`: the same checkout as `sklearn-dev`, on the
   free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
 
@@ -208,6 +210,10 @@ pass both environments to `run.sh` with the same ref:
 ./run.sh sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \
     --config configs/hgb_scalability.py
 ```
+
+`sklearn-dev-mkl` works the same way, for comparing OpenBLAS and MKL on the
+same commit. MKL ignores `OPENBLAS_NUM_THREADS`: configs that pin the BLAS
+thread count need to set `MKL_NUM_THREADS` too.
 
 `sklearn-dev-freethreading` works the same way, for comparing the regular
 and free-threaded Python 3.14 builds on the same commit. It sets

@@ -28,7 +28,8 @@ aren't drawn from a fixed set. Omitted `runner` defaults to `both`
 `configs/hgb_scalability.py` alone runs that config on both runners under
 sklearn-dev. `env` must be a pixi environment that
 path-depends on `sklearn-src` (see pixi.toml), currently `sklearn-dev`,
-`sklearn-dev-libomp` and `sklearn-dev-freethreading`, since run.sh's
+`sklearn-dev-libomp`, `sklearn-dev-mkl` and `sklearn-dev-freethreading`,
+since run.sh's
 `env@owner:ref` spec (used to run each tuple) only makes sense for those.
 
 Publishing one of this repo's other dashboards/gen_*.py dashboards
@@ -61,7 +62,12 @@ VALID_RUNNERS = {"intel-laptop", "intel-gnr"}
 DEFAULT_RUNNER_TOKEN = "both"
 # Pixi envs that path-depend on sklearn-src (see pixi.toml) - the only ones
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.
-VALID_SKLEARN_SRC_ENVS = {"sklearn-dev", "sklearn-dev-libomp", "sklearn-dev-freethreading"}
+VALID_SKLEARN_SRC_ENVS = {
+    "sklearn-dev",
+    "sklearn-dev-libomp",
+    "sklearn-dev-mkl",
+    "sklearn-dev-freethreading",
+}
 DEFAULT_SKLEARN_SRC_ENV = "sklearn-dev"
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
 KNOWN_KEYS = REQUIRED_KEYS
