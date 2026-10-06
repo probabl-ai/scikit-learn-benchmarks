@@ -10,12 +10,23 @@ from typing import Callable
 from urllib.parse import quote
 
 from ..config.registry import REPO_ROOT
-from .matching import Implementation
+from .matching import HARDWARE_HASH_ALIASES, Implementation
 
 
 def read_env(kind: str, hash: str):
     assert kind in ['software', 'hardware']
-    path = Path("results") / f"{kind}-envs" / f"{hash}.json"
+    env_dir = Path("results") / f"{kind}-envs"
+    path = env_dir / f"{hash}.json"
+    if not path.is_file() and kind == "hardware":
+        # Records carry the canonical hash (see HARDWARE_HASH_ALIASES), but a
+        # results/ folder holding only a newer alias's runs (e.g. a PR
+        # comparison) has only that alias's env file.
+        aliases = [
+            env_dir / f"{alias}.json"
+            for alias, canonical in HARDWARE_HASH_ALIASES.items()
+            if canonical == hash
+        ]
+        path = next((p for p in aliases if p.is_file()), path)
     if not path.is_file():
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
     with open(path, "r") as f:
