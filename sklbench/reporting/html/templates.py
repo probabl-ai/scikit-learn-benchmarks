@@ -128,8 +128,16 @@ BASE_TEMPLATE = Template("""<!doctype html>
           prepared.formatter = sklbenchLinkFormatter;
           prepared.formatterParams = {label: prepared.linkLabel || "open"};
         }
+        if (prepared.datasetKindFilters) {
+          const kindFilters = prepared.datasetKindFilters;
+          prepared.headerFilterFunc = (headerValue, rowValue, rowData) =>
+            headerValue in kindFilters
+              ? rowData.real_dataset === kindFilters[headerValue]
+              : rowValue == headerValue;
+        }
         delete prepared.formatterName;
         delete prepared.linkLabel;
+        delete prepared.datasetKindFilters;
         return prepared;
       });
     }
