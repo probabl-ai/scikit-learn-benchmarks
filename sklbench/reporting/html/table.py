@@ -14,6 +14,7 @@ from ..envs import (
     json_viewer_url,
     openmp_runtime_family,
     openmp_runtime_short_label,
+    pixi_env_name,
     profile_viewer_url,
 )
 from ..matching import (
@@ -219,6 +220,10 @@ def _row_env(inputs: RowInputs) -> dict:
     return inputs.case.get("env", {}) or {}
 
 
+def _row_pixi_env(inputs: RowInputs) -> str:
+    return pixi_env_name(inputs.software_hash)
+
+
 def _row_openmp(inputs: RowInputs) -> str:
     """Short "libgomp"/"libomp" label for the OpenMP runtime this row's build
     links against - a build property rather than a case one, but only
@@ -394,6 +399,8 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec("Hardware", "hardware", visibility=ColumnVisibility.IF_ANY),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
+    # Only shown when the caller passes `show_pixi_env`.
+    ColumnSpec("Pixi env", "pixi_env", _row_pixi_env, ColumnVisibility.IF_VARIES),
     ColumnSpec(
         "Estimator name", "estimator", _row_estimator, ColumnVisibility.IF_VARIES
     ),
@@ -781,11 +788,12 @@ def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
     raise AssertionError(spec.visibility)
 
 
-def _add_group_ranks(rows: list[dict]) -> None:
+def _add_group_ranks(rows: list[dict], by_pixi_env: bool = False) -> None:
     """Sets `group_rank` (order of the rows' comparison_key groups) and
     `within_rank` (order inside a group: the baseline's variant first, then
-    each variant's rows together, baseline hardware first), read by the
-    table's default sort (see matchFirstSorter in templates.py)."""
+    each variant's rows together, baseline hardware first, and with
+    `by_pixi_env` each pixi env's rows together), read by the table's
+    default sort (see matchFirstSorter in templates.py)."""
     groups: dict[str, list[dict]] = {}
     for row in rows:
         groups.setdefault(row["comparison_key"], []).append(row)
@@ -806,6 +814,7 @@ def _add_group_ranks(rows: list[dict]) -> None:
         ordered = sorted(
             group_rows,
             key=lambda row: (
+                row["pixi_env"] if by_pixi_env else "",
                 row["variant"] not in baseline_variants,
                 row["variant"],
                 not row["is_baseline"],
@@ -834,6 +843,7 @@ def detailed_results_table_html(
     hardware_label: Callable[[MethodResult], str] | None = None,
     scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
     default_variant_filter: str | None = None,
+    show_pixi_env: bool = False,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
 ) -> str:
@@ -938,7 +948,8 @@ def detailed_results_table_html(
                 row[field] = _format_value(raw.get(name))
         rows.append(row)
 
-    _add_group_ranks(rows)
+    show_pixi_env = show_pixi_env and _varies_across(rows, "pixi_env")
+    _add_group_ranks(rows, by_pixi_env=show_pixi_env)
     rows = sorted(rows, key=lambda row: (row["group_rank"], row["within_rank"]))
 
     columns = []
@@ -949,7 +960,7 @@ def detailed_results_table_html(
                 for name, field in group_fields[spec.field_prefix].items()
             )
             continue
-        if not _spec_visible(spec, rows):
+        if not _spec_visible(spec, rows) or (spec.field == "pixi_env" and not show_pixi_env):
             continue
         title = variant_column_title if spec.field == "variant" else spec.title
         columns.append(_spec_column_dict(spec, title=title))

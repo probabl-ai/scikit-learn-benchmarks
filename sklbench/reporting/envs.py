@@ -118,6 +118,11 @@ def _git_ref_label(git_info: dict) -> str | None:
 
 
 @lru_cache(maxsize=None)
+def pixi_env_name(software_hash: str) -> str:
+    return read_env("software", software_hash)["pixi_environment_name"]
+
+
+@lru_cache(maxsize=None)
 def software_build_name(software_hash: str) -> str:
     env = read_env("software", software_hash)
     name = env["pixi_environment_name"]
