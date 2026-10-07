@@ -26,7 +26,7 @@ BLAS_THREAD_COUNTS = [1, 4, None]
 # PR's affected path (F) and its unaffected control (C).
 DATA_ORDERS = ["C", "F"]
 
-N_RUNS = 10
+N_RUNS = 7
 
 # Pin to one socket on multi-socket runners (intel-gnr), so "all threads"
 # means one socket's cores and memory rather than BLAS threads spread over
