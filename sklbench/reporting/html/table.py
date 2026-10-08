@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import json
 import math
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -215,20 +216,23 @@ def _row_order(inputs: RowInputs) -> str | None:
     return data_layout_label(inputs.case, inputs.data_desc)
 
 
+def _short_dtype(dtype: str) -> str:
+    return re.sub(r"\bfloat(\d+)\b", r"f\1", dtype)
+
+
 def data_dtype_label(case: dict, data_desc: dict) -> str | None:
-    """The data's measured dtype, flagging a float64 -> float32 downcast on
-    a device without float64 (MPS). Results recorded before the runner
-    measured it only have the requested dtype."""
-    dtype = data_desc.get("measured_dtype")
+    """The data's dtype, shortened ("f32"), flagging a float64 -> float32
+    downcast on a device without float64 (MPS). Measured, or the requested
+    dtype for results recorded before the runner measured it."""
+    dtype = data_desc.get("measured_dtype") or data_desc.get("dtype")
+    if not dtype:
+        return None
+    label = _short_dtype(dtype)
     fallback = data_desc.get("dtype_fallback_from")
-    if dtype and fallback:
+    if fallback:
         device = case.get("implementation", {}).get("device")
-        return f"{dtype} ({fallback} unsupported on {device})"
-    if dtype:
-        return dtype
-    if data_desc.get("dtype"):
-        return f"{data_desc['dtype']} (requested)"
-    return None
+        label += f" ({_short_dtype(fallback)} unsupported on {device})"
+    return label
 
 
 def _row_dtype(inputs: RowInputs) -> str | None:
