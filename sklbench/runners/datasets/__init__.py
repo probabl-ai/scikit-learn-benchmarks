@@ -24,7 +24,7 @@ from .loaders import dataset_loading_functions, load_openml_data
 from .loading import load_from_cache_or_compute
 from .preprocessing import build_transfer_to_device, split_and_preprocess_data
 from .synthetic import generate_synthetic_data
-from .transformer import convert_subsets
+from .transformer import convert_subsets, measure_dtype
 
 
 def load_raw_data(
@@ -146,6 +146,7 @@ def preprocess_data(
         return data, description
 
     implementation = bench_case.implementation
+    dtype_fallbacks = set()
     preprocessing_defaults = data_description.get('preprocessing_defaults', {}).get(
         data_params.preprocessing_kind, {}
     )
@@ -157,6 +158,7 @@ def preprocess_data(
         device=implementation.device,
         dtype=data_params.dtype,
         order=data_params.order,
+        on_dtype_fallback=dtype_fallbacks.add,
     )
     required_label_dtype = "int" if "n_classes" in data_description else None
     label_transfer_to_device = build_transfer_to_device(
@@ -195,8 +197,11 @@ def preprocess_data(
             "order": data_params.order or _measure_order(data_dict[subset_name]),
             "raw_order": raw_order,
             "dtype": data_params.dtype,
+            "measured_dtype": measure_dtype(data_dict[subset_name]),
             **_shape_desc(data_dict[subset_name]),
         }
+        if dtype_fallbacks:
+            (subset_description[subset_name]["dtype_fallback_from"],) = dtype_fallbacks
     subset_description["preprocessing"] = {
         **_shape_desc(raw_data["x"]),
         **_order_desc(subset_description["x_train"]),

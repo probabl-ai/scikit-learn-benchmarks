@@ -17,6 +17,7 @@
 import logging
 import warnings
 from functools import lru_cache
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -62,18 +63,32 @@ def _torch_dtype(dtype: str | None):
     return torch_dtype
 
 
+def measure_dtype(data) -> str | None:
+    """The array's actual dtype, e.g. "float32". A pandas DataFrame is
+    "df(<dtypes>)", listing its distinct column dtypes."""
+    if isinstance(data, pd.DataFrame):
+        return f"df({'/'.join(sorted({str(dtype) for dtype in data.dtypes}))})"
+    dtype = getattr(data, "dtype", None)
+    return str(dtype).removeprefix("torch.") if dtype is not None else None
+
+
 def convert_data(
     data,
     dformat: str | None = None,
     order: str | None = None,
     dtype: str | None = None,
     device: str = None,
+    on_dtype_fallback: Callable[[str], None] | None = None,
 ):
     """Convert `data` to the requested library/order/dtype.
 
     A no-op unless `dformat`, `order` or `dtype` is given. `order` only applies to
     array libraries (numpy, dpnp, torch, ...) — it is ignored for pandas (and,
     once introduced, polars) since those formats have no equivalent concept.
+
+    `on_dtype_fallback` is called with the dtype that `device` couldn't hold
+    (float64 on MPS) when `data` had to be downcast to the device's
+    highest-precision float instead.
     """
     if dformat is None and order is None and dtype is None:
         return data
@@ -118,6 +133,8 @@ def convert_data(
             torch_dtype = torch.float64
         if torch_dtype == torch.float64:
             torch_dtype = _torch_max_precision_float_dtype(device)
+            if torch_dtype != torch.float64 and on_dtype_fallback is not None:
+                on_dtype_fallback("float64")
         if torch_dtype is not None:
             kwargs["dtype"] = torch_dtype
         return torch.asarray(data, **kwargs)
@@ -181,8 +198,10 @@ def convert_subsets(
         if is_label and required_label_dtype is not None:
             data_dtype = required_label_dtype
 
+        dtype_fallbacks = set()
         converted_data = convert_data(
-            subset_content, data_format, data_order, data_dtype, device
+            subset_content, data_format, data_order, data_dtype, device,
+            on_dtype_fallback=dtype_fallbacks.add,
         )
         data_dict[subset_name] = converted_data
         if not is_label:
@@ -190,8 +209,11 @@ def convert_subsets(
                 "format": data_format,
                 "order": data_order,
                 "dtype": data_dtype,
+                "measured_dtype": measure_dtype(converted_data),
                 "samples": converted_data.shape[0],
             }
+            if dtype_fallbacks:
+                (data_description[subset_name]["dtype_fallback_from"],) = dtype_fallbacks
             if len(converted_data.shape) == 2:
                 data_description[subset_name]["features"] = converted_data.shape[1]
             # Only meaningful when the subset is still a pandas DataFrame with

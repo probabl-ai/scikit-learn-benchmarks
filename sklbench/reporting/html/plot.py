@@ -9,7 +9,7 @@ from statistics import median
 from plotly import graph_objects as go
 
 from ..matching import BenchmarkRecord, Match
-from .table import default_comparison_key
+from .table import data_dtype_label, data_layout_label, default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
 
@@ -231,16 +231,21 @@ def _metrics_differ_lines(match: Match) -> list[str]:
     return lines
 
 
-def _real_dataset_dimensions_line(data: dict, data_desc: dict | None) -> str | None:
-    """Real datasets don't carry n_samples/n_features in the case (those are
-    only in `generation_kwargs`, which synthetic datasets have), so surface
-    the shape recorded in `data_desc` instead."""
-    if data.get("generation_kwargs") or not data_desc:
-        return None
+def _data_desc_hover_lines(case: dict, data_desc: dict) -> list[str]:
+    """The data the timed method was actually handed, as recorded at run
+    time."""
+    lines = []
     samples, features = data_desc.get("samples"), data_desc.get("features")
-    if samples is None or features is None:
-        return None
-    return f"dimensions: {samples:,} x {features}"
+    if samples is not None:
+        shape = f"{samples:,}" if features is None else f"{samples:,} x {features}"
+        lines.append(f"shape: {shape}")
+    layout = data_layout_label(case, data_desc)
+    if layout:
+        lines.append(f"memory layout: {layout}")
+    dtype = data_dtype_label(case, data_desc)
+    if dtype:
+        lines.append(f"dtype: {dtype}")
+    return lines
 
 
 def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
@@ -251,19 +256,19 @@ def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
     return None
 
 
-def _data_hover_lines(data: dict, data_desc: dict | None) -> list[str]:
-    lines = _hover_lines(data)
-    dimensions_line = _real_dataset_dimensions_line(data, data_desc)
-    if dimensions_line:
-        lines.append(dimensions_line)
-    return lines
+def _data_hover_lines(case: dict, data_desc: dict | None) -> list[str]:
+    data = case.get("data", {})
+    if not data_desc:
+        return _hover_lines(data)
+    # The requested order/dtype, superseded by the recorded ones below.
+    requested = {key: value for key, value in data.items() if key not in ("order", "dtype")}
+    return _hover_lines(requested) + _data_desc_hover_lines(case, data_desc)
 
 
 def _hover_text(match: Match) -> str:
     result = match.matched_result
     base = match.base_result
     algorithm = result.case.get("algorithm", {})
-    data = result.case.get("data", {})
     warning_lines = [_warning_tooltip_line(warning) for warning in match.warnings]
     lines = [
         f"<b>speed-up: {match.speedup:.2g}x</b> "
@@ -284,7 +289,7 @@ def _hover_text(match: Match) -> str:
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
     data_params = "<br>".join(
-        escape(line) for line in _data_hover_lines(data, result.data_desc)
+        escape(line) for line in _data_hover_lines(result.case, result.data_desc)
     )
     lines.extend(
         [
@@ -299,13 +304,12 @@ def _hover_text(match: Match) -> str:
 
 def _failed_hover_text(record: BenchmarkRecord) -> str:
     algorithm = record.case.get("algorithm", {})
-    data = record.case.get("data", {})
     estimator_params = "<br>".join(
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
     data_params = "<br>".join(
         escape(line)
-        for line in _data_hover_lines(data, _record_fit_data_desc(record))
+        for line in _data_hover_lines(record.case, _record_fit_data_desc(record))
     )
     return "<br>".join(
         [

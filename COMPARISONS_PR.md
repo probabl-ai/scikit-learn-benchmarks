@@ -72,6 +72,10 @@ must still be present and valid, since it selects which runners' sites to
 rebuild, but its `sklearn_ref` and configs are not run. If a runner has no
 published results yet, its job fails: push without `[skip]` first.
 
+A benchmark run publishes its results before it generates the dashboard, so
+if the dashboard step fails, fix it and push a `[skip]` commit: the results
+it already published are reused.
+
 ### Permissions
 
 Only PRs opened by someone with write access to this repo

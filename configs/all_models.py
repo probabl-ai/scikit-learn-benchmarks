@@ -21,9 +21,7 @@ def generate_cases() -> list[dict]:
         cases += generate_real_cases(implem, max_tier='normal')
 
     for case in cases:
-        case.setdefault('bench', {})
-        case['bench'] |= {'n_runs': 5}
-        case['bench'].setdefault('time_limit', 300)
+        case['bench'] = {'time_limit': 300, **case.get('bench', {}), 'n_runs': 5}
     disable_profiling_for_array_api_gpu_cases(cases)
 
     cases = list(filter_gpu_cases_if_unavailable(cases))

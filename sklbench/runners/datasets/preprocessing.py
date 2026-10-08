@@ -15,6 +15,7 @@
 # ===============================================================================
 
 import logging
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -155,6 +156,7 @@ def build_transfer_to_device(
     device: str | None = None,
     dtype: str | None = None,
     order: str | None = None,
+    on_dtype_fallback: Callable[[str], None] | None = None,
 ) -> FunctionTransformer:
     """FunctionTransformer moving X to `dformat`'s array type on `device`,
     casting to `dtype`/`order` along the way. No-op when none of the four is
@@ -165,7 +167,13 @@ def build_transfer_to_device(
     """
     return FunctionTransformer(
         convert_data,
-        kw_args=dict(dformat=dformat, order=order, dtype=dtype, device=device),
+        kw_args=dict(
+            dformat=dformat,
+            order=order,
+            dtype=dtype,
+            device=device,
+            on_dtype_fallback=on_dtype_fallback,
+        ),
         feature_names_out="one-to-one",
         check_inverse=False,
     )

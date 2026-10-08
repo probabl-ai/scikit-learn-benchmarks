@@ -344,26 +344,6 @@ jobs:
         continue-on-error: true
         run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
 
-      - name: Generate comparison dashboard
-        # working-directory is RESULTS_DIR's parent, so its bare `results/`
-        # subdirectory is exactly what index_comparison.py's readers pick
-        # up by default (see the RESULTS_DIR comment above). To also publish
-        # one of this repo's other dashboards/gen_*.py dashboards against
-        # this same ephemeral results/, add a call to it from
-        # dashboards/index_comparison.py's __main__ (see that file) - it
-        # runs here too, since this is the one script this step invokes.
-        working-directory: ${{ runner.temp }}/pr-compare
-        run: |
-          mkdir -p "$SITE_DIR"
-          # SKLBENCH_PR_COMPARE_SITE_URL (job-level env, see above) lets
-          # index_comparison.py link JSON/profile viewers straight at
-          # this run's to-be-deployed site (populated by the later "Copy
-          # results to site" step) instead of a GitHub raw URL that 404s for
-          # these ephemeral, never-committed results (see hosted_viewer_url_fn
-          # in sklbench/reporting/envs.py).
-          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
-            python "$GITHUB_WORKSPACE/dashboards/index_comparison.py" --output-dir "$SITE_DIR"
-
       - name: Write results cache manifests
         # Lists this run's `...:main` result files (fresh or themselves
         # restored from a previous cache above) so a later run's "Restore
@@ -375,12 +355,14 @@ jobs:
         # of this run failed.
         working-directory: ${{ runner.temp }}/pr-compare
         run: |
+          mkdir -p "$SITE_DIR"
           pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
             python "$GITHUB_WORKSPACE/scripts/write_main_results_manifest.py" \
             --output "$SITE_DIR/results-manifest-main.txt"
           (cd results && find . -type f | sed 's|^\./||' | sort) > "$SITE_DIR/results-manifest-all.txt"
 
       - name: Copy results to site
+        id: copy_results
         # The whole results/ tree (records, profiles, software-envs,
         # hardware-envs, ...) copied wholesale onto the site, not just the
         # files a dashboard happens to link - so anything is recoverable
@@ -393,9 +375,19 @@ jobs:
         run: |
           mkdir -p "$SITE_DIR/results"
           cp -a results/. "$SITE_DIR/results"/
+          if [ -n "$(find results/records -type f -print -quit 2>/dev/null)" ]; then
+            echo "has_records=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Deploy to Cloudflare Pages
-        id: deploy
+      - name: Deploy results
+        # Publishes the results (and the manifests `[skip]` / `[skip main]`
+        # restore from) before generating the dashboard, so a dashboard bug
+        # doesn't throw away hours of benchmarking: fix it and push a
+        # `[skip]` commit to rebuild from these. The full deploy below
+        # replaces this one. Skipped when no record was written, so a run
+        # that benchmarked nothing doesn't replace the previous deployment.
+        id: deploy_results
+        if: env.SKIP_BENCH != 'true' && steps.copy_results.outputs.has_records == 'true'
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -411,6 +403,40 @@ jobs:
           # here.
           npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
             --commit-hash="${{ github.event.pull_request.head.sha }}" \
+            --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }}, results only)" \
+            --commit-dirty=true
+
+      - name: Generate comparison dashboard
+        id: dashboard
+        # working-directory is RESULTS_DIR's parent, so its bare `results/`
+        # subdirectory is exactly what index_comparison.py's readers pick
+        # up by default (see the RESULTS_DIR comment above). To also publish
+        # one of this repo's other dashboards/gen_*.py dashboards against
+        # this same ephemeral results/, add a call to it from
+        # dashboards/index_comparison.py's __main__ (see that file) - it
+        # runs here too, since this is the one script this step invokes.
+        working-directory: ${{ runner.temp }}/pr-compare
+        run: |
+          # SKLBENCH_PR_COMPARE_SITE_URL (job-level env, see above) lets
+          # index_comparison.py link JSON/profile viewers straight at
+          # this run's to-be-deployed site (populated by the earlier "Copy
+          # results to site" step) instead of a GitHub raw URL that 404s for
+          # these ephemeral, never-committed results (see hosted_viewer_url_fn
+          # in sklbench/reporting/envs.py).
+          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
+            python "$GITHUB_WORKSPACE/dashboards/index_comparison.py" --output-dir "$SITE_DIR"
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          branch="$PAGES_BRANCH"
+          # wrangler@3: see "Deploy results" above.
+          npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
+            --commit-hash="${{ github.event.pull_request.head.sha }}" \
             --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }})" \
             --commit-dirty=true
 
@@ -419,6 +445,8 @@ jobs:
         env:
           CLASSIFY_OUTCOME: ${{ steps.classify.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          DEPLOY_RESULTS_OUTCOME: ${{ steps.deploy_results.outcome }}
+          DASHBOARD_OUTCOME: ${{ steps.dashboard.outcome }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -450,6 +478,14 @@ jobs:
               fi
               echo
               echo "Full run: $run_url"
+            } > "$RUNNER_TEMP/comment.md"
+          elif [ "$DEPLOY_RESULTS_OUTCOME" = "success" ] && [ "$DASHBOARD_OUTCOME" = "failure" ]; then
+            {
+              echo "**${{ matrix.runner }}**: benchmarks for scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` finished and their results are published, but generating the dashboard failed."
+              echo
+              echo "Fix the dashboard code and push a commit with \`[skip]\` in its message to rebuild it from these results without re-benchmarking."
+              echo
+              echo "See the full run: $run_url"
             } > "$RUNNER_TEMP/comment.md"
           else
             {
