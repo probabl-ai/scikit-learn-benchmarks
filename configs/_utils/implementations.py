@@ -93,6 +93,7 @@ SKLEARNEX_GPU_IMPLEMENTATION = {
 
 PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-pypi": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-pypi-freethreading": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-default": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-libgomp-openblas": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-libomp-openblas": SKLEARN_IMPLEMENTATIONS,
