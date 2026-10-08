@@ -163,6 +163,10 @@ wrapped_estimators = {
         "sklearn",
         "RandomForestRegressor",
     ): "instrumented_rf.RandomForestRegressor",
+    ("xgboost", "XGBClassifier"): "gbdt_xgboost.XGBClassifier",
+    ("xgboost", "XGBRegressor"): "gbdt_xgboost.XGBRegressor",
+    ("catboost", "CatBoostClassifier"): "gbdt_catboost.CatBoostClassifier",
+    ("catboost", "CatBoostRegressor"): "gbdt_catboost.CatBoostRegressor",
 }
 
 

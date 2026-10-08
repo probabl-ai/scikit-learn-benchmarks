@@ -409,6 +409,10 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
         X = self._encoder.transform(X)
         for column in self.categorical_columns_:
             X[column] = X[column].astype("category")
+            # Integer labels: XGBoost rejects floating point categories.
+            X[column] = X[column].cat.rename_categories(
+                X[column].cat.categories.astype("int64")
+            )
         return X
 
 
