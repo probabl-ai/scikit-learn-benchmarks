@@ -70,8 +70,8 @@ The project uses these Pixi environments:
 - `sklearn-dev-freethreading`: the same checkout as `sklearn-dev`, on the
   free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
 
-All environments use Python 3.12, except `sklearn-pypi-freethreading` and the
-`sklearn-dev*` ones, which use Python 3.14. The free-threaded ones set
+All environments use Python 3.14. The free-threaded ones
+(`sklearn-pypi-freethreading` and `sklearn-dev-freethreading`) set
 `PYTHON_GIL=0`, because otherwise importing pandas<3 turns the GIL back on.
 
 The repository has a few layers:
