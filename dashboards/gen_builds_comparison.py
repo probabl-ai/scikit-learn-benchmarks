@@ -41,7 +41,8 @@ ABOUT_HTML = """<section class="panel">
     <p>Read each cell like in
     <a href="per_hardware.html">the software/implementations dashboard</a>:
     <dfn>fit</dfn> or <dfn>predict</dfn> <dfn>speed-up</dfn> (log scale) per estimator category, one line per
-    build.
+    build. Marker shapes mean the same: a square (■) flags a setup
+    difference, an open diamond (◇) different <dfn>metrics</dfn>.
     </p>
   </details>
   <details class="about-section">

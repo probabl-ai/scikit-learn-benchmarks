@@ -52,6 +52,7 @@ from sklbench.reporting.envs import (
 )
 from sklbench.reporting.matching import (
     append_cpu_fallback_warning,
+    append_iterations_warning,
     append_solver_warning,
     append_max_bins_warning,
     find_matches,
@@ -78,6 +79,12 @@ ABOUT_HTML = """<section class="panel">
     the <dfn>fit</dfn> or <dfn>predict</dfn> speed-up (log scale) per estimator category, one line
     per build or implementation. The last cell compares the time per fit in
     hyper-parameter searches, where many fits run in parallel.</p>
+    <p>Marker shapes read like in
+    <a href="per_hardware.html">the software/implementations dashboard</a>:
+    a square (■) flags a setup difference, an open diamond (◇) different
+    <dfn>metrics</dfn>. <b>Random forests</b> and <b>extra trees</b> often have a
+    different forest size on each machine: their times are rescaled to the
+    same size and their metrics aren't compared.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -230,16 +237,10 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
     return replace(result, times=[t * scale for t in result.times])
 
 
-# Cross-hardware comparisons in this dashboard routinely pair up results
-# whose model isn't actually identical - RF/ET's `n_estimators` varies by
-# machine (see `_normalize_tree_result`) - so `Match.metrics_differences`
-# would just flag that expected divergence as a reliability warning on every
-# other point. Plots get matches without `metrics` (see
-# `_without_metrics`), the detailed table keeps them for its score columns.
-# Dropping `has_onedal_estimator` (which also drives
-# `is_sklearnex_fallback`'s "fell back to scikit-learn" marker) suppresses
-# the same kind of noise while leaving other attributes (e.g. `solver`,
-# `n_iter`, shown in the detailed table) untouched.
+# Dropping `has_onedal_estimator` (which drives `is_sklearnex_fallback`'s
+# "fell back to scikit-learn" marker) keeps that marker off these plots: both
+# sides run the same implementation, so a fallback isn't a difference between
+# the two machines.
 _DROPPED_ATTRIBUTES = {"has_onedal_estimator"}
 
 
@@ -252,7 +253,11 @@ def _drop_reliability_signals(result: MethodResult) -> MethodResult:
     return replace(result, attributes=attributes)
 
 
-def _without_metrics(match: Match) -> Match:
+def _plot_match(match: Match) -> Match:
+    """A bigger forest scores differently, so its metrics are dropped from the
+    plot (the detailed table keeps them for its score columns)."""
+    if _n_estimators(match.base_result) == _n_estimators(match.matched_result):
+        return match
     return replace(
         match,
         base_result=replace(match.base_result, metrics={}),
@@ -284,8 +289,7 @@ def result_matches(
     # apply there.
     if base_res.implementation.library == BASE_IMPLEMENTATION and candidate.is_sklearnex_tree:
         append_max_bins_warning(base_res, candidate, warnings)
-    # No `append_iterations_warning`: n_iter is only shown in the detailed
-    # table here, not flagged on the plots.
+    append_iterations_warning(base_res, candidate, warnings)
     append_solver_warning(base_res, candidate, warnings)
     # Unlike the other dashboards' base/candidate pairing (always
     # sklearn-vs-accelerated on the same machine), either side here can be
@@ -586,7 +590,7 @@ def render_comparison(
                         }
                     ),
                     "plot": speedup_plot_html(
-                        [_without_metrics(match) for match in category_method_matches],
+                        [_plot_match(match) for match in category_method_matches],
                         baseline_label=baseline_variant.label,
                         y_title=f"{candidate_variant.label} speed-up",
                         variant_colors=trace_colors,
