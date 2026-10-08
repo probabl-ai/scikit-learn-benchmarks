@@ -28,6 +28,7 @@ ENV_SENSITIVE_CONFIGS = {
     # implementations and produce no cases.
     Path("configs/hptuning.py"): GENERAL_ENVS,
     Path("configs/gbdt_pareto.py"): [*SKLEARN_ENVS, "gbdt"],
+    Path("configs/gbdt_pareto_force_active_wait.py"): [*SKLEARN_ENVS, "gbdt"],
 }
 
 
