@@ -195,20 +195,44 @@ def _row_columns_kind(inputs: RowInputs) -> str | None:
     return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
-def _row_order(inputs: RowInputs) -> str | None:
+def data_layout_label(case: dict, data_desc: dict) -> str | None:
     """The data's memory layout: the config-forced value where a config varies
     it (see configs/_synthetic_linear.py's `order` field), else the measured
     layouts before and after preprocessing as "raw->final" (e.g. "F->C",
     "df->C" - see sklbench/runners/datasets/__init__.py's `_measure_order`).
     Just the final layout for results recorded before `raw_order` existed."""
-    forced_order = inputs.case.get("data", {}).get("order")
+    forced_order = case.get("data", {}).get("order")
     if forced_order is not None:
         return forced_order
-    order = inputs.data_desc.get("order")
-    raw_order = inputs.data_desc.get("raw_order")
+    order = data_desc.get("order")
+    raw_order = data_desc.get("raw_order")
     if raw_order is None or order is None:
         return order
     return f"{raw_order}->{order}"
+
+
+def _row_order(inputs: RowInputs) -> str | None:
+    return data_layout_label(inputs.case, inputs.data_desc)
+
+
+def data_dtype_label(case: dict, data_desc: dict) -> str | None:
+    """The data's measured dtype, flagging a float64 -> float32 downcast on
+    a device without float64 (MPS). Results recorded before the runner
+    measured it only have the requested dtype."""
+    dtype = data_desc.get("measured_dtype")
+    fallback = data_desc.get("dtype_fallback_from")
+    if dtype and fallback:
+        device = case.get("implementation", {}).get("device")
+        return f"{dtype} ({fallback} unsupported on {device})"
+    if dtype:
+        return dtype
+    if data_desc.get("dtype"):
+        return f"{data_desc['dtype']} (requested)"
+    return None
+
+
+def _row_dtype(inputs: RowInputs) -> str | None:
+    return data_dtype_label(inputs.case, inputs.data_desc)
 
 
 def _row_env(inputs: RowInputs) -> dict:
@@ -418,6 +442,7 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ),
     ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
     ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
+    ColumnSpec("dtype", "dtype", _row_dtype, ColumnVisibility.IF_VARIES),
     ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
     ColumnSpec(
         "OpenMP", "openmp", _row_openmp, custom_show=_omp_column_visible("openmp")
