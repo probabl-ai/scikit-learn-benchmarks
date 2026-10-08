@@ -8,11 +8,13 @@ Each library fits the same ladder of hyperparameter settings, from a few
 stumps to many wide trees, so that its points trace a front from cheap and
 inaccurate to slow and close to the dataset's accuracy plateau. On the
 smaller datasets, the widest settings overfit: their points are dominated,
-which marks the end of the front. The settings
-are matched across libraries (number of trees, leaves, learning rate,
-histogram bins, regularization), with lossguide/best-first growth
-everywhere. Early stopping is off, so the cost of a setting doesn't depend on
-the library's stopping rule.
+which marks the end of the front.
+
+The settings are matched across libraries (number of trees, leaves, learning
+rate, histogram bins, minimum leaf size, no L2 regularization), with
+lossguide/best-first growth everywhere. XGBoost has no minimum leaf size in
+samples, and CatBoost keeps its default L2 regularization. Early stopping is
+off, so the cost of a setting doesn't depend on the library's stopping rule.
 
 In the `gbdt` env, every library runs. In the other scikit-learn envs
 (`sklearn-dev`, `sklearn-pypi`, ...), only HistGradientBoosting runs, to
@@ -24,8 +26,8 @@ LightGBM, set by the runner's wrappers for XGBoost and CatBoost).
 from _utils.implementations import implementations_for_pixi_env
 
 BENCH = {"n_runs": 5, "py_spy_profiling": False, "time_limit": 900}
-# HistGradientBoosting takes ~4 min per fit of the "longer" setting on covtype
-# on a 14-core laptop.
+# HistGradientBoosting takes ~3 min per fit of the "longer" setting on covtype
+# on a 16-core laptop.
 BENCH_SLOW = {**BENCH, "n_runs": 3, "time_limit": 1800}
 SLOW_DATASETS = {"covtype"}
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess
 import tomllib
-from typing import Callable
+from typing import Callable, Sequence
 from urllib.parse import quote
 
 from ..config.registry import REPO_ROOT
@@ -500,6 +500,7 @@ def summarize_software_env(
     software_hash: str | None = None,
     case_env: dict | None = None,
     json_url_fn: Callable[[Path], str] | None = None,
+    extra_packages: Sequence[str] = (),
 ):
     # return a small dict, ready for use in templating
     # with relevant information in the env for the given implementation:
@@ -508,7 +509,7 @@ def summarize_software_env(
     # - implementation["library"] version, and versions of important dependencies
     # - versions of array library
     # - if relevant: summary of BLAS/threading infos
-    package_names = _implementation_package_names(implementation)
+    package_names = _implementation_package_names(implementation) + list(extra_packages)
 
     python_version, = _package_versions(env, ["python"])
 

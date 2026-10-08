@@ -270,6 +270,16 @@ TERMS = {
     ),
     "baseline": Term("The reference that speed-ups are computed against."),
 
+    "pareto front": Term(
+        "The points that no other point beats on both axes: nothing is both "
+        "faster and more accurate. Every other point is a worse trade-off.",
+        aliases=("pareto fronts",),
+    ),
+    "roc auc": Term(
+        "Probability that the model ranks a random positive sample above a "
+        "random negative one. 0.5 is random guessing, 1 is perfect. For "
+        "several classes, averaged over one-vs-rest problems.",
+    ),
     "perfect-scaling line": Term(
         "The time the fit would take if n times more cores made it n times "
         "faster.",

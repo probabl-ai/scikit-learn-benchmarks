@@ -615,6 +615,96 @@ def scaling_line_plot_html(
     )
 
 
+def pareto_front(points: list[tuple]) -> list[tuple]:
+    """Points of `(cost, score, ...)` that no other point beats on both:
+    cheaper and at least as good, or as cheap and better."""
+    front = []
+    for point in sorted(points, key=lambda point: (point[0], -point[1])):
+        if not front or point[1] > front[-1][1]:
+            front.append(point)
+    return front
+
+
+def pareto_plot_html(
+    series: dict[str, list[tuple[float, float, str]]],
+    *,
+    colors: dict[str, str] | None = None,
+    line_dashes: dict[str, str] | None = None,
+    x_title: str = "fit time (s)",
+    y_title: str = "test ROC AUC",
+    y_zoom: float | None = None,
+) -> str:
+    """Score vs cost scatter, one color per series, with the series' Pareto
+    front drawn as a line and its dominated points faded. Each point is
+    `(cost, score, hover_text)`. The x-axis is log scale.
+
+    `y_zoom` starts the y-axis at most this far below the best score, so a
+    few very cheap and inaccurate points don't squash the fronts.
+    Double-clicking the plot shows every point."""
+    chart_id = f"pareto-{next(chart_ids)}"
+    fig = go.Figure()
+    for label, points in series.items():
+        color = (colors or {}).get(label)
+        front = pareto_front(points)
+        dominated = [point for point in points if point not in front]
+        line = {"color": color} if color else {}
+        dash = (line_dashes or {}).get(label)
+        if dash:
+            line["dash"] = dash
+        hovertemplate = f"{label}<br>%{{customdata}}<extra></extra>"
+        fig.add_trace(
+            go.Scatter(
+                name=label,
+                legendgroup=label,
+                x=[point[0] for point in front],
+                y=[point[1] for point in front],
+                customdata=[point[2] for point in front],
+                mode="lines+markers",
+                line=line,
+                marker={"color": color, "size": 8} if color else {"size": 8},
+                hovertemplate=hovertemplate,
+            )
+        )
+        if dominated:
+            fig.add_trace(
+                go.Scatter(
+                    name=label,
+                    legendgroup=label,
+                    showlegend=False,
+                    x=[point[0] for point in dominated],
+                    y=[point[1] for point in dominated],
+                    customdata=[point[2] for point in dominated],
+                    mode="markers",
+                    marker={"color": color, "size": 7, "opacity": 0.35, "symbol": "circle-open"}
+                    if color
+                    else {"size": 7, "opacity": 0.35, "symbol": "circle-open"},
+                    hovertemplate=hovertemplate,
+                )
+            )
+    yaxis = {"title": y_title}
+    scores = [point[1] for points in series.values() for point in points]
+    if y_zoom is not None and scores:
+        best, worst = max(scores), min(scores)
+        low = max(worst, best - y_zoom)
+        padding = 0.05 * (best - low or 1e-3)
+        yaxis["range"] = [low - padding, best + padding]
+    fig.update_layout(
+        xaxis={"title": x_title, "type": "log"},
+        yaxis=yaxis,
+        margin={"l": 60, "r": 15, "t": 15, "b": 44},
+        legend={"orientation": "h", "y": -0.25},
+        template=PLOT_TEMPLATE,
+    )
+    return fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height="380px",
+        div_id=chart_id,
+    )
+
+
 def phase_variant_speedup_plot_html(
     points: list[dict],
     *,
