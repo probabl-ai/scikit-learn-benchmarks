@@ -24,6 +24,9 @@ def supported_logistic_regression_solvers(implem: Implementation | dict):
             # newton-cholesky gained array API support in 1.10.
             solvers.add("newton-cholesky")
         return solvers
+    elif implem.library == "cuml":
+        # cuML only runs solver="qn"; wrappers map these sklearn names to it.
+        return {"lbfgs", "newton-cg", "newton-cholesky", "qn", "sag", "saga", "liblinear"}
     else:
         raise NotImplementedError()
 

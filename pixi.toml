@@ -170,6 +170,15 @@ torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
 [feature.skl-nvidia.activation.env]
 SCIPY_ARRAY_API = "1"
 
+# Native RAPIDS cuML estimators (not Array API / not cuml.accel). CUDA-only.
+[feature.cuml]
+channels = ["conda-forge", "nvidia"]
+platforms = ["linux-64-cuda-12-9"]
+
+[feature.cuml.dependencies]
+cuda-version = "12.9.*"
+cuml = "*"
+
 [feature.skl-intel]
 # The XPU torch/triton builds and dpnp's oneAPI stack are Linux-only.
 platforms = ["linux-64"]
@@ -252,4 +261,5 @@ skl-intel = ["sklearn-pypi", "skl-intel"]
 skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
 skl-mps = ["sklearn-pypi", "skl-mps"]
 intel = ["intel", "numpy-conda"]
+cuml = ["sklearn-pypi", "cuml"]
 reporting = ["reporting", "numpy-conda"]
