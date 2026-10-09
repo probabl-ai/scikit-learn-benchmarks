@@ -96,6 +96,10 @@ REAL_DATASET_CASES = [
         # Skipped for sklearnex: too slow here (this dataset's "linear"
         # preprocessing refits TargetEncoder's internal KFold on every CV
         # split x candidate) to be worth the matrix size.
+        # TODO: fix comment and maybe stop skipping sklearnex. Until 0e5acafa,
+        # TargetEncoder treated this integer regression target as ~600
+        # classes, giving ~25k features instead of ~660, which likely caused
+        # most of the slowness.
         {"skip_libraries": ("sklearnex",)},
     ),
     (
