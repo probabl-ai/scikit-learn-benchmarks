@@ -1,8 +1,10 @@
+import json
 from pathlib import Path
 
 import pytest
 
 from sklbench.config import BaseCase, EstimatorCase, HPTuningCase, load_cases_from_script
+from sklbench.config.utils import CUML_ESTIMATOR_FILTER_ENV
 
 
 SKLEARN_ENVS = [
@@ -19,7 +21,8 @@ ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"
 
 ENV_SENSITIVE_CONFIGS = {
     Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
-    Path("configs/all_models.py"): ARRAY_API_ENVS,
+    Path("configs/all_models.py"): [*ARRAY_API_ENVS, "cuml"],
+    Path("configs/cuml_smoke.py"): ["cuml"],
     Path("configs/models_scalability.py"): GENERAL_ENVS,
     # hptuning.py only ever selects non-array-API (no data_library),
     # CPU-or-unset-device implementations - the array-API-only envs
@@ -236,3 +239,131 @@ def test_filter_gpu_cases_keeps_gpu_cases_with_matching_hardware(monkeypatch):
     kept = list(filter_gpu_cases_if_unavailable(_gpu_and_cpu_cases()))
 
     assert [case["implementation"].get("device") for case in kept] == ["gpu", "mps", "cpu", None]
+
+
+def _cuml_filter_cases():
+    cuml = {"library": "cuml", "device": "cuda"}
+    sklearn = {"library": "sklearn"}
+    return [
+        {
+            "algorithm": {"estimator": "LinearRegression"},
+            "data": {"source": "make_regression"},
+            "implementation": cuml,
+        },
+        {
+            "algorithm": {
+                "estimator": "LogisticRegression",
+                "estimator_params": {"solver": "newton-cg"},
+            },
+            "data": {"source": "make_classification"},
+            "implementation": cuml,
+        },
+        {
+            "algorithm": {
+                "estimator": "LogisticRegression",
+                "estimator_params": {"solver": "lbfgs"},
+            },
+            "data": {"source": "make_classification"},
+            "implementation": cuml,
+        },
+        {
+            "algorithm": {
+                "estimator": "LogisticRegression",
+                "estimator_params": {"solver": "newton-cholesky", "max_iter": 1000},
+            },
+            "data": {"dataset": "kddcup09_churn"},
+            "implementation": cuml,
+        },
+        {
+            "algorithm": {"estimator": "LinearRegression"},
+            "data": {"source": "make_regression"},
+            "implementation": sklearn,
+        },
+    ]
+
+
+def test_filter_cuml_supported_cases_drops_only_cuml_cases(monkeypatch):
+    from sklbench.config.utils import filter_cuml_supported_cases_if_needed
+
+    monkeypatch.delenv(CUML_ESTIMATOR_FILTER_ENV, raising=False)
+    kept = list(filter_cuml_supported_cases_if_needed(_cuml_filter_cases()))
+
+    assert [(case["algorithm"]["estimator"], case["implementation"]["library"]) for case in kept] == [
+        ("LogisticRegression", "cuml"),
+        ("LogisticRegression", "cuml"),
+        ("LinearRegression", "sklearn"),
+    ]
+    assert kept[0]["algorithm"]["estimator_params"]["solver"] == "lbfgs"
+    assert kept[1]["data"]["dataset"] == "kddcup09_churn"
+
+
+def test_filter_cuml_supported_cases_limits_sklearn_when_requested(monkeypatch):
+    from sklbench.config.utils import filter_cuml_supported_cases_if_needed
+
+    monkeypatch.setenv(CUML_ESTIMATOR_FILTER_ENV, "1")
+    kept = list(filter_cuml_supported_cases_if_needed(_cuml_filter_cases()))
+
+    assert [(case["algorithm"]["estimator"], case["implementation"]["library"]) for case in kept] == [
+        ("LogisticRegression", "cuml"),
+        ("LogisticRegression", "cuml"),
+    ]
+    assert kept[1]["data"]["dataset"] == "kddcup09_churn"
+
+
+def _case_identity(case: EstimatorCase) -> str:
+    payload = case.model_dump(mode="json")
+    payload.pop("implementation")
+    return json.dumps(payload, sort_keys=True)
+
+
+def test_all_models_filters_cuml_and_keeps_the_sklearn_suite(monkeypatch):
+    monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
+    monkeypatch.delenv(CUML_ESTIMATOR_FILTER_ENV, raising=False)
+
+    monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "sklearn-pypi")
+    sklearn_cases = load_cases_from_script("configs/all_models.py")
+    sklearn_estimators = {case.algorithm.estimator for case in sklearn_cases}
+    assert "LinearRegression" in sklearn_estimators
+    assert "ExtraTreesClassifier" in sklearn_estimators
+
+    monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "cuml")
+    cuml_cases = load_cases_from_script("configs/all_models.py")
+    assert {case.algorithm.estimator for case in cuml_cases} == {
+        "LogisticRegression",
+        "Ridge",
+        "RandomForestClassifier",
+        "RandomForestRegressor",
+        "KMeans",
+    }
+    synthetic_lr_solvers = {
+        case.algorithm.estimator_params.get("solver")
+        for case in cuml_cases
+        if case.algorithm.estimator == "LogisticRegression" and case.data.dataset is None
+    }
+    assert synthetic_lr_solvers == {"lbfgs"}
+    real_lr_solvers = {
+        case.algorithm.estimator_params.get("solver")
+        for case in cuml_cases
+        if case.algorithm.estimator == "LogisticRegression" and case.data.dataset is not None
+    }
+    assert "newton-cholesky" in real_lr_solvers
+
+
+def test_all_models_limits_sklearn_to_cuml_estimators_when_requested(monkeypatch):
+    monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
+    monkeypatch.setenv(CUML_ESTIMATOR_FILTER_ENV, "1")
+
+    identities = {}
+    for pixi_env in ("sklearn-pypi", "cuml"):
+        monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", pixi_env)
+        cases = load_cases_from_script("configs/all_models.py")
+        assert {case.algorithm.estimator for case in cases} == {
+            "LogisticRegression",
+            "Ridge",
+            "RandomForestClassifier",
+            "RandomForestRegressor",
+            "KMeans",
+        }
+        identities[pixi_env] = {_case_identity(case) for case in cases}
+
+    assert identities["sklearn-pypi"] == identities["cuml"]

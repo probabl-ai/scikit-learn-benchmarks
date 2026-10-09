@@ -11,9 +11,13 @@ from sklbench.runners.estimator.wrappers.cuml_estimators import (
 
 
 def test_logistic_regression_maps_sklearn_solvers_to_qn():
-    mapped = map_logistic_regression_params({"solver": "lbfgs", "C": 0.5})
+    mapped = map_logistic_regression_params(
+        {"solver": "lbfgs", "C": 0.5, "max_iter": 100}
+    )
     assert mapped["solver"] == "qn"
     assert mapped["C"] == 0.5
+    assert mapped["max_iter"] == 100
+    assert "penalty_normalized" not in mapped
     assert mapped["output_type"] == "numpy"
 
 
@@ -23,9 +27,18 @@ def test_logistic_regression_rejects_unknown_solver():
 
 
 def test_ridge_maps_cholesky_to_eig():
-    mapped = map_ridge_params({"solver": "cholesky", "alpha": 2.0})
+    mapped = map_ridge_params(
+        {"solver": "cholesky", "alpha": 2.0, "tol": 1e-4, "max_iter": None}
+    )
     assert mapped["solver"] == "eig"
     assert mapped["alpha"] == 2.0
+    assert mapped["tol"] == 1e-4
+    assert mapped["max_iter"] is None
+
+
+def test_ridge_maps_lsqr_to_lsmr_and_keeps_auto():
+    assert map_ridge_params({"solver": "lsqr"})["solver"] == "lsmr"
+    assert map_ridge_params({"solver": "auto"})["solver"] == "auto"
 
 
 def test_random_forest_maps_criterion_and_drops_n_jobs():
@@ -41,7 +54,7 @@ def test_random_forest_maps_criterion_and_drops_n_jobs():
     )
     assert mapped["split_criterion"] == "gini"
     assert mapped["max_leaves"] == 32
-    assert "max_depth" not in mapped
+    assert mapped["max_depth"] is None
     assert "n_jobs" not in mapped
     assert "criterion" not in mapped
 
@@ -59,6 +72,7 @@ def test_kmeans_maps_kmeanspp_init():
         {"init": "k-means++", "n_clusters": 5, "algorithm": "lloyd", "n_init": 1}
     )
     assert mapped["init"] == "scalable-k-means++"
+    assert mapped["oversampling_factor"] == 0.0
     assert mapped["n_clusters"] == 5
     assert mapped["n_init"] == 1
     assert "algorithm" not in mapped

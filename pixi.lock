@@ -21046,12 +21046,12 @@ packages:
 - pypi: ./sklearn-src
   name: scikit-learn
   requires_dist:
-  - numpy>=1.24.1
-  - scipy>=1.10.0
+  - numpy>=1.26.0
+  - scipy>=1.11.4
   - joblib>=1.4.0
   - narwhals>=2.0.1
   - threadpoolctl>=3.5.0
-  requires_python: '>=3.11'
+  requires_python: '>=3.12'
 - pypi: https://download-r2.pytorch.org/whl/cpu/torch-2.14.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl
   name: torch
   version: 2.14.0+cpu

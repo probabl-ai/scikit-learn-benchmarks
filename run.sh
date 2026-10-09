@@ -20,6 +20,11 @@ usage() {
     echo "  $0 sklearn-dev@cakedev0:hgb/use_threads_if sklearn-dev@scikit-learn:main \\" >&2
     echo "      --config configs/hgb_scaling.py" >&2
     echo "" >&2
+    echo "  If cuml is one of the environments, every environment in that" >&2
+    echo "  command (including sklearn-pypi) is limited to the estimators the" >&2
+    echo "  cuML wrappers cover, via SKLBENCH_LIMIT_TO_CUML_ESTIMATORS=1." >&2
+    echo "  A later run without cuml keeps the full suite." >&2
+    echo "" >&2
     echo "  <env> works with any Pixi environment that path-depends on" >&2
     echo "  sklearn-src (currently sklearn-dev and sklearn-dev-libomp), so the" >&2
     echo "  same ref can also be compared across those environments, e.g. to" >&2
@@ -49,6 +54,23 @@ done
 if [ "${#envs[@]}" -eq 0 ]; then
     usage
     exit 2
+fi
+
+# run.sh is the only place that sees every environment in this command.
+# The Python filter runs in a separate process per environment, so it cannot
+# tell that cuml was requested alongside sklearn-pypi. Export the flag before
+# the loop, from the whole list, so the sklearn process is limited too.
+limit_to_cuml_estimators=false
+for env_spec in "${envs[@]}"; do
+    if [ "${env_spec%%@*}" = "cuml" ]; then
+        limit_to_cuml_estimators=true
+        break
+    fi
+done
+if [ "$limit_to_cuml_estimators" = true ]; then
+    export SKLBENCH_LIMIT_TO_CUML_ESTIMATORS=1
+else
+    unset SKLBENCH_LIMIT_TO_CUML_ESTIMATORS
 fi
 
 status=0

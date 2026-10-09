@@ -38,13 +38,19 @@ _LR_SOLVER_TO_CUML = {
     "liblinear": "qn",
 }
 
-# From cuml.linear_model.ridge._SOLVER_SKLEARN_TO_CUML
+# sklearn "auto" on dense single-target data is a Cholesky factorization of
+# the Gram matrix. cuML "auto" picks "eig" in that same case (also the normal
+# equations) and falls back to "lsmr" or "svd" when eig cannot run, so the
+# name is passed through rather than forced to "eig".
+# sklearn "cholesky" has no cuML twin; "eig" is the same closed-form problem.
+# sklearn "lsqr" is the iterative solver cuML calls "lsmr".
 _RIDGE_SOLVER_TO_CUML = {
     "auto": "auto",
     "svd": "svd",
     "eig": "eig",
     "cholesky": "eig",
-    "lsqr": "eig",
+    "lsqr": "lsmr",
+    "lsmr": "lsmr",
     "sag": "eig",
     "saga": "eig",
     "sparse_cg": "eig",
@@ -97,6 +103,10 @@ def map_logistic_regression_params(params: dict[str, Any]) -> dict[str, Any]:
         )
     out["solver"] = _LR_SOLVER_TO_CUML[solver]
 
+    # Leave penalty_normalized unset. cuML's default True divides the penalty
+    # by n_samples because its solver averages the loss, which is what makes
+    # C match scikit-learn. False would scale the penalty by n_samples.
+
     # cuML has no warm_start / intercept_scaling / multi_class / n_jobs / random_state
     for key in (
         "warm_start",
@@ -127,7 +137,9 @@ def map_ridge_params(params: dict[str, Any]) -> dict[str, Any]:
     if out.pop("positive", False):
         raise ValueError("cuML Ridge does not support positive=True")
 
-    for key in ("tol", "max_iter", "random_state", "copy_X", "verbose"):
+    # cuML 26.06 accepts tol and max_iter (used by the lsmr solver) and copy_X.
+    # random_state is not a cuML Ridge parameter.
+    for key in ("random_state", "verbose"):
         out.pop(key, None)
 
     out.setdefault("output_type", "numpy")
@@ -156,10 +168,9 @@ def map_random_forest_params(
         max_leaf_nodes = out.pop("max_leaf_nodes")
         out["max_leaves"] = -1 if max_leaf_nodes is None else max_leaf_nodes
 
-    # sklearn max_depth=None means unlimited; cuML's default is 16 when omitted.
-    # Only forward an explicit finite depth (same rule as cuML's _params_from_cpu).
-    if out.get("max_depth") is None:
-        out.pop("max_depth", None)
+    # sklearn max_depth=None means grow until the leaves are pure. cuML 26.06
+    # accepts None for that, but omitting the argument still uses its own
+    # default of 16, so None has to be forwarded explicitly.
 
     if isinstance(out.get("max_samples"), int):
         raise ValueError(
@@ -180,7 +191,12 @@ def map_kmeans_params(params: dict[str, Any]) -> dict[str, Any]:
     init = out.get("init", "k-means++")
     if isinstance(init, str):
         if init == "k-means++":
+            # cuML's "k-means++" string makes n_init="auto" mean 10 restarts.
+            # "scalable-k-means++" with oversampling_factor=0 is the same
+            # one-centroid-per-round procedure, and n_init="auto" then means
+            # 1 restart, matching scikit-learn.
             out["init"] = "scalable-k-means++"
+            out["oversampling_factor"] = 0.0
         elif init in ("scalable-k-means++", "k-means||", "random"):
             out["init"] = "k-means||" if init == "k-means||" else init
         else:
@@ -202,7 +218,7 @@ def _build_logistic_regression():
             C=1.0,
             fit_intercept=True,
             class_weight=None,
-            max_iter=1000,
+            max_iter=100,
             linesearch_max_iter=50,
             l1_ratio=None,
             solver="lbfgs",
