@@ -110,7 +110,8 @@ def _hp_setting(record: BenchmarkRecord) -> str:
 
 
 def _is_active_wait(record: BenchmarkRecord) -> bool:
-    return "GOMP_SPINCOUNT" in (record.case.get("bench", {}).get("env") or {})
+    # `read_benchmark_records` moves `bench.env` to `case["env"]`.
+    return "GOMP_SPINCOUNT" in (record.case.get("env") or {})
 
 
 def _series_label(record: BenchmarkRecord) -> str:
