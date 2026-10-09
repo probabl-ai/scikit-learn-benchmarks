@@ -40,6 +40,11 @@ LIBRARY_LABELS = {
     "lightgbm": "LightGBM",
     "catboost": "CatBoost",
 }
+# Series labels for HistGradientBoosting builds other than the `gbdt` env's.
+BUILD_LABELS = {
+    # https://github.com/scikit-learn/scikit-learn/pull/34935
+    "sklearn-dev@cakedev0:hgb/active_wait": "HGB (PR)",
+}
 DATASET_ORDER = [
     "bank_marketing",
     "amazon_employee_access",
@@ -89,6 +94,12 @@ ABOUT_HTML = """<section class="panel">
     (<code>GOMP_SPINCOUNT=300000</code>, <code>KMP_BLOCKTIME=200ms</code>).
     CatBoost uses its own thread pool, so its points are the same in both
     tabs.</p>
+    <p><b>HGB (PR)</b> is HistGradientBoosting from
+    <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>,
+    which picks the number of threads per tree and per parallel loop from
+    the amount of work and from the wait policy. It is built from source in
+    the <code>sklearn-dev</code> environment, with the same conda-forge
+    OpenMP runtime.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -99,6 +110,13 @@ ABOUT_HTML = """<section class="panel">
       the settings of a dataset), and up to ~11x for the wide settings on the
       small datasets, with the same accuracy. The wait policy matters as much
       for the three libraries.</li>
+      <li><b>HGB (PR)</b> gets most of the active wait gain without active
+      wait: there, it is ~1.8x to 6x faster than the released
+      <b>HistGradientBoosting</b> (up to ~12x for the wide settings on the
+      small datasets), and faster than <b>LightGBM</b> on 4 of the 5 datasets.
+      With active wait, it is ~1.0x to 1.5x faster than the released version,
+      and <b>LightGBM</b> stays ~1.3x to 2.3x faster. The accuracy is the
+      same.</li>
       <li><b>LightGBM</b>'s front is above and to the left of
       <b>HistGradientBoosting</b>'s on every dataset, with or without active
       wait: for the same setting, it is ~1.6x to 2.5x faster, with a similar
@@ -143,6 +161,8 @@ def _series_label(record: BenchmarkRecord) -> str:
     library = record.implementation.library
     label = LIBRARY_LABELS.get(library, library)
     build = software_build_name(record.software_hash)
+    if build in BUILD_LABELS:
+        return BUILD_LABELS[build]
     if build != GBDT_ENV:
         label += f" ({build})"
     return label
