@@ -172,7 +172,10 @@ SCIPY_ARRAY_API = "1"
 
 # Native RAPIDS cuML estimators (not Array API / not cuml.accel). CUDA-only.
 [feature.cuml]
-channels = ["conda-forge", "nvidia"]
+# Explicit priority: feature channels are appended after the workspace's
+# conda-forge, whose older rmm/pylibraft would otherwise shadow rapidsai's
+# under strict channel priority.
+channels = [{ channel = "rapidsai", priority = 1 }, "conda-forge", "nvidia"]
 platforms = ["linux-64-cuda-12-9"]
 
 [feature.cuml.dependencies]
@@ -261,5 +264,7 @@ skl-intel = ["sklearn-pypi", "skl-intel"]
 skl-nvidia = ["sklearn-pypi", "skl-nvidia"]
 skl-mps = ["sklearn-pypi", "skl-mps"]
 intel = ["intel", "numpy-conda"]
-cuml = ["sklearn-pypi", "cuml"]
+# cudf (a cuml dependency) pulls conda numpy/pandas, which clash with
+# sklearn-pypi's PyPI wheels.
+cuml = ["sklearn-conda", "cuml", "numpy-conda"]
 reporting = ["reporting", "numpy-conda"]

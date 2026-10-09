@@ -212,7 +212,6 @@ def _build_logistic_regression():
             n_jobs=None,
             random_state=None,
             verbose=False,
-            handle=None,
             output_type="numpy",
         ):
             mapped = map_logistic_regression_params(
@@ -232,7 +231,6 @@ def _build_logistic_regression():
                     "n_jobs": n_jobs,
                     "random_state": random_state,
                     "verbose": verbose,
-                    "handle": handle,
                     "output_type": output_type,
                 }
             )
@@ -250,14 +248,12 @@ def _build_ridge():
             *,
             alpha=1.0,
             fit_intercept=True,
-            normalize=False,
             copy_X=True,
             max_iter=None,
             tol=1e-4,
             solver="auto",
             positive=False,
             random_state=None,
-            handle=None,
             verbose=False,
             output_type="numpy",
         ):
@@ -265,14 +261,12 @@ def _build_ridge():
                 {
                     "alpha": alpha,
                     "fit_intercept": fit_intercept,
-                    "normalize": normalize,
                     "copy_X": copy_X,
                     "max_iter": max_iter,
                     "tol": tol,
                     "solver": solver,
                     "positive": positive,
                     "random_state": random_state,
-                    "handle": handle,
                     "verbose": verbose,
                     "output_type": output_type,
                 }
@@ -308,7 +302,6 @@ def _build_random_forest_classifier():
             ccp_alpha=0.0,
             max_samples=None,
             n_bins=128,
-            handle=None,
             output_type="numpy",
             **kwargs,
         ):
@@ -331,7 +324,6 @@ def _build_random_forest_classifier():
                 "class_weight": class_weight,
                 "ccp_alpha": ccp_alpha,
                 "n_bins": n_bins,
-                "handle": handle,
                 "output_type": output_type,
                 **kwargs,
             }
@@ -370,7 +362,6 @@ def _build_random_forest_regressor():
             ccp_alpha=0.0,
             max_samples=None,
             n_bins=128,
-            handle=None,
             output_type="numpy",
             **kwargs,
         ):
@@ -392,7 +383,6 @@ def _build_random_forest_regressor():
                 "warm_start": warm_start,
                 "ccp_alpha": ccp_alpha,
                 "n_bins": n_bins,
-                "handle": handle,
                 "output_type": output_type,
                 **kwargs,
             }
@@ -422,7 +412,6 @@ def _build_kmeans():
             random_state=None,
             copy_x=True,
             algorithm="lloyd",
-            handle=None,
             output_type="numpy",
             oversampling_factor=2.0,
             max_samples_per_batch=1 << 15,
@@ -438,7 +427,6 @@ def _build_kmeans():
                     "random_state": random_state,
                     "copy_x": copy_x,
                     "algorithm": algorithm,
-                    "handle": handle,
                     "output_type": output_type,
                     "oversampling_factor": oversampling_factor,
                     "max_samples_per_batch": max_samples_per_batch,
