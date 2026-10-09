@@ -123,35 +123,38 @@ ABOUT_HTML = """<section class="panel">
   </details>
   <details class="about-section">
     <summary>Findings</summary>
-    <p>On the benchmarked cases:</p>
+    <p>On the benchmarked cases, comparing fit times at the same setting
+    (geometric mean over the 8 settings of a dataset):</p>
     <ul>
-      <li>Forcing <dfn>active wait</dfn> makes <b>HistGradientBoosting</b>,
-      <b>XGBoost</b> and <b>LightGBM</b> ~2x to 6x faster (geometric mean over
-      the settings of a dataset), and up to ~11x for the wide settings on the
-      small datasets, with the same accuracy. The wait policy matters as much
-      for the three libraries.</li>
-      <li><b>HGB (PR)</b> gets most of the active wait gain without active
-      wait: there, it is ~1.8x to 6x faster than the released
-      <b>HistGradientBoosting</b> (up to ~12x for the wide settings on the
-      small datasets), and faster than <b>LightGBM</b> on 4 of the 5 datasets.
-      With active wait, it is ~1.0x to 1.5x faster than the released version,
-      and <b>LightGBM</b> stays ~1.3x to 2.3x faster. The accuracy is the
-      same.</li>
-      <li><b>LightGBM</b>'s front is above and to the left of
-      <b>HistGradientBoosting</b>'s on every dataset, with or without active
-      wait: for the same setting, it is ~1.6x to 2.5x faster, with a similar
-      accuracy.</li>
-      <li><b>XGBoost</b> is ~1.2x to 1.9x faster than
-      <b>HistGradientBoosting</b> without active wait, and about as fast with
-      it (except on bank_marketing). It is less accurate on
-      amazon_employee_access and kddcup09_churn, two datasets with many
-      high-cardinality categorical columns. On kddcup09_churn, its native
-      categorical splits explain it (see "The kddcup09_churn case").</li>
-      <li><b>CatBoost</b> is often faster than the others without active
-      wait, and ~2x to 5x slower than <b>HistGradientBoosting</b> with it. It
-      is the most accurate on kick and kddcup09_churn, and the least accurate
-      on amazon_employee_access and covtype. On kddcup09_churn, its
-      categorical encoding explains it (see "The kddcup09_churn case").</li>
+      <li>The accuracy is close across libraries: the best test scores are
+      within ~0.01 of each other on every dataset, except for <b>XGBoost</b> on
+      amazon_employee_access and kddcup09_churn (~0.04 lower) and
+      <b>CatBoost</b> on covtype (~0.02 lower).</li>
+      <li>On the laptop, forcing <dfn>active wait</dfn> makes
+      <b>HistGradientBoosting</b>, <b>XGBoost</b> and <b>LightGBM</b> ~2x to 9x
+      faster on every dataset but the largest, year_prediction_msd (up to
+      ~1.5x). The wait policy matters as much for the three libraries.</li>
+      <li><b>HGB (PR)</b> gets most of that gain without active wait: on the
+      laptop, it is then ~1.2x to 6x faster than the released
+      <b>HistGradientBoosting</b> (~13x on california_housing), and faster than
+      <b>LightGBM</b> on 7 of the 9 datasets. With active wait, it is ~1.1x to
+      2.7x faster than the released version, and <b>LightGBM</b> stays ~1.3x
+      to 2.2x faster, except on year_prediction_msd. On the Xeon server,
+      where active wait is the default, <b>HGB (PR)</b> is ~1.3x to 6x faster
+      than the released version, and faster than <b>LightGBM</b> on 8 of the 9
+      datasets. The accuracy is the same as the released version.</li>
+      <li><b>LightGBM</b> is ~1.4x to 2.7x faster than the released
+      <b>HistGradientBoosting</b> on the laptop on most datasets, and ~1.3x to
+      1.8x faster on the Xeon server.</li>
+      <li><b>XGBoost</b> is ~1.1x to 2.2x faster than the released
+      <b>HistGradientBoosting</b> on the laptop, except on year_prediction_msd
+      with active wait (~1.4x slower), and ~1.1x to 1.3x faster on the Xeon
+      server.</li>
+      <li><b>CatBoost</b> doesn't use OpenMP, so its fit times don't depend on
+      the wait policy. On the laptop, it is faster than the released
+      <b>HistGradientBoosting</b> on 6 of the 9 datasets without active wait,
+      and ~1.2x to 3.5x slower with it. It is the most accurate on
+      amazon_employee_access and kick.</li>
     </ul>
   </details>
   <details class="about-section">
