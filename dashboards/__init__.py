@@ -14,7 +14,6 @@ HARDWARE_NAMES = {
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
     "b281b2": "Apple M4 laptop",
-    "5ce575": "L4 VM (4 CPU, 16 GB RAM)",
     "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
 
@@ -22,7 +21,6 @@ GPU_NAMES = {
     "3b5e61": "Intel Core Ultra laptop GPU",
     "b281b2": "Apple M4 laptop GPU",
     "5dcf30": "NVIDIA RTX 2060",
-    "5ce575": "NVIDIA L4 g6.xlarge",
     "d189c4": "NVIDIA L4 g6.2xlarge",
 }
 
@@ -38,7 +36,6 @@ HARDWARE_PLATFORMS = {
     "be1055": "linux-64",
     "b281b2": "osx-arm64",
     "5dcf30": "win-64",
-    "5ce575": "linux-64",
     "d189c4": "linux-64",
 }
 
