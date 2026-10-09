@@ -22,7 +22,12 @@ import pandas as pd
 from ...config import EstimatorCase
 from .loaders import dataset_loading_functions, load_openml_data
 from .loading import load_from_cache_or_compute
-from .preprocessing import build_transfer_to_device, split_and_preprocess_data
+from ..estimator.loading import estimator_to_task
+from .preprocessing import (
+    build_transfer_to_device,
+    split_and_preprocess_data,
+    task_preprocessing_kwargs,
+)
 from .synthetic import generate_synthetic_data
 from .transformer import convert_subsets, measure_dtype
 
@@ -170,6 +175,10 @@ def preprocess_data(
 
     preprocessing_kwargs = (
         preprocessing_defaults
+        | task_preprocessing_kwargs(
+            data_params.preprocessing_kind,
+            estimator_to_task(bench_case.algorithm.estimator),
+        )
         | data_params.preprocessing_kwargs
         | {"transfer_to_device": transfer_to_device}
     )

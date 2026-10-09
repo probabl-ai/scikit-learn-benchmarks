@@ -6,6 +6,7 @@ from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
     PREPROCESSINGS,
     build_transfer_to_device,
+    task_preprocessing_kwargs,
     split_and_preprocess_data,
     split_data,
     train_test_split_wrapper,
@@ -189,6 +190,26 @@ def test_hgb_preprocessing_encodes_categoricals_as_category_dtype(housing_data):
     for col in categorical_columns:
         assert isinstance(x_train[col].dtype, pd.CategoricalDtype)
         assert isinstance(x_test[col].dtype, pd.CategoricalDtype)
+
+
+def test_task_preprocessing_kwargs_sets_continuous_target_for_regression():
+    assert task_preprocessing_kwargs("linear", "regression") == {
+        "target_type": "continuous"
+    }
+    assert task_preprocessing_kwargs("linear", "classification") == {}
+    assert task_preprocessing_kwargs("trees", "regression") == {}
+    assert task_preprocessing_kwargs(None, "regression") == {}
+
+
+def test_linear_preprocessor_encodes_integer_regression_target_as_continuous():
+    x = pd.DataFrame({"cat": pd.Categorical(list("abcd") * 25), "num": np.arange(100.0)})
+    # Integer target with 100 distinct values: "auto" would see 100 classes.
+    y = np.arange(100) * 1000
+
+    x_train, _ = PREPROCESSINGS["linear"](x, x, y, target_type="continuous")
+    x_train_auto, _ = PREPROCESSINGS["linear"](x, x, y)
+
+    assert x_train_auto.shape[1] - x_train.shape[1] == 99
 
 
 def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
