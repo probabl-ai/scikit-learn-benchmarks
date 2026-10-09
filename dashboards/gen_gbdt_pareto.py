@@ -137,15 +137,58 @@ ABOUT_HTML = """<section class="panel">
       accuracy.</li>
       <li><b>XGBoost</b> is ~1.2x to 1.9x faster than
       <b>HistGradientBoosting</b> without active wait, and about as fast with
-      it (except on bank_marketing). It is less accurate on the datasets with
-      many rare categories or many noisy features (amazon_employee_access,
-      kddcup09_churn). This may come from its missing minimum leaf size.</li>
+      it (except on bank_marketing). It is less accurate on
+      amazon_employee_access and kddcup09_churn, two datasets with many
+      high-cardinality categorical columns. On kddcup09_churn, its native
+      categorical splits explain it (see "The kddcup09_churn case").</li>
       <li><b>CatBoost</b> is often faster than the others without active
       wait, and ~2x to 5x slower than <b>HistGradientBoosting</b> with it. It
-      is the most accurate on the noisy datasets (kick, kddcup09_churn) and the
-      least accurate on amazon_employee_access and covtype. Its default L2
-      regularization likely plays a part.</li>
+      is the most accurate on kick and kddcup09_churn, and the least accurate
+      on amazon_employee_access and covtype. On kddcup09_churn, its
+      categorical encoding explains it (see "The kddcup09_churn case").</li>
     </ul>
+  </details>
+  <details class="about-section">
+    <summary>The kddcup09_churn case</summary>
+    <p>On kddcup09_churn, <b>CatBoost</b> reaches a test ROC AUC of ~0.74,
+    while the other libraries stay between ~0.67 and ~0.70. Refitting the
+    same settings on the same data, changing one thing at a time, shows why.
+    The numbers below are the mean test ROC AUC over 3 train/test splits, for
+    300 trees of 7 leaves:</p>
+    <ul>
+      <li>Native categorical splits hurt here. Dropping the 34 categorical
+      columns entirely makes <b>HistGradientBoosting</b> better (0.692 to
+      0.714). Treating the category codes as plain numbers is better still
+      (0.735), and the same holds for <b>LightGBM</b> (0.701 to 0.726) and
+      <b>XGBoost</b> (0.671 to 0.736).</li>
+      <li><b>CatBoost</b>'s edge is its categorical encoding. It replaces each
+      category with a smoothed <dfn>target encoding</dfn>, computed on earlier
+      rows only. <b>HistGradientBoosting</b> on columns encoded by
+      scikit-learn's cross-fitted <code>TargetEncoder</code> does the same kind
+      of encoding and matches <b>CatBoost</b> (0.737 vs 0.738). Without its
+      encoding, <b>CatBoost</b> drops to the others' level (0.725).</li>
+      <li>Regularization and randomness barely matter. Without its L2
+      regularization, <b>CatBoost</b> loses 0.001, and the same L2
+      regularization doesn't help <b>HistGradientBoosting</b> or
+      <b>LightGBM</b>. Turning off the random noise that
+      <b>CatBoost</b> adds to split scores (<code>random_strength</code>) makes
+      no clear difference. Nor is the
+      missing minimum leaf size why <b>XGBoost</b> is last: a minimum hessian
+      sum of 20 gains only 0.003.</li>
+      <li>The damage comes from the high-cardinality columns. Keeping native
+      splits only for the 21 columns with at most 50 categories, and plain
+      numbers for the other 13, gives 0.733, nearly as good as all plain
+      numbers. Allowing up to 100 categories already drops it to 0.722. 8 of
+      those 13 columns are at the <dfn>preprocessing</dfn> cap of 252
+      categories.</li>
+      <li>Why it overfits: with only 7% positives, searching for the best way
+      to split ~250 categories into two groups finds splits that fit noise.
+      The minimum of 20 samples per leaf doesn't stop that, because it counts
+      samples per leaf, not per category.</li>
+    </ul>
+    <p>This is not a general <b>CatBoost</b> advantage: on
+    amazon_employee_access, where every feature is a high-cardinality
+    categorical, it is the least accurate.</p>
   </details>
 </section>"""
 

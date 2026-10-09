@@ -158,6 +158,12 @@ TERMS = {
         "The optimization algorithm used by fit, for instance lbfgs or "
         "newton-cholesky for LogisticRegression.",
     ),
+    "target encoding": Term(
+        "Replacing each category with a statistic of the target for that "
+        "category (e.g. its positive rate), pulled towards the global value "
+        "for rare categories and computed without the row's own target.",
+        url="https://scikit-learn.org/stable/modules/preprocessing.html#target-encoder",
+    ),
     "preprocessing": Term(
         "Steps run before the model, such as encoding categorical columns and "
         "imputing missing values.",
