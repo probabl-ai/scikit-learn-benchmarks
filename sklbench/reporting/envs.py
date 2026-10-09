@@ -543,7 +543,7 @@ HARDWARE_COMMERCIAL_INFO = {
     "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
     # Self-built desktop, estimated from 2019 part prices (CPU $329, GPU $349).
     "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
-    # Cloud-only CPU; priced as the rented 4 vCPU + NVIDIA L4 VM it was benchmarked on.
+    # Cloud-only CPU; priced as the rented 8 vCPU + NVIDIA L4 VM it was benchmarked on.
     "AMD EPYC 7R13 Processor": {"price_per_hour_usd": 1, "release_year": 2024},
 }
 
