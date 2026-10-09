@@ -1,17 +1,19 @@
 """Fit time vs test ROC AUC Pareto fronts of gradient boosting libraries, from
 `configs/gbdt_pareto.py` (and its forced active wait variant).
 
-One tab per machine, one plot per dataset, one series per library. A
-HistGradientBoosting run from another env than `gbdt` (e.g. a `sklearn-dev`
-branch) is its own series, and so is a run with forced active wait (same
-color as its default counterpart, dashed).
+One tab per (machine, OpenMP wait policy), one plot per dataset, one series
+per library. A HistGradientBoosting run from another env than `gbdt` (e.g. a
+`sklearn-dev` branch) is its own series.
 """
 from html import escape
 from pathlib import Path
 from statistics import mean, median
 
 from dashboards import HARDWARE_NAMES
-from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
+from sklbench.reporting.envs import (
+    active_wait_label_suffix, has_active_wait, read_env, software_build_name,
+    summarize_software_env,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
@@ -45,7 +47,9 @@ DATASET_ORDER = [
     "kddcup09_churn",
     "covtype",
 ]
-ACTIVE_WAIT_SUFFIX = " (active wait)"
+# Libraries whose threads don't depend on the OpenMP wait policy: their
+# points are shown in every wait policy tab of their machine.
+NO_OPENMP_LIBRARIES = {"catboost"}
 # Lowest ROC AUC shown at first, below each plot's best point.
 Y_ZOOM = 0.06
 
@@ -59,7 +63,8 @@ ABOUT_HTML = """<section class="panel">
   resulting trade-off between fit time and accuracy.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>There is one tab per machine and one plot per dataset. The x-axis is
+    <p>There is one tab per machine and <dfn>OpenMP</dfn> wait policy, and one
+    plot per dataset. The x-axis is
     the median <code><dfn>fit</dfn></code> time over the repeats (log scale),
     the y-axis is the mean <dfn>ROC AUC</dfn> on the test split. The solid line
     joins the points of each library's <dfn>Pareto front</dfn>, faded points
@@ -79,23 +84,35 @@ ABOUT_HTML = """<section class="panel">
     <p>All libraries come from <dfn>conda-forge</dfn>, except CatBoost (from
     <dfn>PyPI</dfn>). HistGradientBoosting, XGBoost and LightGBM share the
     same <dfn>OpenMP runtime</dfn>, which doesn't use
-    <dfn>active wait</dfn> by default. CatBoost uses its own thread pool.</p>
+    <dfn>active wait</dfn> by default: that's the tabs marked "no active
+    wait". The other tabs force active wait with environment variables
+    (<code>GOMP_SPINCOUNT=300000</code>, <code>KMP_BLOCKTIME=200ms</code>).
+    CatBoost uses its own thread pool, so its points are the same in both
+    tabs.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
     <p>On the benchmarked cases:</p>
     <ul>
+      <li>Forcing <dfn>active wait</dfn> makes <b>HistGradientBoosting</b>,
+      <b>XGBoost</b> and <b>LightGBM</b> ~2x to 6x faster (geometric mean over
+      the settings of a dataset), and up to ~11x for the wide settings on the
+      small datasets, with the same accuracy. The wait policy matters as much
+      for the three libraries.</li>
       <li><b>LightGBM</b>'s front is above and to the left of
-      <b>HistGradientBoosting</b>'s on every dataset: for the same setting, it
-      is ~1.3x to 3x faster, with a similar accuracy.</li>
-      <li><b>XGBoost</b> is up to ~2.5x faster than
-      <b>HistGradientBoosting</b> for the same setting, but less accurate on
-      the datasets with many rare categories or many noisy features
-      (amazon_employee_access, kddcup09_churn). This may come from its missing
-      minimum leaf size.</li>
-      <li><b>CatBoost</b> is the most accurate on the noisy datasets (kick,
-      kddcup09_churn) and the least accurate on amazon_employee_access and
-      covtype. Its default L2 regularization likely plays a part.</li>
+      <b>HistGradientBoosting</b>'s on every dataset, with or without active
+      wait: for the same setting, it is ~1.6x to 2.5x faster, with a similar
+      accuracy.</li>
+      <li><b>XGBoost</b> is ~1.2x to 1.9x faster than
+      <b>HistGradientBoosting</b> without active wait, and about as fast with
+      it (except on bank_marketing). It is less accurate on the datasets with
+      many rare categories or many noisy features (amazon_employee_access,
+      kddcup09_churn). This may come from its missing minimum leaf size.</li>
+      <li><b>CatBoost</b> is often faster than the others without active
+      wait, and ~2x to 5x slower than <b>HistGradientBoosting</b> with it. It
+      is the most accurate on the noisy datasets (kick, kddcup09_churn) and the
+      least accurate on amazon_employee_access and covtype. Its default L2
+      regularization likely plays a part.</li>
     </ul>
   </details>
 </section>"""
@@ -109,9 +126,17 @@ def _hp_setting(record: BenchmarkRecord) -> str:
     return record.case["metadata"]["hp_setting"]
 
 
-def _is_active_wait(record: BenchmarkRecord) -> bool:
+def _case_env(record: BenchmarkRecord) -> dict:
     # `read_benchmark_records` moves `bench.env` to `case["env"]`.
-    return "GOMP_SPINCOUNT" in (record.case.get("env") or {})
+    return record.case.get("env") or {}
+
+
+def _active_wait(record: BenchmarkRecord) -> bool:
+    return has_active_wait(_case_env(record), record.software_hash)
+
+
+def _uses_openmp(record: BenchmarkRecord) -> bool:
+    return record.implementation.library not in NO_OPENMP_LIBRARIES
 
 
 def _series_label(record: BenchmarkRecord) -> str:
@@ -120,27 +145,20 @@ def _series_label(record: BenchmarkRecord) -> str:
     build = software_build_name(record.software_hash)
     if build != GBDT_ENV:
         label += f" ({build})"
-    if _is_active_wait(record):
-        label += ACTIVE_WAIT_SUFFIX
     return label
 
 
-def _base_label(label: str) -> str:
-    return label.removesuffix(ACTIVE_WAIT_SUFFIX)
-
-
 def _label_sort_key(label: str) -> tuple:
-    base = _base_label(label)
     order = list(LIBRARY_LABELS.values())
-    return (order.index(base) if base in order else len(order), base, label)
+    return (order.index(label) if label in order else len(order), label)
 
 
-def _series_colors(labels: list[str]) -> dict[str, str]:
-    base_labels = sorted({_base_label(label) for label in labels}, key=_label_sort_key)
-    base_colors = {
-        base: SERIES_COLORS[index % len(SERIES_COLORS)] for index, base in enumerate(base_labels)
+def _series_colors(labels: set[str]) -> dict[str, str]:
+    """Each library keeps its color across tabs."""
+    return {
+        label: SERIES_COLORS[index % len(SERIES_COLORS)]
+        for index, label in enumerate(sorted(set(LIBRARY_LABELS.values()) | labels, key=_label_sort_key))
     }
-    return {label: base_colors[_base_label(label)] for label in labels}
 
 
 def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
@@ -152,7 +170,7 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
             record.implementation.library,
             _dataset(record),
             _hp_setting(record),
-            _is_active_wait(record),
+            _active_wait(record),
         )
         current = latest.get(key)
         if current is None or record.timestamp_recorded > current.timestamp_recorded:
@@ -214,24 +232,28 @@ def _dataset_cell_html(dataset: str, records: list[BenchmarkRecord], colors: dic
     if not series:
         return ""
     series = {label: series[label] for label in sorted(series, key=_label_sort_key)}
-    plot = pareto_plot_html(
-        series,
-        colors=colors,
-        line_dashes={label: "dash" for label in series if label.endswith(ACTIVE_WAIT_SUFFIX)},
-        y_zoom=Y_ZOOM,
-    )
+    plot = pareto_plot_html(series, colors=colors, y_zoom=Y_ZOOM)
     subtitle = f'<div class="plot-subtitle">{escape(_shape_line(records))}</div>'
     return f'<section class="plot-cell"><h3>{escape(dataset)}</h3>{subtitle}{plot}</section>'
 
 
-def _software_tabs_html(hw_records: list[BenchmarkRecord]) -> str:
+def _software_tabs_html(tab_records: list[BenchmarkRecord]) -> str:
     cards = []
-    for software_hash in sorted({record.software_hash for record in hw_records}):
+    for software_hash in sorted({record.software_hash for record in tab_records}):
         build = software_build_name(software_hash)
+        # The OpenMP summary shows this tab's wait policy override, if any.
+        case_env = next(
+            (
+                _case_env(record) for record in tab_records
+                if record.software_hash == software_hash and _uses_openmp(record)
+            ),
+            None,
+        )
         summary = summarize_software_env(
             read_env("software", software_hash),
             Implementation(library="sklearn", device=None, data_library=None),
             software_hash=software_hash,
+            case_env=case_env,
             extra_packages=["xgboost", "lightgbm", "catboost"] if build == GBDT_ENV else (),
         )
         summary["name"] = build
@@ -267,22 +289,17 @@ def _dataset_sort_key(dataset: str) -> tuple:
     )
 
 
-def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str | None:
-    hw_records = [record for record in records if record.hardware_hash == hardware_hash]
-    if not hw_records:
-        return None
-
+def render_tab_page(tab_records: list[BenchmarkRecord], colors: dict[str, str]) -> str:
     sections = [
-        f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(hw_records))}</div>',
-        f'<div class="page-row">{_software_tabs_html(hw_records)}</div>',
+        f'<div class="page-row">{DATE_RANGE_TEMPLATE.render(**date_range(tab_records))}</div>',
+        f'<div class="page-row">{_software_tabs_html(tab_records)}</div>',
     ]
-    failed_html = _failed_cases_html(hw_records)
+    failed_html = _failed_cases_html(tab_records)
     if failed_html:
         sections.append(f'<div class="page-row">{failed_html}</div>')
 
-    colors = _series_colors([_series_label(record) for record in hw_records])
     by_dataset: dict[str, list[BenchmarkRecord]] = {}
-    for record in hw_records:
+    for record in tab_records:
         if record.runs:
             by_dataset.setdefault(_dataset(record), []).append(record)
     cells = [
@@ -301,6 +318,13 @@ def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> 
     return "".join(sections)
 
 
+def _hardware_sort_index(hardware_hash: str) -> int:
+    try:
+        return list(HARDWARE_NAMES).index(hardware_hash)
+    except ValueError:
+        return len(HARDWARE_NAMES)
+
+
 def generate(output_dir: Path) -> None:
     records = _dedup_latest(
         [
@@ -308,25 +332,30 @@ def generate(output_dir: Path) -> None:
             if matches_source_configs(record.case, SOURCE_CONFIGS)
         ]
     )
-    hardware_hashes = sorted(
-        {record.hardware_hash for record in records},
-        key=lambda hardware_hash: (
-            list(HARDWARE_NAMES).index(hardware_hash)
-            if hardware_hash in HARDWARE_NAMES
-            else len(HARDWARE_NAMES),
-            HARDWARE_NAMES.get(hardware_hash, hardware_hash),
-        ),
-    )
-    hardware_pages = [
+    tabs: dict[tuple[str, bool], list[BenchmarkRecord]] = {}
+    for record in records:
+        if _uses_openmp(record):
+            tabs.setdefault((record.hardware_hash, _active_wait(record)), []).append(record)
+    for record in records:
+        if not _uses_openmp(record):
+            keys = [key for key in tabs if key[0] == record.hardware_hash]
+            for key in keys or [(record.hardware_hash, _active_wait(record))]:
+                tabs.setdefault(key, []).append(record)
+
+    colors = _series_colors({_series_label(record) for record in records})
+    pages = [
         (
-            HARDWARE_NAMES.get(hardware_hash, hardware_hash),
-            render_hardware_page(records, hardware_hash),
+            HARDWARE_NAMES.get(hardware_hash, hardware_hash)
+            + active_wait_label_suffix(active_wait),
+            render_tab_page(tab_records, colors),
         )
-        for hardware_hash in hardware_hashes
+        for (hardware_hash, active_wait), tab_records in sorted(
+            tabs.items(), key=lambda item: (_hardware_sort_index(item[0][0]), not item[0][1])
+        )
     ]
     html = BASE_TEMPLATE.render(
         title=TITLE,
-        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
+        rows=[ABOUT_HTML, render_hardware_tabs(pages)],
     )
     output = output_dir / "gbdt_pareto.html"
     output.write_text(html)
