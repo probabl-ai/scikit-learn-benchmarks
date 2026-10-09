@@ -16,6 +16,9 @@ lossguide/best-first growth everywhere. XGBoost has no minimum leaf size in
 samples, and CatBoost keeps its default L2 regularization. Early stopping is
 off, so the cost of a setting doesn't depend on the library's stopping rule.
 
+`gbdt_pareto_regression.py` runs the same settings on regression datasets,
+scored by R2.
+
 In the `gbdt` env, every library runs. In the other scikit-learn envs
 (`sklearn-dev`, `sklearn-pypi`, ...), only HistGradientBoosting runs, to
 place a scikit-learn branch or build on the same fronts.
@@ -29,7 +32,7 @@ BENCH = {"n_runs": 5, "py_spy_profiling": False, "time_limit": 900}
 # HistGradientBoosting takes ~3 min per fit of the "longer" setting on covtype
 # on a 16-core laptop.
 BENCH_SLOW = {**BENCH, "n_runs": 3, "time_limit": 1800}
-SLOW_DATASETS = {"covtype"}
+SLOW_DATASETS = {"covtype", "year_prediction_msd"}
 
 # Categorical features are left as pandas `category` columns
 # ("hgb" preprocessing) and handled natively by every library.
@@ -65,8 +68,19 @@ MAX_BINS = 255
 MIN_SAMPLES_LEAF = 20
 
 
-def _sklearn(hp: dict) -> tuple[str, dict]:
-    return "HistGradientBoostingClassifier", {
+ESTIMATORS = {
+    "sklearn": {
+        "classification": "HistGradientBoostingClassifier",
+        "regression": "HistGradientBoostingRegressor",
+    },
+    "xgboost": {"classification": "XGBClassifier", "regression": "XGBRegressor"},
+    "lightgbm": {"classification": "LGBMClassifier", "regression": "LGBMRegressor"},
+    "catboost": {"classification": "CatBoostClassifier", "regression": "CatBoostRegressor"},
+}
+
+
+def _sklearn(hp: dict, task: str) -> dict:
+    return {
         "max_iter": hp["n_estimators"],
         "max_leaf_nodes": hp["max_leaf_nodes"],
         "learning_rate": hp["learning_rate"],
@@ -77,25 +91,26 @@ def _sklearn(hp: dict) -> tuple[str, dict]:
     }
 
 
-def _xgboost(hp: dict) -> tuple[str, dict]:
-    return "XGBClassifier", {
+def _xgboost(hp: dict, task: str) -> dict:
+    return {
         "n_estimators": hp["n_estimators"],
         "max_leaves": hp["max_leaf_nodes"],
         "learning_rate": hp["learning_rate"],
         "tree_method": "hist",
         "grow_policy": "lossguide",
         "max_depth": 0,
-        # XGBoost has no minimum leaf size in samples: use LightGBM's
-        # default minimum hessian sum instead.
-        "min_child_weight": 1e-3,
+        # XGBoost has no minimum leaf size in samples, only a minimum hessian
+        # sum. With the squared error, the hessian is 1 per sample, so this
+        # is exact. For the log loss, use LightGBM's default instead.
+        "min_child_weight": MIN_SAMPLES_LEAF if task == "regression" else 1e-3,
         "reg_lambda": 0.0,
         "max_bin": MAX_BINS,
         "enable_categorical": True,
     }
 
 
-def _lightgbm(hp: dict) -> tuple[str, dict]:
-    return "LGBMClassifier", {
+def _lightgbm(hp: dict, task: str) -> dict:
+    return {
         "n_estimators": hp["n_estimators"],
         "num_leaves": hp["max_leaf_nodes"],
         "learning_rate": hp["learning_rate"],
@@ -106,8 +121,8 @@ def _lightgbm(hp: dict) -> tuple[str, dict]:
     }
 
 
-def _catboost(hp: dict) -> tuple[str, dict]:
-    return "CatBoostClassifier", {
+def _catboost(hp: dict, task: str) -> dict:
+    return {
         "iterations": hp["n_estimators"],
         "max_leaves": hp["max_leaf_nodes"],
         "learning_rate": hp["learning_rate"],
@@ -132,27 +147,33 @@ ESTIMATOR_PARAMS = {
 }
 
 
-def _cases(implem: dict) -> list[dict]:
-    estimator_params = ESTIMATOR_PARAMS[implem["library"]]
+def _cases(implem: dict, datasets: list[str], task: str) -> list[dict]:
+    library = implem["library"]
     cases = []
-    for dataset in DATASETS:
+    for dataset in datasets:
         for hp in HP_SETTINGS:
-            estimator, params = estimator_params(hp)
             cases.append({
                 "bench": BENCH_SLOW if dataset in SLOW_DATASETS else BENCH,
                 "implementation": implem,
-                "metadata": {"task": "classification", "hp_setting": hp["name"]},
-                "algorithm": {"estimator": estimator, "estimator_params": params},
+                "metadata": {"task": task, "hp_setting": hp["name"]},
+                "algorithm": {
+                    "estimator": ESTIMATORS[library][task],
+                    "estimator_params": ESTIMATOR_PARAMS[library](hp, task),
+                },
                 "data": {"dataset": dataset, "preprocessing_kind": "hgb"},
             })
     return cases
 
 
-def generate_cases() -> list[dict]:
+def generate_task_cases(datasets: list[str], task: str) -> list[dict]:
     cases = []
     for implem in implementations_for_pixi_env():
         # Skips sklearnex and the Array API implementations: they don't
         # implement HistGradientBoosting.
         if implem.get("device") is None and implem["library"] in ESTIMATOR_PARAMS:
-            cases += _cases(implem)
+            cases += _cases(implem, datasets, task)
     return cases
+
+
+def generate_cases() -> list[dict]:
+    return generate_task_cases(DATASETS, "classification")

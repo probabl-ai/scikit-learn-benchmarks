@@ -6,7 +6,7 @@ defaults to passive wait). CatBoost doesn't use OpenMP, so it's left out.
 import configs.gbdt_pareto as gbdt_pareto
 
 
-def generate_cases() -> list[dict]:
+def with_active_wait(cases: list[dict]) -> list[dict]:
     return [
         {
             **case,
@@ -15,6 +15,10 @@ def generate_cases() -> list[dict]:
                 "env": {"GOMP_SPINCOUNT": "300000", "KMP_BLOCKTIME": "200ms"},
             },
         }
-        for case in gbdt_pareto.generate_cases()
+        for case in cases
         if case["implementation"]["library"] != "catboost"
     ]
+
+
+def generate_cases() -> list[dict]:
+    return with_active_wait(gbdt_pareto.generate_cases())
