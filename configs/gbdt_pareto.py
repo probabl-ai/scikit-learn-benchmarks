@@ -34,8 +34,19 @@ BENCH = {"n_runs": 5, "py_spy_profiling": False, "time_limit": 900}
 BENCH_SLOW = {**BENCH, "n_runs": 3, "time_limit": 1800}
 SLOW_DATASETS = {"covtype", "year_prediction_msd"}
 
-# Categorical features are left as pandas `category` columns
-# ("hgb" preprocessing) and handled natively by every library.
+# Categorical features: for HistGradientBoosting, XGBoost and LightGBM, native
+# `category` columns capped at 20 categories plus a target-encoded copy of
+# each ("hgb_target" preprocessing). Native splits over more categories
+# overfit (e.g. on kddcup09_churn), while the target encoding keeps the
+# signal of rare categories (e.g. on amazon_employee_access). CatBoost gets
+# every category ("catboost" preprocessing) and encodes them itself.
+PREPROCESSING_KIND = {
+    "sklearn": "hgb_target",
+    "xgboost": "hgb_target",
+    "lightgbm": "hgb_target",
+    "catboost": "catboost",
+}
+
 DATASETS = [
     # 45k x 16, low-cardinality categoricals.
     "bank_marketing",
@@ -160,7 +171,7 @@ def _cases(implem: dict, datasets: list[str], task: str) -> list[dict]:
                     "estimator": ESTIMATORS[library][task],
                     "estimator_params": ESTIMATOR_PARAMS[library](hp, task),
                 },
-                "data": {"dataset": dataset, "preprocessing_kind": "hgb"},
+                "data": {"dataset": dataset, "preprocessing_kind": PREPROCESSING_KIND[library]},
             })
     return cases
 

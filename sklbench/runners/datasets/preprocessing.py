@@ -206,6 +206,20 @@ def build_restore_order(transfer_to_device: FunctionTransformer) -> FunctionTran
     )
 
 
+def _target_encoder(target_type: str = "auto") -> TargetEncoder:
+    if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
+        return TargetEncoder(
+            target_type=target_type,
+            cv=KFold(n_splits=5, shuffle=True, random_state=0),
+        )
+    return TargetEncoder(
+        target_type=target_type,
+        cv=5,
+        shuffle=True,
+        random_state=0,
+    )
+
+
 def trees_preprocessor(
     encoding : str = "ordinal",
     remove_nans: bool = False,
@@ -291,18 +305,7 @@ def linear_preprocessor(
     placed last either way.
     """
 
-    if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
-        target_encoder = TargetEncoder(
-            target_type=target_type,
-            cv=KFold(n_splits=5, shuffle=True, random_state=0),
-        )
-    else:
-        target_encoder = TargetEncoder(
-            target_type=target_type,
-            cv=5,
-            shuffle=True,
-            random_state=0,
-        )
+    target_encoder = _target_encoder(target_type)
 
     one_hot_encoder = OneHotEncoder(
         sparse_output=False,
@@ -362,12 +365,13 @@ def linear_preprocessor(
 
 
 class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
-    """Ordinal-encodes `category`-dtype columns down to <=252 categories
-    (rare/excess values folded together via `min_frequency`/
+    """Ordinal-encodes `category`-dtype columns down to <=`max_categories`
+    categories (rare/excess values folded together via `min_frequency`/
     `max_categories`), then restores `category` dtype - so
     HistGradientBoosting's native per-column cardinality limit (255) is
     never hit, while it still gets to use its native categorical
-    splitting/missing-value handling on those columns.
+    splitting/missing-value handling on those columns. `max_categories=None`
+    and `min_frequency=None` keep every category.
 
     A proper `fit`/`transform` transformer, so besides `hgb_preprocessor`
     below (fit once, on a fixed train split, like the other
@@ -375,6 +379,10 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
     `sklearn.pipeline.Pipeline` and refit per CV fold -
     `sklbench.runners.hptuning` does exactly that.
     """
+
+    def __init__(self, max_categories=252, min_frequency=5):
+        self.max_categories = max_categories
+        self.min_frequency = min_frequency
 
     def fit(self, X, y=None):
         if not isinstance(X, pd.DataFrame):
@@ -390,8 +398,8 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
                         handle_unknown="use_encoded_value",
                         unknown_value=np.nan,
                         encoded_missing_value=-1,
-                        min_frequency=5,
-                        max_categories=252,
+                        min_frequency=self.min_frequency,
+                        max_categories=self.max_categories,
                     ),
                     self.categorical_columns_,
                 )
@@ -428,10 +436,89 @@ def hgb_preprocessor(
         return make_pipeline(capper, transfer_to_device)
 
 
+class CappedCategoricalsWithTargetEncoding(BaseEstimator, TransformerMixin):
+    """`category`-dtype columns capped at `max_categories` categories (see
+    `HGBCategoricalCapper`), plus a target-encoded copy of each, fit on the
+    uncapped values.
+
+    The low cap keeps native categorical splits from overfitting
+    high-cardinality columns, and the target-encoded copies keep the signal of
+    their rare categories. On kddcup09_churn, amazon_employee_access and kick,
+    this matches or beats both native splits alone (at any cap) and target
+    encoding alone.
+
+    The runners set `target_type="continuous"` for regression cases (see
+    `task_preprocessing_kwargs`).
+    """
+
+    def __init__(self, max_categories=20, target_type="auto"):
+        self.max_categories = max_categories
+        self.target_type = target_type
+
+    def fit(self, X, y):
+        self.fit_transform(X, y)
+        return self
+
+    def fit_transform(self, X, y):
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
+        self.capper_ = HGBCategoricalCapper(max_categories=self.max_categories).fit(X)
+        X_out = self.capper_.transform(X)
+        if not self.capper_.categorical_columns_:
+            return X_out
+        self.target_encoder_ = _target_encoder(self.target_type)
+        # Cross-fitted: a training row is never encoded with its own target,
+        # unlike a separate `fit` then `transform`.
+        encoded = self.target_encoder_.fit_transform(self._categories(X), y)
+        return self._with_encoded(X_out, encoded)
+
+    def transform(self, X):
+        if not isinstance(X, pd.DataFrame):
+            X = pd.DataFrame(X)
+        X_out = self.capper_.transform(X)
+        if not self.capper_.categorical_columns_:
+            return X_out
+        encoded = self.target_encoder_.transform(self._categories(X))
+        return self._with_encoded(X_out, encoded)
+
+    def _categories(self, X):
+        # Strings, with missing values as their own category.
+        X = X[self.capper_.categorical_columns_].astype("object")
+        return X.where(X.notna(), "__missing__").astype(str)
+
+    def _with_encoded(self, X_out, encoded):
+        names = [f"{name}_target" for name in self.target_encoder_.get_feature_names_out()]
+        return pd.concat(
+            [X_out, pd.DataFrame(encoded, columns=names, index=X_out.index)], axis=1
+        )
+
+
+def hgb_target_preprocessor(
+    target_type = "auto",
+    transfer_to_device = None,
+):
+    preprocessor = CappedCategoricalsWithTargetEncoding(target_type=target_type)
+    if transfer_to_device is None:
+        return preprocessor
+    return make_pipeline(preprocessor, transfer_to_device)
+
+
+def catboost_preprocessor(
+    transfer_to_device = None,
+):
+    """Keeps every category: CatBoost encodes them itself."""
+    capper = HGBCategoricalCapper(max_categories=None, min_frequency=None)
+    if transfer_to_device is None:
+        return capper
+    return make_pipeline(capper, transfer_to_device)
+
+
 PREPROCESSORS = {
     'trees': trees_preprocessor,
     'linear': linear_preprocessor,
-    'hgb': hgb_preprocessor,    
+    'hgb': hgb_preprocessor,
+    'hgb_target': hgb_target_preprocessor,
+    'catboost': catboost_preprocessor,
 }
 
 

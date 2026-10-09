@@ -95,10 +95,16 @@ ABOUT_HTML = """<section class="panel">
     There are two exceptions: for classification, XGBoost has no minimum
     number of samples per leaf (it uses a minimum hessian sum of 0.001
     instead), and CatBoost keeps
-    its default L2 regularization (<code>l2_leaf_reg=3</code>). Categorical
-    columns are passed as pandas <code>category</code> columns and handled
-    natively by every library. Every library uses one <dfn>thread</dfn> per
-    <dfn>physical core</dfn>.</p>
+    its default L2 regularization (<code>l2_leaf_reg=3</code>). Every
+    library uses one <dfn>thread</dfn> per <dfn>physical core</dfn>.</p>
+    <p>Categorical columns: <b>HistGradientBoosting</b>, <b>XGBoost</b> and
+    <b>LightGBM</b> get them as native categorical columns capped at 20
+    categories (rarer ones are grouped), plus a <dfn>target encoding</dfn> of
+    each column on all its categories. <b>CatBoost</b> gets every category and
+    encodes them itself. See "The kddcup09_churn case" for why. With this
+    preprocessing, <b>XGBoost</b> is still less accurate on kddcup09_churn and
+    amazon_employee_access: its native splits on the capped columns still
+    overfit, and a larger minimum hessian sum per leaf doesn't fix it.</p>
     <p>All libraries come from <dfn>conda-forge</dfn>, except CatBoost (from
     <dfn>PyPI</dfn>). HistGradientBoosting, XGBoost and LightGBM share the
     same <dfn>OpenMP runtime</dfn>. Whether it uses <dfn>active wait</dfn> by
@@ -150,11 +156,13 @@ ABOUT_HTML = """<section class="panel">
   </details>
   <details class="about-section">
     <summary>The kddcup09_churn case</summary>
-    <p>On kddcup09_churn, <b>CatBoost</b> reaches a test ROC AUC of ~0.74,
-    while the other libraries stay between ~0.67 and ~0.70. Refitting the
-    same settings on the same data, changing one thing at a time, shows why.
-    The numbers below are the mean test ROC AUC over 3 train/test splits, for
-    300 trees of 7 leaves:</p>
+    <p>This case is why categorical columns are preprocessed as described in
+    "How to read". With native categorical splits on columns capped at 252
+    categories for every library, <b>CatBoost</b> reached a test ROC AUC of
+    ~0.74 on kddcup09_churn, while the other libraries stayed between ~0.67
+    and ~0.70. Refitting the same settings on the same data, changing one
+    thing at a time, shows why. The numbers below are the mean test ROC AUC
+    over 3 train/test splits, for 300 trees of 7 leaves:</p>
     <ul>
       <li>Native categorical splits hurt here. Dropping the 34 categorical
       columns entirely makes <b>HistGradientBoosting</b> better (0.692 to
@@ -186,9 +194,12 @@ ABOUT_HTML = """<section class="panel">
       The minimum of 20 samples per leaf doesn't stop that, because it counts
       samples per leaf, not per category.</li>
     </ul>
-    <p>This is not a general <b>CatBoost</b> advantage: on
-    amazon_employee_access, where every feature is a high-cardinality
-    categorical, it is the least accurate.</p>
+    <p>Lowering the cap alone is not enough: amazon_employee_access needs the
+    identity of its rare categories, and <b>HistGradientBoosting</b> drops from
+    0.843 to 0.775 with 20 categories. Native columns capped at 20 categories
+    plus a target encoding of each work on both datasets: 0.739 on
+    kddcup09_churn, and 0.868 on amazon_employee_access, more than any
+    library with the previous preprocessing.</p>
   </details>
 </section>"""
 

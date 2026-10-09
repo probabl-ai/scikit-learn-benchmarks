@@ -196,6 +196,9 @@ def test_task_preprocessing_kwargs_sets_continuous_target_for_regression():
     assert task_preprocessing_kwargs("linear", "regression") == {
         "target_type": "continuous"
     }
+    assert task_preprocessing_kwargs("hgb_target", "regression") == {
+        "target_type": "continuous"
+    }
     assert task_preprocessing_kwargs("linear", "classification") == {}
     assert task_preprocessing_kwargs("trees", "regression") == {}
     assert task_preprocessing_kwargs(None, "regression") == {}
@@ -210,6 +213,46 @@ def test_linear_preprocessor_encodes_integer_regression_target_as_continuous():
     x_train_auto, _ = PREPROCESSINGS["linear"](x, x, y)
 
     assert x_train_auto.shape[1] - x_train.shape[1] == 99
+
+
+def test_hgb_target_preprocessing_caps_categories_and_adds_target_encoding(
+    housing_data,
+):
+    x_train, x_test = PREPROCESSINGS["hgb_target"](
+        housing_data["x"], housing_data["x"], housing_data["y"],
+        target_type="continuous",
+    )
+
+    categorical_columns = housing_data["x"].select_dtypes(
+        include=["category", object]
+    ).columns
+    for x in (x_train, x_test):
+        for col in categorical_columns:
+            assert isinstance(x[col].dtype, pd.CategoricalDtype)
+            # 20 categories, plus -1 for missing values.
+            assert x[col].nunique() <= 21
+            assert pd.api.types.is_float_dtype(x[f"{col}_target"])
+            assert not x[f"{col}_target"].isna().any()
+    # Cross-fitting: training rows aren't encoded like the same rows at
+    # transform time, which uses the encoder fit on the whole training set.
+    col = categorical_columns[0]
+    assert not np.allclose(x_train[f"{col}_target"], x_test[f"{col}_target"])
+
+
+def test_catboost_preprocessing_keeps_every_category(housing_data):
+    x_train, _ = PREPROCESSINGS["catboost"](
+        housing_data["x"], housing_data["x"], housing_data["y"]
+    )
+
+    categorical_columns = housing_data["x"].select_dtypes(
+        include=["category", object]
+    ).columns
+    for col in categorical_columns:
+        assert isinstance(x_train[col].dtype, pd.CategoricalDtype)
+        # Missing values become their own category (-1).
+        assert (
+            x_train[col].nunique() == housing_data["x"][col].nunique(dropna=False)
+        )
 
 
 def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(

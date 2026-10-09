@@ -12,7 +12,7 @@ __all__ = [
     "CatBoostRegressor",
 ]
 
-# The "hgb" preprocessing leaves unknown categories as NaN, which CatBoost
+# The "catboost" preprocessing leaves unknown categories as NaN, which CatBoost
 # rejects in categorical columns.
 _UNKNOWN_CATEGORY = -2
 
@@ -20,7 +20,7 @@ _UNKNOWN_CATEGORY = -2
 def _to_catboost_input(X):
     """CatBoost ignores pandas' `category` dtype: categorical columns must be
     passed as `cat_features` and hold ints or strings. Assumes the categories
-    are ordinal codes, as produced by the "hgb" preprocessing."""
+    are ordinal codes, as produced by the "catboost" preprocessing."""
     if not isinstance(X, _pd.DataFrame):
         return X, []
     cat_features = list(X.select_dtypes(["category"]).columns)
