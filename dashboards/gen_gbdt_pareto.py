@@ -1,5 +1,6 @@
-"""Fit time vs test ROC AUC Pareto fronts of gradient boosting libraries, from
-`configs/gbdt_pareto.py` (and its forced active wait variant).
+"""Fit time vs test score (ROC AUC or R2) Pareto fronts of gradient boosting
+libraries, from `configs/gbdt_pareto.py`, `configs/gbdt_pareto_regression.py`
+and their forced active wait variants.
 
 One tab per (machine, OpenMP wait policy), one plot per dataset, one series
 per library. A HistGradientBoosting run from another env than `gbdt` (e.g. a
@@ -30,7 +31,12 @@ from sklbench.reporting.matching import (
 
 
 TITLE = "Gradient boosting libraries: fit time vs accuracy"
-SOURCE_CONFIGS = ["configs/gbdt_pareto.py", "configs/gbdt_pareto_force_active_wait.py"]
+SOURCE_CONFIGS = [
+    "configs/gbdt_pareto.py",
+    "configs/gbdt_pareto_force_active_wait.py",
+    "configs/gbdt_pareto_regression.py",
+    "configs/gbdt_pareto_regression_force_active_wait.py",
+]
 SOURCE_ENVS = ["gbdt"]
 
 GBDT_ENV = "gbdt"
@@ -51,17 +57,22 @@ DATASET_ORDER = [
     "kick",
     "kddcup09_churn",
     "covtype",
+    "ames_housing",
+    "california_housing",
+    "medical_charges_nominal",
+    "year_prediction_msd",
 ]
+METRICS = {"classification": "ROC AUC", "regression": "R2"}
 # Libraries whose threads don't depend on the OpenMP wait policy: their
 # points are shown in every wait policy tab of their machine.
 NO_OPENMP_LIBRARIES = {"catboost"}
-# Lowest ROC AUC shown at first, below each plot's best point.
+# Lowest score shown at first, below each plot's best point.
 Y_ZOOM = 0.06
 
 ABOUT_HTML = """<section class="panel">
   <p>This dashboard compares scikit-learn's <b>HistGradientBoosting</b> with
   <b>XGBoost</b>, <b>LightGBM</b> and <b>CatBoost</b> on real classification
-  datasets. A single fit time comparison depends a lot on the
+  and regression datasets. A single fit time comparison depends a lot on the
   <dfn>hyperparameters</dfn>: a library can be faster with few small trees and
   slower with many wide ones. So each library fits the same ladder of 8
   settings, from 10 stumps to 500 trees of 63 leaves, and each plot shows the
@@ -71,7 +82,8 @@ ABOUT_HTML = """<section class="panel">
     <p>There is one tab per machine and <dfn>OpenMP</dfn> wait policy, and one
     plot per dataset. The x-axis is
     the median <code><dfn>fit</dfn></code> time over the repeats (log scale),
-    the y-axis is the mean <dfn>ROC AUC</dfn> on the test split. The solid line
+    the y-axis is the mean test score: <dfn>ROC AUC</dfn> for classification,
+    <dfn>R2</dfn> for regression. The solid line
     joins the points of each library's <dfn>Pareto front</dfn>, faded points
     are dominated. A front further up and to the left is better. Hover a
     point to see its setting.</p>
@@ -80,20 +92,22 @@ ABOUT_HTML = """<section class="panel">
     <p>The settings are matched across libraries: number of trees, leaves
     per tree, learning rate, 255 bins, best-first (lossguide) growth, at
     least 20 samples per leaf, no L2 regularization and no early stopping.
-    There are two exceptions: XGBoost has no minimum number of samples per
-    leaf (it uses a minimum hessian sum of 0.001 instead), and CatBoost keeps
+    There are two exceptions: for classification, XGBoost has no minimum
+    number of samples per leaf (it uses a minimum hessian sum of 0.001
+    instead), and CatBoost keeps
     its default L2 regularization (<code>l2_leaf_reg=3</code>). Categorical
     columns are passed as pandas <code>category</code> columns and handled
     natively by every library. Every library uses one <dfn>thread</dfn> per
     <dfn>physical core</dfn>.</p>
     <p>All libraries come from <dfn>conda-forge</dfn>, except CatBoost (from
     <dfn>PyPI</dfn>). HistGradientBoosting, XGBoost and LightGBM share the
-    same <dfn>OpenMP runtime</dfn>, which doesn't use
-    <dfn>active wait</dfn> by default: that's the tabs marked "no active
-    wait". The other tabs force active wait with environment variables
-    (<code>GOMP_SPINCOUNT=300000</code>, <code>KMP_BLOCKTIME=200ms</code>).
-    CatBoost uses its own thread pool, so its points are the same in both
-    tabs.</p>
+    same <dfn>OpenMP runtime</dfn>. Whether it uses <dfn>active wait</dfn> by
+    default depends on the machine: not on the laptop (the tab marked "no
+    active wait"), but yes on the Xeon server. The laptop's other tab forces
+    active wait with environment variables (<code>GOMP_SPINCOUNT=300000</code>,
+    <code>KMP_BLOCKTIME=200ms</code>). The OpenMP section of each tab shows the
+    setting. CatBoost uses its own thread pool, so its points are the same in
+    both of a machine's tabs.</p>
     <p><b>HGB (PR)</b> is HistGradientBoosting from
     <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>,
     which picks the number of threads per tree and per parallel loop from
@@ -213,20 +227,25 @@ def _setting_line(record: BenchmarkRecord) -> str:
     )
 
 
+def _metric(record: BenchmarkRecord) -> str:
+    return METRICS[record.case["metadata"]["task"]]
+
+
 def _point(record: BenchmarkRecord) -> tuple[float, float, str] | None:
-    runs = [run for run in record.runs if "ROC AUC" in run["metrics"].get("predict", {})]
+    metric = _metric(record)
+    runs = [run for run in record.runs if metric in run["metrics"].get("predict", {})]
     if not runs:
         return None
     fit_s = median(run["time_ms"]["fit"] for run in runs) / 1000
-    test_auc = mean(run["metrics"]["predict"]["ROC AUC"] for run in runs)
-    train_auc = mean(run["metrics"]["fit"]["ROC AUC"] for run in runs)
+    test_score = mean(run["metrics"]["predict"][metric] for run in runs)
+    train_score = mean(run["metrics"]["fit"][metric] for run in runs)
     hover = "<br>".join([
         escape(_setting_line(record)),
         f"fit time: {fit_s:.3g}s (median of {len(runs)})",
-        f"test ROC AUC: {test_auc:.4f}",
-        f"train ROC AUC: {train_auc:.4f}",
+        f"test {metric}: {test_score:.4f}",
+        f"train {metric}: {train_score:.4f}",
     ])
-    return fit_s, test_auc, hover
+    return fit_s, test_score, hover
 
 
 def _shape_line(records: list[BenchmarkRecord]) -> str:
@@ -239,6 +258,8 @@ def _shape_line(records: list[BenchmarkRecord]) -> str:
                     line += f" ({fit['n_categorical_features']} categorical)"
                 if fit.get("n_classes"):
                     line += f", {fit['n_classes']} classes"
+                else:
+                    line += ", regression"
                 return line
     return ""
 
@@ -252,7 +273,9 @@ def _dataset_cell_html(dataset: str, records: list[BenchmarkRecord], colors: dic
     if not series:
         return ""
     series = {label: series[label] for label in sorted(series, key=_label_sort_key)}
-    plot = pareto_plot_html(series, colors=colors, y_zoom=Y_ZOOM)
+    plot = pareto_plot_html(
+        series, colors=colors, y_title=f"test {_metric(records[0])}", y_zoom=Y_ZOOM
+    )
     subtitle = f'<div class="plot-subtitle">{escape(_shape_line(records))}</div>'
     return f'<section class="plot-cell"><h3>{escape(dataset)}</h3>{subtitle}{plot}</section>'
 

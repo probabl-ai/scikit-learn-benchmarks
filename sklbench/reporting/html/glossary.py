@@ -280,6 +280,11 @@ TERMS = {
         "random negative one. 0.5 is random guessing, 1 is perfect. For "
         "several classes, averaged over one-vs-rest problems.",
     ),
+    "r2": Term(
+        "Coefficient of determination: 1 minus the squared error of the "
+        "predictions divided by the variance of the target. 1 is perfect, 0 "
+        "is as good as always predicting the mean.",
+    ),
     "perfect-scaling line": Term(
         "The time the fit would take if n times more cores made it n times "
         "faster.",
