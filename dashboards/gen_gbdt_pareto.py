@@ -140,22 +140,22 @@ ABOUT_HTML = """<section class="panel">
       laptop, it is then ~1.2x to 6x faster than the released
       <b>HistGradientBoosting</b> (~13x on california_housing), and faster than
       <b>LightGBM</b> on 7 of the 9 datasets. With active wait, it is ~1.1x to
-      2.7x faster than the released version, and <b>LightGBM</b> stays ~1.3x
+      2.3x faster than the released version, and <b>LightGBM</b> stays ~1.3x
       to 2.2x faster, except on year_prediction_msd. On the Xeon server,
-      where active wait is the default, <b>HGB (PR)</b> is ~1.3x to 6x faster
-      than the released version, and faster than <b>LightGBM</b> on 8 of the 9
-      datasets. The accuracy is the same as the released version.</li>
-      <li><b>LightGBM</b> is ~1.4x to 2.7x faster than the released
-      <b>HistGradientBoosting</b> on the laptop on most datasets, and ~1.3x to
-      1.8x faster on the Xeon server.</li>
+      where active wait is the default, <b>HGB (PR)</b> is ~1.2x to 7x faster
+      than the released version, and faster than <b>LightGBM</b> on 7 of the 9
+      datasets (as fast on year_prediction_msd, slower on covtype). The accuracy is the same as the released version.</li>
+      <li><b>LightGBM</b> is ~1.4x to 2.6x faster than the released
+      <b>HistGradientBoosting</b> on the laptop on most datasets, and ~1.2x to
+      2.1x faster on the Xeon server.</li>
       <li><b>XGBoost</b> is ~1.1x to 2.2x faster than the released
       <b>HistGradientBoosting</b> on the laptop, except on year_prediction_msd
-      with active wait (~1.4x slower), and ~1.1x to 1.3x faster on the Xeon
+      with active wait (~1.4x slower), and up to ~1.35x faster on the Xeon
       server.</li>
       <li><b>CatBoost</b> doesn't use OpenMP, so its fit times don't depend on
       the wait policy. On the laptop, it is faster than the released
       <b>HistGradientBoosting</b> on 6 of the 9 datasets without active wait,
-      and ~1.2x to 3.5x slower with it. It is the most accurate on
+      and ~1.4x to 3.5x slower with it. It is the most accurate on
       amazon_employee_access and kick.</li>
     </ul>
   </details>
