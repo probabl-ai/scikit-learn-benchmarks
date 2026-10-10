@@ -163,6 +163,12 @@ wrapped_estimators = {
         "sklearn",
         "RandomForestRegressor",
     ): "instrumented_rf.RandomForestRegressor",
+    # Native cuML adapters (sklearn-like ctor kwargs → cuml hyper-params).
+    ("cuml", "LogisticRegression"): "cuml_estimators.LogisticRegression",
+    ("cuml", "Ridge"): "cuml_estimators.Ridge",
+    ("cuml", "RandomForestClassifier"): "cuml_estimators.RandomForestClassifier",
+    ("cuml", "RandomForestRegressor"): "cuml_estimators.RandomForestRegressor",
+    ("cuml", "KMeans"): "cuml_estimators.KMeans",
 }
 
 

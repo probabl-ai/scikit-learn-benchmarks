@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 
 import sklearn
@@ -26,6 +27,9 @@ def supported_logistic_regression_solvers(implem: Implementation | dict):
             # newton-cholesky gained array API support in 1.10.
             solvers.add("newton-cholesky")
         return solvers
+    elif implem.library == "cuml":
+        # cuML only runs solver="qn"; wrappers map these sklearn names to it.
+        return {"lbfgs", "newton-cg", "newton-cholesky", "qn", "sag", "saga", "liblinear"}
     else:
         raise NotImplementedError()
 
@@ -152,4 +156,56 @@ def filter_gpu_cases_if_unavailable(cases):
         backend = _GPU_DEVICE_BACKENDS.get(device)
         if backend is not None and not _gpu_backend_available(backend):
             continue
+        yield case
+
+
+# Estimators with a native cuML wrapper. Anything else in the all_models
+# matrix (ExtraTrees, LinearRegression, HistGradientBoosting, ...) has no
+# cuML implementation and would fail at estimator construction.
+_CUML_ESTIMATORS = {
+    "LogisticRegression",
+    "Ridge",
+    "RandomForestClassifier",
+    "RandomForestRegressor",
+    "KMeans",
+}
+
+# The synthetic linear grid runs LogisticRegression three times, once per
+# solver name. The cuML wrapper maps every one of those names onto solver
+# "qn", so the newton variants would time the same algorithm as lbfgs.
+# Real-dataset cases are recognized by data["dataset"] and are kept even
+# when they request newton-cholesky: both libraries ask for that name.
+_DROPPED_SYNTHETIC_CUML_LR_SOLVERS = {"newton-cg", "newton-cholesky"}
+
+# Set by run.sh for every environment in an invocation that includes cuml,
+# so the sklearn run emits the same cases as the cuML run. A later run.sh
+# that does not include cuml leaves this unset and keeps the full suite.
+CUML_ESTIMATOR_FILTER_ENV = "SKLBENCH_LIMIT_TO_CUML_ESTIMATORS"
+
+
+def _limit_case_to_cuml_estimators(case: dict) -> bool:
+    if case["implementation"].get("library") == "cuml":
+        return True
+    return os.environ.get(CUML_ESTIMATOR_FILTER_ENV) == "1"
+
+
+def filter_cuml_supported_cases_if_needed(cases):
+    """Drop cases the native cuML wrappers cannot run.
+
+    cuML cases are always filtered. Other libraries are filtered only when
+    `SKLBENCH_LIMIT_TO_CUML_ESTIMATORS=1`, which `run.sh` exports for every
+    environment in a command that includes `cuml`.
+    """
+    for case in cases:
+        if not _limit_case_to_cuml_estimators(case):
+            yield case
+            continue
+
+        estimator = case["algorithm"]["estimator"]
+        if estimator not in _CUML_ESTIMATORS:
+            continue
+        if estimator == "LogisticRegression" and case["data"].get("dataset") is None:
+            solver = case["algorithm"].get("estimator_params", {}).get("solver")
+            if solver in _DROPPED_SYNTHETIC_CUML_LR_SOLVERS:
+                continue
         yield case
