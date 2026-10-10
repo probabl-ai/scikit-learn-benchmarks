@@ -21,7 +21,11 @@ def _slug_id(label: str) -> str:
 
 
 def render_software_tabs(
-    elements: list[str], *, variant_colors: dict[str, str] | None = None
+    elements: list[str],
+    *,
+    variant_colors: dict[str, str] | None = None,
+    labels: list[str] | None = None,
+    baseline_label: str | None = None,
 ):
     if not elements:
         return ""
@@ -31,15 +35,24 @@ def render_software_tabs(
     buttons = []
     panels = []
     for index, element in enumerate(elements):
-        match = re.search(r"<h3>(.*?)</h3>", element)
-        label = match.group(1) if match else f"Environment {index + 1}"
+        if labels is not None:
+            label = labels[index]
+        else:
+            match = re.search(r"<h3>(.*?)</h3>", element)
+            label = match.group(1) if match else f"Environment {index + 1}"
         marker = f"tab-{tabs_id}-{index}"
         style = ""
         color = variant_colors.get(label)
         if color is not None:
             style = f"background: {color}1F;"
         buttons.append(
-            {"active": index == 0, "label": label, "marker": marker, "style": style}
+            {
+                "active": index == 0,
+                "label": label,
+                "marker": marker,
+                "style": style,
+                "is_baseline": label == baseline_label,
+            }
         )
         panels.append({"active": index == 0, "html": element, "marker": marker})
     return SOFTWARE_TABS_TEMPLATE.render(
@@ -105,7 +118,9 @@ def render_software_hardware_tabs(
     return render_software_tabs(elements, variant_colors=variant_colors)
 
 
-def render_hardware_tabs(pages: list[tuple[str, str]]) -> str:
+def render_hardware_tabs(pages: list[tuple[str, str | None]]) -> str:
+    """Pages whose html is None have nothing to show and get no tab."""
+    pages = [(label, html) for label, html in pages if html is not None]
     if not pages:
         return '<section class="empty">No matching benchmark results.</section>'
     tabs_id = "hardware-tabs"
@@ -148,6 +163,7 @@ def assemble_plots_in_grid(
     columns=None,
     details_by_row=None,
     details_after_grid=None,
+    notes_by_row=None,
 ):
     row_key = rows if isinstance(rows, str) else list(rows)[0]
     column_key = columns if isinstance(columns, str) else list(columns)[0]
@@ -173,8 +189,13 @@ def assemble_plots_in_grid(
         details_by_row = {}
     if details_after_grid is None:
         details_after_grid = []
+    if notes_by_row is None:
+        notes_by_row = {}
     cells = []
     for row_value in row_values:
+        note = notes_by_row.get(row_value)
+        if note and any(key[0] == row_value for key in by_position):
+            cells.append(f'<p class="plot-row-note">{note}</p>')
         for column_value in column_values:
             plot = by_position.get((row_value, column_value))
             if plot is None:
@@ -194,10 +215,13 @@ def assemble_plots_in_grid(
                 )
                 continue
             title = f"{row_value} / {column_value}"
-            point_count = plot.get("point_count")
-            if point_count is not None:
-                point_label = "point" if point_count == 1 else "points"
-                title = f"{title} ({point_count} {point_label})"
+            # Distinct benchmark cases, not points: one case gives a point per
+            # compared variant.
+            case_count = plot.get("case_count")
+            if case_count is not None:
+                column_label = f"{column_value} time" if column_key == "method" else column_value
+                case_label = "case" if case_count == 1 else "cases"
+                title = f"{row_value} - {column_label} - {case_count} {case_label}"
             cells.append(
                 _plot_cell_html(title, plot["plot"], method=plot.get("method"))
             )

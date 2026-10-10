@@ -32,7 +32,7 @@ import re
 from dashboards import dashboard_output_dir
 from sklbench.reporting.utils import groupby, stable_json, without_keys
 from sklbench.reporting.matching import (
-    append_iterations_warning,
+    append_iterations_warning, append_solver_warning,
     read_all_results,
     read_failed_records,
     find_matches,
@@ -107,6 +107,7 @@ def result_matches(
 ) -> tuple[bool, list[MatchWarning]]:
     warnings = []
     append_iterations_warning(base_res, candidate, warnings)
+    append_solver_warning(base_res, candidate, warnings)
     return base_res.minimal_match_key == candidate.minimal_match_key, warnings
 
 
@@ -240,6 +241,7 @@ if __name__ == "__main__":
         unmatched_candidate_results=unmatched_variant_results,
         collapsible=False,
         variant_column_title="Branch name",
+        env_label=lambda result: _env_of(software_build_name(result.software_hash)),
         default_variant_filter=None if multi_env else _branch_label(env_groups[0][2]),
         json_url_fn=hosted_viewer_url_fn(JSON_VIEWER_BASE_URL, json_viewer_url, site_base_url),
         profile_url_fn=hosted_viewer_url_fn(
@@ -273,16 +275,16 @@ if __name__ == "__main__":
     envs_note = ""
     if multi_env:
         env_names_html = ", ".join(f"<code>{escape(env)}</code>" for env, _, _ in env_groups)
-        envs_note = f" Compared under {len(env_groups)} pixi envs: {env_names_html} &mdash; use the branch-name filter to isolate one."
+        envs_note = f" Compared under {len(env_groups)} <dfn>pixi envs</dfn>: {env_names_html}. Use the env column filter to isolate one."
 
     about_html = f"""<section class="panel">
-  <p>This page compares two scikit-learn builds &mdash; <code>main</code> and
-  {variant_label_html} &mdash; benchmarked back-to-back on the same self-hosted
-  runner in one CI job (see the commits below for exactly what was compared).{envs_note}
-  Each table row is one benchmark case (estimator, dataset, hyperparameters);
-  <code>fit speedup</code>/<code>predict speedup</code> is the branch's time
-  relative to the <code>main</code> baseline.
-  Use the column filters to narrow down by estimator, dataset, or branch name.</p>
+  <p>This page compares <code>main</code> and {variant_label_html}, benchmarked
+  back to back on the same self-hosted runner in one CI job. The exact commits
+  are listed below.{envs_note}
+  Each table row is one benchmark case (estimator, dataset, <dfn>hyperparameters</dfn>).
+  <code><dfn>fit speedup</dfn></code> and <code><dfn>predict speedup</dfn></code> are relative to
+  <code>main</code>. Use the column filters to narrow down by estimator,
+  dataset or branch name.</p>
 </section>"""
 
     rows = [
@@ -301,6 +303,8 @@ if __name__ == "__main__":
     )
     html = BASE_TEMPLATE.render(
         title=title,
+        # Published on its own, without the index page.
+        home_url=None,
         rows=[f'<div class="page-row">{row}</div>' for row in rows],
     )
 

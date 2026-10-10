@@ -5,21 +5,23 @@ from pathlib import Path
 
 
 # Single source of truth for hardware-hash -> display name, shared by every
-# dashboard so a rename doesn't have to be repeated file by file. Names are
-# meant to be readable by non-hardware-specialists (relative age/power),
-# not model numbers or vendor codenames.
+# dashboard so a rename doesn't have to be repeated file by file. Names give
+# the machine kind plus a recognizable product line (Xeon, Ultra, M4, L4),
+# not exact model numbers or vendor codenames.
 HARDWARE_NAMES = {
-    "3b5e61": "Modern Intel laptop",
-    "534824": "High-end Intel server",
+    "3b5e61": "Intel Core Ultra laptop",
+    "534824": "High-end Intel Xeon server",
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
-    "b281b2": "Apple M4",
+    "b281b2": "Apple M4 laptop",
+    "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
 
 GPU_NAMES = {
-    "3b5e61": "Modern Intel laptop GPU",
-    "b281b2": "Apple M4 GPU",
-    "5dcf30": "NVIDIA RTX 2060"
+    "3b5e61": "Intel Core Ultra laptop GPU",
+    "b281b2": "Apple M4 laptop GPU",
+    "5dcf30": "NVIDIA RTX 2060",
+    "d189c4": "NVIDIA L4 g6.2xlarge",
 }
 
 # Pixi platform (as declared by `platforms = [...]` in pixi.toml's
@@ -34,17 +36,21 @@ HARDWARE_PLATFORMS = {
     "be1055": "linux-64",
     "b281b2": "osx-arm64",
     "5dcf30": "win-64",
+    "d189c4": "linux-64",
 }
 
 # `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison
-# dashboards (gen_per_hardware, gen_builds_comparison,
+# dashboards (gen_softwares_comparison, gen_builds_comparison,
 # gen_hardware_comparisons), which all draw on the same broad
 # configs/all_models.py matrix across every Pixi env it sweeps - kept here
-# once rather than tripled across those modules. configs/smoke_check_test.py
+# once rather than tripled across those modules. configs/all_models_16gb.py is
+# a strict subset of it (same cases), run on machines with 16GB of RAM.
+# configs/smoke_check_test.py
 # is deliberately excluded - it's a CI-only sanity config, not meant to
 # produce dashboard-worthy results.
 GENERAL_SOURCE_CONFIGS = [
     "configs/all_models.py",
+    "configs/all_models_16gb.py",
 ]
 
 GENERAL_SOURCE_ENVS = [

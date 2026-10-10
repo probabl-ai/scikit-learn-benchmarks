@@ -3,10 +3,11 @@ from __future__ import annotations
 import itertools
 import json
 import math
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from statistics import median
+from statistics import mean, median, quantiles
 from typing import Any, Callable
 
 from ..envs import (
@@ -16,7 +17,10 @@ from ..envs import (
     openmp_runtime_short_label,
     profile_viewer_url,
 )
-from ..matching import BenchmarkRecord, Match, MethodResult
+from ..matching import (
+    BenchmarkRecord, Match, MethodResult, fitted_solver, is_real_dataset,
+    significant_metric_difference,
+)
 from ..utils import stable_json, without_keys
 
 
@@ -143,7 +147,7 @@ def _result_params(case: dict) -> dict:
 
 # Model params shown in the detailed results table, beyond this the table gets
 # too wide to be useful. "solver" is overwritten with the fitted
-# `estimator.solver_` (see `_row_hyperparams`) rather than the requested param,
+# `estimator.solver_` (see `fitted_solver`) rather than the requested param,
 # since solvers are often auto-selected.
 HYPERPARAM_DISPLAY_ALLOWLIST = ["solver", "n_estimators", "n_clusters"]
 
@@ -153,22 +157,9 @@ def _row_hyperparams(inputs: RowInputs) -> dict:
     hyperparams = {}
     for name in HYPERPARAM_DISPLAY_ALLOWLIST:
         if name == "solver":
-            solver_values = inputs.attributes.get("solver")
-            if solver_values:
-                hyperparams["solver"] = solver_values[0]
-                continue
-            estimator = inputs.case.get("algorithm", {}).get("estimator")
-            if inputs.library == "sklearnex" and estimator == "Ridge":
-                # sklearnex's Ridge never records a fitted `solver_` (unlike
-                # stock sklearn), and its oneDAL fit path only ever runs for
-                # the requested "auto" solver, solving via oneDAL's "norm_eq"
-                # algorithm - the same normal-equations approach sklearn's
-                # own "cholesky" solver uses. A `solver` value's presence
-                # here would mean sklearnex fell back to stock sklearn for at
-                # least one repeat (see `MethodResult.is_sklearnex_fallback`),
-                # which does record it - so its absence means every repeat
-                # took the oneDAL path.
-                hyperparams["solver"] = "cholesky"
+            solver = fitted_solver(inputs.case, inputs.library, inputs.attributes)
+            if solver is not None:
+                hyperparams["solver"] = solver
                 continue
         if name in params:
             hyperparams[name] = params[name]
@@ -205,15 +196,47 @@ def _row_columns_kind(inputs: RowInputs) -> str | None:
     return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
-def _row_order(inputs: RowInputs) -> str | None:
-    """The data's memory layout ("C" or "F"): the config-forced value where a
-    config varies it (see configs/_synthetic_linear.py's `order` field), else
-    the measured layout of the loaded array (real datasets - see
-    sklbench/runners/datasets/__init__.py's `_measure_order`)."""
-    order = inputs.case.get("data", {}).get("order")
-    if order is not None:
+def data_layout_label(case: dict, data_desc: dict) -> str | None:
+    """The data's memory layout: the config-forced value where a config varies
+    it (see configs/_synthetic_linear.py's `order` field), else the measured
+    layouts before and after preprocessing as "raw->final" (e.g. "F->C",
+    "df->C" - see sklbench/runners/datasets/__init__.py's `_measure_order`).
+    Just the final layout for results recorded before `raw_order` existed."""
+    forced_order = case.get("data", {}).get("order")
+    if forced_order is not None:
+        return forced_order
+    order = data_desc.get("order")
+    raw_order = data_desc.get("raw_order")
+    if raw_order is None or order is None:
         return order
-    return inputs.data_desc.get("order")
+    return f"{raw_order}->{order}"
+
+
+def _row_order(inputs: RowInputs) -> str | None:
+    return data_layout_label(inputs.case, inputs.data_desc)
+
+
+def _short_dtype(dtype: str) -> str:
+    return re.sub(r"\bfloat(\d+)\b", r"f\1", dtype)
+
+
+def data_dtype_label(case: dict, data_desc: dict) -> str | None:
+    """The data's dtype, shortened ("f32"), flagging a float64 -> float32
+    downcast on a device without float64 (MPS). Measured, or the requested
+    dtype for results recorded before the runner measured it."""
+    dtype = data_desc.get("measured_dtype") or data_desc.get("dtype")
+    if not dtype:
+        return None
+    label = _short_dtype(dtype)
+    fallback = data_desc.get("dtype_fallback_from")
+    if fallback:
+        device = case.get("implementation", {}).get("device")
+        label += f" ({_short_dtype(fallback)} unsupported on {device})"
+    return label
+
+
+def _row_dtype(inputs: RowInputs) -> str | None:
+    return data_dtype_label(inputs.case, inputs.data_desc)
 
 
 def _row_env(inputs: RowInputs) -> dict:
@@ -283,6 +306,13 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     if n_samples is not None and estimator_params["max_bins"] == n_samples:
         return "n_samples"
     return "default"
+
+
+def _row_search_n_jobs(inputs: RowInputs) -> int | None:
+    """`RandomizedSearchCV(n_jobs=...)` for hyper-parameter search results.
+    `HPTuning.n_jobs` defaults to 1, which is left out of serialized cases."""
+    search = inputs.case.get("hptuning")
+    return None if search is None else search.get("n_jobs", 1)
 
 
 def _row_status(inputs: RowInputs) -> str:
@@ -389,8 +419,12 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         header_filter=False,
         header_sort=False,
     ),
+    # Only filled when the caller passes `hardware_label`.
+    ColumnSpec("Hardware", "hardware", visibility=ColumnVisibility.IF_ANY),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
+    # Only filled when the caller passes `env_label`.
+    ColumnSpec("Env", "env", visibility=ColumnVisibility.IF_VARIES),
     ColumnSpec(
         "Estimator name", "estimator", _row_estimator, ColumnVisibility.IF_VARIES
     ),
@@ -412,6 +446,7 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ),
     ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
     ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
+    ColumnSpec("dtype", "dtype", _row_dtype, ColumnVisibility.IF_VARIES),
     ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
     ColumnSpec(
         "OpenMP", "openmp", _row_openmp, custom_show=_omp_column_visible("openmp")
@@ -426,6 +461,23 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnGroupSpec("env", _row_env),
     ColumnSpec(
         "Status", "status", _row_status, custom_show=_status_column_visible
+    ),
+    ColumnSpec(
+        "outer n_jobs",
+        "search_n_jobs",
+        _row_search_n_jobs,
+        ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+    ),
+    # Set in `_add_result_method` from the "fit" result, with the ratio to
+    # the baseline's n_iter when they differ.
+    ColumnSpec(
+        "n_iter",
+        "n_iter",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
     ),
     ColumnSpec(
         "fit time",
@@ -454,6 +506,23 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         header_filter=False,
         sorter="number",
         formatter_name="speedup",
+    ),
+    # Test scores, set in `_add_result_method` (see `SCORE_METRICS`).
+    ColumnSpec(
+        "ROC AUC",
+        "roc_auc",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+        formatter_name="score",
+    ),
+    ColumnSpec(
+        "R2",
+        "r2",
+        visibility=ColumnVisibility.IF_ANY,
+        header_filter=False,
+        sorter="number",
+        formatter_name="score",
     ),
     ColumnSpec(
         "profile link",
@@ -488,13 +557,20 @@ def _base_row(
 ) -> dict:
     row = {
         "comparison_key": comparison_key,
+        "hardware": None,
         "variant": variant,
+        "env": None,
+        "real_dataset": is_real_dataset(inputs),
         "n_samples": n_samples,
         "n_features": n_features,
+        "n_iter": None,
         "fit_time": None,
         "fit_speedup": None,
         "predict_time": None,
         "predict_speedup": None,
+        "roc_auc": None,
+        "r2": None,
+        "is_baseline": False,
         "profile_url": profile_url,
         "profile_url_label": profile_url_label,
         "json_url": json_url,
@@ -561,11 +637,77 @@ def _new_failed_row(
     )
 
 
+def _n_iter(result: MethodResult) -> float | None:
+    """Median over repeats. A per-repeat value can be a list (e.g.
+    LogisticRegression's per-class `n_iter_`), reduced to its max."""
+    per_repeat = [
+        max(value) if isinstance(value, list) else value
+        for value in result.attributes.get("n_iter", [])
+    ]
+    per_repeat = [value for value in per_repeat if isinstance(value, (int, float))]
+    return median(per_repeat) if per_repeat else None
+
+
+def _format_n_iter(result: MethodResult, base_result: MethodResult | None) -> str | None:
+    n_iter = _n_iter(result)
+    if n_iter is None:
+        return None
+    label = f"{n_iter:.0f}"
+    base_n_iter = _n_iter(base_result) if base_result is not None else None
+    if base_n_iter and n_iter != base_n_iter:
+        ratio = n_iter / base_n_iter
+        label += f" ({ratio:.0f}x)" if ratio >= 10 else f" ({ratio:.2g}x)"
+    return label
+
+
 def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
     result_time = median(result.times)
     if result_time == 0:
         return math.inf
     return median(base_result.times) / result_time
+
+
+def _speedup_interval(
+    base_result: MethodResult, result: MethodResult
+) -> tuple[float, float] | None:
+    """Speed-up range spanned by the interquartile ranges of both sides'
+    repeat times. Always contains `_speedup`; its width is what the table's
+    speed-up formatter (templates.py) uses to show the value as noisy."""
+    if len(base_result.times) < 3 or len(result.times) < 3:
+        return None
+    base_q1, _, base_q3 = quantiles(base_result.times, n=4, method="inclusive")
+    q1, _, q3 = quantiles(result.times, n=4, method="inclusive")
+    if q1 <= 0 or base_q1 <= 0:
+        return None
+    return base_q1 / q3, base_q3 / q1
+
+
+# Row field -> test metric name. Both are higher-is-better.
+SCORE_METRICS = {"roc_auc": "ROC AUC", "r2": "R2"}
+
+
+def _add_scores(
+    row: dict,
+    result: MethodResult,
+    base_result: MethodResult | None,
+    scores_comparable: Callable[[MethodResult, MethodResult], bool] | None,
+):
+    test_metrics = (result.metrics or {}).get("predict", {})
+    base_test_metrics = (
+        (base_result.metrics or {}).get("predict", {}) if base_result is not None else {}
+    )
+    for field, metric_name in SCORE_METRICS.items():
+        values = [v for v in test_metrics.get(metric_name, []) if isinstance(v, (int, float))]
+        if not values:
+            continue
+        row[field] = mean(values)
+        if base_result is None or base_result is result or metric_name not in base_test_metrics:
+            continue
+        if scores_comparable is not None and not scores_comparable(base_result, result):
+            continue
+        difference = significant_metric_difference(base_test_metrics[metric_name], values)
+        if difference:
+            row[f"{field}_cmp"] = "better" if difference > 0 else "worse"
 
 
 def _add_result_method(
@@ -577,11 +719,22 @@ def _add_result_method(
     json_url_fn: Callable[[Path], str | None],
     profile_url_fn: Callable[[Path], str | None],
     base_result: MethodResult | None = None,
+    hardware_label: Callable[[MethodResult], str] | None = None,
+    env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
+    is_baseline: bool = False,
+    scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
 ):
     key = _row_key(result, variant)
     row = rows.setdefault(
         key, _new_row(result, variant, comparison_key, json_url_fn, profile_url_fn)
     )
+    if hardware_label is not None:
+        row["hardware"] = hardware_label(result)
+    if env_label is not None:
+        row["env"] = env_label(result)
+    if is_baseline:
+        row["is_baseline"] = True
+    _add_scores(row, result, base_result, scores_comparable)
     # Globally unique per row (fit/predict merge into the same row above) -
     # lets a table-row click pin the exact clicked row first among rows
     # sharing its comparison_key (see matchFirstSorter in templates.py).
@@ -590,10 +743,18 @@ def _add_result_method(
     if method == "fit":
         row["n_samples"] = result.data_desc.get("samples")
         row["n_features"] = result.data_desc.get("features")
+        row["n_iter"] = _format_n_iter(result, base_result)
     row[f"{method}_time"] = median(result.times)
     row[f"{method}_speedup"] = (
         _speedup(base_result, result) if base_result is not None else None
     )
+    interval = (
+        _speedup_interval(base_result, result)
+        if base_result is not None and base_result is not result
+        else None
+    )
+    if interval is not None:
+        row[f"{method}_speedup_low"], row[f"{method}_speedup_high"] = interval
 
 
 def _column_dict(
@@ -645,6 +806,25 @@ def _spec_column_dict(spec: ColumnSpec, *, title: str) -> dict:
     )
 
 
+# Extra dataset header-filter options, mapped to the `real_dataset` value
+# they keep (see sklbenchPrepareColumns in templates.py).
+DATASET_KIND_FILTERS = {
+    "All real datasets": True,
+    "All synthetic datasets": False,
+}
+
+
+def _add_dataset_kind_filters(column: dict, rows: list[dict]) -> None:
+    if len({row["real_dataset"] for row in rows}) < 2:
+        return
+    names = sorted({row["dataset"] for row in rows}, key=str.lower)
+    column["headerFilterParams"] = {
+        "clearable": True,
+        "values": [*DATASET_KIND_FILTERS, *names],
+    }
+    column["datasetKindFilters"] = DATASET_KIND_FILTERS
+
+
 def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
     if spec.custom_show is not None:
         return spec.custom_show(rows)
@@ -655,6 +835,44 @@ def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
     if spec.visibility is ColumnVisibility.IF_ANY:
         return any(row.get(spec.field) for row in rows)
     raise AssertionError(spec.visibility)
+
+
+def _add_group_ranks(rows: list[dict]) -> None:
+    """Sets `group_rank` (order of the rows' comparison_key groups) and
+    `within_rank` (order inside a group: the baseline's variant first, then
+    each variant's rows together, baseline hardware first), read by the
+    table's default sort (see matchFirstSorter in templates.py)."""
+    groups: dict[str, list[dict]] = {}
+    for row in rows:
+        groups.setdefault(row["comparison_key"], []).append(row)
+
+    def group_sort_key(item):
+        key, group_rows = item
+        first = group_rows[0]
+        return (
+            first["estimator"],
+            first["dataset"],
+            min(row.get("n_samples") or -1 for row in group_rows),
+            min(row.get("n_features") or -1 for row in group_rows),
+            key,
+        )
+
+    for group_rank, (_, group_rows) in enumerate(sorted(groups.items(), key=group_sort_key)):
+        baseline_variants = {row["variant"] for row in group_rows if row["is_baseline"]}
+        ordered = sorted(
+            group_rows,
+            key=lambda row: (
+                row["variant"] not in baseline_variants,
+                row["variant"],
+                not row["is_baseline"],
+                row["hardware"] or "",
+                row["env"] or "",
+                row["row_id"],
+            ),
+        )
+        for within_rank, row in enumerate(ordered):
+            row["group_rank"] = group_rank
+            row["within_rank"] = within_rank
 
 
 def detailed_results_table_html(
@@ -670,6 +888,9 @@ def detailed_results_table_html(
     open: bool = False,
     collapsible: bool = True,
     variant_column_title: str = "Variant name",
+    hardware_label: Callable[[MethodResult], str] | None = None,
+    env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
+    scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
@@ -692,6 +913,9 @@ def detailed_results_table_html(
                 comparison_key=comparison_key(base),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
+                hardware_label=hardware_label,
+                env_label=env_label,
+                is_baseline=True,
             )
             _add_result_method(
                 rows_by_key,
@@ -701,12 +925,17 @@ def detailed_results_table_html(
                 comparison_key=comparison_key(result),
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
+                hardware_label=hardware_label,
+                env_label=env_label,
+                scores_comparable=scores_comparable,
             )
 
     for record, variant in failed_records:
         key = _failed_row_key(record, variant)
         row = _new_failed_row(record, variant, comparison_key(record), json_url_fn)
         row["row_id"] = key
+        if env_label is not None:
+            row["env"] = env_label(record)
         rows_by_key[key] = row
 
     # Results whose counterpart failed never appear in `matches_by_method`
@@ -722,6 +951,9 @@ def detailed_results_table_html(
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
+            hardware_label=hardware_label,
+            env_label=env_label,
+            is_baseline=True,
         )
 
     for result in unmatched_candidate_results:
@@ -732,6 +964,8 @@ def detailed_results_table_html(
             comparison_key=comparison_key(result),
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
+            hardware_label=hardware_label,
+            env_label=env_label,
         )
 
     if not rows_by_key:
@@ -768,16 +1002,8 @@ def detailed_results_table_html(
                 row[field] = _format_value(raw.get(name))
         rows.append(row)
 
-    rows = sorted(
-        rows,
-        key=lambda row: (
-            row["estimator"],
-            row["dataset"],
-            row["variant"],
-            row.get("n_samples") or -1,
-            row.get("n_features") or -1,
-        ),
-    )
+    _add_group_ranks(rows)
+    rows = sorted(rows, key=lambda row: (row["group_rank"], row["within_rank"]))
 
     columns = []
     for spec in COLUMNS:
@@ -790,7 +1016,10 @@ def detailed_results_table_html(
         if not _spec_visible(spec, rows):
             continue
         title = variant_column_title if spec.field == "variant" else spec.title
-        columns.append(_spec_column_dict(spec, title=title))
+        column = _spec_column_dict(spec, title=title)
+        if spec.field == "dataset":
+            _add_dataset_kind_filters(column, rows)
+        columns.append(column)
 
     table_id = f"detailed-results-{next(table_ids)}"
     default_header_filters = (

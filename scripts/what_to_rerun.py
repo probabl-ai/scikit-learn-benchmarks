@@ -5,9 +5,9 @@ dashboards a given config feeds. Reads `dashboards/gen_*.py`'s declared
 list) instead of anyone having to read `sklbench/reporting/matching.py`'s
 filtering by hand.
 
-    python scripts/what_to_rerun.py --dashboard "HGB thread-scalability breakdown"
+    python scripts/what_to_rerun.py --dashboard "HistGradientBoosting thread-scalability breakdown"
     python scripts/what_to_rerun.py --dashboard all
-    python scripts/what_to_rerun.py --dashboard all --hardware "Modern Intel laptop"
+    python scripts/what_to_rerun.py --dashboard all --hardware "Intel Core Ultra laptop"
     python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 
 `--hardware` (a `HARDWARE_NAMES` display name or hash) narrows the printed

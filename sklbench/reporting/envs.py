@@ -10,12 +10,23 @@ from typing import Callable
 from urllib.parse import quote
 
 from ..config.registry import REPO_ROOT
-from .matching import Implementation
+from .matching import HARDWARE_HASH_ALIASES, Implementation
 
 
 def read_env(kind: str, hash: str):
     assert kind in ['software', 'hardware']
-    path = Path("results") / f"{kind}-envs" / f"{hash}.json"
+    env_dir = Path("results") / f"{kind}-envs"
+    path = env_dir / f"{hash}.json"
+    if not path.is_file() and kind == "hardware":
+        # Records carry the canonical hash (see HARDWARE_HASH_ALIASES), but a
+        # results/ folder holding only a newer alias's runs (e.g. a PR
+        # comparison) has only that alias's env file.
+        aliases = [
+            env_dir / f"{alias}.json"
+            for alias, canonical in HARDWARE_HASH_ALIASES.items()
+            if canonical == hash
+        ]
+        path = next((p for p in aliases if p.is_file()), path)
     if not path.is_file():
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
     with open(path, "r") as f:
@@ -532,6 +543,10 @@ HARDWARE_COMMERCIAL_INFO = {
     "Intel(R) Xeon(R) 6787P": {"price_usd": 11_648, "release_year": 2025},
     "Apple M4": {"price_usd": 1_599, "release_year": 2024},
     "Intel(R) Core(TM) Ultra X7 358H": {"price_usd": 1_299, "release_year": 2026},
+    # Self-built desktop, estimated from 2019 part prices (CPU $329, GPU $349).
+    "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
+    # Cloud-only CPU; priced as the rented 8 vCPU + NVIDIA L4 VM it was benchmarked on.
+    "AMD EPYC 7R13 Processor": {"price_per_hour_usd": 1, "release_year": 2024},
 }
 
 # GPUs that are an integrated tile of a CPU package above rather than a separately
@@ -540,9 +555,20 @@ HARDWARE_COMMERCIAL_INFO = {
 # of showing a second, fabricated-looking dollar figure.
 INTEGRATED_GPUS = {"Intel(R) Arc(TM) B390 GPU"}
 
+# Discrete GPUs whose price is already included in the machine price of the CPU
+# entry above.
+GPUS_PRICED_WITH_CPU = INTEGRATED_GPUS | {"NVIDIA GeForce RTX 2060", "NVIDIA L4"}
+
 
 def _commercial_info(name: str) -> dict:
-    return HARDWARE_COMMERCIAL_INFO.get(name, {"price_usd": None, "release_year": None})
+    info = HARDWARE_COMMERCIAL_INFO.get(name, {})
+    if "price_usd" in info:
+        price = f"${info['price_usd']:,}"
+    elif "price_per_hour_usd" in info:
+        price = f"~${info['price_per_hour_usd']:,}/h (cloud VM)"
+    else:
+        return {"price_label": None}
+    return {"price_label": f"{price}, released {info['release_year']}"}
 
 
 def summarize_hardware_env(env: dict):
@@ -557,6 +583,17 @@ def summarize_hardware_env(env: dict):
 
     cpu_name = cpu.get("name", "?")
 
+    # dpctl/pynvml can't see Apple Silicon GPUs, but every M-series chip has one,
+    # reachable through PyTorch's MPS backend and sharing the system's unified memory.
+    # Added here rather than at detection so existing hardware hashes stay stable.
+    if not gpus and cpu_name.startswith("Apple M"):
+        gpus = {
+            "mps": {
+                "name": f"{cpu_name} GPU",
+                "memory size[GB]": env.get("RAM size[GB]", "?"),
+            }
+        }
+
     return {
         "cpu_name": cpu_name,
         "architecture": cpu.get("architecture", "?"),
@@ -569,7 +606,9 @@ def summarize_hardware_env(env: dict):
                 "id": device_id,
                 "name": gpu.get("name", "?"),
                 "memory_gb": gpu.get("memory size[GB]", "?"),
-                "integrated": gpu.get("name", "?") in INTEGRATED_GPUS,
+                "integrated": gpu.get("name", "?") in INTEGRATED_GPUS
+                or device_id == "mps",
+                "priced_with_cpu": gpu.get("name", "?") in GPUS_PRICED_WITH_CPU,
                 **_commercial_info(gpu.get("name", "?")),
             }
             for device_id, gpu in gpus.items()

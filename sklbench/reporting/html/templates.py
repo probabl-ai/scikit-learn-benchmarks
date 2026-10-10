@@ -3,6 +3,8 @@ from importlib.resources import files
 from jinja2 import Template
 from plotly.offline import get_plotlyjs_version
 
+from .glossary import expand_terms
+
 
 PLOTLY_CDN = f"https://cdn.plot.ly/plotly-{get_plotlyjs_version()}.min.js"
 TABULATOR_CSS = "https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css"
@@ -47,16 +49,56 @@ BASE_TEMPLATE = Template("""<!doctype html>
       return sklbenchFormatDuration(cell.getValue());
     }
 
+    function sklbenchFormatRatio(value) {
+      return value >= 100 ? `${Math.round(value)}` : value.toPrecision(2);
+    }
+
+    // `<field>_low`/`<field>_high` bound the speed-up over the interquartile
+    // ranges of both sides' repeats (see `_speedup_interval` in table.py).
+    // Below 5% of spread the value is shown as is, up to 15% as approximate,
+    // and beyond that as the interval itself.
     function sklbenchSpeedupFormatter(cell) {
       const value = cell.getValue();
       if (value === null || value === undefined || !Number.isFinite(value)) {
         return "N/A";
       }
-      const label = `${value.toPrecision(2)}x`;
+      let label = `${sklbenchFormatRatio(value)}x`;
+      let attributes = "";
+      const field = cell.getColumn().getField();
+      const low = cell.getData()[`${field}_low`];
+      const high = cell.getData()[`${field}_high`];
+      if (Number.isFinite(low) && Number.isFinite(high)) {
+        const lowLabel = sklbenchFormatRatio(low);
+        const highLabel = sklbenchFormatRatio(high);
+        attributes += ` title="median ${label}, ${lowLabel}x to ${highLabel}x over the middle half of the repeats"`;
+        const spread = Math.sqrt(high / low) - 1;
+        if (spread > 0.15) {
+          label = `${lowLabel}-${highLabel}x`;
+        } else if (spread >= 0.05) {
+          label = `~${label}`;
+        }
+      }
       if (value > 1.1) {
+        attributes += ` class="speedup-positive"`;
+      } else if (value < 0.9) {
+        attributes += ` class="speedup-negative"`;
+      }
+      return attributes ? `<span${attributes}>${label}</span>` : label;
+    }
+
+    // Test score, colored when significantly better or worse than the
+    // baseline (`<field>_cmp`, see `_add_scores` in table.py).
+    function sklbenchScoreFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "";
+      }
+      const label = value.toFixed(3);
+      const comparison = cell.getData()[`${cell.getColumn().getField()}_cmp`];
+      if (comparison === "better") {
         return `<span class="speedup-positive">${label}</span>`;
       }
-      if (value < 0.9) {
+      if (comparison === "worse") {
         return `<span class="speedup-negative">${label}</span>`;
       }
       return label;
@@ -80,12 +122,22 @@ BASE_TEMPLATE = Template("""<!doctype html>
           prepared.formatter = sklbenchDurationFormatter;
         } else if (prepared.formatterName === "speedup") {
           prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "score") {
+          prepared.formatter = sklbenchScoreFormatter;
         } else if (prepared.formatterName === "link") {
           prepared.formatter = sklbenchLinkFormatter;
           prepared.formatterParams = {label: prepared.linkLabel || "open"};
         }
+        if (prepared.datasetKindFilters) {
+          const kindFilters = prepared.datasetKindFilters;
+          prepared.headerFilterFunc = (headerValue, rowValue, rowData) =>
+            headerValue in kindFilters
+              ? rowData.real_dataset === kindFilters[headerValue]
+              : rowValue == headerValue;
+        }
         delete prepared.formatterName;
         delete prepared.linkLabel;
+        delete prepared.datasetKindFilters;
         return prepared;
       });
     }
@@ -95,11 +147,9 @@ BASE_TEMPLATE = Template("""<!doctype html>
         window.sklbenchTables[tableId].redraw(true);
         return;
       }
-      const initialSort = [
-        {column: "estimator", dir: "asc"},
-        {column: "dataset", dir: "asc"},
-        {column: "variant", dir: "asc"},
-      ];
+      // Rows of the same case (same comparison_key) stay together, in the
+      // order precomputed by `_add_group_ranks` in table.py.
+      const initialSort = [{column: "comparison_key", dir: "asc"}];
       // Row click (in the table, or on a matching speed-up plot point via
       // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
       // comparison_key on top instead of filtering everything else out, so
@@ -110,25 +160,39 @@ BASE_TEMPLATE = Template("""<!doctype html>
       // row - see table.py's _row_key/_add_result_method) so that specific
       // row sorts first among same-comparison_key siblings. A plot-point
       // click has no single row to pin, so this stays null and rows sharing
-      // matchSortKey fall back to the row_id tiebreaker for a deterministic
-      // (not "whatever Tabulator does for ties") order.
+      // matchSortKey keep their within_rank order.
       let matchedRowId = null;
+      // The clicked row's (or plot trace's) variant: its other rows, e.g.
+      // the same implementation on the other machine, come right after it.
+      let matchedVariant = null;
       const matchFirstSorter = (a, b, aRow, bRow) => {
+        const aData = aRow.getData();
+        const bData = bRow.getData();
         const aMatches = a === matchSortKey ? 0 : 1;
         const bMatches = b === matchSortKey ? 0 : 1;
         if (aMatches !== bMatches) {
           return aMatches - bMatches;
         }
-        if (aMatches === 0 && matchedRowId) {
-          const aIsClicked = aRow.getData().row_id === matchedRowId;
-          const bIsClicked = bRow.getData().row_id === matchedRowId;
-          if (aIsClicked !== bIsClicked) {
-            return aIsClicked ? -1 : 1;
+        if (aData.group_rank !== bData.group_rank) {
+          return aData.group_rank - bData.group_rank;
+        }
+        if (aMatches === 0) {
+          if (matchedRowId) {
+            const aIsClicked = aData.row_id === matchedRowId;
+            const bIsClicked = bData.row_id === matchedRowId;
+            if (aIsClicked !== bIsClicked) {
+              return aIsClicked ? -1 : 1;
+            }
+          }
+          if (matchedVariant) {
+            const aSameVariant = aData.variant === matchedVariant;
+            const bSameVariant = bData.variant === matchedVariant;
+            if (aSameVariant !== bSameVariant) {
+              return aSameVariant ? -1 : 1;
+            }
           }
         }
-        const aId = aRow.getData().row_id || "";
-        const bId = bRow.getData().row_id || "";
-        return aId < bId ? -1 : aId > bId ? 1 : 0;
+        return aData.within_rank - bData.within_rank;
       };
       const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
         if (column.field === "comparison_key") {
@@ -147,6 +211,26 @@ BASE_TEMPLATE = Template("""<!doctype html>
         initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
           ([field, value]) => ({field, value})
         ),
+      });
+      // Alternating background per run of rows sharing a comparison_key, in
+      // the current sort/filter order, so groups stay visible whatever the
+      // sort.
+      table.on("renderComplete", () => {
+        let band = 0;
+        let previousKey;
+        table.getRows("active").forEach((row) => {
+          const key = row.getData().comparison_key;
+          const isGroupStart = key !== previousKey;
+          if (isGroupStart && previousKey !== undefined) {
+            band = 1 - band;
+          }
+          previousKey = key;
+          const el = row.getElement();
+          if (el) {
+            el.classList.toggle("row-group-alt", band === 1);
+            el.classList.toggle("row-group-start", isGroupStart);
+          }
+        });
       });
       // Briefly flashes every row sharing comparisonKey (the ones
       // applyMatchSort just brought to the top) so it's visible they moved.
@@ -169,9 +253,10 @@ BASE_TEMPLATE = Template("""<!doctype html>
           setTimeout(() => el.classList.remove("row-just-matched"), 1000);
         });
       };
-      const applyMatchSort = (comparisonKey, rowId) => {
+      const applyMatchSort = (comparisonKey, rowId, variant) => {
         matchSortKey = comparisonKey;
         matchedRowId = rowId || null;
+        matchedVariant = variant || null;
         table.setSort([{column: "comparison_key", dir: "asc"}]);
         requestAnimationFrame(() => highlightMatches(comparisonKey));
       };
@@ -183,7 +268,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
         if (!comparisonKey) {
           return;
         }
-        applyMatchSort(comparisonKey, row.getData().row_id);
+        applyMatchSort(comparisonKey, row.getData().row_id, row.getData().variant);
       });
       // Exposed so a click on a matching speed-up plot point
       // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
@@ -219,22 +304,26 @@ BASE_TEMPLATE = Template("""<!doctype html>
     // (or the whole grid's) "Detailed results" <details> right after its
     // plot(s) in document order, so the nearest one following the clicked
     // chart is its table - open that first in case it's still collapsed.
-    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey) {
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
       if (!comparisonKey) {
         return;
       }
-      for (const details of document.querySelectorAll("details.detailed-results")) {
-        if (chartEl.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING) {
-          await sklbenchOpenDetails(details);
-          break;
-        }
-      }
-      const table = Object.values(window.sklbenchTables).find(
-        (t) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey)
+      const details = Array.from(document.querySelectorAll("details.detailed-results")).find(
+        (el) => chartEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING
       );
+      if (details) {
+        await sklbenchOpenDetails(details);
+      }
+      // The same case can show up in tables of hidden tabs or views, so
+      // prefer the table right after the clicked chart.
+      const tables = Object.entries(window.sklbenchTables);
+      const hasKey = ([, t]) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey);
+      const inDetails = ([id]) => details && details.contains(document.getElementById(id));
+      const entry = tables.find((e) => inDetails(e) && hasKey(e)) || tables.find(hasKey);
+      const table = entry && entry[1];
       if (table) {
         await table.sklbenchBuilt;
-        table.sklbenchApplyMatchSort(comparisonKey);
+        table.sklbenchApplyMatchSort(comparisonKey, null, variant);
       }
     }
 
@@ -247,7 +336,8 @@ BASE_TEMPLATE = Template("""<!doctype html>
         chart.on("plotly_click", (eventData) => {
           const point = eventData.points && eventData.points[0];
           if (point) {
-            sklbenchApplyPlotMatchSort(chart, point.customdata);
+            // Speed-up plot traces are named after the table's variant.
+            sklbenchApplyPlotMatchSort(chart, point.customdata, point.data && point.data.name);
           }
         });
       });
@@ -333,13 +423,37 @@ BASE_TEMPLATE = Template("""<!doctype html>
         }
       });
     });
+
+    // Shift a term's tooltip left when it would overflow the viewport's
+    // right edge (e.g. a term near the end of a line on a phone).
+    function sklbenchPlaceTermTip(event) {
+      const term = event.target.closest && event.target.closest(".term");
+      if (!term) {
+        return;
+      }
+      const tip = term.querySelector(".term-tip");
+      tip.style.left = "0px";
+      const overflow = tip.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+      if (overflow > 0) {
+        const termLeft = term.getBoundingClientRect().left;
+        tip.style.left = `${-Math.min(overflow, termLeft - 8)}px`;
+      }
+    }
+    document.addEventListener("mouseover", sklbenchPlaceTermTip);
+    document.addEventListener("focusin", sklbenchPlaceTermTip);
   </script>
 </head>
 <body>
-  <h1>{{ title|default("sklbench dashboard") }}</h1>
+  <header class="site-header">
+    {% set home = home_url if home_url is defined else "index.html" %}
+    {% if home %}<a class="site-home" href="{{ home }}">&larr; All dashboards</a>{% endif %}
+    <h1>{{ title|default("sklbench dashboard") }}</h1>
+  </header>
+  <main>
   {% for row in rows %}
-  <div class="page-row">{{ row }}</div>
+  <div class="page-row">{{ expand_terms(row) }}</div>
   {% endfor %}
+  </main>
 </body>
 </html>
 """)
@@ -347,6 +461,7 @@ BASE_TEMPLATE.globals["plotly_cdn"] = PLOTLY_CDN
 BASE_TEMPLATE.globals["tabulator_css"] = TABULATOR_CSS
 BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
+BASE_TEMPLATE.globals["expand_terms"] = expand_terms
 
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">
   {% if empty %}
@@ -364,8 +479,8 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
       <p>{{ cpu_name }}</p>
       <p class="muted">{{ architecture }}, {{ physical_cores }} physical cores, {{ logical_cpus }} logical CPUs</p>
       <p class="muted">{{ ram_gb }} GB RAM</p>
-      {% if price_usd %}
-      <p class="muted">${{ "{:,}".format(price_usd) }}, released {{ release_year }}</p>
+      {% if price_label %}
+      <p class="muted">{{ price_label }}</p>
       {% endif %}
     </div>
     <div>
@@ -373,7 +488,7 @@ HARDWARE_TEMPLATE = Template("""<section class="panel">
       {% if gpus %}
       <ul class="compact">
       {% for gpu in gpus %}
-        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB{% if gpu.integrated %}, integrated - priced with the CPU {% elif gpu.price_usd %}, ${{ "{:,}".format(gpu.price_usd) }}, released {{ gpu.release_year }}{% endif %})</span></li>
+        <li><code>{{ gpu.id }}</code>: {{ gpu.name }} <span class="muted">({{ gpu.memory_gb }} GB{% if gpu.integrated %}, integrated, priced with the CPU{% elif gpu.priced_with_cpu %}, priced with the CPU{% elif gpu.price_label %}, {{ gpu.price_label }}{% endif %})</span></li>
       {% endfor %}
       </ul>
       {% else %}
@@ -390,6 +505,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
     {% if array_api_docs_url %}
     <p><a href="{{ array_api_docs_url }}">Array API</a> active</p>
     {% endif %}
+    {{ actions_html|default("") }}
   </div>
   <div>
     <h3>Packages</h3>
@@ -426,7 +542,7 @@ SOFTWARE_TEMPLATE = Template("""<section class="software-details">
 SOFTWARE_TABS_TEMPLATE = Template("""<section class="tabs" id="{{ tabs_id }}">
   <div class="tab-buttons">
   {% for button in buttons %}
-    <button class="tab-button{% if button.active %} active{% endif %}" type="button" data-tab-target="{{ button.marker }}"{% if button.style %} style="{{ button.style }}"{% endif %}>{{ button.label|e }}</button>
+    <button class="tab-button{% if button.active %} active{% endif %}{% if button.is_baseline %} is-baseline{% endif %}" type="button" data-tab-target="{{ button.marker }}"{% if button.style %} style="{{ button.style }}"{% endif %}>{{ button.label|e }}</button>
   {% endfor %}
   </div>
   {% for panel in panels %}
@@ -494,7 +610,7 @@ PLOT_NOTES_TEMPLATE = Template("""<div class="plot-notes">
       {% for warning in warnings %}
         <li class="warning-note">
           <span class="warning-icon">{{ warning.icon }}</span>
-          <span>{{ warning.message|e }} - {{ warning.estimator_counts }}</span>
+          <span>{{ warning.message|e }}</span>
         </li>
       {% endfor %}
       </ul>

@@ -9,22 +9,41 @@ from statistics import median
 from plotly import graph_objects as go
 
 from ..matching import BenchmarkRecord, Match
-from .table import default_comparison_key
+from .table import data_dtype_label, data_layout_label, default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
 
-PLOTLY_DEFAULT_COLORS = [
-    "#636EFA",
-    "#EF553B",
-    "#00CC96",
-    "#AB63FA",
-    "#FFA15A",
-    "#19D3F3",
-    "#FF6692",
-    "#B6E880",
-    "#FF97FF",
-    "#FECB52",
+# scikit-learn's cyan and orange (doc/scss/colors.scss) lead, followed by
+# hues picked to stay distinguishable from them and from FALLBACK_COLOR.
+SERIES_COLORS = [
+    "#2294c4",
+    "#f7931e",
+    "#8045e5",
+    "#2e9e5b",
+    "#d1495b",
+    "#15688c",
+    "#b76c13",
+    "#e377c2",
+    "#9aa500",
+    "#7ac5ec",
 ]
+
+TEXT_COLOR = "#222832"
+GRID_COLOR = "#e5e7ea"
+REFERENCE_LINE_COLOR = "#48566b"
+FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+
+PLOT_TEMPLATE = go.layout.Template(
+    layout={
+        "font": {"family": FONT_FAMILY, "color": TEXT_COLOR, "size": 12},
+        "colorway": SERIES_COLORS,
+        "paper_bgcolor": "white",
+        "plot_bgcolor": "white",
+        "hoverlabel": {"font": {"family": FONT_FAMILY}},
+        "xaxis": {"gridcolor": GRID_COLOR, "linecolor": "#d1d5da", "zerolinecolor": GRID_COLOR},
+        "yaxis": {"gridcolor": GRID_COLOR, "linecolor": "#d1d5da", "zerolinecolor": GRID_COLOR},
+    }
+)
 
 FALLBACK_COLOR = "#9e9e9e"
 FAILED_MARKER_GAP = 0.4  # log2(speed-up) units below the slowest point of a column
@@ -146,48 +165,21 @@ def _format_point_count(count: int) -> str:
     return f"{count} point" if count == 1 else f"{count} points"
 
 
-def _format_estimator_counts(estimator_counts: dict[str, int]) -> str:
-    parts = [
-        f"{escape(estimator)} ({count})"
-        for estimator, count in sorted(
-            estimator_counts.items(), key=lambda item: (-item[1], item[0])
-        )
-    ]
-    return ", ".join(parts)
-
-
 def _marker_notes_html(matches: list[Match], failed_count: int = 0) -> str:
     metric_mismatch_count = sum(not match.metrics_match for match in matches)
     fallback_count = sum(
         match.matched_result.is_sklearnex_fallback for match in matches
     )
-    warning_counts = {}
-    warning_order = []
-
+    warnings = []
+    seen = set()
     for match in matches:
+        if not match.metrics_match:
+            continue
         for warning in match.warnings:
             key = (warning.icon, warning.message)
-            if key not in warning_order and match.metrics_match:
-                warning_order.append(key)
-            if key not in warning_counts:
-                warning_counts[key] = {
-                    "warning": warning,
-                    "estimators": defaultdict(int),
-                }
-            warning_counts[key]["estimators"][_estimator_name(match)] += 1
-
-    warnings = []
-    if warning_order:
-        for key in warning_order:
-            warning = warning_counts[key]["warning"]
-            estimator_counts = warning_counts[key]["estimators"]
-            warnings.append(
-                {
-                    "estimator_counts": _format_estimator_counts(estimator_counts),
-                    "icon": warning.icon,
-                    "message": warning.message,
-                }
-            )
+            if key not in seen:
+                seen.add(key)
+                warnings.append({"icon": warning.icon, "message": warning.message})
     return PLOT_NOTES_TEMPLATE.render(
         metric_mismatch_count=metric_mismatch_count,
         metric_mismatch_label=_format_point_count(metric_mismatch_count),
@@ -239,16 +231,21 @@ def _metrics_differ_lines(match: Match) -> list[str]:
     return lines
 
 
-def _real_dataset_dimensions_line(data: dict, data_desc: dict | None) -> str | None:
-    """Real datasets don't carry n_samples/n_features in the case (those are
-    only in `generation_kwargs`, which synthetic datasets have), so surface
-    the shape recorded in `data_desc` instead."""
-    if data.get("generation_kwargs") or not data_desc:
-        return None
+def _data_desc_hover_lines(case: dict, data_desc: dict) -> list[str]:
+    """The data the timed method was actually handed, as recorded at run
+    time."""
+    lines = []
     samples, features = data_desc.get("samples"), data_desc.get("features")
-    if samples is None or features is None:
-        return None
-    return f"dimensions: {samples:,} x {features}"
+    if samples is not None:
+        shape = f"{samples:,}" if features is None else f"{samples:,} x {features}"
+        lines.append(f"shape: {shape}")
+    layout = data_layout_label(case, data_desc)
+    if layout:
+        lines.append(f"memory layout: {layout}")
+    dtype = data_dtype_label(case, data_desc)
+    if dtype:
+        lines.append(f"dtype: {dtype}")
+    return lines
 
 
 def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
@@ -259,24 +256,30 @@ def _record_fit_data_desc(record: BenchmarkRecord) -> dict | None:
     return None
 
 
-def _data_hover_lines(data: dict, data_desc: dict | None) -> list[str]:
-    lines = _hover_lines(data)
-    dimensions_line = _real_dataset_dimensions_line(data, data_desc)
-    if dimensions_line:
-        lines.append(dimensions_line)
-    return lines
+def _data_hover_lines(case: dict, data_desc: dict | None) -> list[str]:
+    data = case.get("data", {})
+    if not data_desc:
+        return _hover_lines(data)
+    # The requested order/dtype, superseded by the recorded ones below.
+    requested = {key: value for key, value in data.items() if key not in ("order", "dtype")}
+    return _hover_lines(requested) + _data_desc_hover_lines(case, data_desc)
 
 
 def _hover_text(match: Match) -> str:
     result = match.matched_result
     base = match.base_result
     algorithm = result.case.get("algorithm", {})
-    data = result.case.get("data", {})
     warning_lines = [_warning_tooltip_line(warning) for warning in match.warnings]
     lines = [
         f"<b>speed-up: {match.speedup:.2g}x</b> "
         f"({format_duration_ms(median(base.times))} vs {format_duration_ms(median(result.times))})",
     ]
+    if "hptuning" in base.case and "hptuning" in result.case:
+        # `HPTuning.n_jobs` defaults to 1, which is left out of serialized cases.
+        lines.append(
+            f"outer n_jobs: {base.case['hptuning'].get('n_jobs', 1)} vs "
+            f"{result.case['hptuning'].get('n_jobs', 1)}"
+        )
     lines.extend(_metrics_differ_lines(match))
     if result.is_sklearnex_fallback:
         lines.append("<i>fell back to scikit-learn</i>")
@@ -286,7 +289,7 @@ def _hover_text(match: Match) -> str:
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
     data_params = "<br>".join(
-        escape(line) for line in _data_hover_lines(data, result.data_desc)
+        escape(line) for line in _data_hover_lines(result.case, result.data_desc)
     )
     lines.extend(
         [
@@ -301,13 +304,12 @@ def _hover_text(match: Match) -> str:
 
 def _failed_hover_text(record: BenchmarkRecord) -> str:
     algorithm = record.case.get("algorithm", {})
-    data = record.case.get("data", {})
     estimator_params = "<br>".join(
         escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
     )
     data_params = "<br>".join(
         escape(line)
-        for line in _data_hover_lines(data, _record_fit_data_desc(record))
+        for line in _data_hover_lines(record.case, _record_fit_data_desc(record))
     )
     return "<br>".join(
         [
@@ -330,7 +332,7 @@ def _variant_offsets(variants: list[str]) -> dict[str, float]:
 
 def variant_color_map(variants: list[str]) -> dict[str, str]:
     return {
-        variant: PLOTLY_DEFAULT_COLORS[index % len(PLOTLY_DEFAULT_COLORS)]
+        variant: SERIES_COLORS[index % len(SERIES_COLORS)]
         for index, variant in enumerate(variants)
     }
 
@@ -344,8 +346,8 @@ def phase_breakdown_plot_html(
     x_title: str = "threads",
     series_order: list[str] | None = None,
 ) -> str:
-    """Stacked bar of phase timings (ms) vs. an x-axis category (e.g. thread
-    count), one bar per `points` entry. Each point is
+    """Stacked bar of phase timings vs. an x-axis category (e.g. thread
+    count), one bar per `points` entry, plotted in seconds. Each point is
     `{"x": ..., "phases": {phase_name: ms}, "total_ms": ...}`, with an
     optional `"x_label"` overriding `str(x)` as the tick label (e.g. to show
     an actual-vs-requested thread count as `"4 (3)"`) while `x` itself still
@@ -388,8 +390,8 @@ def phase_breakdown_plot_html(
                 go.Bar(
                     name=phase_labels[phase],
                     x=x_values,
-                    y=y_values,
-                    base=list(cumulative_ms) if multi_series else None,
+                    y=[y / 1000 for y in y_values],
+                    base=[base / 1000 for base in cumulative_ms] if multi_series else None,
                     offsetgroup=series if multi_series else None,
                     marker={"color": phase_colors[phase]},
                     showlegend=False,
@@ -411,10 +413,10 @@ def phase_breakdown_plot_html(
     fig.update_layout(
         barmode="overlay" if multi_series else "stack",
         xaxis={"type": "category", "title": x_title},
-        yaxis={"title": "time (ms)", "rangemode": "tozero"},
+        yaxis={"title": "time (s)", "rangemode": "tozero"},
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         showlegend=False,
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     return fig.to_html(
         full_html=False,
@@ -465,12 +467,13 @@ def scaling_line_plot_html(
     series: dict[str, list[tuple[float, float]]],
     *,
     colors: dict[str, str] | None = None,
+    line_dashes: dict[str, str] | None = None,
     x_title: str = "threads",
     y_title: str = "fit time (ms)",
     y_unit: str = "ms",
     x_log: bool = False,
     y_log: bool = False,
-    reference_lines: dict[str, list[tuple[float, float]]] | None = None,
+    reference_lines: dict[str, list[list[tuple[float, float]]]] | None = None,
     size_domain: tuple[float, float] = (0, 100),
 ) -> str:
     """Simple line plot of `y_title` vs `x_title`, one line per series key
@@ -503,8 +506,13 @@ def scaling_line_plot_html(
     marker size.
 
     `reference_lines` draws additional dashed, marker-less, grey lines (e.g.
-    an ideal-scaling reference) in the same `{label: [(x, y), ...]}` shape as
-    `series`, kept visually distinct from the real data traces."""
+    an ideal-scaling reference), kept visually distinct from the real data
+    traces. Each label maps to a list of segments (`[[(x, y), ...], ...]`),
+    drawn as one trace with gaps between them, so several same-meaning
+    segments share one legend entry.
+
+    `line_dashes` maps a series label to a Plotly dash style (e.g. "dash"),
+    for series sharing a color that still need telling apart."""
     chart_id = f"scaling-line-{next(chart_ids)}"
     fig = go.Figure()
     all_x_values = set()
@@ -519,6 +527,10 @@ def scaling_line_plot_html(
         color = (colors or {}).get(label)
         marker_sizes = _marker_sizes(points, size_domain)
         marker = {"color": color} if color else {}
+        line = dict(marker)
+        dash = (line_dashes or {}).get(label)
+        if dash:
+            line["dash"] = dash
         if marker_sizes is not None:
             # `_marker_sizes` returns areas (px^2) already, so `sizemode`
             # must be "area" too - Plotly's default `"diameter"` would
@@ -532,7 +544,7 @@ def scaling_line_plot_html(
                 x=x_values,
                 y=y_values,
                 mode="lines+markers",
-                line={"color": color} if color else {},
+                line=line,
                 marker=marker,
                 customdata=hover_extra,
                 hovertemplate=(
@@ -546,27 +558,36 @@ def scaling_line_plot_html(
                 showlegend=len(series) > 1,
             )
         )
-    for label, points in sorted((reference_lines or {}).items()):
-        points = sorted(points, key=lambda point: point[0])
-        x_values = [point[0] for point in points]
-        y_values = [point[1] for point in points]
-        all_x_values.update(x_values)
+    for label, segments in sorted((reference_lines or {}).items()):
+        x_values, y_values = [], []
+        for segment in segments:
+            segment = sorted(segment, key=lambda point: point[0])
+            if x_values:
+                x_values.append(None)
+                y_values.append(None)
+            x_values.extend(point[0] for point in segment)
+            y_values.extend(point[1] for point in segment)
+            all_x_values.update(point[0] for point in segment)
         fig.add_trace(
             go.Scatter(
                 name=label,
                 x=x_values,
                 y=y_values,
                 mode="lines",
-                line={"color": "#999", "dash": "dash", "width": 1},
+                line={"color": REFERENCE_LINE_COLOR, "dash": "dash", "width": 1},
                 hoverinfo="skip",
             )
         )
     xaxis = {"title": x_title}
     if x_log and all_x_values:
         min_x, max_x = min(all_x_values), max(all_x_values)
-        start_exp = math.floor(math.log2(max(min_x, 1)))
+        start_exp = math.ceil(math.log2(max(min_x, 1)))
         end_exp = math.ceil(math.log2(max(max_x, 1)))
         tick_values = [2**exp for exp in range(start_exp, end_exp + 1)]
+        # Tick a non-power-of-two first point (e.g. an n_jobs sweep starting
+        # at 11) so the axis visibly doesn't start at 1.
+        if min_x not in tick_values:
+            tick_values.insert(0, min_x)
         xaxis |= {
             "type": "log",
             "tickmode": "array",
@@ -582,7 +603,7 @@ def scaling_line_plot_html(
         yaxis=yaxis,
         margin={"l": 60, "r": 15, "t": 15, "b": 44},
         legend={"orientation": "h", "y": -0.25},
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     return fig.to_html(
         full_html=False,
@@ -714,7 +735,7 @@ def phase_variant_speedup_plot_html(
             "yref": "y",
             "y0": 0,
             "y1": 0,
-            "line": {"color": "#666", "width": 1, "dash": "dash"},
+            "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
         }
     ]
     layout_yaxis = {"title": y_title, "zeroline": True}
@@ -730,7 +751,7 @@ def phase_variant_speedup_plot_html(
                 "yref": "y2",
                 "y0": 1,
                 "y1": 1,
-                "line": {"color": "#666", "width": 1, "dash": "dash"},
+                "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
             }
         )
         # Both axes are forced symmetric around their own "no change" value
@@ -779,7 +800,7 @@ def phase_variant_speedup_plot_html(
         shapes=shapes,
         margin={"l": 70, "r": right_margin, "t": 20, "b": 90},
         legend={"orientation": "h", "y": -0.2},
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     return fig.to_html(
         full_html=False,
@@ -825,8 +846,7 @@ def _has_histogram_splits_warning(match: Match) -> bool:
     return any("histogram-based splits" in warning.message for warning in match.warnings)
 
 
-def _x_variant(match: Match) -> str:
-    variant = match.matched_result.implementation.short_name
+def _x_variant(match: Match, variant: str) -> str:
     if match.matched_result.category != "tree-based":
         return variant
 
@@ -842,6 +862,7 @@ def speedup_plot_html(
     matches: list[Match],
     *,
     baseline_label: str,
+    y_title: str | None = None,
     variant_colors: dict[str, str] | None = None,
     trace_variant=None,
     x_variant=None,
@@ -856,7 +877,7 @@ def speedup_plot_html(
     if trace_variant is None:
         trace_variant = _trace_variant
     if x_variant is None:
-        x_variant = _x_variant
+        x_variant = lambda match: _x_variant(match, trace_variant(match))
     if variant_sort_key is None:
         variant_sort_key = lambda variant: variant
     if comparison_key is None:
@@ -1004,7 +1025,7 @@ def speedup_plot_html(
             "range": [-0.5, len(estimators) - 0.5],
         },
         yaxis={
-            "title": f"speed-up vs {baseline_label}",
+            "title": y_title or f"speed-up vs {baseline_label}",
             "tickmode": "array",
             "tickvals": tick_values,
             "ticktext": [_format_speedup_tick(2**tick) for tick in tick_values],
@@ -1018,13 +1039,27 @@ def speedup_plot_html(
                 "yref": "y",
                 "y0": 0,
                 "y1": 0,
-                "line": {"color": "#666", "width": 1, "dash": "dash"},
+                "line": {"color": REFERENCE_LINE_COLOR, "width": 1, "dash": "dash"},
+            }
+        ],
+        annotations=[
+            {
+                "xref": "paper",
+                "x": 0,
+                "xanchor": "left",
+                "yref": "y",
+                "y": 0,
+                "yanchor": "bottom",
+                "text": f"1x = {baseline_label}",
+                "showarrow": False,
+                "font": {"size": 11, "color": REFERENCE_LINE_COLOR},
+                "bgcolor": "rgba(255, 255, 255, 0.7)",
             }
         ],
         margin={"l": 70, "r": 20, "t": 20, "b": 110},
         showlegend=True,
         legend={"orientation": "h"},
-        template="none",
+        template=PLOT_TEMPLATE,
     )
     fragment = fig.to_html(
         full_html=False,

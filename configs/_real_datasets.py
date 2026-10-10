@@ -29,34 +29,31 @@ case each, run at library-default hyperparameters aside from `n_clusters`:
 unlike the linear/tree cases above, the interesting axis here is
 n_samples/n_clusters, not per-model hyperparameter tuning.
 """
-import os
 from typing import Callable, Iterable
-from math import floor
 
 from joblib import cpu_count
 
 from sklbench.config.utils import select_logistic_regression_solver
 
-BENCH = {"n_runs": 1, "py_spy_profiling": False}
+BENCH = {"n_runs": 5, "py_spy_profiling": False}
 
 # KMeans crashes (segfault / heap corruption / OpenBLAS "too many memory
-# regions") on this repo's many-core machines: OpenBLAS's PyPI-wheel builds
-# (the "sklearn-pypi" pixi env) are precompiled with a hard 128-thread table,
-# use the pthreads backend, and default to spinning up one thread per
-# *logical* CPU - see https://github.com/OpenMathLib/OpenBLAS/issues/5958.
-# Cap it below that. OMP_NUM_THREADS alone doesn't reach this pool (it's not
-# OpenMP-threaded), hence the separate OPENBLAS_NUM_THREADS; other envs'
-# OpenBLAS builds aren't affected by this, so it's only set there to avoid
-# needlessly throttling their thread usage.
+# regions") on many-core machines with the PyPI wheel's OpenBLAS: it is
+# precompiled with NUM_THREADS=64, i.e. a fixed pool of 128 memory buffers,
+# and KMeans calls gemm concurrently from every OpenMP thread, so 128 OpenMP
+# threads exhaust the pool - see
+# https://github.com/OpenMathLib/OpenBLAS/issues/5958. The cap applies to
+# every env, not just sklearn-pypi, because `bench.env` is part of the case
+# match key: builds are only compared when they ran with the same env.
 _KMEANS_ENV = {}
-if cpu_count() > 128:
-    _KMEANS_ENV["OMP_NUM_THREADS"] = "128"
-    if os.environ.get("PIXI_ENVIRONMENT_NAME") == "sklearn-pypi":
-        _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "128"
+if cpu_count() > 64:
+    _KMEANS_ENV["OMP_NUM_THREADS"] = "64"
+    _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "64"
 KMEANS_BENCH = {"env": _KMEANS_ENV}
 
-N_JOBS = floor(0.9 * cpu_count(only_physical_cores=True))
-# RF/ET n_estimators below are `max(<tuned floor>, N_JOBS * 3)`: use at least
+# Forests run with n_jobs=-1, as most users would: one thread per logical CPU.
+N_THREADS = cpu_count()
+# RF/ET n_estimators below are `max(<tuned floor>, N_THREADS * k)`: use at least
 # as many trees as were tuned on a typical dev machine, but scale up on
 # many-core machines so the forest actually uses the available parallelism.
 
@@ -136,11 +133,11 @@ def ames_housing(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": max(300, N_JOBS * 6),
+            "n_estimators": max(300, N_THREADS * 6),
             "max_depth": 20,
             "max_features": 0.5,
             "min_samples_leaf": 1,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -175,11 +172,11 @@ def kddcup(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": N_JOBS * 6,
+            "n_estimators": N_THREADS * 6,
             "max_depth": 20,
             "max_features": 0.3,
             "min_samples_leaf": 10,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -213,10 +210,10 @@ def amazon_employee_access(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": max(200, N_JOBS * 4),
+            "n_estimators": max(200, N_THREADS * 4),
             "max_features": 0.3,
             "min_samples_leaf": 2,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -250,11 +247,11 @@ def kick(implem: dict):
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
-            "n_estimators": max(200, N_JOBS * 4),
+            "n_estimators": max(200, N_THREADS * 4),
             "max_depth": 30,
             "max_features": "sqrt",
             "min_samples_leaf": 10,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -297,8 +294,8 @@ def covtype(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": max(100, N_JOBS * 3),
-            "n_jobs": N_JOBS,
+            "n_estimators": max(100, N_THREADS * 3),
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -339,10 +336,10 @@ def susy(implem: dict):
     yield {
         "estimator": "ExtraTreesClassifier",
         "estimator_params": {
-            "n_estimators": max(50, N_JOBS * 2),
+            "n_estimators": max(50, N_THREADS * 2),
             "min_impurity_decrease": 3e-6,
             "max_depth": 16,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
         "preprocessing_kind": None,
     }
@@ -386,9 +383,9 @@ def year_prediction_msd(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": max(30, N_JOBS * 2),
+            "n_estimators": max(30, N_THREADS * 2),
             "max_depth": 10,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
         "preprocessing_kind": None,
         "bench": {"time_limit": 600},
@@ -433,8 +430,8 @@ def fraud(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": max(200, N_JOBS * 4),
-            "n_jobs": N_JOBS,
+            "n_estimators": max(200, N_THREADS * 4),
+            "n_jobs": -1,
         },
         "preprocessing_kind": None,
     }
@@ -471,10 +468,10 @@ def medical_charges_nominal(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": max(300, N_JOBS * 6),
+            "n_estimators": max(300, N_THREADS * 6),
             "max_depth": 20,
             "max_features": 0.5,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -512,11 +509,11 @@ def bank_marketing(implem: dict):
     yield {
         "estimator": "RandomForestClassifier",
         "estimator_params": {
-            "n_estimators": max(300, N_JOBS * 6),
+            "n_estimators": max(300, N_THREADS * 6),
             "max_depth": 20,
             "max_features": 0.3,
             "min_samples_leaf": 2,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
     }
     if implem["library"] == "sklearn":
@@ -550,10 +547,10 @@ def california_housing(implem: dict):
     yield {
         "estimator": "RandomForestRegressor",
         "estimator_params": {
-            "n_estimators": max(300, N_JOBS * 6),
+            "n_estimators": max(300, N_THREADS * 6),
             "max_features": 0.3,
             "min_samples_leaf": 1,
-            "n_jobs": N_JOBS,
+            "n_jobs": -1,
         },
         "preprocessing_kind": None,
     }

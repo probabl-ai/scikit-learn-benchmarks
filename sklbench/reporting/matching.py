@@ -13,6 +13,12 @@ from .utils import stable_json, without_keys
 
 
 RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
+# Hardware hashes of the same machine, mapped to the one dashboards know it by
+# (`dashboards.HARDWARE_NAMES`). The hardware env includes GPU driver
+# versions, so a driver update alone mints a new hash.
+HARDWARE_HASH_ALIASES = {
+    "37bc7b": "3b5e61",  # Intel Core Ultra laptop, Level Zero 1.15 -> 1.17
+}
 METRIC_ABS_TOLERANCE_FLOOR = 0.01
 METRIC_REL_TOLERANCE_FLOOR = 0.01
 METRIC_STD_TOLERANCE_FACTOR = 3  # TODO: should be based on number of runs:
@@ -185,10 +191,13 @@ class MethodResult:
         """
         If two results don't share the same minimal_match_key, it will
         never makes sense to compare them.
+
+        `source_config` is excluded so that a subset config (e.g.
+        configs/all_models_16gb.py) matches its parent's identical cases.
         """
         case = without_keys(
             self.case,
-            excluded_names={"implementation", "max_bins"},
+            excluded_names={"implementation", "max_bins", "source_config"},
         )
         case["method"] = self.method
         return stable_json(case)
@@ -236,6 +245,18 @@ def _metric_tolerance(base_values: list[float]) -> float:
         METRIC_ABS_TOLERANCE_FLOOR,
         METRIC_REL_TOLERANCE_FLOOR * abs(base_mean),
     )
+
+
+def significant_metric_difference(base_values: list[Any], values: list[Any]) -> float:
+    """Mean of `values` minus mean of `base_values`, or 0.0 when it's within
+    the tolerance `Match.metrics_differences` uses (or either side isn't
+    numeric)."""
+    numeric_base = _numeric_values(base_values)
+    numeric = _numeric_values(values)
+    if numeric_base is None or numeric is None:
+        return 0.0
+    difference = mean(numeric) - mean(numeric_base)
+    return difference if abs(difference) > _metric_tolerance(numeric_base) else 0.0
 
 
 def _short_metric_value(value: float) -> str:
@@ -327,7 +348,9 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 ) from e
             raise
 
-        hardware_hash = result_file["hardware_hash"]
+        hardware_hash = HARDWARE_HASH_ALIASES.get(
+            result_file["hardware_hash"], result_file["hardware_hash"]
+        )
         software_hash = result_file["software_hash"]
         timestamp = _parse_result_timestamp(result_path)
         profile_path = profiles_root / f"{result_path.stem}.raw.gz"
@@ -639,6 +662,48 @@ def append_iterations_warning(
                 icon="🔁",
                 short_message=f"({base_iterations[0]} vs {candidate_iterations[0]})",
                 message="Number of iteration differs: this might mean algorithms differ",
+            )
+        )
+
+
+def fitted_solver(case: dict, library: str, attributes: dict) -> str | None:
+    """The solver the estimator actually used (its fitted `solver_`), rather
+    than the requested param, since solvers are often auto-selected."""
+    solver_values = attributes.get("solver")
+    if solver_values:
+        return solver_values[0]
+    estimator = case.get("algorithm", {}).get("estimator")
+    if library == "sklearnex" and estimator == "Ridge":
+        # sklearnex's Ridge never records a fitted `solver_` (unlike
+        # stock sklearn), and its oneDAL fit path only ever runs for
+        # the requested "auto" solver, solving via oneDAL's "norm_eq"
+        # algorithm - the same normal-equations approach sklearn's
+        # own "cholesky" solver uses. A `solver` value's presence
+        # here would mean sklearnex fell back to stock sklearn for at
+        # least one repeat (see `MethodResult.is_sklearnex_fallback`),
+        # which does record it - so its absence means every repeat
+        # took the oneDAL path.
+        return "cholesky"
+    return None
+
+
+def append_solver_warning(
+    base_res: MethodResult, candidate: MethodResult, warnings: list
+):
+    base_solver = fitted_solver(
+        base_res.case, base_res.implementation.library, base_res.attributes
+    )
+    candidate_solver = fitted_solver(
+        candidate.case, candidate.implementation.library, candidate.attributes
+    )
+    if base_solver is None or candidate_solver is None:
+        return
+    if base_solver != candidate_solver:
+        warnings.append(
+            MatchWarning(
+                icon="🧮",
+                short_message=f"({base_solver} vs {candidate_solver})",
+                message="Solver differs",
             )
         )
 

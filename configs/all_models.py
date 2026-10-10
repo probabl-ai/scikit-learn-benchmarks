@@ -6,7 +6,7 @@ from _synthetic_linear import generate_cases as generate_linear_cases
 from _real_datasets import generate_cases as generate_real_cases
 
 from sklbench.config.utils import (
-    filter_array_api_supported_cases_if_needed,
+    filter_unsupported_cases,
     filter_cuml_supported_cases_if_needed,
     filter_gpu_cases_if_unavailable,
 )
@@ -22,13 +22,11 @@ def generate_cases() -> list[dict]:
         cases += generate_real_cases(implem, max_tier='normal')
 
     for case in cases:
-        case.setdefault('bench', {})
-        case['bench'] |= {'n_runs': 5}
-        case['bench'].setdefault('time_limit', 300)
+        case['bench'] = {'time_limit': 300, **case.get('bench', {}), 'n_runs': 5}
     disable_profiling_for_array_api_gpu_cases(cases)
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_cuml_supported_cases_if_needed(cases))
-    cases = list(filter_array_api_supported_cases_if_needed(cases))
+    cases = list(filter_unsupported_cases(cases))
 
     return cases

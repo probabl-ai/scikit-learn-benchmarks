@@ -5,6 +5,8 @@ import pytest
 from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
     PREPROCESSINGS,
+    build_transfer_to_device,
+    task_preprocessing_kwargs,
     split_and_preprocess_data,
     split_data,
     train_test_split_wrapper,
@@ -190,6 +192,26 @@ def test_hgb_preprocessing_encodes_categoricals_as_category_dtype(housing_data):
         assert isinstance(x_test[col].dtype, pd.CategoricalDtype)
 
 
+def test_task_preprocessing_kwargs_sets_continuous_target_for_regression():
+    assert task_preprocessing_kwargs("linear", "regression") == {
+        "target_type": "continuous"
+    }
+    assert task_preprocessing_kwargs("linear", "classification") == {}
+    assert task_preprocessing_kwargs("trees", "regression") == {}
+    assert task_preprocessing_kwargs(None, "regression") == {}
+
+
+def test_linear_preprocessor_encodes_integer_regression_target_as_continuous():
+    x = pd.DataFrame({"cat": pd.Categorical(list("abcd") * 25), "num": np.arange(100.0)})
+    # Integer target with 100 distinct values: "auto" would see 100 classes.
+    y = np.arange(100) * 1000
+
+    x_train, _ = PREPROCESSINGS["linear"](x, x, y, target_type="continuous")
+    x_train_auto, _ = PREPROCESSINGS["linear"](x, x, y)
+
+    assert x_train_auto.shape[1] - x_train.shape[1] == 99
+
+
 def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
     housing_data,
 ):
@@ -208,6 +230,21 @@ def test_linear_preprocessor_requires_y_train_for_target_encoding(housing_data):
         PREPROCESSINGS["linear"](
             housing_data["x"], housing_data["x"], None, nystroem=None
         )
+
+
+@pytest.mark.parametrize("order", ["C", "F"])
+def test_linear_preprocessor_with_nystroem_outputs_requested_order(housing_data, order):
+    x_train, x_test = PREPROCESSINGS["linear"](
+        housing_data["x"],
+        housing_data["x"],
+        housing_data["y"],
+        nystroem={"n_components": 20},
+        transfer_to_device=build_transfer_to_device(dformat="numpy", order=order),
+    )
+
+    contiguous = "f_contiguous" if order == "F" else "c_contiguous"
+    assert getattr(x_train.flags, contiguous)
+    assert getattr(x_test.flags, contiguous)
 
 
 def test_split_and_preprocess_data_with_linear_kind_end_to_end(housing_data):

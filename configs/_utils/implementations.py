@@ -99,6 +99,7 @@ CUML_IMPLEMENTATION = {
 
 PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-pypi": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-pypi-freethreading": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-default": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-libgomp-openblas": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-libomp-openblas": SKLEARN_IMPLEMENTATIONS,
@@ -106,6 +107,8 @@ PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-cf-mkl": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev-libomp": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-dev-mkl": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-dev-freethreading": SKLEARN_IMPLEMENTATIONS,
     "skl-cpu": ARRAY_API_CPU_IMPLEMENTATIONS,
     "skl-intel": ARRAY_API_INTEL_IMPLEMENTATIONS,
     "skl-nvidia": ARRAY_API_NVIDIA_IMPLEMENTATIONS,

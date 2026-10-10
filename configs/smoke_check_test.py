@@ -9,7 +9,7 @@ from _real_datasets import generate_cases as generate_real_cases
 from hgb_scalability import generate_xs_cases as generate_hgb_scaling_cases
 
 from sklbench.config.utils import (
-    filter_array_api_supported_cases_if_needed,
+    filter_unsupported_cases,
     filter_gpu_cases_if_unavailable,
 )
 
@@ -57,8 +57,6 @@ def generate_cases() -> list[dict]:
         benchs.append({'n_runs': 1, 'py_spy_profiling': False, 'cpu_affinity': [0]})
     benchs += [{'n_runs': 1, 'py_spy_profiling': False}] * len(cases)
     for case, bench in zip(cases, benchs):
-        case.setdefault('bench', {})
-        case['bench'] |= bench
         # 4s was too tight even for the first of these trivial synthetic
         # cases on a GitHub-hosted macOS runner: one-time interpreter/import
         # cold-start cost there (measured 3-11s across runs) can exceed it on
@@ -67,10 +65,10 @@ def generate_cases() -> list[dict]:
         # JIT-compilation adds its own cold-start on top, past the 10s
         # budget. 20s gives headroom for that too without making this "small
         # exploratory matrix" meaningfully slower.
-        case['bench'].setdefault('time_limit', 20)
+        case['bench'] = {'time_limit': 20, **case.get('bench', {}), **bench}
     disable_profiling_for_array_api_gpu_cases(cases)
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
-    cases = list(filter_array_api_supported_cases_if_needed(cases))
+    cases = list(filter_unsupported_cases(cases))
 
     return cases

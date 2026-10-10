@@ -71,9 +71,7 @@ jobs:
           SKLBENCH_RESULTS_REF: ${{ steps.version.outputs.sha }}
         run: |
           mkdir -p _snapshot_site
-          for script in dashboards/gen_*.py; do
-            pixi run --frozen -e reporting python "$script" --output-dir _snapshot_site
-          done
+          pixi run --frozen -e reporting python dashboards/index.py --output-dir _snapshot_site
 
       - name: Publish snapshot to storage branch
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0

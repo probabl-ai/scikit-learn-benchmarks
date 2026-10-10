@@ -1,22 +1,26 @@
 # Data Processing and Storage in Benchmarks
 
 Data handling steps:
-1. Load data:
-   - If not cached: download/generate dataset and put it in raw and/or usual cache
-   - If cached: load from cached files
-2. Split data into subsets if requested
-3. Convert to requested form (data type, format, order, etc.)
 
-Existing data sources:
- - Synthetic data from sklearn
- - OpenML datasets
- - Custom loaders for named datasets
+1. Load the data:
+   - if not cached, download or generate the dataset and store it in the raw
+     and/or regular cache;
+   - if cached, load it from the cached files.
+2. Split the data into subsets if requested.
+3. Convert it to the requested form (dtype, format, memory order, etc.).
+
+Data sources:
+
+- synthetic data from sklearn
+- OpenML datasets
+- custom loaders for named datasets
 
 ## Named Real-World Datasets
 
-The following names can be used as `data:dataset` values. `n_features` refers to
-the `x` data returned by the loader, after loader-specific transformations such
-as target extraction, dropped columns, category encoding, or one-hot encoding.
+These names can be used as `data:dataset` values. `n_features` is the number
+of features of the `x` returned by the loader, after loader-specific steps
+such as target extraction, dropped columns, category encoding or one-hot
+encoding.
 
 | Name | n_samples | n_features | Task(s) | Features |
 | --- | ---: | ---: | --- | --- |
@@ -57,10 +61,14 @@ as target extraction, dropped columns, category encoding, or one-hot encoding.
 
 ## Data Caching
 
-There are two levels of caching with corresponding directories: `raw cache` for files downloaded from external sources, and just `cache` for files applicable for fast-loading in benchmarks.
+There are two cache levels, each with its own directory: the raw cache for
+files downloaded from external sources, and the regular cache for files that
+load fast in benchmarks.
 
-Each dataset has few associated files in usual `cache`: data component files (`x`, `y`, `weights`, etc.) and JSON file with dataset properties (number of classes, clusters, default split arguments).
-For example:
+Each dataset has a few files in the regular cache: data component files (`x`,
+`y`, `weights`, etc.) and a JSON file with dataset properties (number of
+classes, clusters, default split arguments). For example:
+
 ```
 data_cache/
 ...
@@ -71,10 +79,8 @@ data_cache/
 ```
 
 Cached file formats:
+
 | Format | File extension | Associated Python types | Comment |
 | --- | --- | --- | --- |
 | [Parquet](https://parquet.apache.org) | `.parq` | pandas.DataFrame |  |
-| Numpy uncompressed binary dense data | `.npz` | numpy.ndarray, pandas.Series | Data is stored under `arr_0` name |
-
----
-[Documentation tree](../../README.md#-documentation)
+| NumPy uncompressed binary dense data | `.npz` | numpy.ndarray, pandas.Series | Data is stored under the `arr_0` name |

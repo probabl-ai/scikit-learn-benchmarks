@@ -36,6 +36,10 @@ slow, so its train split is downsized here via `split_kwargs`
 (`SUBSAMPLE_DATASETS`), same as fraud's RandomForestClassifier and susy's
 ExtraTreesClassifier cases - see `SUBSAMPLE_DATASETS` for the per-case
 train sizes.
+
+On hardware with SMT cores, the sweep also gets a "half core" point
+(`n_cores=0.5`): a single logical CPU, without its SMT sibling - see
+`_with_half_core_bench`.
 """
 from _utils.common import _merge_dicts
 from _utils.implementations import implementations_for_pixi_env
@@ -59,6 +63,9 @@ SUBSAMPLE_DATASETS = {
 
 
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
+
+# `metadata.n_cores` of the single-logical-CPU point, see `_with_half_core_bench`.
+HALF_CORE = 0.5
 
 
 def _is_array_api(implem: dict) -> bool:
@@ -97,6 +104,13 @@ def _base_cases() -> list[dict]:
 
 
 
+def _has_smt_cores(cores_count: int) -> bool:
+    return (
+        cpu_affinity_for_physical_cores(cores_count, True)
+        != cpu_affinity_for_physical_cores(cores_count, False)
+    )
+
+
 def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     """Builds the sweep point(s) for one (case, implementation, cores_count)
     combo.
@@ -119,19 +133,16 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
     `OMP_NUM_THREADS` set explicitly to make thread count follow the sweep
     (Ridge/LogisticRegression/RF/ET rely on BLAS/`n_jobs` respecting the
     `cpu_affinity` pinning alone). sklearn's
-    KMeans is also skipped above 128 threads - see `_real_datasets.py`'s
+    KMeans is also skipped above 64 threads - see `_real_datasets.py`'s
     `KMEANS_BENCH` for the OpenBLAS crash this avoids; not applied to
     sklearnex, whose threading isn't OpenMP/OMP_NUM_THREADS-driven.
     """
     is_sklearn = implem["library"] == "sklearn"
     is_kmeans = case["algorithm"]["estimator"] == "KMeans"
     is_tree = case["algorithm"]["estimator"] in TREE_ESTIMATORS
-    has_smt_cores = (
-        cpu_affinity_for_physical_cores(cores_count, True)
-        != cpu_affinity_for_physical_cores(cores_count, False)
-    )
+    has_smt_cores = _has_smt_cores(cores_count)
 
-    if is_sklearn and is_kmeans and cores_count > 128:
+    if is_sklearn and is_kmeans and cores_count > 64:
         return
 
     env = {"OMP_NUM_THREADS": str(cores_count)} if is_sklearn and is_kmeans else {}
@@ -159,10 +170,13 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
 
     if is_tree:
         # At least 4 trees per logical core (so 8 per physical core)
-        case = _merge_dicts(
-            case,
-            {"algorithm": {"estimator_params": {"n_estimators": max(16, cores_count * 8)}}},
-        )
+        estimator_params = {"n_estimators": max(16, cores_count * 8)}
+        if not is_sklearn and case["algorithm"]["estimator"] == "RandomForestClassifier":
+            # Exact (unbinned) splits, like sklearn's
+            estimator_params["max_bins"] = SUBSAMPLE_DATASETS[
+                (case["algorithm"]["estimator"], case["data"]["dataset"])
+            ]
+        case = _merge_dicts(case, {"algorithm": {"estimator_params": estimator_params}})
 
     yield case
 
@@ -176,16 +190,49 @@ def _with_scaling_bench(case: dict, implem: dict, cores_count: int):
         )
 
 
+def _with_half_core_bench(case: dict, implem: dict):
+    """Builds the "half core" sweep point: one logical CPU of the first
+    physical core, without its SMT sibling. It's the 1-core point (same
+    `n_runs`, `n_estimators`, env) with that single logical CPU as
+    `cpu_affinity`, tagged `n_cores=0.5` on the `with_siblings=True` line, so
+    the 0.5 -> 1 step shows what the SMT sibling alone brings.
+
+    Only yielded on hardware with SMT cores, where it differs from the 1-core
+    point. For RF/ET, it measures the same thing as the 1-core
+    `with_siblings=False` variant, but puts it on the main line.
+    """
+    if not _has_smt_cores(1):
+        return
+    one_core_case = next(_with_scaling_bench(case, implem, 1), None)
+    if one_core_case is None:
+        return
+    yield _merge_dicts(
+        one_core_case,
+        {
+            "metadata": {"n_cores": HALF_CORE},
+            "bench": {"cpu_affinity": cpu_affinity_for_physical_cores(1, with_siblings=False)},
+        },
+    )
+
+
 def generate_cases() -> list[dict]:
     implementations = [
         implem
         for implem in implementations_for_pixi_env()
         if not _is_array_api(implem)
     ]
-    return [
+    base_cases = _base_cases()
+    scaled_cases = [
         scaled_case
-        for case in _base_cases()
+        for case in base_cases
         for implem in implementations
         for cores_count in get_n_cores_list()
         for scaled_case in _with_scaling_bench(case, implem, cores_count)
     ]
+    half_core_cases = [
+        half_core_case
+        for case in base_cases
+        for implem in implementations
+        for half_core_case in _with_half_core_bench(case, implem)
+    ]
+    return scaled_cases + half_core_cases

@@ -10,6 +10,9 @@ Each `REAL_DATASET_CASES` entry is:
         options,                         # optional: {"skip_libraries": (...)}
     )
 
+`options["max_samples_by_n_cores"]` overrides `max_samples` on machines with
+that many physical cores (e.g. `{172: None}` for full size on the big server).
+
 """
 
 import numpy as np
@@ -21,6 +24,13 @@ from _utils.implementations import implementations_for_pixi_env
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
 BENCH = {"n_runs": 3}
+# Row counts of the datasets used at full size (`max_samples=None`), for
+# sklearnex's tree `max_bins`.
+DATASET_N_SAMPLES = {"kddcup09_churn": 50_000, "ames_housing": 1_460}
+TREES = [
+    "RandomForestClassifier", "RandomForestRegressor",
+    "ExtraTreesRegressor", "ExtraTreesClassifier"
+]
 N_ESTIMATORS = 2 * cpu_count() if cpu_count() <= 32 else cpu_count()
 
 REAL_DATASET_CASES = [
@@ -86,6 +96,10 @@ REAL_DATASET_CASES = [
         # Skipped for sklearnex: too slow here (this dataset's "linear"
         # preprocessing refits TargetEncoder's internal KFold on every CV
         # split x candidate) to be worth the matrix size.
+        # TODO: fix comment and maybe stop skipping sklearnex. Until 0e5acafa,
+        # TargetEncoder treated this integer regression target as ~600
+        # classes, giving ~25k features instead of ~660, which likely caused
+        # most of the slowness.
         {"skip_libraries": ("sklearnex",)},
     ),
     (
@@ -105,7 +119,8 @@ REAL_DATASET_CASES = [
             "estimator": {
                 "alpha": list(np.logspace(-3, 3, 13)),
             }
-        }
+        },
+        {"max_samples_by_n_cores": {172: None}},
     ),
     (
         ("amazon_employee_access", None, "linear"),
@@ -129,7 +144,8 @@ REAL_DATASET_CASES = [
                 "C": list(np.logspace(-3, 3, 13)),
                 "fit_intercept": [True, False],
             }
-        }
+        },
+        {"max_samples_by_n_cores": {172: 1_000_000}},
     ),
     # HGB
     (
@@ -232,10 +248,6 @@ def _split_search_space(search_space: dict) -> tuple[dict, dict]:
 
 
 def get_n_iter_and_n_jobs_list(estimator: str):
-    TREES = [
-        "RandomForestClassifier", "RandomForestRegressor",
-        "ExtraTreesRegressor", "ExtraTreesClassifier"
-    ]
     is_tree = estimator in TREES
     n_cores = cpu_count(only_physical_cores=True)
     n_iter = n_cores * 2
@@ -246,17 +258,10 @@ def get_n_iter_and_n_jobs_list(estimator: str):
     n_jobs_list = sorted(set([min(n_jobs, n_cores) for n_jobs in n_jobs_list]))
 
     if n_cores == 16:
-        if is_tree:
-            n_jobs_list = [1, 2, 4, 8, 16]
-        else:
-            n_jobs_list = [4, 8, 16]
-
+        n_jobs_list = [1, 2, 4, 8, 16]
     elif n_cores == 172:
         n_iter = n_cores
-        if is_tree:
-            n_jobs_list = [1, 2, 5, 11, 22, 43, 86]
-        else:
-            n_jobs_list = [11, 22, 43, 86]
+        n_jobs_list = [1, 2, 5, 11, 22, 43, 86, 172]
 
     return n_iter, n_jobs_list
 
@@ -293,12 +298,18 @@ def _case(
             preprocessing_kwargs=preprocessing_kwargs_by_library.get(implem["library"], {}),
         )
 
+        implem_estimator_params = estimator_params
+        if implem["library"] == "sklearnex" and estimator in TREES:
+            # Exact (unbinned) splits, like sklearn's
+            n_samples = max_samples if max_samples is not None else DATASET_N_SAMPLES[dataset]
+            implem_estimator_params = {**estimator_params, "max_bins": n_samples}
+
         n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator)
 
         for n_jobs in n_jobs_list:
             cases.append(HPTuningCase(
                 bench=BENCH,
-                algorithm=Algorithm(estimator=estimator, estimator_params=estimator_params),
+                algorithm=Algorithm(estimator=estimator, estimator_params=implem_estimator_params),
                 data=data,
                 implementation=implem,
                 hptuning=HPTuning(
@@ -330,6 +341,9 @@ def generate_cases() -> list[HPTuningCase]:
         skip_libraries = options.get("skip_libraries", ())
         scoring = options.get("scoring")
         preprocessing_kwargs_by_library = options.get("preprocessing_kwargs_by_library")
+        max_samples = options.get("max_samples_by_n_cores", {}).get(
+            cpu_count(only_physical_cores=True), max_samples
+        )
 
         for estimator in estimators if isinstance(estimators, list) else [estimators]:
             cases.extend(_case(
