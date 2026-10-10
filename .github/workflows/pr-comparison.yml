@@ -219,6 +219,14 @@ jobs:
       - name: Clean up results from previous runs
         run: git clean -ffdx results/
 
+      - name: Lock the benchmark machine
+        # Same as in run-benchmarks.yml: waits for agents' runs on this box,
+        # then holds it until the release step below.
+        if: env.SKIP_BENCH != 'true'
+        run: |
+          pid=$(scripts/benchlock hold --tag "${{ github.workflow }} PR ${{ github.event.pull_request.number }} run ${{ github.run_id }}" all)
+          echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
+
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
         with:
@@ -337,6 +345,11 @@ jobs:
             fi
           done < "$RUNNER_TEMP/runs.tsv"
           exit "$status"
+
+      - name: Release the benchmark machine
+        # The runner also kills the holder process when a cancelled job ends.
+        if: always() && env.BENCHLOCK_PID != ''
+        run: kill "$BENCHLOCK_PID"
 
       - name: Classify benchmark session
         if: env.SKIP_BENCH != 'true'

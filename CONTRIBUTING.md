@@ -165,6 +165,25 @@ test run, use `git clean results/ -fd` (this deletes all untracked results).
 Once you have results locally, see ["Previewing Dashboards
 Locally"](#previewing-dashboards-locally) to look at them.
 
+### Sharing the Benchmark Machines
+
+Two runs on the same machine slow each other down. On intel-gnr,
+intel-laptop and the maintainers' laptops, wrap anything you time with
+`scripts/benchlock`, which takes a machine-wide lock:
+
+```bash
+benchlock --tag "hgb binning A/B" all -- ./run.sh sklearn-pypi --config configs/my_test.py
+benchlock status --all-hosts
+```
+
+Slot `all` is the whole machine. On intel-gnr, `s0` and `s1` are one socket
+each, with the command bound to that socket's CPUs and memory by `numactl`.
+They are meant for quick A/B tests only: don't publish results from them.
+`run-benchmarks.yml` and `pr-comparison.yml` hold `all` for the whole
+benchmark, setup included, so they wait for local runs and the other way
+around. Install or update `benchlock` on every machine with
+`scripts/install_benchlock.sh`.
+
 ## Running Against scikit-learn Branches
 
 To check a performance PR locally, use one of the development Pixi

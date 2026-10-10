@@ -82,6 +82,15 @@ jobs:
         # safe.
         run: git clean -ffdx results/
 
+      - name: Lock the benchmark machine
+        # Waits for agents' runs on this box (see scripts/benchlock), then
+        # holds the whole machine until the release step below, setup and
+        # sklearn builds included. The `concurrency` group above only
+        # serializes GitHub jobs between themselves.
+        run: |
+          pid=$(scripts/benchlock hold --tag "${{ github.workflow }} run ${{ github.run_id }}" all)
+          echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
+
       - name: Resolve environments
         id: resolve
         env:
@@ -205,6 +214,11 @@ jobs:
           ENVS: ${{ steps.resolve.outputs.envs }}
         run: |
           ./run.sh $ENVS --config "$CONFIG" 2>&1 | tee "$RUNNER_TEMP/bench.log"
+
+      - name: Release the benchmark machine
+        # The runner also kills the holder process when a cancelled job ends.
+        if: always() && env.BENCHLOCK_PID != ''
+        run: kill "$BENCHLOCK_PID"
 
       - name: Commit and push results
         id: commit
