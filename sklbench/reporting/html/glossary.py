@@ -158,6 +158,12 @@ TERMS = {
         "The optimization algorithm used by fit, for instance lbfgs or "
         "newton-cholesky for LogisticRegression.",
     ),
+    "target encoding": Term(
+        "Replacing each category with a statistic of the target for that "
+        "category (e.g. its positive rate), pulled towards the global value "
+        "for rare categories and computed without the row's own target.",
+        url="https://scikit-learn.org/stable/modules/preprocessing.html#target-encoder",
+    ),
     "preprocessing": Term(
         "Steps run before the model, such as encoding categorical columns and "
         "imputing missing values.",
@@ -270,6 +276,21 @@ TERMS = {
     ),
     "baseline": Term("The reference that speed-ups are computed against."),
 
+    "pareto front": Term(
+        "The points that no other point beats on both axes: nothing is both "
+        "faster and more accurate. Every other point is a worse trade-off.",
+        aliases=("pareto fronts",),
+    ),
+    "roc auc": Term(
+        "Probability that the model ranks a random positive sample above a "
+        "random negative one. 0.5 is random guessing, 1 is perfect. For "
+        "several classes, averaged over one-vs-rest problems.",
+    ),
+    "r2": Term(
+        "Coefficient of determination: 1 minus the squared error of the "
+        "predictions divided by the variance of the target. 1 is perfect, 0 "
+        "is as good as always predicting the mean.",
+    ),
     "perfect-scaling line": Term(
         "The time the fit would take if n times more cores made it n times "
         "faster.",
