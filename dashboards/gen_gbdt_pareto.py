@@ -91,11 +91,13 @@ ABOUT_HTML = """<section class="panel">
     to see all of them.</p>
     <p>The settings are matched across libraries: number of trees, leaves
     per tree, learning rate, 255 bins, best-first (lossguide) growth, at
-    least 20 samples per leaf, no L2 regularization and no early stopping.
-    There are two exceptions: for classification, XGBoost has no minimum
-    number of samples per leaf (it uses a minimum hessian sum of 0.001
-    instead), and CatBoost keeps
-    its default L2 regularization (<code>l2_leaf_reg=3</code>). Every
+    least 20 samples per leaf, an L2 regularization of 0.1 and no early
+    stopping. There are two exceptions: for classification, XGBoost has no
+    minimum number of samples per leaf (it uses a minimum hessian sum of 0.001
+    instead), and CatBoost keeps its default L2 regularization
+    (<code>l2_leaf_reg=3</code>), whose scale differs. Without L2,
+    <b>HistGradientBoosting</b>'s fits can diverge on some seeds of covtype.
+    Every
     library uses one <dfn>thread</dfn> per <dfn>physical core</dfn>.</p>
     <p>Categorical columns: <b>HistGradientBoosting</b>, <b>XGBoost</b> and
     <b>LightGBM</b> get them as native categorical columns capped at 20

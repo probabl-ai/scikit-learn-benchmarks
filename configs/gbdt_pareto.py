@@ -11,10 +11,11 @@ smaller datasets, the widest settings overfit: their points are dominated,
 which marks the end of the front.
 
 The settings are matched across libraries (number of trees, leaves, learning
-rate, histogram bins, minimum leaf size, no L2 regularization), with
+rate, histogram bins, minimum leaf size, L2 regularization of 0.1), with
 lossguide/best-first growth everywhere. XGBoost has no minimum leaf size in
-samples, and CatBoost keeps its default L2 regularization. Early stopping is
-off, so the cost of a setting doesn't depend on the library's stopping rule.
+samples, and CatBoost keeps its default L2 regularization (its scale differs).
+Early stopping is off, so the cost of a setting doesn't depend on the
+library's stopping rule.
 
 `gbdt_pareto_regression.py` runs the same settings on regression datasets,
 scored by R2.
@@ -77,6 +78,9 @@ HP_SETTINGS = [
 
 MAX_BINS = 255
 MIN_SAMPLES_LEAF = 20
+# Without L2, HGB's leaf values can blow up when the hessians get tiny (e.g.
+# rare classes on covtype), and the fit diverges on some seeds.
+L2_REGULARIZATION = 0.1
 
 
 ESTIMATORS = {
@@ -96,7 +100,7 @@ def _sklearn(hp: dict, task: str) -> dict:
         "max_leaf_nodes": hp["max_leaf_nodes"],
         "learning_rate": hp["learning_rate"],
         "min_samples_leaf": MIN_SAMPLES_LEAF,
-        "l2_regularization": 0.0,
+        "l2_regularization": L2_REGULARIZATION,
         "max_bins": MAX_BINS,
         "early_stopping": False,
     }
@@ -114,7 +118,7 @@ def _xgboost(hp: dict, task: str) -> dict:
         # sum. With the squared error, the hessian is 1 per sample, so this
         # is exact. For the log loss, use LightGBM's default instead.
         "min_child_weight": MIN_SAMPLES_LEAF if task == "regression" else 1e-3,
-        "reg_lambda": 0.0,
+        "reg_lambda": L2_REGULARIZATION,
         "max_bin": MAX_BINS,
         "enable_categorical": True,
     }
@@ -126,7 +130,7 @@ def _lightgbm(hp: dict, task: str) -> dict:
         "num_leaves": hp["max_leaf_nodes"],
         "learning_rate": hp["learning_rate"],
         "min_child_samples": MIN_SAMPLES_LEAF,
-        "reg_lambda": 0.0,
+        "reg_lambda": L2_REGULARIZATION,
         "max_bin": MAX_BINS,
         "verbosity": -1,
     }
