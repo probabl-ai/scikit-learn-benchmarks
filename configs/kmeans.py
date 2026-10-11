@@ -50,7 +50,7 @@ def _case(implem: dict, workload: tuple, dtype: str) -> dict:
         "metadata": {"task": "clustering"},
         "algorithm": {
             "estimator": "KMeans",
-            "estimator_params": {"n_clusters": n_clusters},
+            "estimator_params": {"n_clusters": n_clusters, "n_init": 1},
         },
         "data": data,
     }
