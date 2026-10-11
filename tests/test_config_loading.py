@@ -27,6 +27,9 @@ ENV_SENSITIVE_CONFIGS = {
     # (skl-cpu/skl-intel/skl-nvidia/skl-mps) would filter down to zero
     # implementations and produce no cases.
     Path("configs/hptuning.py"): GENERAL_ENVS,
+    # KMeans has no Array API support, so kmeans.py keeps the same
+    # implementations as hptuning.py.
+    Path("configs/kmeans.py"): GENERAL_ENVS,
 }
 
 
