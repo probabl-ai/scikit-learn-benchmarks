@@ -36,6 +36,7 @@ SOURCE_CONFIGS = [
     "configs/gbdt_pareto_force_active_wait.py",
     "configs/gbdt_pareto_regression.py",
     "configs/gbdt_pareto_regression_force_active_wait.py",
+    "configs/gbdt_pareto_single_thread.py",
 ]
 SOURCE_ENVS = ["gbdt"]
 
@@ -115,7 +116,12 @@ ABOUT_HTML = """<section class="panel">
     active wait with environment variables (<code>GOMP_SPINCOUNT=300000</code>,
     <code>KMP_BLOCKTIME=200ms</code>). The OpenMP section of each tab shows the
     setting. CatBoost uses its own thread pool, so its points are the same in
-    both of a machine's tabs.</p>
+    both of a machine's multithreaded tabs.</p>
+    <p>The tabs marked "1 thread" run every library on a single
+    <dfn>thread</dfn>, to compare serial speed: a hyperparameter search
+    parallelizes over its <dfn>candidates</dfn>, so each fit runs on one core.
+    These fits run many at a time, one per core, so they share the machine's
+    memory bandwidth, like the candidates of a parallel search.</p>
     <p><b>HGB (PR)</b> is HistGradientBoosting from
     <a href="https://github.com/scikit-learn/scikit-learn/pull/34935">scikit-learn#34935</a>,
     which picks the number of threads per tree and per parallel loop from
@@ -226,6 +232,10 @@ def _active_wait(record: BenchmarkRecord) -> bool:
     return has_active_wait(_case_env(record), record.software_hash)
 
 
+def _single_thread(record: BenchmarkRecord) -> bool:
+    return _case_env(record).get("OMP_NUM_THREADS") == "1"
+
+
 def _uses_openmp(record: BenchmarkRecord) -> bool:
     return record.implementation.library not in NO_OPENMP_LIBRARIES
 
@@ -264,6 +274,7 @@ def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
             _dataset(record),
             _hp_setting(record),
             _active_wait(record),
+            _single_thread(record),
         )
         current = latest.get(key)
         if current is None or record.timestamp_recorded > current.timestamp_recorded:
@@ -434,25 +445,33 @@ def generate(output_dir: Path) -> None:
             if matches_source_configs(record.case, SOURCE_CONFIGS)
         ]
     )
-    tabs: dict[tuple[str, bool], list[BenchmarkRecord]] = {}
+    # (machine, single thread, wait policy). The wait policy doesn't matter
+    # with a single thread.
+    def tab_key(record):
+        single = _single_thread(record)
+        return record.hardware_hash, single, None if single else _active_wait(record)
+
+    tabs: dict[tuple, list[BenchmarkRecord]] = {}
     for record in records:
         if _uses_openmp(record):
-            tabs.setdefault((record.hardware_hash, _active_wait(record)), []).append(record)
+            tabs.setdefault(tab_key(record), []).append(record)
     for record in records:
         if not _uses_openmp(record):
-            keys = [key for key in tabs if key[0] == record.hardware_hash]
-            for key in keys or [(record.hardware_hash, _active_wait(record))]:
+            hardware_hash, single, _ = tab_key(record)
+            keys = [key for key in tabs if key[:2] == (hardware_hash, single)]
+            for key in keys or [tab_key(record)]:
                 tabs.setdefault(key, []).append(record)
+
+    def tab_label(hardware_hash, single, active_wait):
+        suffix = " (1 thread)" if single else active_wait_label_suffix(active_wait)
+        return HARDWARE_NAMES.get(hardware_hash, hardware_hash) + suffix
 
     colors = _series_colors({_series_label(record) for record in records})
     pages = [
-        (
-            HARDWARE_NAMES.get(hardware_hash, hardware_hash)
-            + active_wait_label_suffix(active_wait),
-            render_tab_page(tab_records, colors),
-        )
-        for (hardware_hash, active_wait), tab_records in sorted(
-            tabs.items(), key=lambda item: (_hardware_sort_index(item[0][0]), not item[0][1])
+        (tab_label(*key), render_tab_page(tab_records, colors))
+        for key, tab_records in sorted(
+            tabs.items(),
+            key=lambda item: (_hardware_sort_index(item[0][0]), item[0][1], not item[0][2]),
         )
     ]
     html = BASE_TEMPLATE.render(
