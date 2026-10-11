@@ -163,6 +163,7 @@ wrapped_estimators = {
         "sklearn",
         "RandomForestRegressor",
     ): "instrumented_rf.RandomForestRegressor",
+    ("sklearn", "KMeans"): "instrumented_kmeans.KMeans",
 }
 
 
