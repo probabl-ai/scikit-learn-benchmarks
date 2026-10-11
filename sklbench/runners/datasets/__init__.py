@@ -60,17 +60,33 @@ def load_raw_data(
     os.makedirs(raw_data_cache, exist_ok=True)
 
     if data_params.dataset is not None and data_params.dataset in dataset_loading_functions:
-        return load_from_cache_or_compute(
+        raw_data, data_description = load_from_cache_or_compute(
             dataset_loading_functions[data_params.dataset], **common_kwargs
         )
-    if data_params.source == "fetch_openml":
-        return load_from_cache_or_compute(
+    elif data_params.source == "fetch_openml":
+        raw_data, data_description = load_from_cache_or_compute(
             load_openml_data, openml_id=data_params.id, **common_kwargs
         )
-    raise ValueError(
-        "Unable to get data from bench_case:\n"
-        f"{data_params.model_dump(exclude_none=True)}"
-    )
+    else:
+        raise ValueError(
+            "Unable to get data from bench_case:\n"
+            f"{data_params.model_dump(exclude_none=True)}"
+        )
+    if data_params.n_features is not None:
+        raw_data = {**raw_data, "x": _first_features(raw_data["x"], data_params.n_features)}
+    return raw_data, data_description
+
+
+def _first_features(x, n_features: int):
+    if n_features > x.shape[1]:
+        raise ValueError(
+            f"n_features={n_features} but the dataset only has {x.shape[1]} features"
+        )
+    if isinstance(x, pd.DataFrame):
+        return x.iloc[:, :n_features].copy()
+    # A fresh copy in the original layout, so the sliced dataset looks like
+    # a natively narrower one rather than a strided view of the full array.
+    return np.array(x[:, :n_features], order="F" if _measure_order(x) == "F" else "C")
 
 
 def _measure_order(data) -> str | None:

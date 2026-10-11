@@ -18,6 +18,9 @@ class Data(Section):
     split_kwargs: JsonDict = Field(default_factory=dict)
     preprocessing_kind: str | None = None
     preprocessing_kwargs: JsonDict = Field(default_factory=dict)
+    # Keep only the first `n_features` columns of a real dataset, applied
+    # after the cache so every prefix of a dataset shares one cache entry.
+    n_features: int | None = None
     order: str | None = None
     dtype: str | None = None
     x_train: JsonDict | None = None
@@ -32,6 +35,11 @@ class Data(Section):
                 raise ValueError(
                     "split_kwargs is not allowed together with generation_kwargs: "
                     "synthetic data always uses a fixed 50/50 train/test split."
+                )
+            if self.n_features is not None:
+                raise ValueError(
+                    "n_features is not allowed together with generation_kwargs: "
+                    "set the feature count in generation_kwargs instead."
                 )
             if self.preprocessing_kind is not None or self.preprocessing_kwargs:
                 raise ValueError(
