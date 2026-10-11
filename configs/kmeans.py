@@ -9,10 +9,9 @@ share one cache entry). fashion_mnist_784 and road_network_points are only
 used at full width: the first pixels of fashion_mnist are the mostly-blank
 image border, and road_network_points only has 3 columns.
 
-Every workload runs in float32 and float64 with C-ordered input, and a few of
-them also with F-ordered input. KMeans copies its input to C order anyway
-(`copy_x=True`), so the layout only changes the cost of that copy, which ends
-up in `other_time_`.
+Every workload runs in float32 and float64, with C-ordered input only: KMeans
+copies its input to C order anyway, so F-ordered input only adds the cost of
+that copy.
 
 Train sizes are subsampled so every float32 fit takes roughly 2-15s on a
 laptop. The whole matrix (50 cases with the plain sklearn implementation)
@@ -29,26 +28,18 @@ DTYPES = ["float32", "float64"]
 WORKLOADS = [
     *[("sift", d, 100, 300_000) for d in [16, 32, 64, 128]],
     *[("sift", d, 1000, 50_000) for d in [16, 32, 64, 128]],
-    *[("sift", d, 10, None) for d in [32, 128]],
+    *[("sift", d, 10, None) for d in [32, 64, 128]],
     *[("nytimes_256", d, 100, 150_000) for d in [32, 64, 128, 256]],
-    *[("nytimes_256", d, 10, None) for d in [64, 256]],
-    *[("nytimes_256", d, 1000, 50_000) for d in [64, 256]],
+    *[("nytimes_256", d, 10, None) for d in [64, 128, 256]],
+    *[("nytimes_256", d, 1000, 50_000) for d in [32, 64, 128, 256]],
     ("fashion_mnist_784", None, 100, None),
-    ("road_network_points", None, 300, None),
-]
-
-F_ORDER_WORKLOADS = [
-    ("sift", 128, 10, None),
-    ("sift", 128, 100, 300_000),
-    ("nytimes_256", 256, 100, 150_000),
-    ("fashion_mnist_784", None, 100, None),
-    ("road_network_points", None, 300, None),
+    *[("road_network_points", None, k, None) for k in [300, 1000]],
 ]
 
 
-def _case(implem: dict, workload: tuple, dtype: str, order: str) -> dict:
+def _case(implem: dict, workload: tuple, dtype: str) -> dict:
     dataset, n_features, n_clusters, train_size = workload
-    data = {"dataset": dataset, "dtype": dtype, "order": order}
+    data = {"dataset": dataset, "dtype": dtype, "order": "C"}
     if n_features is not None:
         data["n_features"] = n_features
     if train_size is not None:
@@ -76,6 +67,5 @@ def generate_cases() -> list[dict]:
     cases = []
     for implem in implementations:
         for dtype in DTYPES:
-            cases += [_case(implem, w, dtype, "C") for w in WORKLOADS]
-            cases += [_case(implem, w, dtype, "F") for w in F_ORDER_WORKLOADS]
+            cases += [_case(implem, w, dtype) for w in WORKLOADS]
     return cases
