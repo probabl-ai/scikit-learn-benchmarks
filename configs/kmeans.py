@@ -24,9 +24,17 @@ Train sizes are subsampled so most float32 fits take roughly 2-15s on a
 laptop, plus two bigger workloads (1M samples with k=100, 100k samples with
 k=3000) at ~20-25s. The whole matrix (54 cases with the plain sklearn
 implementation) takes about 35 minutes there.
+
+On a multi-socket machine, every case is pinned to socket 0 with one OpenMP
+thread per physical core. With OpenBLAS, the thread count is still capped at
+64 (see `_real_datasets.KMEANS_BENCH`). MKL has no such limit.
 """
+import numpy  # noqa: F401, loads the BLAS that threadpoolctl inspects
+from threadpoolctl import threadpool_info
+
 from _real_datasets import KMEANS_BENCH
 from _utils.implementations import implementations_for_pixi_env
+from _utils.numa import cpu_affinity_for_socket
 
 
 DTYPES = ["float32", "float64"]
@@ -50,6 +58,22 @@ WORKLOADS = [
 MAX_FIXED_ITER_N_CLUSTERS = 100
 
 
+def _bench() -> dict:
+    bench = {"n_runs": 5, "py_spy_profiling": False}
+    socket_cpus = cpu_affinity_for_socket(0)
+    if socket_cpus is not None:
+        bench["cpu_affinity"] = socket_cpus
+    if any(pool["internal_api"] == "mkl" for pool in threadpool_info()):
+        if socket_cpus is not None:
+            # sklearn's default thread count ignores the affinity mask, so
+            # it would otherwise start one thread per logical CPU.
+            n_cores = len(cpu_affinity_for_socket(0, with_siblings=False))
+            bench["env"] = {"OMP_NUM_THREADS": str(n_cores)}
+    else:
+        bench.update(KMEANS_BENCH)
+    return bench
+
+
 def _case(implem: dict, workload: tuple, dtype: str) -> dict:
     dataset, n_features, n_clusters, train_size = workload
     data = {"dataset": dataset, "dtype": dtype, "order": "C"}
@@ -61,7 +85,7 @@ def _case(implem: dict, workload: tuple, dtype: str) -> dict:
     if n_clusters <= MAX_FIXED_ITER_N_CLUSTERS:
         estimator_params |= {"tol": 0, "max_iter": 100}
     return {
-        "bench": {"n_runs": 5, "py_spy_profiling": False, **KMEANS_BENCH},
+        "bench": _bench(),
         "implementation": implem,
         "metadata": {"task": "clustering"},
         "algorithm": {
