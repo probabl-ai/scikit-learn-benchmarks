@@ -13,9 +13,17 @@ Every workload runs in float32 and float64, with C-ordered input only: KMeans
 copies its input to C order anyway, so F-ordered input only adds the cost of
 that copy.
 
-Train sizes are subsampled so every float32 fit takes roughly 2-15s on a
-laptop. The whole matrix (50 cases with the plain sklearn implementation)
-takes about 35 minutes there.
+Workloads with up to 100 clusters run a fixed 100 Lloyd iterations (`tol=0`,
+`max_iter=100`): with the default `tol`, their iteration count varied up to 5x
+between repeats, and so did their fit time. Workloads with more clusters keep
+the default stopping criterion: on the k=1000 ones (~50 samples per cluster)
+the labels stop changing (strict convergence, which `tol=0` does not disable)
+after 35-95 iterations, and their fit time is mostly k-means++ init anyway.
+
+Train sizes are subsampled so most float32 fits take roughly 2-15s on a
+laptop, plus two bigger workloads (1M samples with k=100, 100k samples with
+k=3000) at ~20-25s. The whole matrix (54 cases with the plain sklearn
+implementation) takes about 35 minutes there.
 """
 from _real_datasets import KMEANS_BENCH
 from _utils.implementations import implementations_for_pixi_env
@@ -34,7 +42,12 @@ WORKLOADS = [
     *[("nytimes_256", d, 1000, 50_000) for d in [32, 64, 128, 256]],
     ("fashion_mnist_784", None, 100, None),
     *[("road_network_points", None, k, None) for k in [300, 1000]],
+    ("sift", 128, 100, None),
+    ("sift", 32, 3000, 100_000),
 ]
+
+# Above this many clusters, keep the default stopping criterion (see above).
+MAX_FIXED_ITER_N_CLUSTERS = 100
 
 
 def _case(implem: dict, workload: tuple, dtype: str) -> dict:
@@ -44,13 +57,16 @@ def _case(implem: dict, workload: tuple, dtype: str) -> dict:
         data["n_features"] = n_features
     if train_size is not None:
         data["split_kwargs"] = {"train_size": train_size, "test_size": 1000}
+    estimator_params = {"n_clusters": n_clusters, "n_init": 1}
+    if n_clusters <= MAX_FIXED_ITER_N_CLUSTERS:
+        estimator_params |= {"tol": 0, "max_iter": 100}
     return {
         "bench": {"n_runs": 5, "py_spy_profiling": False, **KMEANS_BENCH},
         "implementation": implem,
         "metadata": {"task": "clustering"},
         "algorithm": {
             "estimator": "KMeans",
-            "estimator_params": {"n_clusters": n_clusters, "n_init": 1},
+            "estimator_params": estimator_params,
         },
         "data": data,
     }
