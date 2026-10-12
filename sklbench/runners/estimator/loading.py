@@ -169,6 +169,7 @@ wrapped_estimators = {
     ("cuml", "RandomForestClassifier"): "cuml_estimators.RandomForestClassifier",
     ("cuml", "RandomForestRegressor"): "cuml_estimators.RandomForestRegressor",
     ("cuml", "KMeans"): "cuml_estimators.KMeans",
+    ("sklearn", "KMeans"): "instrumented_kmeans.KMeans",
 }
 
 

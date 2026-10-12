@@ -120,8 +120,8 @@ def _instrument_hgbt(estimator):
     try:
         yield timings
     finally:
-        estimator._preprocess_X = original_preprocess_x
-        estimator._bin_data = original_bin_data
+        del estimator._preprocess_X
+        del estimator._bin_data
         _hgbt_module.TreeGrower = original_tree_grower
 
 
