@@ -65,8 +65,9 @@ SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 
 
-# Methods shown in the table. KMeans PRs only change fit, and predict runs on
-# 1000 test samples, too few for a meaningful time.
+# Methods shown in the table. The KMeans PRs compared here target fit, and
+# predict is a single assignment step on a small test set (1000 samples in
+# most cases), too short to time reliably.
 TABLE_METHODS = {"fit"}
 
 
