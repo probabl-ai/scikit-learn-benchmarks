@@ -1,4 +1,3 @@
-import os
 from functools import lru_cache
 
 import sklearn
@@ -177,35 +176,42 @@ _CUML_ESTIMATORS = {
 # when they request newton-cholesky: both libraries ask for that name.
 _DROPPED_SYNTHETIC_CUML_LR_SOLVERS = {"newton-cg", "newton-cholesky"}
 
-# Set by run.sh for every environment in an invocation that includes cuml,
-# so the sklearn run emits the same cases as the cuML run. A later run.sh
-# that does not include cuml leaves this unset and keeps the full suite.
-CUML_ESTIMATOR_FILTER_ENV = "SKLBENCH_LIMIT_TO_CUML_ESTIMATORS"
 
+def is_cuml_supported_case(case: dict | EstimatorCase) -> bool:
+    """Whether this case is one the native cuML wrappers can run.
 
-def _limit_case_to_cuml_estimators(case: dict) -> bool:
-    if case["implementation"].get("library") == "cuml":
-        return True
-    return os.environ.get(CUML_ESTIMATOR_FILTER_ENV) == "1"
+    The check looks at the estimator and, for synthetic LogisticRegression,
+    the solver. It does not look at `implementation.library`, so
+    `configs/all_models_cuml_only.py` can apply it to a scikit-learn case too.
+
+    Accepts the dicts `filter_cuml_supported_cases_if_needed` sees and the
+    `EstimatorCase` objects `all_models.generate_cases()` returns after
+    `filter_unsupported_cases`.
+    """
+    if isinstance(case, dict):
+        estimator = case["algorithm"]["estimator"]
+        dataset = case["data"].get("dataset")
+        solver = case["algorithm"].get("estimator_params", {}).get("solver")
+    else:
+        estimator = case.algorithm.estimator
+        dataset = case.data.dataset
+        solver = case.algorithm.estimator_params.get("solver")
+    if estimator not in _CUML_ESTIMATORS:
+        return False
+    if estimator == "LogisticRegression" and dataset is None:
+        if solver in _DROPPED_SYNTHETIC_CUML_LR_SOLVERS:
+            return False
+    return True
 
 
 def filter_cuml_supported_cases_if_needed(cases):
-    """Drop cases the native cuML wrappers cannot run.
+    """Drop cuML cases the native wrappers cannot run.
 
-    cuML cases are always filtered. Other libraries are filtered only when
-    `SKLBENCH_LIMIT_TO_CUML_ESTIMATORS=1`, which `run.sh` exports for every
-    environment in a command that includes `cuml`.
+    Other libraries are unchanged. Pair a scikit-learn run with cuML through
+    `configs/all_models_cuml_only.py`, which applies `is_cuml_supported_case`
+    to every case.
     """
     for case in cases:
-        if not _limit_case_to_cuml_estimators(case):
-            yield case
+        if case["implementation"].get("library") == "cuml" and not is_cuml_supported_case(case):
             continue
-
-        estimator = case["algorithm"]["estimator"]
-        if estimator not in _CUML_ESTIMATORS:
-            continue
-        if estimator == "LogisticRegression" and case["data"].get("dataset") is None:
-            solver = case["algorithm"].get("estimator_params", {}).get("solver")
-            if solver in _DROPPED_SYNTHETIC_CUML_LR_SOLVERS:
-                continue
         yield case

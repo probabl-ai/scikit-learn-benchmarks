@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 
 from sklbench.config import BaseCase, EstimatorCase, HPTuningCase, load_cases_from_script
-from sklbench.config.utils import CUML_ESTIMATOR_FILTER_ENV
 
 
 SKLEARN_ENVS = [
@@ -23,6 +22,7 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
     Path("configs/all_models.py"): [*ARRAY_API_ENVS, "cuml"],
     Path("configs/all_models_16gb.py"): ARRAY_API_ENVS,
+    Path("configs/all_models_cuml_only.py"): [*SKLEARN_ENVS, "cuml"],
     Path("configs/cuml_smoke.py"): ["cuml"],
     Path("configs/models_scalability.py"): GENERAL_ENVS,
     # hptuning.py only ever selects non-array-API (no data_library),
@@ -283,10 +283,9 @@ def _cuml_filter_cases():
     ]
 
 
-def test_filter_cuml_supported_cases_drops_only_cuml_cases(monkeypatch):
+def test_filter_cuml_supported_cases_drops_only_cuml_cases():
     from sklbench.config.utils import filter_cuml_supported_cases_if_needed
 
-    monkeypatch.delenv(CUML_ESTIMATOR_FILTER_ENV, raising=False)
     kept = list(filter_cuml_supported_cases_if_needed(_cuml_filter_cases()))
 
     assert [(case["algorithm"]["estimator"], case["implementation"]["library"]) for case in kept] == [
@@ -298,19 +297,6 @@ def test_filter_cuml_supported_cases_drops_only_cuml_cases(monkeypatch):
     assert kept[1]["data"]["dataset"] == "kddcup09_churn"
 
 
-def test_filter_cuml_supported_cases_limits_sklearn_when_requested(monkeypatch):
-    from sklbench.config.utils import filter_cuml_supported_cases_if_needed
-
-    monkeypatch.setenv(CUML_ESTIMATOR_FILTER_ENV, "1")
-    kept = list(filter_cuml_supported_cases_if_needed(_cuml_filter_cases()))
-
-    assert [(case["algorithm"]["estimator"], case["implementation"]["library"]) for case in kept] == [
-        ("LogisticRegression", "cuml"),
-        ("LogisticRegression", "cuml"),
-    ]
-    assert kept[1]["data"]["dataset"] == "kddcup09_churn"
-
-
 def _case_identity(case: EstimatorCase) -> str:
     payload = case.model_dump(mode="json")
     payload.pop("implementation")
@@ -319,7 +305,6 @@ def _case_identity(case: EstimatorCase) -> str:
 
 def test_all_models_filters_cuml_and_keeps_the_sklearn_suite(monkeypatch):
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
-    monkeypatch.delenv(CUML_ESTIMATOR_FILTER_ENV, raising=False)
 
     monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", "sklearn-pypi")
     sklearn_cases = load_cases_from_script("configs/all_models.py")
@@ -350,14 +335,13 @@ def test_all_models_filters_cuml_and_keeps_the_sklearn_suite(monkeypatch):
     assert "newton-cholesky" in real_lr_solvers
 
 
-def test_all_models_limits_sklearn_to_cuml_estimators_when_requested(monkeypatch):
+def test_all_models_cuml_only_matches_sklearn_and_cuml(monkeypatch):
     monkeypatch.setattr("sklbench.config.utils._nvidia_gpu_available", lambda: True)
-    monkeypatch.setenv(CUML_ESTIMATOR_FILTER_ENV, "1")
 
     identities = {}
     for pixi_env in ("sklearn-pypi", "cuml"):
         monkeypatch.setenv("PIXI_ENVIRONMENT_NAME", pixi_env)
-        cases = load_cases_from_script("configs/all_models.py")
+        cases = load_cases_from_script("configs/all_models_cuml_only.py")
         assert {case.algorithm.estimator for case in cases} == {
             "LogisticRegression",
             "Ridge",
