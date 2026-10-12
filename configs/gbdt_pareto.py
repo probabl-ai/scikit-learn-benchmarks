@@ -1,7 +1,8 @@
 """
-Fit time vs test ROC AUC Pareto fronts of gradient boosting libraries
+Fit time vs test score Pareto fronts of gradient boosting libraries
 (scikit-learn's HistGradientBoosting, XGBoost, LightGBM, CatBoost) on real
-classification datasets, following the approach of
+classification (scored by ROC AUC) and regression (scored by R2) datasets,
+following the approach of
 https://github.com/scikit-learn/scikit-learn/pull/34935.
 
 Each library fits the same ladder of hyperparameter settings, from a few
@@ -16,9 +17,6 @@ lossguide/best-first growth everywhere. XGBoost has no minimum leaf size in
 samples, and CatBoost keeps its default L2 regularization (its scale differs).
 Early stopping is off, so the cost of a setting doesn't depend on the
 library's stopping rule.
-
-`gbdt_pareto_regression.py` runs the same settings on regression datasets,
-scored by R2.
 
 In the `gbdt` env, every library runs. In the other scikit-learn envs
 (`sklearn-dev`, `sklearn-pypi`, ...), only HistGradientBoosting runs, to
@@ -48,18 +46,30 @@ PREPROCESSING_KIND = {
     "catboost": "catboost",
 }
 
-DATASETS = [
-    # 45k x 16, low-cardinality categoricals.
-    "bank_marketing",
-    # 33k x 9, high-cardinality categoricals only.
-    "amazon_employee_access",
-    # 73k x 32, mixed numeric and categorical.
-    "kick",
-    # 50k x 212, many missing values, severe imbalance.
-    "kddcup09_churn",
-    # 581k x 12, 7 classes.
-    "covtype",
-]
+DATASETS = {
+    "classification": [
+        # 45k x 16, low-cardinality categoricals.
+        "bank_marketing",
+        # 33k x 9, high-cardinality categoricals only.
+        "amazon_employee_access",
+        # 73k x 32, mixed numeric and categorical.
+        "kick",
+        # 50k x 212, many missing values, severe imbalance.
+        "kddcup09_churn",
+        # 581k x 12, 7 classes.
+        "covtype",
+    ],
+    "regression": [
+        # 1.5k x 79, mostly categorical: the smallest dataset.
+        "ames_housing",
+        # 21k x 8, numeric only.
+        "california_housing",
+        # 163k x 11, categoricals with ~2000-3300 categories.
+        "medical_charges_nominal",
+        # 515k x 90, numeric only.
+        "year_prediction_msd",
+    ],
+}
 
 # CatBoost's lossguide growth supports at most 64 leaves, hence the 63-leaf
 # cap.
@@ -180,15 +190,12 @@ def _cases(implem: dict, datasets: list[str], task: str) -> list[dict]:
     return cases
 
 
-def generate_task_cases(datasets: list[str], task: str) -> list[dict]:
-    cases = []
-    for implem in implementations_for_pixi_env():
-        # Skips sklearnex and the Array API implementations: they don't
-        # implement HistGradientBoosting.
-        if implem.get("device") is None and implem["library"] in ESTIMATOR_PARAMS:
-            cases += _cases(implem, datasets, task)
-    return cases
-
-
 def generate_cases() -> list[dict]:
-    return generate_task_cases(DATASETS, "classification")
+    cases = []
+    for task, datasets in DATASETS.items():
+        for implem in implementations_for_pixi_env():
+            # Skips sklearnex and the Array API implementations: they don't
+            # implement HistGradientBoosting.
+            if implem.get("device") is None and implem["library"] in ESTIMATOR_PARAMS:
+                cases += _cases(implem, datasets, task)
+    return cases

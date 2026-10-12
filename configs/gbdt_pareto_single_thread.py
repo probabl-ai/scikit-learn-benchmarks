@@ -1,7 +1,7 @@
 """
-The cases of `gbdt_pareto.py` and `gbdt_pareto_regression.py` with every
-library on a single thread, to compare serial speed: a hyperparameter search
-parallelizes over candidates, so each fit runs on one core.
+The cases of `gbdt_pareto.py` with every library on a single thread, to
+compare serial speed: a hyperparameter search parallelizes over candidates,
+so each fit runs on one core.
 
 Single-thread fits are slow, so run this config in many processes at once,
 each pinned to its own core: GBDT_PARETO_SHARD="i/n" keeps the i-th of n
@@ -11,7 +11,6 @@ filter the cases without changing them.
 import os
 
 import configs.gbdt_pareto as gbdt_pareto
-import configs.gbdt_pareto_regression as gbdt_pareto_regression
 
 THREAD_PARAMS = {
     "sklearn": {},
@@ -71,10 +70,7 @@ def _shard(cases: list[dict], index: int, count: int) -> list[dict]:
 
 
 def generate_cases() -> list[dict]:
-    cases = [
-        _single_thread(case)
-        for case in gbdt_pareto.generate_cases() + gbdt_pareto_regression.generate_cases()
-    ]
+    cases = [_single_thread(case) for case in gbdt_pareto.generate_cases()]
     shard = os.environ.get("GBDT_PARETO_SHARD")
     if shard is not None:
         index, count = (int(x) for x in shard.split("/"))

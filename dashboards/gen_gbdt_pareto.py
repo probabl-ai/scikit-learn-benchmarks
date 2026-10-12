@@ -1,6 +1,6 @@
 """Fit time vs test score (ROC AUC or R2) Pareto fronts of gradient boosting
-libraries, from `configs/gbdt_pareto.py`, `configs/gbdt_pareto_regression.py`
-and their forced active wait variants.
+libraries, from `configs/gbdt_pareto.py` and its forced active wait and
+single-thread variants.
 
 One tab per (machine, OpenMP wait policy), one plot per dataset, one series
 per library. A HistGradientBoosting run from another env than `gbdt` (e.g. a
@@ -34,8 +34,6 @@ TITLE = "Gradient boosting libraries: fit time vs accuracy"
 SOURCE_CONFIGS = [
     "configs/gbdt_pareto.py",
     "configs/gbdt_pareto_force_active_wait.py",
-    "configs/gbdt_pareto_regression.py",
-    "configs/gbdt_pareto_regression_force_active_wait.py",
     "configs/gbdt_pareto_single_thread.py",
 ]
 SOURCE_ENVS = ["gbdt"]
