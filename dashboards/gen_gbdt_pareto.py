@@ -163,6 +163,15 @@ ABOUT_HTML = """<section class="panel">
       <b>HistGradientBoosting</b> on 6 of the 9 datasets without active wait,
       and ~1.4x to 3.5x slower with it. It is the most accurate on
       amazon_employee_access and kick.</li>
+      <li>On a single <dfn>thread</dfn> (the "1 thread" tab), <b>LightGBM</b>
+      is ~1.4x to 2.9x faster than <b>HistGradientBoosting</b> (as fast on
+      year_prediction_msd), <b>XGBoost</b> up to ~1.4x faster, and
+      <b>CatBoost</b> ~1.5x to 5.5x slower. On the Xeon
+      server, using all 172 cores makes <b>HistGradientBoosting</b>,
+      <b>LightGBM</b> and <b>XGBoost</b> 5x to 10x slower than a single thread
+      on the smaller datasets (bank_marketing, amazon_employee_access,
+      ames_housing, california_housing). Only covtype and year_prediction_msd
+      get faster, by ~1.6x to 7x.</li>
     </ul>
   </details>
   <details class="about-section">
