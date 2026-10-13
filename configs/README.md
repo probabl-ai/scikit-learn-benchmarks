@@ -44,7 +44,8 @@ A few configs inspect the machine to size or filter their matrix:
 - `configs/_utils/scaling.py` and `configs/_utils/numa.py` read the CPU
   topology from `joblib.cpu_count()`, `/sys/devices/system/cpu/*/topology`
   and `/sys/devices/system/node`. They build thread count sweeps, detect
-  hybrid P/E-core layouts, and pin a case to the cores of one NUMA node.
+  hybrid P/E-core layouts, and pin a case to the cores of one NUMA node or
+  one CPU socket.
   `hgb_scalability.py` and `models_scalability.py` use them for scaling
   sweeps.
 - `_synthetic_trees.py` and `hptuning.py` size `n_estimators`, worker counts
