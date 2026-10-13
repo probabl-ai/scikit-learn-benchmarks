@@ -9,9 +9,14 @@ share one cache entry). fashion_mnist_784 and road_network_points are only
 used at full width: the first pixels of fashion_mnist are the mostly-blank
 image border, and road_network_points only has 3 columns.
 
-Every workload runs in float32 and float64, with C-ordered input only: KMeans
-copies its input to C order anyway, so F-ordered input only adds the cost of
-that copy.
+Wide workloads use CIFAR-10 (3072 features), and sparse ones the CSR text
+matrices of 20newsgroups and RCV1, which run KMeans' sparse Lloyd and
+k-means++ kernels. Each Lloyd thread allocates a k x n_features buffer, i.e.
+38 MB per thread at k=100 on RCV1 in float64.
+
+Every workload runs in float32 and float64, with C-ordered input for the dense
+ones: KMeans copies its input to C order anyway, so F-ordered input only adds
+the cost of that copy.
 
 Workloads with up to 100 clusters run a fixed 100 Lloyd iterations (`tol=0`,
 `max_iter=100`): with the default `tol`, their iteration count varied up to 5x
@@ -21,9 +26,8 @@ the labels stop changing (strict convergence, which `tol=0` does not disable)
 after 35-95 iterations, and their fit time is mostly k-means++ init anyway.
 
 Train sizes are subsampled so most float32 fits take roughly 2-15s on a
-laptop, plus two bigger workloads (1M samples with k=100, 100k samples with
-k=3000) at ~20-25s. The whole matrix (54 cases with the plain sklearn
-implementation) takes about 35 minutes there.
+laptop, plus three bigger workloads (1M samples with k=100, 100k samples with
+k=3000, RCV1 with k=100) at ~20-25s.
 
 On a multi-socket machine, every case is pinned to socket 0 with one OpenMP
 thread per physical core. With OpenBLAS, the thread count is still capped at
@@ -52,7 +56,18 @@ WORKLOADS = [
     *[("road_network_points", None, k, None) for k in [300, 1000]],
     ("sift", 128, 100, None),
     ("sift", 32, 3000, 100_000),
+    # Wide: CIFAR-10 pixels, 3072 features.
+    ("cifar", None, 10, None),
+    ("cifar", None, 100, 10_000),
+    # Sparse (CSR) text.
+    ("20newsgroups", None, 20, None),
+    ("20newsgroups", None, 50, None),
+    ("rcv1", None, 20, 100_000),
+    ("rcv1", None, 100, 50_000),
 ]
+
+# Loaded as CSR matrices, which have no memory order to set.
+SPARSE_DATASETS = {"20newsgroups", "rcv1"}
 
 # Above this many clusters, keep the default stopping criterion (see above).
 MAX_FIXED_ITER_N_CLUSTERS = 100
@@ -76,7 +91,9 @@ def _bench() -> dict:
 
 def _case(implem: dict, workload: tuple, dtype: str) -> dict:
     dataset, n_features, n_clusters, train_size = workload
-    data = {"dataset": dataset, "dtype": dtype, "order": "C"}
+    data = {"dataset": dataset, "dtype": dtype}
+    if dataset not in SPARSE_DATASETS:
+        data["order"] = "C"
     if n_features is not None:
         data["n_features"] = n_features
     if train_size is not None:
