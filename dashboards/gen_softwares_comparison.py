@@ -7,7 +7,8 @@ from sklbench.reporting.utils import (
 )
 
 from sklbench.reporting.matching import (
-    append_iterations_warning, append_solver_warning, append_max_bins_warning, read_all_results,
+    append_iterations_warning, append_solver_warning, append_max_bins_warning,
+    append_cuml_rf_bins_warning, read_all_results,
     read_failed_records, find_matches, date_range, BenchmarkRecord, Match,
     MatchWarning, MethodResult, append_cpu_fallback_warning,
     matches_source_configs,
@@ -67,8 +68,10 @@ ABOUT_HTML = """<section class="panel">
     <ul>
       <li>circle (●): <dfn>metrics</dfn> and setup match the baseline;</li>
       <li>square (■): metrics match but the setup differs, for instance a
-      different <dfn>solver</dfn> or number of iterations, or scikit-learn-intelex using
-      <dfn>histogram-based splits</dfn> where scikit-learn uses <dfn term="exact splits">exact ones</dfn>;</li>
+      different <dfn>solver</dfn> or number of iterations, scikit-learn-intelex using
+      <dfn>histogram-based splits</dfn>, or cuML Random Forest using
+      <dfn>quantile-based splits</dfn>, where scikit-learn uses
+      <dfn term="exact splits">exact ones</dfn>;</li>
       <li>open diamond (◇): the metrics differ;</li>
       <li>grey point (<span style="color: grey">●</span>):
       scikit-learn-intelex <dfn>fell back</dfn> to scikit-learn;</li>
@@ -128,8 +131,9 @@ PREPROCESSING_TOGGLE_HTML = (
 )
 TREE_BINNING_NOTE = (
     "Tree-based plots: within each implementation, cases without <dfn>binning</dfn> "
-    "(<dfn>exact splits</dfn>) are on the left, cases with binning (<dfn>histogram-based "
-    "splits</dfn>) on the right."
+    "(<dfn>exact splits</dfn>) are on the left, cases with binning "
+    "(<dfn>histogram-based splits</dfn> or <dfn>quantile-based splits</dfn>) "
+    "on the right."
 )
 
 
@@ -206,6 +210,7 @@ def result_matches(
         append_max_bins_warning(base_res, candidate, warnings)
     elif base_res.is_sklearnex_tree and not base_res.is_sklearnex_fallback:
         append_max_bins_warning(candidate, base_res, warnings)
+    append_cuml_rf_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
     append_solver_warning(base_res, candidate, warnings)
     append_cpu_fallback_warning(base_res, warnings)
