@@ -22,12 +22,13 @@ import re
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 logger = logging.getLogger(__name__)
 
 # NB: non-registered data components and extensions will not be found by loader
 KNOWN_DATA_COMPONENTS = ["x", "y"]
-KNOWN_DATA_EXTENSIONS = ["parq", "npz"]
+KNOWN_DATA_EXTENSIONS = ["parq", "npz", "csr.npz"]
 
 
 def get_expr_by_prefix(prefix: str) -> str:
@@ -52,6 +53,8 @@ def get_filenames_by_prefix(directory: str, prefix: str) -> list[str]:
 def load_data_file(filepath, extension):
     if extension == "parq":
         data = pd.read_parquet(filepath)
+    elif extension == "csr.npz":
+        data = sp.load_npz(filepath).tocsr()
     elif extension == "npz":
         npz_content = np.load(filepath)
         data = npz_content["arr_0"]
@@ -95,7 +98,10 @@ def save_data_to_cache(data: dict, data_cache: str, data_name: str) -> dict[str,
         if isinstance(data_compoment, np.ndarray) and data_compoment.ndim == 2:
             data_compoment = pd.DataFrame(data_compoment)
         # branching by data type for saving to cache
-        if isinstance(data_compoment, pd.DataFrame):
+        if sp.issparse(data_compoment):
+            component_filepath += ".csr.npz"
+            sp.save_npz(component_filepath, data_compoment.tocsr())
+        elif isinstance(data_compoment, pd.DataFrame):
             component_filepath += ".parq"
             data_compoment.columns = [
                 column if isinstance(column, str) else str(column)
