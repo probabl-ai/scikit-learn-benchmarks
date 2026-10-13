@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.sparse as sp
 
 from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
@@ -280,3 +281,19 @@ def test_transfer_to_device_without_order_keeps_dataframe():
 
     assert isinstance(out, pd.DataFrame)
     assert (out.dtypes == np.float64).all()
+
+
+def test_transfer_to_device_keeps_sparse_data_sparse():
+    x = sp.random(10, 5, density=0.3, format="csr", random_state=0)
+
+    out = build_transfer_to_device(dtype="float32").fit_transform(x)
+
+    assert sp.issparse(out) and out.format == "csr"
+    assert out.dtype == np.float32
+
+
+def test_transfer_to_device_rejects_order_on_sparse_data():
+    x = sp.random(10, 5, density=0.3, format="csr", random_state=0)
+
+    with pytest.raises(ValueError, match="Sparse data"):
+        build_transfer_to_device(order="C").fit_transform(x)

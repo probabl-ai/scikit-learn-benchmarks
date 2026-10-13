@@ -18,6 +18,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from ...config import EstimatorCase
 from .loaders import dataset_loading_functions, load_openml_data
@@ -78,6 +79,8 @@ def _measure_order(data) -> str | None:
     numpy-style contiguity flags. None for other formats with no equivalent
     concept.
 
+    A scipy sparse matrix or array is its format, e.g. "csr".
+
     A pandas DataFrame is "df(<layout>)", where <layout> is what `to_numpy()`
     would return - i.e. what an estimator handed the frame directly gets from
     `check_array`. Worked out from the blocks rather than by calling
@@ -86,6 +89,8 @@ def _measure_order(data) -> str | None:
     `(n_columns, n_rows)`, and a multi-block frame is always interleaved into
     a fresh F array.
     """
+    if sp.issparse(data):
+        return data.format
     if isinstance(data, pd.DataFrame):
         blocks = data._mgr.blocks
         if len(blocks) == 1 and isinstance(blocks[0].values, np.ndarray):

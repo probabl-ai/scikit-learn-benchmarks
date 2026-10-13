@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse as sp
 from sklearn.metrics import (
     brier_score_loss,
     completeness_score,
@@ -88,11 +89,13 @@ def get_subset_metrics_of_estimator(
             y_pred = convert_to_numpy(estimator_instance.predict(x))
             metrics.update(
                 {
-                    "Davies-Bouldin score": float(davies_bouldin_score(x_compat, y_pred)),
                     "homogeneity": float(homogeneity_score(y_compat, y_pred)),
                     "completeness": float(completeness_score(y_compat, y_pred)),
                 }
             )
+            # Davies-Bouldin needs dense X, too big to build for sparse text data.
+            if not sp.issparse(x_compat):
+                metrics["Davies-Bouldin score"] = float(davies_bouldin_score(x_compat, y_pred))
     elif task == "manifold":
         if hasattr(estimator_instance, "kl_divergence_") and stage == "training":
             metrics.update(
@@ -133,7 +136,7 @@ def get_subset_metrics_of_estimator(
 def convert_to_numpy(a, dp_compat=False) -> np.ndarray:
     if dp_compat and ("dpctl" in str(type(a)) or "dpnp" in str(type(a))):
         return a
-    if isinstance(a, np.ndarray):
+    if isinstance(a, np.ndarray) or sp.issparse(a):
         return a
     elif hasattr(a, "to_numpy"):
         return a.to_numpy()

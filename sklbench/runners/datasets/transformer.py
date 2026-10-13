@@ -21,6 +21,7 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from ...config import EstimatorCase
 
@@ -95,6 +96,13 @@ def convert_data(
         return data
     if dtype == "preserve":
         dtype = None
+
+    if sp.issparse(data):
+        if dformat not in (None, "numpy") or order is not None:
+            raise ValueError(
+                f"Sparse data only supports a dtype, got dformat={dformat!r}, order={order!r}"
+            )
+        return data.astype(dtype) if dtype is not None else data
 
     keeps_pandas = dformat == "pandas" or (dformat is None and order is None)
     if isinstance(data, (pd.DataFrame, pd.Series)) and not keeps_pandas:
