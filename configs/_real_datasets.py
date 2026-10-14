@@ -35,7 +35,7 @@ from joblib import cpu_count
 
 from sklbench.config.utils import select_logistic_regression_solver
 
-BENCH = {"n_runs": 1, "py_spy_profiling": False}
+BENCH = {"n_runs": 5, "py_spy_profiling": False}
 
 # KMeans crashes (segfault / heap corruption / OpenBLAS "too many memory
 # regions") on many-core machines with the PyPI wheel's OpenBLAS: it is

@@ -18,13 +18,19 @@ import os
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from ...config import EstimatorCase
 from .loaders import dataset_loading_functions, load_openml_data
 from .loading import load_from_cache_or_compute
-from .preprocessing import build_transfer_to_device, split_and_preprocess_data
+from ..estimator.loading import estimator_to_task
+from .preprocessing import (
+    build_transfer_to_device,
+    split_and_preprocess_data,
+    task_preprocessing_kwargs,
+)
 from .synthetic import generate_synthetic_data
-from .transformer import convert_subsets
+from .transformer import convert_subsets, measure_dtype
 
 
 def load_raw_data(
@@ -55,23 +61,43 @@ def load_raw_data(
     os.makedirs(raw_data_cache, exist_ok=True)
 
     if data_params.dataset is not None and data_params.dataset in dataset_loading_functions:
-        return load_from_cache_or_compute(
+        raw_data, data_description = load_from_cache_or_compute(
             dataset_loading_functions[data_params.dataset], **common_kwargs
         )
-    if data_params.source == "fetch_openml":
-        return load_from_cache_or_compute(
+    elif data_params.source == "fetch_openml":
+        raw_data, data_description = load_from_cache_or_compute(
             load_openml_data, openml_id=data_params.id, **common_kwargs
         )
-    raise ValueError(
-        "Unable to get data from bench_case:\n"
-        f"{data_params.model_dump(exclude_none=True)}"
-    )
+    else:
+        raise ValueError(
+            "Unable to get data from bench_case:\n"
+            f"{data_params.model_dump(exclude_none=True)}"
+        )
+    if data_params.n_features is not None:
+        raw_data = {**raw_data, "x": _first_features(raw_data["x"], data_params.n_features)}
+    return raw_data, data_description
+
+
+def _first_features(x, n_features: int):
+    if n_features > x.shape[1]:
+        raise ValueError(
+            f"n_features={n_features} but the dataset only has {x.shape[1]} features"
+        )
+    if isinstance(x, pd.DataFrame):
+        return x.iloc[:, :n_features].copy()
+    if sp.issparse(x):
+        return x[:, :n_features].tocsr()
+    # A fresh copy in the original layout, so the sliced dataset looks like
+    # a natively narrower one rather than a strided view of the full array.
+    return np.array(x[:, :n_features], order="F" if _measure_order(x) == "F" else "C")
 
 
 def _measure_order(data) -> str | None:
     """The array's actual memory layout ("C"/"F"), for libraries that expose
     numpy-style contiguity flags. None for other formats with no equivalent
     concept.
+
+    A scipy sparse matrix or array is its format, e.g. "csr".
 
     A pandas DataFrame is "df(<layout>)", where <layout> is what `to_numpy()`
     would return - i.e. what an estimator handed the frame directly gets from
@@ -81,6 +107,8 @@ def _measure_order(data) -> str | None:
     `(n_columns, n_rows)`, and a multi-block frame is always interleaved into
     a fresh F array.
     """
+    if sp.issparse(data):
+        return data.format
     if isinstance(data, pd.DataFrame):
         blocks = data._mgr.blocks
         if len(blocks) == 1 and isinstance(blocks[0].values, np.ndarray):
@@ -146,6 +174,7 @@ def preprocess_data(
         return data, description
 
     implementation = bench_case.implementation
+    dtype_fallbacks = set()
     preprocessing_defaults = data_description.get('preprocessing_defaults', {}).get(
         data_params.preprocessing_kind, {}
     )
@@ -157,6 +186,7 @@ def preprocess_data(
         device=implementation.device,
         dtype=data_params.dtype,
         order=data_params.order,
+        on_dtype_fallback=dtype_fallbacks.add,
     )
     required_label_dtype = "int" if "n_classes" in data_description else None
     label_transfer_to_device = build_transfer_to_device(
@@ -168,6 +198,10 @@ def preprocess_data(
 
     preprocessing_kwargs = (
         preprocessing_defaults
+        | task_preprocessing_kwargs(
+            data_params.preprocessing_kind,
+            estimator_to_task(bench_case.algorithm.estimator),
+        )
         | data_params.preprocessing_kwargs
         | {"transfer_to_device": transfer_to_device}
     )
@@ -195,8 +229,11 @@ def preprocess_data(
             "order": data_params.order or _measure_order(data_dict[subset_name]),
             "raw_order": raw_order,
             "dtype": data_params.dtype,
+            "measured_dtype": measure_dtype(data_dict[subset_name]),
             **_shape_desc(data_dict[subset_name]),
         }
+        if dtype_fallbacks:
+            (subset_description[subset_name]["dtype_fallback_from"],) = dtype_fallbacks
     subset_description["preprocessing"] = {
         **_shape_desc(raw_data["x"]),
         **_order_desc(subset_description["x_train"]),

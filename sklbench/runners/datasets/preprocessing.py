@@ -14,7 +14,9 @@
 # limitations under the License.
 # ===============================================================================
 
+import inspect
 import logging
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -155,6 +157,7 @@ def build_transfer_to_device(
     device: str | None = None,
     dtype: str | None = None,
     order: str | None = None,
+    on_dtype_fallback: Callable[[str], None] | None = None,
 ) -> FunctionTransformer:
     """FunctionTransformer moving X to `dformat`'s array type on `device`,
     casting to `dtype`/`order` along the way. No-op when none of the four is
@@ -165,7 +168,13 @@ def build_transfer_to_device(
     """
     return FunctionTransformer(
         convert_data,
-        kw_args=dict(dformat=dformat, order=order, dtype=dtype, device=device),
+        kw_args=dict(
+            dformat=dformat,
+            order=order,
+            dtype=dtype,
+            device=device,
+            on_dtype_fallback=on_dtype_fallback,
+        ),
         feature_names_out="one-to-one",
         check_inverse=False,
     )
@@ -261,6 +270,7 @@ def linear_preprocessor(
     nystroem = None,
     passthrough_columns = (),
     spline_kwargs = None,
+    target_type = "auto",
     transfer_to_device = None,
 ):
     """
@@ -283,12 +293,12 @@ def linear_preprocessor(
 
     if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
         target_encoder = TargetEncoder(
-            target_type="auto",
+            target_type=target_type,
             cv=KFold(n_splits=5, shuffle=True, random_state=0),
         )
     else:
         target_encoder = TargetEncoder(
-            target_type="auto",
+            target_type=target_type,
             cv=5,
             shuffle=True,
             random_state=0,
@@ -419,6 +429,22 @@ PREPROCESSORS = {
     'linear': linear_preprocessor,
     'hgb': hgb_preprocessor,    
 }
+
+
+def task_preprocessing_kwargs(preprocessing_kind: str | None, task: str) -> dict:
+    """Preprocessing kwargs implied by the ML task.
+
+    `TargetEncoder`'s "auto" target type infers the type from the values, and
+    treats integer regression targets (house prices, years) as multiclass,
+    with one encoded column per distinct value. So preprocessors that take a
+    `target_type` get "continuous" for regression.
+    """
+    if preprocessing_kind is None or task != "regression":
+        return {}
+    parameters = inspect.signature(PREPROCESSORS[preprocessing_kind]).parameters
+    if "target_type" not in parameters:
+        return {}
+    return {"target_type": "continuous"}
 
 
 PREPROCESSINGS = {

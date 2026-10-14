@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import json
 import math
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -17,7 +18,8 @@ from ..envs import (
     profile_viewer_url,
 )
 from ..matching import (
-    BenchmarkRecord, Match, MethodResult, fitted_solver, significant_metric_difference,
+    BenchmarkRecord, Match, MethodResult, fitted_solver, is_real_dataset,
+    significant_metric_difference,
 )
 from ..utils import stable_json, without_keys
 
@@ -197,20 +199,47 @@ def _row_columns_kind(inputs: RowInputs) -> str | None:
     return inputs.case.get("data", {}).get("generation_kwargs", {}).get("columns")
 
 
-def _row_order(inputs: RowInputs) -> str | None:
+def data_layout_label(case: dict, data_desc: dict) -> str | None:
     """The data's memory layout: the config-forced value where a config varies
     it (see configs/_synthetic_linear.py's `order` field), else the measured
     layouts before and after preprocessing as "raw->final" (e.g. "F->C",
     "df->C" - see sklbench/runners/datasets/__init__.py's `_measure_order`).
     Just the final layout for results recorded before `raw_order` existed."""
-    forced_order = inputs.case.get("data", {}).get("order")
+    forced_order = case.get("data", {}).get("order")
     if forced_order is not None:
         return forced_order
-    order = inputs.data_desc.get("order")
-    raw_order = inputs.data_desc.get("raw_order")
+    order = data_desc.get("order")
+    raw_order = data_desc.get("raw_order")
     if raw_order is None or order is None:
         return order
     return f"{raw_order}->{order}"
+
+
+def _row_order(inputs: RowInputs) -> str | None:
+    return data_layout_label(inputs.case, inputs.data_desc)
+
+
+def _short_dtype(dtype: str) -> str:
+    return re.sub(r"\bfloat(\d+)\b", r"f\1", dtype)
+
+
+def data_dtype_label(case: dict, data_desc: dict) -> str | None:
+    """The data's dtype, shortened ("f32"), flagging a float64 -> float32
+    downcast on a device without float64 (MPS). Measured, or the requested
+    dtype for results recorded before the runner measured it."""
+    dtype = data_desc.get("measured_dtype") or data_desc.get("dtype")
+    if not dtype:
+        return None
+    label = _short_dtype(dtype)
+    fallback = data_desc.get("dtype_fallback_from")
+    if fallback:
+        device = case.get("implementation", {}).get("device")
+        label += f" ({_short_dtype(fallback)} unsupported on {device})"
+    return label
+
+
+def _row_dtype(inputs: RowInputs) -> str | None:
+    return data_dtype_label(inputs.case, inputs.data_desc)
 
 
 def _row_env(inputs: RowInputs) -> dict:
@@ -397,6 +426,8 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec("Hardware", "hardware", visibility=ColumnVisibility.IF_ANY),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
+    # Only filled when the caller passes `env_label`.
+    ColumnSpec("Env", "env", visibility=ColumnVisibility.IF_VARIES),
     ColumnSpec(
         "Estimator name", "estimator", _row_estimator, ColumnVisibility.IF_VARIES
     ),
@@ -418,6 +449,7 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ),
     ColumnSpec("columns", "columns", _row_columns_kind, ColumnVisibility.IF_VARIES),
     ColumnSpec("order", "order", _row_order, ColumnVisibility.IF_VARIES),
+    ColumnSpec("dtype", "dtype", _row_dtype, ColumnVisibility.IF_VARIES),
     ColumnSpec("max_bins", "max_bins", _row_max_bins, ColumnVisibility.IF_VARIES),
     ColumnSpec(
         "OpenMP", "openmp", _row_openmp, custom_show=_omp_column_visible("openmp")
@@ -530,6 +562,8 @@ def _base_row(
         "comparison_key": comparison_key,
         "hardware": None,
         "variant": variant,
+        "env": None,
+        "real_dataset": is_real_dataset(inputs),
         "n_samples": n_samples,
         "n_features": n_features,
         "n_iter": None,
@@ -689,6 +723,7 @@ def _add_result_method(
     profile_url_fn: Callable[[Path], str | None],
     base_result: MethodResult | None = None,
     hardware_label: Callable[[MethodResult], str] | None = None,
+    env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
     is_baseline: bool = False,
     scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
 ):
@@ -698,6 +733,8 @@ def _add_result_method(
     )
     if hardware_label is not None:
         row["hardware"] = hardware_label(result)
+    if env_label is not None:
+        row["env"] = env_label(result)
     if is_baseline:
         row["is_baseline"] = True
     _add_scores(row, result, base_result, scores_comparable)
@@ -772,6 +809,25 @@ def _spec_column_dict(spec: ColumnSpec, *, title: str) -> dict:
     )
 
 
+# Extra dataset header-filter options, mapped to the `real_dataset` value
+# they keep (see sklbenchPrepareColumns in templates.py).
+DATASET_KIND_FILTERS = {
+    "All real datasets": True,
+    "All synthetic datasets": False,
+}
+
+
+def _add_dataset_kind_filters(column: dict, rows: list[dict]) -> None:
+    if len({row["real_dataset"] for row in rows}) < 2:
+        return
+    names = sorted({row["dataset"] for row in rows}, key=str.lower)
+    column["headerFilterParams"] = {
+        "clearable": True,
+        "values": [*DATASET_KIND_FILTERS, *names],
+    }
+    column["datasetKindFilters"] = DATASET_KIND_FILTERS
+
+
 def _spec_visible(spec: ColumnSpec, rows: list[dict]) -> bool:
     if spec.custom_show is not None:
         return spec.custom_show(rows)
@@ -813,6 +869,7 @@ def _add_group_ranks(rows: list[dict]) -> None:
                 row["variant"],
                 not row["is_baseline"],
                 row["hardware"] or "",
+                row["env"] or "",
                 row["row_id"],
             ),
         )
@@ -835,6 +892,7 @@ def detailed_results_table_html(
     collapsible: bool = True,
     variant_column_title: str = "Variant name",
     hardware_label: Callable[[MethodResult], str] | None = None,
+    env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
     scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
@@ -859,6 +917,7 @@ def detailed_results_table_html(
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
                 hardware_label=hardware_label,
+                env_label=env_label,
                 is_baseline=True,
             )
             _add_result_method(
@@ -870,6 +929,7 @@ def detailed_results_table_html(
                 json_url_fn=json_url_fn,
                 profile_url_fn=profile_url_fn,
                 hardware_label=hardware_label,
+                env_label=env_label,
                 scores_comparable=scores_comparable,
             )
 
@@ -877,6 +937,8 @@ def detailed_results_table_html(
         key = _failed_row_key(record, variant)
         row = _new_failed_row(record, variant, comparison_key(record), json_url_fn)
         row["row_id"] = key
+        if env_label is not None:
+            row["env"] = env_label(record)
         rows_by_key[key] = row
 
     # Results whose counterpart failed never appear in `matches_by_method`
@@ -893,6 +955,7 @@ def detailed_results_table_html(
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
             hardware_label=hardware_label,
+            env_label=env_label,
             is_baseline=True,
         )
 
@@ -905,6 +968,7 @@ def detailed_results_table_html(
             json_url_fn=json_url_fn,
             profile_url_fn=profile_url_fn,
             hardware_label=hardware_label,
+            env_label=env_label,
         )
 
     if not rows_by_key:
@@ -955,7 +1019,10 @@ def detailed_results_table_html(
         if not _spec_visible(spec, rows):
             continue
         title = variant_column_title if spec.field == "variant" else spec.title
-        columns.append(_spec_column_dict(spec, title=title))
+        column = _spec_column_dict(spec, title=title)
+        if spec.field == "dataset":
+            _add_dataset_kind_filters(column, rows)
+        columns.append(column)
 
     table_id = f"detailed-results-{next(table_ids)}"
     default_header_filters = (

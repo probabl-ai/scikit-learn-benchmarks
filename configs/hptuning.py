@@ -96,6 +96,10 @@ REAL_DATASET_CASES = [
         # Skipped for sklearnex: too slow here (this dataset's "linear"
         # preprocessing refits TargetEncoder's internal KFold on every CV
         # split x candidate) to be worth the matrix size.
+        # TODO: fix comment and maybe stop skipping sklearnex. Until 0e5acafa,
+        # TargetEncoder treated this integer regression target as ~600
+        # classes, giving ~25k features instead of ~660, which likely caused
+        # most of the slowness.
         {"skip_libraries": ("sklearnex",)},
     ),
     (
@@ -254,17 +258,10 @@ def get_n_iter_and_n_jobs_list(estimator: str):
     n_jobs_list = sorted(set([min(n_jobs, n_cores) for n_jobs in n_jobs_list]))
 
     if n_cores == 16:
-        if is_tree:
-            n_jobs_list = [1, 2, 4, 8, 16]
-        else:
-            n_jobs_list = [4, 8, 16]
-
+        n_jobs_list = [1, 2, 4, 8, 16]
     elif n_cores == 172:
         n_iter = n_cores
-        if is_tree:
-            n_jobs_list = [1, 2, 5, 11, 22, 43, 86]
-        else:
-            n_jobs_list = [11, 22, 43, 86]
+        n_jobs_list = [1, 2, 5, 11, 22, 43, 86, 172]
 
     return n_iter, n_jobs_list
 

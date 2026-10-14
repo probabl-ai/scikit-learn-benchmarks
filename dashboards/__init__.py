@@ -14,14 +14,14 @@ HARDWARE_NAMES = {
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
     "b281b2": "Apple M4 laptop",
-    "5ce575": "CUDA L4 GPU VM",
+    "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
 
 GPU_NAMES = {
     "3b5e61": "Intel Core Ultra laptop GPU",
     "b281b2": "Apple M4 laptop GPU",
     "5dcf30": "NVIDIA RTX 2060",
-    "5ce575": "NVIDIA L4",
+    "d189c4": "NVIDIA L4 g6.2xlarge",
 }
 
 # Pixi platform (as declared by `platforms = [...]` in pixi.toml's
@@ -36,7 +36,7 @@ HARDWARE_PLATFORMS = {
     "be1055": "linux-64",
     "b281b2": "osx-arm64",
     "5dcf30": "win-64",
-    "5ce575": "linux-64",
+    "d189c4": "linux-64",
 }
 
 # `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison

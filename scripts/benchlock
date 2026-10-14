@@ -1,0 +1,281 @@
+#!/usr/bin/env bash
+# Machine-wide benchmark lock, shared by agents working from any repository
+# and by this repo's self-hosted GitHub runners. Install it on every benchmark
+# machine with scripts/install_benchlock.sh.
+set -euo pipefail
+
+LOCK_DIR=${BENCHLOCK_DIR:-/run/lock/sklbench}
+HOSTS=${BENCHLOCK_HOSTS:-"local intel-gnr intel-laptop"}
+
+usage() {
+    cat <<'EOF'
+Usage:
+  benchlock [--wait SECONDS] [--tag TEXT] SLOT -- CMD [ARGS...]
+      Run CMD while holding SLOT. Waits at most SECONDS (default 1800) for the
+      lock, then exits with status 75 and prints the current holder.
+  benchlock hold [--tag TEXT] SLOT
+      Wait for SLOT without a time limit, leave a detached process holding it
+      and print that process's PID. `kill PID` releases it. Meant for GitHub
+      jobs, where each step is a separate process.
+  benchlock status [--all-hosts]
+      Show this machine's slots and who holds them. --all-hosts runs this
+      script over ssh on every host of $BENCHLOCK_HOSTS (default:
+      "local intel-gnr intel-laptop").
+
+Slots:
+  all      the whole machine
+  s0, s1   one CPU socket, on multi-socket machines only. CMD runs under
+           numactl, bound to that socket's CPUs and memory.
+
+Locks are released by the kernel when their holder exits, so a crashed run or
+a dropped ssh session never leaves a stale lock behind. CMD gets
+BENCHLOCK_SLOT in its environment.
+EOF
+}
+
+die() {
+    echo "benchlock: $*" >&2
+    exit 2
+}
+
+# One "socket<TAB>comma-separated NUMA nodes" line per socket. Several nodes
+# per socket happen with sub-NUMA clustering (intel-gnr has 4 per socket).
+socket_nodes() {
+    local n cpu
+    for n in /sys/devices/system/node/node[0-9]*; do
+        [ -e "$n/cpulist" ] || continue
+        cpu=$(<"$n/cpulist")
+        cpu=${cpu%%[,-]*}
+        # Memory-only nodes (e.g. CXL) have no CPUs.
+        [ -n "$cpu" ] || continue
+        echo "$(<"/sys/devices/system/cpu/cpu$cpu/topology/physical_package_id") ${n##*node}"
+    done | sort -n -k1,1 -k2,2 | awk '
+        { nodes[$1] = ($1 in nodes) ? nodes[$1] "," $2 : $2 }
+        END { for (s in nodes) print s "\t" nodes[s] }' | sort -n
+}
+
+# Sets SOCKETS (the sockets whose locks SLOT needs, in locking order) and
+# NODES (numactl node list, empty for the whole machine).
+resolve_slot() {
+    local topo
+    topo=$(socket_nodes)
+    [ -n "$topo" ] || topo=$'0\t'
+    case $1 in
+        all)
+            SOCKETS=$(cut -f1 <<<"$topo")
+            NODES=
+            ;;
+        s[0-9]*)
+            [ "$(wc -l <<<"$topo")" -gt 1 ] || die "$1: this machine has a single socket, use 'all'"
+            NODES=$(awk -F'\t' -v s="${1#s}" '$1 == s { print $2 }' <<<"$topo")
+            [ -n "$NODES" ] || die "$1: no such socket on this machine"
+            SOCKETS=${1#s}
+            ;;
+        *)
+            die "unknown slot '$1' (expected all, s0, s1, ...)"
+            ;;
+    esac
+}
+
+socket_label() {
+    if [ "$(socket_nodes | wc -l)" -gt 1 ]; then echo "s$1"; else echo all; fi
+}
+
+holder() {
+    cat "$LOCK_DIR/s$1.holder" 2>/dev/null || echo "unknown"
+}
+
+# Locks socket $1, waiting at most $2 seconds (-1: no limit). The lock's fd
+# stays open in this shell and is appended to LOCK_FDS.
+#
+# Waiters first queue on a gate lock and keep it while waiting for the socket
+# lock. Only one process at a time then waits on the socket lock itself, so a
+# newcomer can't grab it ahead of a job that has been waiting for hours.
+acquire() {
+    local sock=$1 wait=$2 fd gfd deadline=$((SECONDS + $2)) old_umask
+    old_umask=$(umask)
+    # Lock files must be writable by the other users of the machine, like
+    # the gha-runner user on intel-laptop.
+    umask 000
+    exec {gfd}<>"$LOCK_DIR/s$sock.gate" {fd}<>"$LOCK_DIR/s$sock.lock"
+    umask "$old_umask"
+    if ! { flock -n "$gfd" && flock -n "$fd"; }; then
+        echo "benchlock: waiting for $(hostname -s) $(socket_label "$sock"), held by: $(holder "$sock")" >&2
+        if [ "$wait" -lt 0 ]; then
+            flock "$gfd"
+            flock "$fd"
+        elif ! flock -w "$wait" "$gfd" ||
+            ! flock -w "$((deadline > SECONDS ? deadline - SECONDS : 0))" "$fd"; then
+            echo "benchlock: gave up after ${wait}s, $(hostname -s) $(socket_label "$sock") is held by: $(holder "$sock")" >&2
+            exit 75
+        fi
+    fi
+    exec {gfd}>&-
+    LOCK_FDS+=("$fd")
+    write_holder "$sock" "$$"
+}
+
+# Records who holds socket $1. $2 is the PID that keeps the lock.
+write_holder() {
+    local f="$LOCK_DIR/s$1.holder"
+    # Replace the file instead of writing into it: it may belong to another
+    # user.
+    printf '%s@%s pid=%s since=%s slot=%s tag=%s cmd=%.200s\n' \
+        "$(id -un)" "$(hostname -s)" "$2" "$(date +%FT%T%z)" "$SLOT" \
+        "${TAG:-none}" "$HOLDER_CMD" >"$f.$$"
+    mv -f "$f.$$" "$f"
+}
+
+remove_holders() {
+    local sock
+    for sock in "${HELD_SOCKETS[@]}"; do
+        rm -f "$LOCK_DIR/s$sock.holder"
+    done
+}
+
+status_local() {
+    local topo sock nodes fd label
+    topo=$(socket_nodes)
+    [ -n "$topo" ] || topo=$'0\t'
+    while IFS=$'\t' read -r sock nodes; do
+        if [ "$(wc -l <<<"$topo")" -gt 1 ]; then
+            label="s$sock (NUMA nodes $nodes)"
+        else
+            label="all"
+        fi
+        if [ -e "$LOCK_DIR/s$sock.lock" ]; then
+            exec {fd}<"$LOCK_DIR/s$sock.lock"
+            if flock -n "$fd"; then
+                echo "  $label: free"
+            else
+                echo "  $label: held by $(holder "$sock")"
+            fi
+            exec {fd}<&-
+        else
+            echo "  $label: free"
+        fi
+    done <<<"$topo"
+}
+
+cmd_status() {
+    local h
+    if [ "${1:-}" != "--all-hosts" ]; then
+        echo "$(hostname -s):"
+        status_local
+        return
+    fi
+    for h in $HOSTS; do
+        echo -n "$h = "
+        if [ "$h" = local ]; then
+            "$0" status
+        else
+            # Pipe this script instead of relying on the remote PATH.
+            ssh -o BatchMode=yes -o ConnectTimeout=10 "$h" bash -s -- status <"$0" ||
+                echo "unreachable"
+        fi
+    done
+}
+
+cmd_hold() {
+    local pid sock
+    LOCK_FDS=()
+    HOLDER_CMD=hold
+    for sock in $SOCKETS; do
+        acquire "$sock" -1
+    done
+    # The detached process inherits the lock fds, so the locks outlive this
+    # shell. setsid keeps it out of the step's process group.
+    setsid sleep infinity </dev/null >/dev/null 2>&1 &
+    pid=$!
+    for sock in $SOCKETS; do
+        write_holder "$sock" "$pid"
+    done
+    echo "$pid"
+}
+
+cmd_run() {
+    local child sock status=0 cmd=("$@")
+    LOCK_FDS=()
+    HOLDER_CMD="$*"
+    HELD_SOCKETS=()
+    trap remove_holders EXIT
+    for sock in $SOCKETS; do
+        acquire "$sock" "$WAIT"
+        HELD_SOCKETS+=("$sock")
+    done
+    [ -z "$NODES" ] || cmd=(numactl --cpunodebind="$NODES" --membind="$NODES" "${cmd[@]}")
+    export BENCHLOCK_SLOT=$SLOT
+    # CMD doesn't inherit the lock fds: a daemon it starts (e.g. a compiler
+    # cache server) would otherwise keep the machine locked after CMD exits.
+    # It runs in the background so that signals sent to this shell can be
+    # forwarded to it while waiting.
+    (
+        for fd in "${LOCK_FDS[@]}"; do exec {fd}>&-; done
+        exec "${cmd[@]}"
+    ) <&0 &
+    child=$!
+    trap 'kill -TERM "$child" 2>/dev/null' INT TERM HUP
+    while :; do
+        status=0
+        wait "$child" || status=$?
+        kill -0 "$child" 2>/dev/null || break
+    done
+    exit "$status"
+}
+
+[ $# -gt 0 ] || { usage >&2; exit 2; }
+
+case $1 in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    status)
+        shift
+        cmd_status "$@"
+        exit 0
+        ;;
+esac
+
+mode=run
+if [ "$1" = hold ]; then
+    mode=hold
+    shift
+fi
+
+WAIT=1800
+TAG=
+while [ $# -gt 0 ]; do
+    case $1 in
+        --wait) WAIT=$2; shift 2 ;;
+        --tag) TAG=$2; shift 2 ;;
+        -*) die "unknown option '$1'" ;;
+        *) break ;;
+    esac
+done
+[ $# -gt 0 ] || die "missing SLOT"
+SLOT=$1
+shift
+[[ "$WAIT" =~ ^[0-9]+$ ]] || die "--wait expects a number of seconds"
+
+if [ -n "${BENCHLOCK_SLOT:-}" ]; then
+    # Nested call from a CMD already running under benchlock: waiting here
+    # would deadlock on our own lock.
+    [ "$SLOT" = "$BENCHLOCK_SLOT" ] || die "already running under slot $BENCHLOCK_SLOT, can't take $SLOT"
+    [ "$mode" = run ] || die "already running under slot $BENCHLOCK_SLOT"
+    [ "${1:-}" = -- ] && shift
+    exec "$@"
+fi
+
+resolve_slot "$SLOT"
+mkdir -p -m 0777 "$LOCK_DIR"
+
+if [ "$mode" = hold ]; then
+    [ $# -eq 0 ] || die "hold takes no command"
+    cmd_hold
+else
+    [ "${1:-}" = -- ] || die "expected '--' before the command"
+    shift
+    [ $# -gt 0 ] || die "missing command"
+    cmd_run "$@"
+fi

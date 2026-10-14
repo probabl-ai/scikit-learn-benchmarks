@@ -52,6 +52,8 @@ It takes a few dozen seconds and writes a few results under `results/tests`
 The project uses these Pixi environments:
 
 - `sklearn-pypi`: vanilla scikit-learn
+- `sklearn-pypi-freethreading`: the same PyPI wheels as `sklearn-pypi`, on the
+  free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
 - `skl-cpu`: Array API on CPU (PyTorch CPU)
 - `skl-intel`, `skl-nvidia`: Array API on Intel/NVIDIA GPUs (PyTorch, dpnp)
 - `intel`: scikit-learn-intelex on CPU and GPU
@@ -63,11 +65,14 @@ The project uses these Pixi environments:
   scikit-learn Branches"](#running-against-scikit-learn-branches))
 - `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
   LLVM/Intel `libomp` runtime
+- `sklearn-dev-mkl`: the same checkout as `sklearn-dev`, with numpy/scipy on
+  MKL instead of OpenBLAS (and `libomp`, which MKL brings in). Linux only.
 - `sklearn-dev-freethreading`: the same checkout as `sklearn-dev`, on the
   free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
 
-All environments use Python 3.12, except the `sklearn-dev*` ones, which use
-Python 3.14.
+All environments use Python 3.14. The free-threaded ones
+(`sklearn-pypi-freethreading` and `sklearn-dev-freethreading`) set
+`PYTHON_GIL=0`, because otherwise importing pandas<3 turns the GIL back on.
 
 The repository has a few layers:
 
@@ -160,6 +165,25 @@ test run, use `git clean results/ -fd` (this deletes all untracked results).
 Once you have results locally, see ["Previewing Dashboards
 Locally"](#previewing-dashboards-locally) to look at them.
 
+### Sharing the Benchmark Machines
+
+Two runs on the same machine slow each other down. On intel-gnr,
+intel-laptop and the maintainers' laptops, wrap anything you time with
+`scripts/benchlock`, which takes a machine-wide lock:
+
+```bash
+benchlock --tag "hgb binning A/B" all -- ./run.sh sklearn-pypi --config configs/my_test.py
+benchlock status --all-hosts
+```
+
+Slot `all` is the whole machine. On intel-gnr, `s0` and `s1` are one socket
+each, with the command bound to that socket's CPUs and memory by `numactl`.
+They are meant for quick A/B tests only: don't publish results from them.
+`run-benchmarks.yml` and `pr-comparison.yml` hold `all` for the whole
+benchmark, setup included, so they wait for local runs and the other way
+around. Install or update `benchlock` on every machine with
+`scripts/install_benchlock.sh`.
+
 ## Running Against scikit-learn Branches
 
 To check a performance PR locally, use one of the development Pixi
@@ -208,6 +232,10 @@ pass both environments to `run.sh` with the same ref:
 ./run.sh sklearn-dev@scikit-learn:main sklearn-dev-libomp@scikit-learn:main \
     --config configs/hgb_scalability.py
 ```
+
+`sklearn-dev-mkl` works the same way, for comparing OpenBLAS and MKL on the
+same commit. MKL ignores `OPENBLAS_NUM_THREADS`: configs that pin the BLAS
+thread count need to set `MKL_NUM_THREADS` too.
 
 `sklearn-dev-freethreading` works the same way, for comparing the regular
 and free-threaded Python 3.14 builds on the same commit. It sets

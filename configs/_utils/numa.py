@@ -48,3 +48,29 @@ def auto_numa_cpu_affinity(node: int = 0) -> list[int] | None:
     if numa_node_count() <= 1:
         return None
     return cpu_affinity_for_numa_node(node)
+
+
+CPUS_SYSFS = Path("/sys/devices/system/cpu")
+
+
+def cpu_affinity_for_socket(socket: int = 0, with_siblings: bool = True) -> list[int] | None:
+    """CPU ids of one CPU socket, or None on a single-socket host. Without
+    `with_siblings`, only the first logical CPU of each physical core.
+    """
+    cores = {}
+    for topology in CPUS_SYSFS.glob("cpu[0-9]*/topology"):
+        try:
+            package_id = int((topology / "physical_package_id").read_text().strip())
+            core_id = int((topology / "core_id").read_text().strip())
+        except OSError:
+            return None
+        cpu_id = int(topology.parent.name.removeprefix("cpu"))
+        cores.setdefault((package_id, core_id), []).append(cpu_id)
+    if len({package_id for package_id, _ in cores}) <= 1:
+        return None
+    return sorted(
+        cpu_id
+        for (package_id, _), cpu_ids in cores.items()
+        if package_id == socket
+        for cpu_id in (sorted(cpu_ids) if with_siblings else [min(cpu_ids)])
+    )

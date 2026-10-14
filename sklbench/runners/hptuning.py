@@ -18,8 +18,8 @@ from sklearn.utils.parallel import Parallel, delayed
 
 from ..config import HPTuningCase
 from .datasets import load_raw_data
-from .datasets.preprocessing import PREPROCESSORS
-from .estimator.loading import get_context, get_estimator
+from .datasets.preprocessing import PREPROCESSORS, task_preprocessing_kwargs
+from .estimator.loading import estimator_to_task, get_context, get_estimator
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,13 @@ def _build_pipeline(case: HPTuningCase) -> Pipeline:
     estimator_class = get_estimator(case.implementation.library, case.algorithm.estimator)
     estimator = estimator_class(**case.algorithm.estimator_params)
     preprocessing_kind = case.data.preprocessing_kind
+    preprocessing_kwargs = (
+        task_preprocessing_kwargs(preprocessing_kind, estimator_to_task(case.algorithm.estimator))
+        | case.data.preprocessing_kwargs
+    )
     preprocessor = (
         "passthrough" if preprocessing_kind is None
-        else PREPROCESSORS[preprocessing_kind](**case.data.preprocessing_kwargs)
+        else PREPROCESSORS[preprocessing_kind](**preprocessing_kwargs)
     )
     return Pipeline([("preprocessor", preprocessor), ("estimator", estimator)])
 

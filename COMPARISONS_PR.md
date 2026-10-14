@@ -22,7 +22,7 @@ runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.
   - `runner`: `intel-laptop`, `intel-gnr` or `both`, the self-hosted
     machine(s) that run this entry. Defaults to `both`.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
-    currently `sklearn-dev`, `sklearn-dev-libomp` or
+    currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl` or
     `sklearn-dev-freethreading`. It builds both sides of
     the `sklearn_ref` vs `main` comparison for this entry. Defaults to
     `sklearn-dev`.
@@ -73,6 +73,10 @@ don't wait for a benchmark to free the runner. The `sklbench-compare` block
 must still be present and valid, since it selects which runners' sites to
 rebuild, but its `sklearn_ref` and configs are not run. If a runner has no
 published results yet, its job fails: push without `[skip]` first.
+
+A benchmark run publishes its results before it generates the dashboard, so
+if the dashboard step fails, fix it and push a `[skip]` commit: the results
+it already published are reused.
 
 ### Permissions
 

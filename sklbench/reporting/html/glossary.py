@@ -176,6 +176,11 @@ TERMS = {
         "Splits chosen among bin edges instead of among every distinct feature "
         "value. Faster, and usually as accurate.",
     ),
+    "quantile-based splits": Term(
+        "Split candidates chosen from a fixed number of quantiles of each "
+        "feature, instead of among every distinct value. cuML Random Forest "
+        "does this with n_bins=128 by default.",
+    ),
     "exact splits": Term("Splits chosen among every distinct value of the feature."),
     "max_bins": Term("Maximum number of bins per feature for histogram-based splits."),
     "histogram computation": Term(
