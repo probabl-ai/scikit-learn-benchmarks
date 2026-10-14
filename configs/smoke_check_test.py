@@ -68,6 +68,15 @@ def generate_cases() -> list[dict]:
         # exploratory matrix" meaningfully slower.
         case['bench'] = {'time_limit': 20, **case.get('bench', {}), **bench}
     disable_profiling_for_array_api_gpu_cases(cases)
+    for case in cases:
+        # On an L4, attaching py-spy pushes even 3s cuML fits past the time
+        # limit, and the cProfile fallback is killed as well.
+        if case["implementation"].get("library") == "cuml":
+            case["bench"] = {
+                **case["bench"],
+                "py_spy_profiling": False,
+                "cprofile_profiling": False,
+            }
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_cuml_supported_cases_if_needed(cases))
