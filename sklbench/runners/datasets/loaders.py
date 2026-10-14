@@ -18,9 +18,12 @@ import re
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 from sklearn.datasets import (
+    fetch_20newsgroups_vectorized,
     fetch_california_housing,
     fetch_covtype,
+    fetch_rcv1,
     load_digits,
 )
 
@@ -874,6 +877,46 @@ def load_yolanda(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
+"""
+Sparse datasets
+"""
+
+
+def load_20newsgroups(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    20 Newsgroups as a CSR matrix of L2-normalized token counts, from
+    `sklearn.datasets.fetch_20newsgroups_vectorized`. Train set then test
+    set, as split by the source (by date).
+
+    Classification or clustering. n_classes = 20.
+    """
+    train = fetch_20newsgroups_vectorized(subset="train", data_home=raw_data_cache)
+    test = fetch_20newsgroups_vectorized(subset="test", data_home=raw_data_cache)
+    x = sp.vstack([train.data, test.data], format="csr")
+    y = np.concatenate([train.target, test.target])
+    data_desc = {
+        "n_classes": 20,
+        "default_split": {
+            "train_size": train.data.shape[0],
+            "test_size": test.data.shape[0],
+            "shuffle": False,
+        },
+    }
+    return {"x": x, "y": y}, data_desc
+
+
+def load_rcv1(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    RCV1-v2 news stories as a CSR matrix of cosine-normalized log TF-IDF
+    values, from `sklearn.datasets.fetch_rcv1`. Its 103 topics are
+    multilabel, so `y` is a placeholder, as for the index search datasets.
+    """
+    data = fetch_rcv1(data_home=raw_data_cache)
+    x = data.data.tocsr()
+    data_desc = {"default_split": {"test_size": 0.1, "random_state": 42}}
+    return {"x": x, "y": np.zeros(x.shape[0])}, data_desc
+
+
 def load_road_network(raw_data_cache: str) -> tuple[dict, dict]:
     url = "http://archive.ics.uci.edu/ml/machine-learning-databases/00246/3D_spatial_network.txt"
     n_samples, dtype = 20000, np.float32
@@ -1070,6 +1113,9 @@ dataset_loading_functions = {
     "twodplanes": load_twodplanes,
     "yolanda": load_yolanda,
     "road_network": load_road_network,
+    # sparse
+    "20newsgroups": load_20newsgroups,
+    "rcv1": load_rcv1,
     # clustering
     "road_network_points": load_road_network_points,
     "airports": load_airports,

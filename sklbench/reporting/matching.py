@@ -440,6 +440,9 @@ class MatchWarning:
     icon: str
     message: str
     short_message: str | None = None
+    # Stable identity for plot grouping. Presentation text must not decide
+    # whether a point is treated as a binned-split comparison.
+    kind: str | None = None
 
 
 @dataclass(frozen=True)
@@ -563,14 +566,39 @@ class Match:
         return median(self.base_result.times) / matched_time
 
 
-MAX_BINS_WARNING = MatchWarning(
+SKLEARNEX_BINS_WARNING = MatchWarning(
     icon="🧺",
     short_message="histogram-based splits",
     message=(
         "Scikit-learn intelex uses binning & histogram-based splits "
         "while scikit-learn doesn't"
     ),
+    kind="histogram-splits",
 )
+# Kept so existing imports of the old name still resolve.
+MAX_BINS_WARNING = SKLEARNEX_BINS_WARNING
+
+CUML_RF_BINS_WARNING = MatchWarning(
+    icon="🧺",
+    short_message="quantile-based splits",
+    message=(
+        "cuML Random Forest uses quantile-based split candidates "
+        "(n_bins=128 by default), while scikit-learn searches exact "
+        "split thresholds"
+    ),
+    kind="quantile-splits",
+)
+
+_CUML_RANDOM_FOREST_ESTIMATORS = {
+    "RandomForestClassifier",
+    "RandomForestRegressor",
+}
+_BINNED_SPLIT_WARNING_KINDS = {"histogram-splits", "quantile-splits"}
+
+
+def warning_marks_binned_splits(warning: MatchWarning) -> bool:
+    return warning.kind in _BINNED_SPLIT_WARNING_KINDS
+
 
 CPU_FALLBACK_WARNING = MatchWarning(
     icon="↩",
@@ -624,7 +652,30 @@ def append_max_bins_warning(
         n_samples = sklearnex_res.data_desc.get("samples")
 
     if n_samples is not None and max_bins < n_samples:
-        warnings.append(MAX_BINS_WARNING)
+        warnings.append(SKLEARNEX_BINS_WARNING)
+
+
+def _is_cuml_random_forest(result: MethodResult) -> bool:
+    return (
+        result.implementation.library == "cuml"
+        and result.case.get("algorithm", {}).get("estimator")
+        in _CUML_RANDOM_FOREST_ESTIMATORS
+    )
+
+
+def append_cuml_rf_bins_warning(
+    base_res: MethodResult, candidate: MethodResult, warnings: list
+):
+    """Warn when one side is a cuML random forest and the other is not.
+
+    Both sides bin the same way when they are both cuML, so that pairing
+    gets no warning. Either side may be the dashboard baseline.
+    """
+    base_is_cuml_rf = _is_cuml_random_forest(base_res)
+    candidate_is_cuml_rf = _is_cuml_random_forest(candidate)
+    if base_is_cuml_rf == candidate_is_cuml_rf:
+        return
+    warnings.append(CUML_RF_BINS_WARNING)
 
 
 def append_iterations_warning(
