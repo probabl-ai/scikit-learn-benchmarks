@@ -19,11 +19,10 @@ GENERAL_ENVS = [*SKLEARN_ENVS, "intel"]
 ARRAY_API_ENVS = [*GENERAL_ENVS, "skl-cpu", "skl-intel", "skl-nvidia", "skl-mps"]
 
 ENV_SENSITIVE_CONFIGS = {
-    Path("configs/smoke_check_test.py"): ARRAY_API_ENVS,
+    Path("configs/smoke_check_test.py"): [*ARRAY_API_ENVS, "cuml"],
     Path("configs/all_models.py"): [*ARRAY_API_ENVS, "cuml"],
     Path("configs/all_models_16gb.py"): ARRAY_API_ENVS,
     Path("configs/all_models_cuml_only.py"): [*SKLEARN_ENVS, "cuml"],
-    Path("configs/cuml_smoke.py"): ["cuml"],
     Path("configs/models_scalability.py"): GENERAL_ENVS,
     # hptuning.py only ever selects non-array-API (no data_library),
     # CPU-or-unset-device implementations - the array-API-only envs
