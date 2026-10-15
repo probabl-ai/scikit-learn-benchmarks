@@ -65,6 +65,12 @@ SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 
 
+# Methods shown in the table. The KMeans PRs compared here target fit, and
+# predict is a single assignment step on a small test set (1000 samples in
+# most cases), too short to time reliably.
+TABLE_METHODS = {"fit"}
+
+
 def _is_sklearn_dev_build(build_name: str) -> bool:
     return bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
 
@@ -137,7 +143,7 @@ def _first_source(results: list[MethodResult], failed: list[BenchmarkRecord]):
 
 
 if __name__ == "__main__":
-    results = read_all_results()
+    results = [r for r in read_all_results() if r.method in TABLE_METHODS]
     failed_records = read_failed_records()
 
     if not results and not failed_records:
@@ -282,9 +288,10 @@ if __name__ == "__main__":
   back to back on the same self-hosted runner in one CI job. The exact commits
   are listed below.{envs_note}
   Each table row is one benchmark case (estimator, dataset, <dfn>hyperparameters</dfn>).
-  <code><dfn>fit speedup</dfn></code> and <code><dfn>predict speedup</dfn></code> are relative to
-  <code>main</code>. Use the column filters to narrow down by estimator,
-  dataset or branch name.</p>
+  <code><dfn>fit speedup</dfn></code> is relative to <code>main</code>, and so are
+  the init and Lloyd speedups, which split the fit time between k-means++
+  init and Lloyd iterations. Use the column filters to narrow down by
+  estimator, dataset or branch name.</p>
 </section>"""
 
     rows = [
