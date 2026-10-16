@@ -58,10 +58,18 @@ DATASETS = {
         "kddcup09_churn",
         # 581k x 12, 7 classes.
         "covtype",
+        # 285k x 30, numeric only, 0.17% positives, chronological split.
+        "fraud",
+        # 20k x 16, numeric only, 26 classes.
+        "letters",
+        # 5M x 18, numeric only: the largest dataset.
+        "susy",
     ],
     "regression": [
         # 1.5k x 79, mostly categorical: the smallest dataset.
         "ames_housing",
+        # 4k x 8, one categorical (sex), noisy target.
+        "abalone",
         # 21k x 8, numeric only.
         "california_housing",
         # 163k x 11, categoricals with ~2000-3300 categories.

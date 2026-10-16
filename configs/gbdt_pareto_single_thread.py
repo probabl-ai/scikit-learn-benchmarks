@@ -28,7 +28,8 @@ DATASET_SIZES = {
     "bank_marketing": (36_000, 1), "amazon_employee_access": (26_000, 1), "kick": (58_000, 1),
     "kddcup09_churn": (40_000, 1), "covtype": (465_000, 7), "ames_housing": (1_200, 1),
     "california_housing": (16_500, 1), "medical_charges_nominal": (130_000, 1),
-    "year_prediction_msd": (412_000, 1),
+    "year_prediction_msd": (412_000, 1), "fraud": (228_000, 1), "letters": (16_000, 26),
+    "susy": (4_500_000, 1), "abalone": (3_300, 1),
 }
 
 
