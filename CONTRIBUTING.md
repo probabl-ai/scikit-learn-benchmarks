@@ -182,7 +182,10 @@ They are meant for quick A/B tests only: don't publish results from them.
 `run-benchmarks.yml` and `pr-comparison.yml` hold `all` for the whole
 benchmark, setup included, so they wait for local runs and the other way
 around. Install or update `benchlock` on every machine with
-`scripts/install_benchlock.sh`.
+`scripts/install_benchlock.sh`. On macOS, it needs a recent bash and `flock`
+first on the PATH of non-interactive ssh commands:
+`pixi global install bash util-linux --expose flock=flock --expose setsid=setsid`,
+with `~/.pixi/bin` and `~/.local/bin` added to the PATH in `~/.zshenv`.
 
 ## Running Against scikit-learn Branches
 
