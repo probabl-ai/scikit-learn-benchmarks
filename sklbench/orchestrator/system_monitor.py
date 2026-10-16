@@ -88,9 +88,38 @@ def _sample_memory() -> dict | None:
     }
 
 
+# Set by power-profiles-daemon, tuned, TLP or the desktop's power mode. They
+# can change timings a lot (e.g. ~2x for HGB without OpenMP active wait on
+# intel-laptop) while the hardware env stays the same. Linux only; cpu0
+# stands for all CPUs, as these daemons set every CPU alike.
+_POWER_SYSFS_FILES = {
+    "platform_profile": "/sys/firmware/acpi/platform_profile",
+    "cpu_governor": "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+    "energy_performance_preference": (
+        "/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference"
+    ),
+}
+
+
+def _sample_power() -> dict | None:
+    power = {}
+    for name, path in _POWER_SYSFS_FILES.items():
+        try:
+            power[name] = Path(path).read_text().strip()
+        except OSError:
+            pass
+    try:
+        battery = psutil.sensors_battery()
+    except Exception:
+        battery = None
+    if battery is not None:
+        power["on_ac_power"] = battery.power_plugged
+    return power or None
+
+
 class SystemMonitor:
     """Background sampler (CPU load/frequency/temperature, system-wide
-    RAM/swap) that runs for the whole orchestrator session rather than
+    RAM/swap, power settings) that runs for the whole orchestrator session rather than
     being scoped to one case's fit/predict call.
 
     `percpu` controls whether cpu_percent/cpu_freq_mhz/temperatures_c are
@@ -172,6 +201,9 @@ class SystemMonitor:
         memory = _sample_memory()
         if memory is not None:
             sample["memory"] = memory
+        power = _sample_power()
+        if power is not None:
+            sample["power"] = power
         return sample
 
     def _run(self) -> None:
