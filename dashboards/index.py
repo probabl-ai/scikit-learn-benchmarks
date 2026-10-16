@@ -12,9 +12,9 @@ from html import escape
 from dashboards import (
     HARDWARE_NAMES,
     dashboard_output_dir,
-    gen_all_results,
     gen_builds_comparison,
     gen_hardware_comparisons,
+    gen_hgb_dev_comparison,
     gen_hgb_dev_scalability_breakdown,
     gen_hgb_dev_speedup_breakdown,
     gen_hgb_scalability_breakdown,
@@ -72,7 +72,7 @@ ABOUT_HTML = """<section class="panel">
 DASHBOARDS = [
     ("[dev] HGB thread-scalability breakdown", gen_hgb_dev_scalability_breakdown, "hgb_dev_scaling.html"),
     ("[dev] HGB speed-up breakdown", gen_hgb_dev_speedup_breakdown, "hgb_speedup_breakdown.html"),
-    (gen_all_results.TITLE, gen_all_results, "all_results.html"),
+    (gen_hgb_dev_comparison.TITLE, gen_hgb_dev_comparison, "hgb_dev_comparison.html"),
 ]
 
 DASHBOARD_DESCRIPTIONS = {
@@ -84,7 +84,7 @@ DASHBOARD_DESCRIPTIONS = {
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
     "hgb_dev_scaling.html": "Fit time per phase as the thread count grows, for scikit-learn branches.",
     "hgb_speedup_breakdown.html": "Per-phase fit speed-up of scikit-learn branches over main.",
-    "all_results.html": "Every result in one table, filterable by date, machine, build and config.",
+    "hgb_dev_comparison.html": "Fit and predict speed-ups of scikit-learn branches over main, as in PR comparisons.",
 }
 
 # Machines that are benchmarked but not presented on the index page.
