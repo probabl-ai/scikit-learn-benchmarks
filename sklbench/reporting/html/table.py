@@ -978,6 +978,17 @@ def detailed_results_table_html(
     # Tabulator field per key that varies across rows - resolved once here,
     # then applied uniformly when flattening each row below.
     column_groups = [spec for spec in COLUMNS if isinstance(spec, ColumnGroupSpec)]
+    # The "OMP active wait" column already shows these env vars, with the
+    # build's default when the case doesn't set them.
+    omp_active_wait_spec = next(
+        spec for spec in COLUMNS
+        if isinstance(spec, ColumnSpec) and spec.field == "omp_active_wait"
+    )
+    hidden_env_names = (
+        {"GOMP_SPINCOUNT", "KMP_BLOCKTIME"}
+        if _spec_visible(omp_active_wait_spec, list(rows_by_key.values()))
+        else set()
+    )
     group_fields: dict[str, dict[str, str]] = {}
     for group in column_groups:
         group_key = f"__group_{group.field_prefix}"
@@ -991,6 +1002,7 @@ def detailed_results_table_html(
             name
             for name in candidate_keys
             if len({_format_value(raw.get(name)) for raw in raw_dicts}) > 1
+            and not (group.field_prefix == "env" and name in hidden_env_names)
         ]
         group_fields[group.field_prefix] = {
             name: f"{group.field_prefix}_{index}"
