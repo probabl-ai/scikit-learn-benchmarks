@@ -115,19 +115,6 @@ BASE_TEMPLATE = Template("""<!doctype html>
       return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
     }
 
-    // Header filter of a date column: keeps rows recorded on or after the
-    // picked day. Row values are "YYYY-MM-DD HH:MM" strings, so comparing
-    // their first 10 characters with the input's "YYYY-MM-DD" is enough.
-    function sklbenchDateFilterEditor(cell, onRendered, success) {
-      const input = document.createElement("input");
-      input.type = "date";
-      input.title = "Only results recorded on or after this day";
-      input.style.width = "100%";
-      input.style.boxSizing = "border-box";
-      input.addEventListener("change", () => success(input.value));
-      return input;
-    }
-
     function sklbenchPrepareColumns(columns) {
       return columns.map((column) => {
         const prepared = {...column};
@@ -148,15 +135,9 @@ BASE_TEMPLATE = Template("""<!doctype html>
               ? rowData.real_dataset === kindFilters[headerValue]
               : rowValue == headerValue;
         }
-        if (prepared.dateFilter) {
-          prepared.headerFilter = sklbenchDateFilterEditor;
-          prepared.headerFilterFunc = (headerValue, rowValue) =>
-            Boolean(rowValue) && rowValue.slice(0, 10) >= headerValue;
-        }
         delete prepared.formatterName;
         delete prepared.linkLabel;
         delete prepared.datasetKindFilters;
-        delete prepared.dateFilter;
         return prepared;
       });
     }
