@@ -26,6 +26,9 @@ def supported_logistic_regression_solvers(implem: Implementation | dict):
             # newton-cholesky gained array API support in 1.10.
             solvers.add("newton-cholesky")
         return solvers
+    elif implem.library == "cuml":
+        # cuML only runs solver="qn"; wrappers map these sklearn names to it.
+        return {"lbfgs", "newton-cg", "newton-cholesky", "qn", "sag", "saga", "liblinear"}
     else:
         raise NotImplementedError()
 
@@ -151,5 +154,64 @@ def filter_gpu_cases_if_unavailable(cases):
         device = case["implementation"].get("device")
         backend = _GPU_DEVICE_BACKENDS.get(device)
         if backend is not None and not _gpu_backend_available(backend):
+            continue
+        yield case
+
+
+# Estimators with a native cuML wrapper. Anything else in the all_models
+# matrix (ExtraTrees, LinearRegression, HistGradientBoosting, ...) has no
+# cuML implementation and would fail at estimator construction.
+_CUML_ESTIMATORS = {
+    "LogisticRegression",
+    "Ridge",
+    "RandomForestClassifier",
+    "RandomForestRegressor",
+    "KMeans",
+}
+
+# The synthetic linear grid runs LogisticRegression three times, once per
+# solver name. The cuML wrapper maps every one of those names onto solver
+# "qn", so the newton variants would time the same algorithm as lbfgs.
+# Real-dataset cases are recognized by data["dataset"] and are kept even
+# when they request newton-cholesky: both libraries ask for that name.
+_DROPPED_SYNTHETIC_CUML_LR_SOLVERS = {"newton-cg", "newton-cholesky"}
+
+
+def is_cuml_supported_case(case: dict | EstimatorCase) -> bool:
+    """Whether this case is one the native cuML wrappers can run.
+
+    The check looks at the estimator and, for synthetic LogisticRegression,
+    the solver. It does not look at `implementation.library`, so
+    `configs/all_models_cuml_only.py` can apply it to a scikit-learn case too.
+
+    Accepts the dicts `filter_cuml_supported_cases_if_needed` sees and the
+    `EstimatorCase` objects `all_models.generate_cases()` returns after
+    `filter_unsupported_cases`.
+    """
+    if isinstance(case, dict):
+        estimator = case["algorithm"]["estimator"]
+        dataset = case["data"].get("dataset")
+        solver = case["algorithm"].get("estimator_params", {}).get("solver")
+    else:
+        estimator = case.algorithm.estimator
+        dataset = case.data.dataset
+        solver = case.algorithm.estimator_params.get("solver")
+    if estimator not in _CUML_ESTIMATORS:
+        return False
+    if estimator == "LogisticRegression" and dataset is None:
+        if solver in _DROPPED_SYNTHETIC_CUML_LR_SOLVERS:
+            return False
+    return True
+
+
+def filter_cuml_supported_cases_if_needed(cases):
+    """Drop cuML cases the native wrappers cannot run.
+
+    Other libraries are unchanged. Pair a scikit-learn run with cuML through
+    `configs/all_models_cuml_only.py`, which applies `is_cuml_supported_case`
+    to every case.
+    """
+    for case in cases:
+        if case["implementation"].get("library") == "cuml" and not is_cuml_supported_case(case):
             continue
         yield case

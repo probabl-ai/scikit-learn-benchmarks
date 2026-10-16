@@ -490,6 +490,9 @@ def _implementation_package_names(implementation: Implementation) -> list[str]:
         package_names.append("daal")
         return package_names
 
+    if library == "cuml":
+        return ["cuml", "cudf", "cupy", "rmm", "scikit-learn"]
+
     return [name for name in [library, data_library] if name]
 
 
