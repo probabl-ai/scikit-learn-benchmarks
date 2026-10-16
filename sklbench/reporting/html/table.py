@@ -5,6 +5,7 @@ import json
 import math
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from statistics import mean, median, quantiles
@@ -103,6 +104,7 @@ class RowInputs:
 
     case: dict
     software_hash: str
+    timestamp: datetime
     library: str
     category: str
     data_desc: dict
@@ -114,6 +116,7 @@ def _method_result_inputs(result: MethodResult) -> RowInputs:
     return RowInputs(
         case=result.case,
         software_hash=result.software_hash,
+        timestamp=result.timestamp_recorded,
         library=result.implementation.library,
         category=result.category,
         data_desc=result.data_desc or {},
@@ -127,6 +130,7 @@ def _failed_record_inputs(record: BenchmarkRecord) -> RowInputs:
     return RowInputs(
         case=record.case,
         software_hash=record.software_hash,
+        timestamp=record.timestamp_recorded,
         library=record.implementation.library,
         category=record.category,
         # No run ever happened, so there's no measured data_desc - the
@@ -319,6 +323,17 @@ def _row_status(inputs: RowInputs) -> str:
     return inputs.status
 
 
+def _row_date(inputs: RowInputs) -> str:
+    # Sorts and compares as a string (see sklbenchDateFilterEditor in
+    # templates.py).
+    return inputs.timestamp.strftime("%Y-%m-%d %H:%M")
+
+
+def _row_config(inputs: RowInputs) -> str | None:
+    source_config = inputs.case.get("metadata", {}).get("source_config")
+    return source_config.removeprefix("configs/") if source_config else None
+
+
 class ColumnVisibility(Enum):
     """When a `ColumnSpec` is included in the table at all:
     - ALWAYS: always included.
@@ -371,6 +386,9 @@ class ColumnSpec:
     formatter_name: str | None = None
     link_label: str | None = None
     visible: bool | None = None
+    date_filter: bool = False
+    # Shown only when the caller lists `field` in `extra_columns`.
+    opt_in: bool = False
 
 
 def _status_column_visible(rows: list[dict]) -> bool:
@@ -419,12 +437,21 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         header_filter=False,
         header_sort=False,
     ),
+    ColumnSpec(
+        "Date (UTC)",
+        "date",
+        _row_date,
+        header_filter=False,
+        date_filter=True,
+        opt_in=True,
+    ),
     # Only filled when the caller passes `hardware_label`.
     ColumnSpec("Hardware", "hardware", visibility=ColumnVisibility.IF_ANY),
     # Title is overridden per-call by `variant_column_title`.
     ColumnSpec("Variant name", "variant"),
     # Only filled when the caller passes `env_label`.
     ColumnSpec("Env", "env", visibility=ColumnVisibility.IF_VARIES),
+    ColumnSpec("Config", "config", _row_config, opt_in=True),
     ColumnSpec(
         "Estimator name", "estimator", _row_estimator, ColumnVisibility.IF_VARIES
     ),
@@ -489,6 +516,7 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "fit speed up",
         "fit_speedup",
+        visibility=ColumnVisibility.IF_ANY,
         header_filter=False,
         sorter="number",
         formatter_name="speedup",
@@ -503,6 +531,7 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "predict speed up",
         "predict_speedup",
+        visibility=ColumnVisibility.IF_ANY,
         header_filter=False,
         sorter="number",
         formatter_name="speedup",
@@ -767,6 +796,7 @@ def _column_dict(
     sorter: str | None = None,
     formatter_name: str | None = None,
     link_label: str | None = None,
+    date_filter: bool = False,
 ) -> dict:
     column = {"title": title, "field": field}
     if visible is not None:
@@ -786,6 +816,8 @@ def _column_dict(
         column["formatterName"] = formatter_name
     if link_label is not None:
         column["linkLabel"] = link_label
+    if date_filter:
+        column["dateFilter"] = True
     return column
 
 
@@ -803,6 +835,7 @@ def _spec_column_dict(spec: ColumnSpec, *, title: str) -> dict:
         sorter=spec.sorter,
         formatter_name=spec.formatter_name,
         link_label=spec.link_label,
+        date_filter=spec.date_filter,
     )
 
 
@@ -888,10 +921,11 @@ def detailed_results_table_html(
     open: bool = False,
     collapsible: bool = True,
     variant_column_title: str = "Variant name",
-    hardware_label: Callable[[MethodResult], str] | None = None,
+    hardware_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
     env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
     scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
     default_variant_filter: str | None = None,
+    extra_columns: tuple[str, ...] = (),
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
 ) -> str:
@@ -934,6 +968,8 @@ def detailed_results_table_html(
         key = _failed_row_key(record, variant)
         row = _new_failed_row(record, variant, comparison_key(record), json_url_fn)
         row["row_id"] = key
+        if hardware_label is not None:
+            row["hardware"] = hardware_label(record)
         if env_label is not None:
             row["env"] = env_label(record)
         rows_by_key[key] = row
@@ -1012,6 +1048,8 @@ def detailed_results_table_html(
                 _column_dict(name, field, header_filter=True, sorter="string")
                 for name, field in group_fields[spec.field_prefix].items()
             )
+            continue
+        if spec.opt_in and spec.field not in extra_columns:
             continue
         if not _spec_visible(spec, rows):
             continue
