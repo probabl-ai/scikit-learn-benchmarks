@@ -274,6 +274,21 @@ SCIPY_ARRAY_API = "1"
 # macOS arm64 array API job (sklearn-src/.github/workflows/unit-tests.yml).
 PYTORCH_ENABLE_MPS_FALLBACK = "1"
 
+[feature.gbdt]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+
+[feature.gbdt.dependencies]
+scikit-learn = "1.9.*"
+# conda-forge builds, so xgboost and lightgbm share the OpenMP runtime of
+# the conda-forge scikit-learn above. `cpu_*` keeps the CUDA variant out.
+xgboost = "*"
+libxgboost = { version = "*", build = "cpu_*" }
+lightgbm = { version = "*", build = "cpu_*" }
+
+[feature.gbdt.pypi-dependencies]
+# conda-forge has no Python 3.14 catboost build.
+catboost = "*"
+
 [feature.reporting.dependencies]
 scikit-learn = "1.9.*"
 jupyter = "*"
@@ -306,4 +321,5 @@ skl-intel = ["py314", "sklearn-pypi", "skl-intel"]
 skl-nvidia = ["py314", "sklearn-pypi", "skl-nvidia"]
 skl-mps = ["py314", "sklearn-pypi", "skl-mps"]
 intel = ["py314", "intel", "numpy-conda"]
+gbdt = ["py314", "gbdt", "numpy-conda"]
 reporting = ["py314", "reporting", "numpy-conda"]
