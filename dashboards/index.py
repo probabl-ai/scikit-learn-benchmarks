@@ -12,7 +12,6 @@ from html import escape
 from dashboards import (
     HARDWARE_NAMES,
     dashboard_output_dir,
-    gen_all_results,
     gen_builds_comparison,
     gen_hardware_comparisons,
     gen_hgb_scalability_breakdown,
@@ -76,7 +75,6 @@ DASHBOARDS = [
         (gen_models_scalability, "models_scalability.html"),
         (gen_hptuning_scalability, "hptuning_scalability.html"),
         (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
-        (gen_all_results, "all_results.html"),
     ]
 ]
 
@@ -87,7 +85,6 @@ DASHBOARD_DESCRIPTIONS = {
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
-    "all_results.html": "Every result in one table, filterable by date, machine, build and config.",
 }
 
 # Machines that are benchmarked but not presented on the index page.
