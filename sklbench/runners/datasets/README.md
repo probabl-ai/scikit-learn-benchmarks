@@ -58,6 +58,8 @@ encoding.
 | `road_network` | 434,874 | 3 | Regression | Numerical |
 | `sift` | 1,010,000 | 128 | Index / nearest-neighbor search | Numerical |
 | `gist` | 1,001,000 | 960 | Index / nearest-neighbor search | Numerical |
+| `20newsgroups` | 18,846 | 130,107 | Classification, clustering | Sparse (CSR) token counts |
+| `rcv1` | 804,414 | 47,236 | Clustering | Sparse (CSR) TF-IDF |
 
 ## Data Caching
 
@@ -84,3 +86,4 @@ Cached file formats:
 | --- | --- | --- | --- |
 | [Parquet](https://parquet.apache.org) | `.parq` | pandas.DataFrame |  |
 | NumPy uncompressed binary dense data | `.npz` | numpy.ndarray, pandas.Series | Data is stored under the `arr_0` name |
+| SciPy sparse matrix | `.csr.npz` | scipy.sparse CSR matrix | Written by `scipy.sparse.save_npz`. Sparse data keeps its format: only `data.dtype` applies, not `order` or a data library |

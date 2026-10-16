@@ -8,7 +8,7 @@ from statistics import median
 
 from plotly import graph_objects as go
 
-from ..matching import BenchmarkRecord, Match
+from ..matching import BenchmarkRecord, Match, warning_marks_binned_splits
 from .table import data_dtype_label, data_layout_label, default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
@@ -932,8 +932,8 @@ def _trace_variant(match: Match) -> str:
     return match.matched_result.implementation.short_name
 
 
-def _has_histogram_splits_warning(match: Match) -> bool:
-    return any("histogram-based splits" in warning.message for warning in match.warnings)
+def _has_binned_splits_warning(match: Match) -> bool:
+    return any(warning_marks_binned_splits(warning) for warning in match.warnings)
 
 
 def _x_variant(match: Match, variant: str) -> str:
@@ -942,7 +942,7 @@ def _x_variant(match: Match, variant: str) -> str:
 
     max_bins_label = (
         "1-max_bins_lt_n_samples"
-        if _has_histogram_splits_warning(match)
+        if _has_binned_splits_warning(match)
         else "0-max_bins_eq_n_samples"
     )
     return f"{variant} / {max_bins_label}"

@@ -21,6 +21,7 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 
 from ...config import EstimatorCase
 
@@ -83,8 +84,9 @@ def convert_data(
     """Convert `data` to the requested library/order/dtype.
 
     A no-op unless `dformat`, `order` or `dtype` is given. `order` only applies to
-    array libraries (numpy, dpnp, torch, ...) — it is ignored for pandas (and,
-    once introduced, polars) since those formats have no equivalent concept.
+    array libraries (numpy, dpnp, torch, ...): pandas (and, once introduced,
+    polars) has no equivalent concept, so a DataFrame with an `order` and no
+    `dformat` becomes a numpy array, and `dformat="pandas"` ignores `order`.
 
     `on_dtype_fallback` is called with the dtype that `device` couldn't hold
     (float64 on MPS) when `data` had to be downcast to the device's
@@ -95,7 +97,15 @@ def convert_data(
     if dtype == "preserve":
         dtype = None
 
-    if isinstance(data, (pd.DataFrame, pd.Series)) and dformat not in (None, "pandas"):
+    if sp.issparse(data):
+        if dformat not in (None, "numpy") or order is not None:
+            raise ValueError(
+                f"Sparse data only supports a dtype, got dformat={dformat!r}, order={order!r}"
+            )
+        return data.astype(dtype) if dtype is not None else data
+
+    keeps_pandas = dformat == "pandas" or (dformat is None and order is None)
+    if isinstance(data, (pd.DataFrame, pd.Series)) and not keeps_pandas:
         data = data.to_numpy()
 
     if isinstance(data, (pd.DataFrame, pd.Series)):
