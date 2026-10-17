@@ -32,9 +32,9 @@ rather than failing the whole run.
 Usage:
 
     pixi run -e reporting python scripts/fetch_pr_results.py --pr 74
-    pixi run -e reporting python scripts/fetch_pr_results.py --pr 74 --runner intel-gnr
+    pixi run -e reporting python scripts/fetch_pr_results.py --pr 74 --runner intel-xeon
     pixi run -e reporting python scripts/fetch_pr_results.py \\
-        --site-url https://pr-74-compare-intel-gnr.sklbench-pr-comparison.pages.dev
+        --site-url https://pr-74-compare-intel-xeon.sklbench-pr-comparison.pages.dev
 """
 
 import argparse
@@ -47,7 +47,7 @@ import urllib.parse
 import urllib.request
 
 SITE_URL_TEMPLATE = "https://pr-{pr}-compare-{runner}.sklbench-pr-comparison.pages.dev"
-VALID_RUNNERS = ("intel-laptop", "intel-gnr")
+VALID_RUNNERS = ("intel-laptop", "intel-xeon")
 
 
 def _fetch(url: str) -> bytes | None:

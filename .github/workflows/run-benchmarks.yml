@@ -19,7 +19,7 @@ on:
         type: choice
         options:
           - intel-laptop
-          - intel-gnr
+          - intel-xeon
           - both
       config:
         description: >
@@ -41,17 +41,17 @@ jobs:
       # runner's failure doesn't cancel the other's in-progress run.
       fail-fast: false
       matrix:
-        runner: ${{ fromJSON(inputs.runner == 'both' && '["intel-laptop","intel-gnr"]' || format('["{0}"]', inputs.runner)) }}
+        runner: ${{ fromJSON(inputs.runner == 'both' && '["intel-laptop","intel-xeon"]' || format('["{0}"]', inputs.runner)) }}
     concurrency:
       group: benchmark-${{ matrix.runner }}
       cancel-in-progress: false
     # Maps the friendly `runner` matrix value to the actual self-hosted
     # runner labels. intel-laptop is registered org-wide (same physical box
     # array-api-intel.yml targets as its float64-gpu runner_labels).
-    # intel-gnr is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
+    # intel-xeon is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
     runs-on: ${{ fromJSON(
       matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-      matrix.runner == 'intel-gnr' && '["Linux","X64","intel-gnr"]' ||
+      matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
       '[]') }}
     # Default job timeout is 360 min (6h), too short for a full run of
     # configs/all_models.py across all envs on this self-hosted runner.
@@ -102,7 +102,7 @@ jobs:
             intel-laptop)
               all_envs="sklearn-pypi skl-intel intel skl-cpu"
               ;;
-            intel-gnr)
+            intel-xeon)
               # skl-intel pulls torch/triton-xpu (Intel GPU/XPU build), which
               # hard-crashes with no traceback on this box since it has no
               # Intel GPU - unlike `intel`'s scikit-learn-intelex-gpu, which
