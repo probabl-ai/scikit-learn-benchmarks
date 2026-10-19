@@ -159,7 +159,7 @@ jobs:
     runs-on: ${{ fromJSON(
       needs.gate_and_parse.outputs.skip_bench == 'true' && '"ubuntu-latest"' ||
       matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-      matrix.runner == 'intel-gnr' && '["Linux","X64","intel-gnr"]' ||
+      matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
       '[]') }}
     timeout-minutes: 1440
     env:

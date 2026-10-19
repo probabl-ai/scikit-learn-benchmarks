@@ -6,7 +6,7 @@ put a fenced `sklbench-compare` block in the PR description:
 
 ```sklbench-compare
 sklearn_ref: cakedev0:ridge/optim_cholesky
-runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
+runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline.py
 ```
 
 - `sklearn_ref` (required): the scikit-learn fork owner and branch or ref to
@@ -19,7 +19,7 @@ runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.
   Each entry ends with exactly one `configs/<name>.py` path. Before it,
   `runner` and `env` are both optional and can come in any order (their
   values don't overlap, so each token is recognized by its value):
-  - `runner`: `intel-laptop`, `intel-gnr` or `both`, the self-hosted
+  - `runner`: `intel-laptop`, `intel-xeon` or `both`, the self-hosted
     machine(s) that run this entry. Defaults to `both`.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
     currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl` or
@@ -28,8 +28,8 @@ runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.
     `sklearn-dev`.
 
   For example, `configs/hgb_scalability.py` alone runs that config on both
-  runners with `sklearn-dev`. `intel-gnr#sklearn-dev-libomp#configs/pipeline.py`
-  runs only on `intel-gnr` and builds both `main` and the PR ref with
+  runners with `sklearn-dev`. `intel-xeon#sklearn-dev-libomp#configs/pipeline.py`
+  runs only on `intel-xeon` and builds both `main` and the PR ref with
   `sklearn-dev-libomp`, to isolate an OpenMP runtime effect like the `run.sh`
   example in CONTRIBUTING.md.
 

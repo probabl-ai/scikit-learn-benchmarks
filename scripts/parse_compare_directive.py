@@ -6,7 +6,7 @@ Looks for a fenced code block:
 
     ```sklbench-compare
     sklearn_ref: cakedev0:ridge/optim_cholesky
-    runs: configs/hgb_scalability.py, intel-gnr#sklearn-dev-libomp#configs/pipeline.py
+    runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline.py
     ```
 
 `sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
@@ -24,7 +24,7 @@ order before `config` (their vocabularies don't overlap, so a bare token is
 classified by set membership, not position); a `#`-joined entry only ever
 has one trailing `config` token, since that's the only field whose values
 aren't drawn from a fixed set. Omitted `runner` defaults to `both`
-(intel-laptop and intel-gnr); omitted `env` defaults to `sklearn-dev`. So
+(intel-laptop and intel-xeon); omitted `env` defaults to `sklearn-dev`. So
 `configs/hgb_scalability.py` alone runs that config on both runners under
 sklearn-dev. `env` must be a pixi environment that
 path-depends on `sklearn-src` (see pixi.toml), currently `sklearn-dev`,
@@ -58,7 +58,7 @@ FENCE_RE = re.compile(
 # module docstring), just catches typos with a clear error early.
 GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
-VALID_RUNNERS = {"intel-laptop", "intel-gnr"}
+VALID_RUNNERS = {"intel-laptop", "intel-xeon"}
 DEFAULT_RUNNER_TOKEN = "both"
 # Pixi envs that path-depend on sklearn-src (see pixi.toml) - the only ones
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.

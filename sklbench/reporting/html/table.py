@@ -1037,6 +1037,17 @@ def detailed_results_table_html(
     rows_by_env: dict[str | None, list[dict]] = {}
     for row in rows_by_key.values():
         rows_by_env.setdefault(row["env"], []).append(row)
+    # The "OMP active wait" column already shows these env vars, with the
+    # build's default when the case doesn't set them.
+    omp_active_wait_spec = next(
+        spec for spec in COLUMNS
+        if isinstance(spec, ColumnSpec) and spec.field == "omp_active_wait"
+    )
+    hidden_env_names = (
+        {"GOMP_SPINCOUNT", "KMP_BLOCKTIME"}
+        if _spec_visible(omp_active_wait_spec, list(rows_by_key.values()))
+        else set()
+    )
     group_fields: dict[str, dict[str, str]] = {}
     for group in column_groups:
         group_key = f"__group_{group.field_prefix}"
@@ -1053,6 +1064,7 @@ def detailed_results_table_html(
                 len({_format_value(row[group_key].get(name)) for row in env_rows}) > 1
                 for env_rows in rows_by_env.values()
             )
+            and not (group.field_prefix == "env" and name in hidden_env_names)
         ]
         group_fields[group.field_prefix] = {
             name: f"{group.field_prefix}_{index}"
