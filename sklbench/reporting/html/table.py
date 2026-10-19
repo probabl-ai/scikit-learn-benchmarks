@@ -4,6 +4,7 @@ import itertools
 import json
 import math
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -775,6 +776,7 @@ def _add_result_method(
     env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
     is_baseline: bool = False,
     scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
+    fit_phases: Collection[str] = tuple(FIT_PHASES),
 ):
     key = _row_key(result, variant)
     row = rows.setdefault(
@@ -806,11 +808,13 @@ def _add_result_method(
     )
     if method != "fit":
         return
-    for phase, (_, attribute) in FIT_PHASES.items():
-        times = _phase_times(result, attribute)
+    for phase in fit_phases:
+        times = _phase_times(result, FIT_PHASES[phase][1])
         if times is None:
             continue
-        base_times = _phase_times(base_result, attribute) if base_result is not None else None
+        base_times = (
+            _phase_times(base_result, FIT_PHASES[phase][1]) if base_result is not None else None
+        )
         _add_times(row, phase, times, base_times, is_base_row)
 
 
@@ -951,7 +955,10 @@ def detailed_results_table_html(
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
+    fit_phases: Collection[str] = tuple(FIT_PHASES),
 ) -> str:
+    """`fit_phases` selects the `FIT_PHASES` columns to fill. The others stay
+    empty, and so hidden."""
     rows_by_key: dict[str, dict] = {}
 
     resolve_baseline_label = (
@@ -972,6 +979,7 @@ def detailed_results_table_html(
                 profile_url_fn=profile_url_fn,
                 hardware_label=hardware_label,
                 env_label=env_label,
+            fit_phases=fit_phases,
                 is_baseline=True,
             )
             _add_result_method(
@@ -984,6 +992,7 @@ def detailed_results_table_html(
                 profile_url_fn=profile_url_fn,
                 hardware_label=hardware_label,
                 env_label=env_label,
+            fit_phases=fit_phases,
                 scores_comparable=scores_comparable,
             )
 
@@ -1010,6 +1019,7 @@ def detailed_results_table_html(
             profile_url_fn=profile_url_fn,
             hardware_label=hardware_label,
             env_label=env_label,
+            fit_phases=fit_phases,
             is_baseline=True,
         )
 
@@ -1023,6 +1033,7 @@ def detailed_results_table_html(
             profile_url_fn=profile_url_fn,
             hardware_label=hardware_label,
             env_label=env_label,
+            fit_phases=fit_phases,
         )
 
     if not rows_by_key:

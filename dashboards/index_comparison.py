@@ -70,6 +70,11 @@ _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 # most cases), too short to time reliably.
 TABLE_METHODS = {"fit"}
 
+# Fit phases shown in the table (see `FIT_PHASES` in
+# sklbench/reporting/html/table.py). The k-means++ PR runs a single Lloyd
+# iteration, whose time isn't what it changes.
+TABLE_FIT_PHASES = ["init"]
+
 
 def _is_sklearn_dev_build(build_name: str) -> bool:
     return bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
@@ -253,6 +258,7 @@ if __name__ == "__main__":
         profile_url_fn=hosted_viewer_url_fn(
             FLAMEGRAPH_VIEWER_BASE_URL, profile_viewer_url, site_base_url
         ),
+        fit_phases=TABLE_FIT_PHASES,
     )
 
     commit_urls = {}
@@ -288,10 +294,9 @@ if __name__ == "__main__":
   back to back on the same self-hosted runner in one CI job. The exact commits
   are listed below.{envs_note}
   Each table row is one benchmark case (estimator, dataset, <dfn>hyperparameters</dfn>).
-  <code><dfn>fit speedup</dfn></code> is relative to <code>main</code>, and so are
-  the init and Lloyd speedups, which split the fit time between k-means++
-  init and Lloyd iterations. Use the column filters to narrow down by
-  estimator, dataset or branch name.</p>
+  <code><dfn>fit speedup</dfn></code> is relative to <code>main</code>, and so is
+  the init speedup, on the time of the k-means++ init alone. Use the column
+  filters to narrow down by estimator, dataset or branch name.</p>
 </section>"""
 
     rows = [
