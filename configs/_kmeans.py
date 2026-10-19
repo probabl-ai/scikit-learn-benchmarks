@@ -36,23 +36,23 @@ DTYPES = ["float32", "float64"]
 # (dataset, n_features, n_clusters, train_size). n_features=None keeps every
 # column; train_size=None keeps the dataset's default split.
 WORKLOADS = [
-    *[("sift", d, 100, 300_000) for d in [16, 32, 64, 128]],
-    *[("sift", d, 1000, 50_000) for d in [16, 32, 64, 128]],
-    *[("sift", d, 10, None) for d in [32, 64, 128]],
-    *[("nytimes_256", d, 100, 150_000) for d in [32, 64, 128, 256]],
-    *[("nytimes_256", d, 10, None) for d in [64, 128, 256]],
-    *[("nytimes_256", d, 1000, 50_000) for d in [32, 64, 128, 256]],
+    # The sift and nytimes_256 prefixes span 16 to 256 dims.
+    *[("sift", d, 100, 300_000) for d in [16, 128]],
+    *[("sift", d, 1000, 50_000) for d in [16, 128]],
+    ("sift", 128, 10, None),
+    *[("nytimes_256", d, 100, 150_000) for d in [64, 256]],
+    *[("nytimes_256", d, 1000, 50_000) for d in [64, 256]],
+    ("nytimes_256", 256, 10, None),
     ("fashion_mnist_784", None, 100, None),
-    *[("road_network_points", None, k, None) for k in [300, 1000]],
+    # 3 features.
+    ("road_network_points", None, 1000, None),
+    # Bigger: 1M samples, and 3000 clusters.
     ("sift", 128, 100, None),
     ("sift", 32, 3000, 100_000),
     # Wide: CIFAR-10 pixels, 3072 features.
-    ("cifar", None, 10, None),
     ("cifar", None, 100, 10_000),
     # Sparse (CSR) text.
-    ("20newsgroups", None, 20, None),
     ("20newsgroups", None, 50, None),
-    ("rcv1", None, 20, 100_000),
     ("rcv1", None, 100, 50_000),
 ]
 
