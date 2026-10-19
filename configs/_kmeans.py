@@ -1,4 +1,5 @@
-"""KMeans-only matrix, for the fit-phase breakdown recorded by
+"""Shared KMeans matrix of `kmeans_init.py` and `kmeans_lloyd.py`, for the
+fit-phase breakdown recorded by
 `sklbench/runners/estimator/wrappers/instrumented_kmeans.py` (init vs Lloyd
 iterations).
 
@@ -17,17 +18,6 @@ k-means++ kernels. Each Lloyd thread allocates a k x n_features buffer, i.e.
 Every workload runs in float32 and float64, with C-ordered input for the dense
 ones: KMeans copies its input to C order anyway, so F-ordered input only adds
 the cost of that copy.
-
-Workloads with up to 100 clusters run a fixed 100 Lloyd iterations (`tol=0`,
-`max_iter=100`): with the default `tol`, their iteration count varied up to 5x
-between repeats, and so did their fit time. Workloads with more clusters keep
-the default stopping criterion: on the k=1000 ones (~50 samples per cluster)
-the labels stop changing (strict convergence, which `tol=0` does not disable)
-after 35-95 iterations, and their fit time is mostly k-means++ init anyway.
-
-Train sizes are subsampled so most float32 fits take roughly 2-15s on a
-laptop, plus three bigger workloads (1M samples with k=100, 100k samples with
-k=3000, RCV1 with k=100) at ~20-25s.
 
 On a multi-socket machine, every case is pinned to socket 0 with one OpenMP
 thread per physical core. With OpenBLAS, the thread count is still capped at
@@ -69,9 +59,6 @@ WORKLOADS = [
 # Loaded as CSR matrices, which have no memory order to set.
 SPARSE_DATASETS = {"20newsgroups", "rcv1"}
 
-# Above this many clusters, keep the default stopping criterion (see above).
-MAX_FIXED_ITER_N_CLUSTERS = 100
-
 
 def _bench() -> dict:
     bench = {"n_runs": 5, "py_spy_profiling": False}
@@ -89,7 +76,7 @@ def _bench() -> dict:
     return bench
 
 
-def _case(implem: dict, workload: tuple, dtype: str) -> dict:
+def _case(implem: dict, workload: tuple, dtype: str, estimator_params: dict) -> dict:
     dataset, n_features, n_clusters, train_size = workload
     data = {"dataset": dataset, "dtype": dtype}
     if dataset not in SPARSE_DATASETS:
@@ -98,22 +85,22 @@ def _case(implem: dict, workload: tuple, dtype: str) -> dict:
         data["n_features"] = n_features
     if train_size is not None:
         data["split_kwargs"] = {"train_size": train_size, "test_size": 1000}
-    estimator_params = {"n_clusters": n_clusters, "n_init": 1}
-    if n_clusters <= MAX_FIXED_ITER_N_CLUSTERS:
-        estimator_params |= {"tol": 0, "max_iter": 100}
     return {
         "bench": _bench(),
         "implementation": implem,
         "metadata": {"task": "clustering"},
         "algorithm": {
             "estimator": "KMeans",
-            "estimator_params": estimator_params,
+            "estimator_params": {"n_clusters": n_clusters, "n_init": 1}
+            | estimator_params,
         },
         "data": data,
     }
 
 
-def generate_cases() -> list[dict]:
+def generate_kmeans_cases(estimator_params: dict) -> list[dict]:
+    """Cases of every workload and dtype, with `estimator_params` added to
+    `n_clusters` and `n_init=1`."""
     # sklearn's KMeans has no Array API support, so only plain CPU
     # implementations (sklearn, and sklearnex under `intel`).
     implementations = [
@@ -121,8 +108,9 @@ def generate_cases() -> list[dict]:
         for implem in implementations_for_pixi_env()
         if implem.get("data_library") is None and implem.get("device") in (None, "cpu")
     ]
-    cases = []
-    for implem in implementations:
-        for dtype in DTYPES:
-            cases += [_case(implem, w, dtype) for w in WORKLOADS]
-    return cases
+    return [
+        _case(implem, workload, dtype, estimator_params)
+        for implem in implementations
+        for dtype in DTYPES
+        for workload in WORKLOADS
+    ]
