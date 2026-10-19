@@ -30,6 +30,7 @@ ENV_SENSITIVE_CONFIGS = {
     # KMeans has no Array API support, so the kmeans_*.py configs keep the
     # same implementations as hptuning.py.
     Path("configs/kmeans_init.py"): GENERAL_ENVS,
+    Path("configs/kmeans_lloyd.py"): GENERAL_ENVS,
 }
 
 
