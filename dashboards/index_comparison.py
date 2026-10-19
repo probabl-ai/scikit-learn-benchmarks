@@ -71,9 +71,9 @@ _SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
 TABLE_METHODS = {"fit"}
 
 # Fit phases shown in the table (see `FIT_PHASES` in
-# sklbench/reporting/html/table.py). The k-means++ PR runs a single Lloyd
-# iteration, whose time isn't what it changes.
-TABLE_FIT_PHASES = ["init"]
+# sklbench/reporting/html/table.py). The Lloyd PR runs a random init, which
+# takes almost no time.
+TABLE_FIT_PHASES = ["lloyd"]
 
 
 def _is_sklearn_dev_build(build_name: str) -> bool:
@@ -295,7 +295,7 @@ if __name__ == "__main__":
   are listed below.{envs_note}
   Each table row is one benchmark case (estimator, dataset, <dfn>hyperparameters</dfn>).
   <code><dfn>fit speedup</dfn></code> is relative to <code>main</code>, and so is
-  the init speedup, on the time of the k-means++ init alone. Use the column
+  the Lloyd speedup, on the time of the Lloyd iterations alone. Use the column
   filters to narrow down by estimator, dataset or branch name.</p>
 </section>"""
 
