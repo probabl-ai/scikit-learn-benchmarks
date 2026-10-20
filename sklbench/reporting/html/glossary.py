@@ -157,6 +157,36 @@ TERMS = {
     "solver": Term(
         "The optimization algorithm used by fit, for instance lbfgs or "
         "newton-cholesky for LogisticRegression.",
+        aliases=("solvers",),
+    ),
+    "glms": Term(
+        "Generalized linear models: linear models whose prediction is a "
+        "function of a linear combination of the features, fit by minimizing "
+        "the deviance of a distribution (e.g. Poisson for counts, Gamma for "
+        "positive amounts), like logistic regression for binary targets.",
+        aliases=("glm",),
+        url="https://scikit-learn.org/stable/modules/linear_model.html#generalized-linear-models",
+    ),
+    "tolerances": Term(
+        "A solver's stopping criterion: it stops once a measure of how far it "
+        "still is from the optimum, e.g. the size of the gradient, falls "
+        "below the tolerance. Smaller tolerances give more precise models and "
+        "take longer.",
+        aliases=("tolerance",),
+    ),
+    "suboptimality": Term(
+        "How much higher the training objective of a fit is than the best one "
+        "found by any solver on the same data, relative to that best one. "
+        "Gaps below 1e-12 are rounding noise and shown at 1e-12.",
+    ),
+    "log loss": Term(
+        "Mean negative log-likelihood of the true classes under the predicted "
+        "probabilities. Lower is better.",
+        url="https://scikit-learn.org/stable/modules/model_evaluation.html#log-loss",
+    ),
+    "deviance": Term(
+        "A GLM's loss: twice the log-likelihood gap between the model and a "
+        "perfect fit, under the model's distribution. Lower is better.",
     ),
     "target encoding": Term(
         "Replacing each category with a statistic of the target for that "

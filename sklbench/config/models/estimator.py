@@ -8,6 +8,10 @@ from .base import BaseCase, JsonDict, Section
 class Algorithm(Section):
     estimator: str
     estimator_params: JsonDict = Field(default_factory=dict)
+    # The penalized linear problem the estimator solves, e.g.
+    # `{"loss": "binomial", "alpha": 1e-4}`. The runner then records its
+    # training objective (see `sklbench.runners.estimator.objective`).
+    objective: JsonDict | None = None
 
 
 class Data(Section):

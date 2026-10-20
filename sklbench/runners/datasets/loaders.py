@@ -378,6 +378,79 @@ def load_bank_marketing(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
+def _load_fremtpl2(raw_data_cache: str) -> pd.DataFrame:
+    """French motor third-party liability policies (openml id 41214), joined
+    with their claim amounts (openml id 41215), cleaned like scikit-learn's
+    "Tweedie regression on insurance claims" example: claims without an
+    amount are not counted, and `ClaimNb`, `Exposure` and `ClaimAmount` are
+    clipped to 4, 1 and 200,000.
+
+    `Density` (inhabitants per km2, from 1 to ~27,000) is log-transformed: the
+    linear preprocessing puts spline knots uniformly over a column's range.
+    """
+    df_freq, claim_nb = load_openml(41214, raw_data_cache, as_frame=True, target="ClaimNb")
+    df_freq["ClaimNb"] = claim_nb
+    df_sev, claim_amount = load_openml(41215, raw_data_cache, as_frame=True, target="ClaimAmount")
+    df_sev["ClaimAmount"] = claim_amount
+    df_freq["IDpol"] = df_freq["IDpol"].astype(int)
+    df_freq = df_freq.set_index("IDpol")
+    df_sev = df_sev.groupby("IDpol")[["ClaimAmount"]].sum()
+    df = df_freq.join(df_sev, how="left")
+    df["ClaimAmount"] = df["ClaimAmount"].fillna(0)
+    df.loc[(df["ClaimAmount"] == 0) & (df["ClaimNb"] >= 1), "ClaimNb"] = 0
+    df["ClaimNb"] = df["ClaimNb"].clip(upper=4)
+    df["Exposure"] = df["Exposure"].clip(upper=1)
+    df["ClaimAmount"] = df["ClaimAmount"].clip(upper=200_000)
+    df["Density"] = np.log(df["Density"])
+    for col in df.select_dtypes(["object", "string"]).columns:
+        df[col] = df[col].astype("category")
+    return df
+
+
+FREMTPL2_FEATURES = [
+    "Area", "VehPower", "VehAge", "DrivAge", "BonusMalus", "VehBrand",
+    "VehGas", "Density", "Region",
+]
+
+
+def load_fremtpl2_freq(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Claim frequency of French motor third-party liability policies (see
+    `_load_fremtpl2`).
+
+    678013 samples, 10 features: 9 policy features (4 categorical, `Region`
+    with 22 categories and `VehBrand` with 11) plus `LogExposure`, the log of
+    the fraction of the year the policy was in force.
+
+    Regression task: predict the number of claims `ClaimNb` (0 to 4, 95% of
+    zeros), for a Poisson GLM. The exposure is a feature rather than an
+    offset or a sample weight, which the runner doesn't pass.
+    """
+    df = _load_fremtpl2(raw_data_cache)
+    x = df[FREMTPL2_FEATURES].copy()
+    x["LogExposure"] = np.log(df["Exposure"])
+    y = df["ClaimNb"].to_numpy(dtype=np.float64)
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x.reset_index(drop=True), "y": y}, data_desc
+
+
+def load_fremtpl2_sev(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Claim severity of French motor third-party liability policies (see
+    `_load_fremtpl2`): the policies with at least one claim.
+
+    ~24,900 samples, 9 features (4 categorical).
+
+    Regression task: predict the average amount per claim, for a Gamma GLM.
+    """
+    df = _load_fremtpl2(raw_data_cache)
+    df = df[df["ClaimAmount"] > 0]
+    x = df[FREMTPL2_FEATURES].copy()
+    y = (df["ClaimAmount"] / df["ClaimNb"]).to_numpy(dtype=np.float64)
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x.reset_index(drop=True), "y": y}, data_desc
+
+
 def load_california_housing(raw_data_cache: str) -> tuple[dict, dict]:
     """
     California Housing dataset (StatLib, from the 1990 US census).
@@ -1085,6 +1158,8 @@ dataset_loading_functions = {
     "medical_charges_nominal": load_medical_charges_nominal,
     "bank_marketing": load_bank_marketing,
     "california_housing": load_california_housing,
+    "fremtpl2_freq": load_fremtpl2_freq,
+    "fremtpl2_sev": load_fremtpl2_sev,
     "mnist": load_mnist,
     # classification
     "airline_depdelay": load_airline_depdelay,

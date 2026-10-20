@@ -705,6 +705,88 @@ def pareto_plot_html(
     )
 
 
+def ladder_plot_html(
+    series: dict[str, dict],
+    *,
+    colors: dict[str, str] | None = None,
+    line_dashes: dict[str, str] | None = None,
+    x_title: str = "fit time (s)",
+    y_title: str,
+    y_log: bool = False,
+    y_range: list[float] | None = None,
+    height: str = "380px",
+    show_legend: bool = True,
+) -> str:
+    """Score vs cost of settings that form a ladder, such as a solver's
+    tolerances from loose to tight: one line per series, joining its
+    `"points"` in ladder order, plus its `"highlight"` points (e.g. the
+    default setting) as unjoined stars. Each point is `(cost, score,
+    hover_text)`. The x-axis is log scale. `y_range` is in axis units, so
+    log10 of the values with `y_log`."""
+    chart_id = f"ladder-{next(chart_ids)}"
+    fig = go.Figure()
+    for label, data in series.items():
+        color = (colors or {}).get(label)
+        line = {"color": color} if color else {}
+        dash = (line_dashes or {}).get(label)
+        if dash:
+            line["dash"] = dash
+        hovertemplate = f"{label}<br>%{{customdata}}<extra></extra>"
+        points = data.get("points", [])
+        fig.add_trace(
+            go.Scatter(
+                name=label,
+                legendgroup=label,
+                showlegend=show_legend,
+                x=[point[0] for point in points],
+                y=[point[1] for point in points],
+                customdata=[point[2] for point in points],
+                mode="lines+markers",
+                line=line,
+                marker={"color": color, "size": 7} if color else {"size": 7},
+                hovertemplate=hovertemplate,
+            )
+        )
+        highlight = data.get("highlight", [])
+        if highlight:
+            fig.add_trace(
+                go.Scatter(
+                    name=label,
+                    legendgroup=label,
+                    showlegend=False,
+                    x=[point[0] for point in highlight],
+                    y=[point[1] for point in highlight],
+                    customdata=[point[2] for point in highlight],
+                    mode="markers",
+                    marker={"symbol": "star", "size": 14, "line": {"width": 1, "color": "white"}}
+                    | ({"color": color} if color else {}),
+                    hovertemplate=hovertemplate,
+                )
+            )
+    yaxis = {"title": y_title}
+    if y_log:
+        yaxis["type"] = "log"
+        yaxis["exponentformat"] = "power"
+    if y_range is not None:
+        yaxis["range"] = y_range
+    fig.update_layout(
+        xaxis={"title": x_title, "type": "log"},
+        yaxis=yaxis,
+        margin={"l": 60, "r": 15, "t": 15, "b": 44},
+        legend={"orientation": "h", "y": -0.25},
+        showlegend=show_legend,
+        template=PLOT_TEMPLATE,
+    )
+    return fig.to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height=height,
+        div_id=chart_id,
+    )
+
+
 def phase_variant_speedup_plot_html(
     points: list[dict],
     *,

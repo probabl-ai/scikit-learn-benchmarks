@@ -17,6 +17,7 @@ from dashboards import (
     gen_hardware_comparisons,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
+    gen_linear_pareto,
     gen_models_scalability,
     gen_softwares_comparison,
 )
@@ -77,6 +78,7 @@ DASHBOARDS = [
         (gen_hptuning_scalability, "hptuning_scalability.html"),
         (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
         (gen_gbdt_pareto, "gbdt_pareto.html"),
+        (gen_linear_pareto, "linear_pareto.html"),
     ]
 ]
 
@@ -88,6 +90,7 @@ DASHBOARD_DESCRIPTIONS = {
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
     "gbdt_pareto.html": "HistGradientBoosting vs XGBoost, LightGBM and CatBoost: fit time vs accuracy over a range of <dfn>hyperparameters</dfn>.",
+    "linear_pareto.html": "scikit-learn's linear models vs glum: fit time vs <dfn>suboptimality</dfn> over a range of <dfn>tolerances</dfn>.",
 }
 
 # Machines that are benchmarked but not presented on the index page.

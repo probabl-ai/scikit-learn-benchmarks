@@ -25,6 +25,7 @@ from .loading import (
     sklearnex_used_onedal,
 )
 from .metrics import get_subset_metrics_of_estimator
+from .objective import data_hash, objective_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +216,14 @@ def run_case_once(
             ),
         }
 
+    objective = bench_case.algorithm.objective
+    if objective is not None:
+        fit_metrics, predict_metrics = objective_metrics(
+            estimator, X_train, y_train, X_test, y_test, **objective
+        )
+        quality_metrics["fit"].update(fit_metrics)
+        quality_metrics["predict"].update(predict_metrics)
+
     data_desc = {
         "preprocessing": dict(subset_description["preprocessing"]),
         "fit": dict(subset_description["x_train"]),
@@ -224,6 +233,8 @@ def run_case_once(
         data_desc["preprocessing"].update({"n_classes": subset_description["n_classes"]})
         data_desc["fit"].update({"n_classes": subset_description["n_classes"]})
         data_desc["predict"].update({"n_classes": subset_description["n_classes"]})
+    if objective is not None:
+        data_desc["fit"]["hash"] = data_hash(X_train, y_train)
 
     attributes = _collect_model_attributes(estimator)
     if is_sklearnex:

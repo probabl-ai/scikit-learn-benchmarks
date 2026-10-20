@@ -85,9 +85,10 @@ def retrieve(url: str, filename: str, max_retries: int = 3) -> None:
 
 
 def fetch_and_correct_openml(
-    data_id: int, raw_data_cache_dir: str, as_frame: str = "auto"
+    data_id: int, raw_data_cache_dir: str, as_frame: str = "auto", target: str | None = None
 ):
-    """Fetch OpenML dataset using the openml package."""
+    """Fetch OpenML dataset using the openml package. `target` is for
+    datasets without a default target attribute."""
     # Configure openml cache directory
     openml_cache = os.path.join(raw_data_cache_dir, "openml")
     os.makedirs(openml_cache, exist_ok=True)
@@ -104,7 +105,7 @@ def fetch_and_correct_openml(
     # Get the data with target column specified
     x, y, _, _ = dataset.get_data(
         dataset_format="dataframe",
-        target=dataset.default_target_attribute,
+        target=target or dataset.default_target_attribute,
     )
 
     # Validate x type
@@ -138,8 +139,9 @@ def load_openml(
     raw_data_cache_dir: str,
     transform_x_y_func: Callable | None = None,
     as_frame: str = "auto",
+    target: str | None = None,
 ):
-    x, y = fetch_and_correct_openml(data_id, raw_data_cache_dir, as_frame)
+    x, y = fetch_and_correct_openml(data_id, raw_data_cache_dir, as_frame, target)
     if transform_x_y_func is not None:
         x, y = transform_x_y_func(x, y)
     return x, y

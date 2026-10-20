@@ -289,6 +289,9 @@ lightgbm = { version = "*", build = "cpu_*" }
 # conda-forge has no Python 3.14 catboost build.
 catboost = "*"
 
+[feature.glm.dependencies]
+glum = "*"
+
 [feature.reporting.dependencies]
 scikit-learn = "1.9.*"
 jupyter = "*"
@@ -322,4 +325,7 @@ skl-nvidia = ["py314", "sklearn-pypi", "skl-nvidia"]
 skl-mps = ["py314", "sklearn-pypi", "skl-mps"]
 intel = ["py314", "intel", "numpy-conda"]
 gbdt = ["py314", "gbdt", "numpy-conda"]
+# MKL: the fastest BLAS for scikit-learn's linear models (see
+# builds_comparison.html), and glum shares it.
+glm = ["py314", "glm", "sklearn-mkl", "numpy-conda"]
 reporting = ["py314", "reporting", "numpy-conda"]
