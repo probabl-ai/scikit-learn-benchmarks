@@ -101,6 +101,14 @@ GBDT_IMPLEMENTATIONS = [
 ]
 
 
+# glum's GLMs, alongside the scikit-learn of the same env (see
+# configs/linear_pareto.py).
+GLM_IMPLEMENTATIONS = [
+    {"library": "sklearn"},
+    {"library": "glum"},
+]
+
+
 PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-pypi": SKLEARN_IMPLEMENTATIONS,
     "sklearn-pypi-freethreading": SKLEARN_IMPLEMENTATIONS,
@@ -119,6 +127,7 @@ PIXI_TO_IMPLEMENTATIONS = {
     "skl-mps": ARRAY_API_MPS_IMPLEMENTATIONS,
     "intel": [SKLEARNEX_CPU_IMPLEMENTATION, SKLEARNEX_GPU_IMPLEMENTATION],
     "gbdt": GBDT_IMPLEMENTATIONS,
+    "glm": GLM_IMPLEMENTATIONS,
 }
 
 

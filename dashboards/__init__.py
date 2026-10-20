@@ -11,6 +11,9 @@ from pathlib import Path
 HARDWARE_NAMES = {
     "3b5e61": "Intel Core Ultra laptop",
     "534824": "High-end Intel Xeon server",
+    # The Xeon server as seen by orchestrators pinned to 21 physical cores of
+    # one NUMA node (linear_pareto.py, run in one shard per node).
+    "5b4c5e": "Intel Xeon server, 1 NUMA node (21 cores)",
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
     "b281b2": "Apple M4 laptop",
@@ -33,6 +36,7 @@ GPU_NAMES = {
 HARDWARE_PLATFORMS = {
     "3b5e61": "linux-64",
     "534824": "linux-64",
+    "5b4c5e": "linux-64",
     "be1055": "linux-64",
     "b281b2": "osx-arm64",
     "5dcf30": "win-64",

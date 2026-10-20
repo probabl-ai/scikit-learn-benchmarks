@@ -168,6 +168,7 @@ wrapped_estimators = {
     ("xgboost", "XGBRegressor"): "gbdt_xgboost.XGBRegressor",
     ("catboost", "CatBoostClassifier"): "gbdt_catboost.CatBoostClassifier",
     ("catboost", "CatBoostRegressor"): "gbdt_catboost.CatBoostRegressor",
+    ("glum", "GeneralizedLinearClassifier"): "glum_glm.GeneralizedLinearClassifier",
 }
 
 

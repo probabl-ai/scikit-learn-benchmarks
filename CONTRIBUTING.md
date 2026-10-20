@@ -59,6 +59,8 @@ The project uses these Pixi environments:
 - `intel`: scikit-learn-intelex on CPU and GPU
 - `gbdt`: conda-forge scikit-learn with XGBoost, LightGBM and CatBoost, for
   comparing gradient boosting libraries (`configs/gbdt_pareto.py`)
+- `glm`: conda-forge scikit-learn on MKL with glum, for comparing linear
+  model solvers (`configs/linear_pareto.py`). Linux only.
 - `reporting`: dashboard generation and reporting utilities
 - `sklearn-cf-*`: conda-forge scikit-learn builds with different BLAS/OpenMP
   backends (see the `[environments]` table in `pixi.toml` for the exact

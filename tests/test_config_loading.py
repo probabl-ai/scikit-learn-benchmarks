@@ -30,6 +30,7 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/gbdt_pareto.py"): [*SKLEARN_ENVS, "gbdt"],
     Path("configs/gbdt_pareto_force_active_wait.py"): [*SKLEARN_ENVS, "gbdt"],
     Path("configs/gbdt_pareto_single_thread.py"): [*SKLEARN_ENVS, "gbdt"],
+    Path("configs/linear_pareto.py"): [*SKLEARN_ENVS, "glm"],
 }
 
 

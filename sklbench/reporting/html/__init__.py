@@ -7,6 +7,7 @@ from .blocks import (
 from .plot import (
     SERIES_COLORS,
     format_duration_ms,
+    ladder_plot_html,
     pareto_plot_html,
     phase_breakdown_plot_html,
     phase_variant_speedup_plot_html,
@@ -30,6 +31,7 @@ __all__ = [
     "SERIES_COLORS",
     "assemble_plots_in_grid",
     "format_duration_ms",
+    "ladder_plot_html",
     "pareto_plot_html",
     "phase_breakdown_plot_html",
     "phase_variant_speedup_plot_html",
