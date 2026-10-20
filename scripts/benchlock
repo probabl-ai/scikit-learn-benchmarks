@@ -17,7 +17,7 @@ if [ -d /run/lock ]; then
 else
     LOCK_DIR=${BENCHLOCK_DIR:-/var/tmp/sklbench}
 fi
-HOSTS=${BENCHLOCK_HOSTS:-"local intel-gnr intel-laptop"}
+HOSTS=${BENCHLOCK_HOSTS:-"local intel-xeon intel-laptop"}
 
 usage() {
     cat <<'EOF'
@@ -32,7 +32,7 @@ Usage:
   benchlock status [--all-hosts]
       Show this machine's slots and who holds them. --all-hosts runs this
       script over ssh on every host of $BENCHLOCK_HOSTS (default:
-      "local intel-gnr intel-laptop").
+      "local intel-xeon intel-laptop").
 
 Slots:
   all      the whole machine
@@ -51,7 +51,7 @@ die() {
 }
 
 # One "socket<TAB>comma-separated NUMA nodes" line per socket. Several nodes
-# per socket happen with sub-NUMA clustering (intel-gnr has 4 per socket).
+# per socket happen with sub-NUMA clustering (intel-xeon has 4 per socket).
 socket_nodes() {
     local n cpu
     for n in /sys/devices/system/node/node[0-9]*; do

@@ -12,7 +12,7 @@ usage() {
     echo "  form (see run.sh --help)." >&2
     echo "" >&2
     echo "  --config PATH    benchmark config script (required)" >&2
-    echo "  --runner RUNNER  intel-laptop (default) | intel-gnr | both" >&2
+    echo "  --runner RUNNER  intel-laptop (default) | intel-xeon | both" >&2
     echo "  --branch BRANCH  dispatch off BRANCH instead of main. Requires you to be" >&2
     echo "                   checked out on BRANCH and for it to be up to date with" >&2
     echo "                   its remote tracking branch." >&2
