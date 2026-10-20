@@ -113,7 +113,39 @@ ABOUT_HTML = """<section class="panel">
     <p>Both libraries come from <dfn>conda-forge</dfn> and share the
     <dfn>MKL</dfn> build of <dfn>BLAS</dfn>, the fastest one for
     scikit-learn's linear models. Every library uses its default number of
-    <dfn>threads</dfn>.</p>
+    <dfn>threads</dfn>. On the Xeon server, the cases run in 8 processes at
+    once, each pinned to 21 cores and the memory of one of its 8
+    <dfn>NUMA nodes</dfn>.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases, on one NUMA node of the Xeon server:</p>
+    <ul>
+      <li><b>glum</b>'s default solver (irls-ls) reaches a suboptimality
+      below 1e-8 at its default tolerance, and is the fastest to get there on
+      3 of the 4 binary and Poisson problems: ~1.4x to 2.6x faster than
+      <b>scikit-learn</b>'s newton-cholesky, its fastest solver on them. On
+      kddcup09_churn (~2,200 features), newton-cholesky is ~1.2x faster.</li>
+      <li><b>scikit-learn</b>'s default solver, lbfgs, stops at a
+      suboptimality of ~3e-4 to ~6e-3 at its default tolerance (apart from
+      the Gamma problem below). That costs up to 0.14% of test loss on the
+      binary and Poisson problems, and 0.5% to 1% on the multiclass ones.
+      Reaching 1e-8 with lbfgs takes ~1.3x to ~40x longer than with
+      <b>glum</b>'s irls-ls on the binary and Poisson problems.</li>
+      <li>On the Gamma problem, <b>scikit-learn</b>'s lbfgs stops after 1
+      iteration at every tolerance, ~2% above the optimum, without a warning.
+      Its first line search step overflows the loss on the target-encoded
+      columns (in the thousands), and L-BFGS-B then reports convergence.
+      newton-cholesky and <b>glum</b> converge in ~0.01s.</li>
+      <li>For multinomial logistic regression (<b>glum</b> has none),
+      newton-cg is the fastest <b>scikit-learn</b> solver on letters (26
+      classes), and newton-cholesky is ~15x slower, as its Hessian grows with
+      the square of the number of classes. On covtype, sag, saga, newton-cg
+      and newton-cholesky are within ~1.2x of each other, and lbfgs is ~3x
+      slower.</li>
+      <li><b>scikit-learn</b>'s sag and saga are ~4x to ~140x slower than
+      newton-cholesky to reach 1e-4 on the binary problems.</li>
+    </ul>
   </details>
 </section>"""
 
@@ -346,13 +378,14 @@ def _failure_reason(record: BenchmarkRecord) -> str:
 
 
 def _failed_cases_html(hw_records: list[BenchmarkRecord]) -> str:
-    failed = [record for record in hw_records if record.failed_case is not None and not record.runs]
+    failed = [record for record in hw_records if record.failed_case is not None]
     if not failed:
         return ""
     key = lambda r: (_label_sort_key(_series_label(r)), _dataset(r), str(_tol(r)))
     items = "".join(
         f"<li>{escape(_series_label(record))} / {escape(_dataset(record))} "
-        f"(tol {escape(str(_tol(record)))}): {escape(_failure_reason(record))}</li>"
+        f"(tol {escape(str(_tol(record)))}, {len(record.runs)} runs done): "
+        f"{escape(_failure_reason(record))}</li>"
         for record in sorted(failed, key=key)
     )
     return f'<section class="panel"><h3>Failed cases</h3><ul class="compact">{items}</ul></section>'
@@ -376,7 +409,9 @@ def render_tab_page(tab_records: list[BenchmarkRecord], best: dict, colors: dict
 
     by_dataset: dict[str, list[BenchmarkRecord]] = {}
     for record in tab_records:
-        if record.runs:
+        # A case that timed out keeps the runs it finished, on fewer splits
+        # than the others, so its medians aren't comparable.
+        if record.runs and record.failed_case is None:
             by_dataset.setdefault(_dataset(record), []).append(record)
     cells = [
         cell_html

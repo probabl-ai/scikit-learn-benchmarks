@@ -174,6 +174,11 @@ TERMS = {
         "take longer.",
         aliases=("tolerance",),
     ),
+    "numa nodes": Term(
+        "Groups of CPU cores with their own memory controllers. A core reads "
+        "the memory of its own node faster than that of other nodes.",
+        aliases=("numa node",),
+    ),
     "suboptimality": Term(
         "How much higher the training objective of a fit is than the best one "
         "found by any solver on the same data, relative to that best one. "

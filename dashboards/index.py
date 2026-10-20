@@ -94,7 +94,8 @@ DASHBOARD_DESCRIPTIONS = {
 }
 
 # Machines that are benchmarked but not presented on the index page.
-INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30"}
+# 5b4c5e is a part of the Xeon server (534824).
+INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30", "5b4c5e"}
 
 
 def _hardware_overview_html() -> str:
