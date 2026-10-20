@@ -4,7 +4,19 @@
 # machine with scripts/install_benchlock.sh.
 set -euo pipefail
 
-LOCK_DIR=${BENCHLOCK_DIR:-/run/lock/sklbench}
+# The lock fds need bash 4.1 ({fd} redirections), macOS ships 3.2.
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    echo "benchlock: needs bash >= 4.1 first on the PATH (on macOS: pixi global install bash)" >&2
+    exit 2
+fi
+
+# macOS has no /run/lock. /var/tmp, unlike /tmp, isn't cleaned periodically:
+# deleting a lock file while it is held would let a second holder in.
+if [ -d /run/lock ]; then
+    LOCK_DIR=${BENCHLOCK_DIR:-/run/lock/sklbench}
+else
+    LOCK_DIR=${BENCHLOCK_DIR:-/var/tmp/sklbench}
+fi
 HOSTS=${BENCHLOCK_HOSTS:-"local intel-xeon intel-laptop"}
 
 usage() {
@@ -176,6 +188,14 @@ cmd_status() {
     done
 }
 
+# A Mac goes to idle sleep after a few minutes even while a command started
+# over ssh is running. caffeinate -w prevents it until PID $1 exits.
+keep_awake() {
+    if command -v caffeinate >/dev/null; then
+        caffeinate -i -w "$1" </dev/null >/dev/null 2>&1 &
+    fi
+}
+
 cmd_hold() {
     local pid sock
     LOCK_FDS=()
@@ -184,9 +204,11 @@ cmd_hold() {
         acquire "$sock" -1
     done
     # The detached process inherits the lock fds, so the locks outlive this
-    # shell. setsid keeps it out of the step's process group.
-    setsid sleep infinity </dev/null >/dev/null 2>&1 &
+    # shell. setsid keeps it out of the step's process group. BSD sleep
+    # doesn't take "infinity".
+    setsid sleep 2147483647 </dev/null >/dev/null 2>&1 &
     pid=$!
+    keep_awake "$pid"
     for sock in $SOCKETS; do
         write_holder "$sock" "$pid"
     done
@@ -199,6 +221,7 @@ cmd_run() {
     HOLDER_CMD="$*"
     HELD_SOCKETS=()
     trap remove_holders EXIT
+    keep_awake $$
     for sock in $SOCKETS; do
         acquire "$sock" "$WAIT"
         HELD_SOCKETS+=("$sock")
