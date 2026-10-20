@@ -4,6 +4,7 @@ import itertools
 import json
 import math
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -411,6 +412,15 @@ class ColumnGroupSpec:
     allowed_keys: list[str] | None = None
 
 
+# Row field prefix -> (column label, fit attribute in seconds), for
+# estimators whose wrapper times the phases of their fit (see
+# sklbench/runners/estimator/wrappers/instrumented_kmeans.py).
+FIT_PHASES = {
+    "init": ("init", "init_time"),
+    "lloyd": ("Lloyd", "lloyd_time"),
+}
+
+
 COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "comparison_key",
@@ -493,9 +503,26 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
         sorter="number",
         formatter_name="speedup",
     ),
+    # Fit phases recorded by instrumented estimators (see `FIT_PHASES`).
+    *[
+        ColumnSpec(
+            f"{label} {suffix}",
+            f"{phase}_{kind}",
+            visibility=ColumnVisibility.IF_ANY,
+            header_filter=False,
+            sorter="number",
+            formatter_name=formatter,
+        )
+        for phase, (label, _) in FIT_PHASES.items()
+        for suffix, kind, formatter in [
+            ("time", "time", "duration"),
+            ("speed up", "speedup", "speedup"),
+        ]
+    ],
     ColumnSpec(
         "predict time",
         "predict_time",
+        visibility=ColumnVisibility.IF_ANY,
         header_filter=False,
         sorter="number",
         formatter_name="duration",
@@ -503,6 +530,7 @@ COLUMNS: list[ColumnSpec | ColumnGroupSpec] = [
     ColumnSpec(
         "predict speed up",
         "predict_speedup",
+        visibility=ColumnVisibility.IF_ANY,
         header_filter=False,
         sorter="number",
         formatter_name="speedup",
@@ -566,6 +594,7 @@ def _base_row(
         "n_iter": None,
         "fit_time": None,
         "fit_speedup": None,
+        **{f"{phase}_{kind}": None for phase in FIT_PHASES for kind in ["time", "speedup"]},
         "predict_time": None,
         "predict_speedup": None,
         "roc_auc": None,
@@ -660,26 +689,50 @@ def _format_n_iter(result: MethodResult, base_result: MethodResult | None) -> st
     return label
 
 
-def _speedup(base_result: MethodResult, result: MethodResult) -> float | None:
-    result_time = median(result.times)
+def _speedup(base_times: list[float], times: list[float]) -> float | None:
+    result_time = median(times)
     if result_time == 0:
         return math.inf
-    return median(base_result.times) / result_time
+    return median(base_times) / result_time
 
 
 def _speedup_interval(
-    base_result: MethodResult, result: MethodResult
+    base_times: list[float], times: list[float]
 ) -> tuple[float, float] | None:
     """Speed-up range spanned by the interquartile ranges of both sides'
     repeat times. Always contains `_speedup`; its width is what the table's
     speed-up formatter (templates.py) uses to show the value as noisy."""
-    if len(base_result.times) < 3 or len(result.times) < 3:
+    if len(base_times) < 3 or len(times) < 3:
         return None
-    base_q1, _, base_q3 = quantiles(base_result.times, n=4, method="inclusive")
-    q1, _, q3 = quantiles(result.times, n=4, method="inclusive")
+    base_q1, _, base_q3 = quantiles(base_times, n=4, method="inclusive")
+    q1, _, q3 = quantiles(times, n=4, method="inclusive")
     if q1 <= 0 or base_q1 <= 0:
         return None
     return base_q1 / q3, base_q3 / q1
+
+
+def _add_times(
+    row: dict,
+    field: str,
+    times: list[float],
+    base_times: list[float] | None,
+    is_baseline: bool,
+) -> None:
+    """Sets `<field>_time` and, given the baseline's times, `<field>_speedup`
+    with its `_low`/`_high` interval (none for the baseline row itself)."""
+    row[f"{field}_time"] = median(times)
+    if base_times is None:
+        return
+    row[f"{field}_speedup"] = _speedup(base_times, times)
+    interval = None if is_baseline else _speedup_interval(base_times, times)
+    if interval is not None:
+        row[f"{field}_speedup_low"], row[f"{field}_speedup_high"] = interval
+
+
+def _phase_times(result: MethodResult, attribute: str) -> list[float] | None:
+    """Per-repeat times of one fit phase, in ms like `MethodResult.times`."""
+    values = [v for v in result.attributes.get(attribute, []) if isinstance(v, (int, float))]
+    return [1000 * v for v in values] or None
 
 
 # Row field -> test metric name. Both are higher-is-better.
@@ -723,6 +776,7 @@ def _add_result_method(
     env_label: Callable[[MethodResult | BenchmarkRecord], str] | None = None,
     is_baseline: bool = False,
     scores_comparable: Callable[[MethodResult, MethodResult], bool] | None = None,
+    fit_phases: Collection[str] = tuple(FIT_PHASES),
 ):
     key = _row_key(result, variant)
     row = rows.setdefault(
@@ -744,17 +798,24 @@ def _add_result_method(
         row["n_samples"] = result.data_desc.get("samples")
         row["n_features"] = result.data_desc.get("features")
         row["n_iter"] = _format_n_iter(result, base_result)
-    row[f"{method}_time"] = median(result.times)
-    row[f"{method}_speedup"] = (
-        _speedup(base_result, result) if base_result is not None else None
+    is_base_row = base_result is result
+    _add_times(
+        row,
+        method,
+        result.times,
+        base_result.times if base_result is not None else None,
+        is_base_row,
     )
-    interval = (
-        _speedup_interval(base_result, result)
-        if base_result is not None and base_result is not result
-        else None
-    )
-    if interval is not None:
-        row[f"{method}_speedup_low"], row[f"{method}_speedup_high"] = interval
+    if method != "fit":
+        return
+    for phase in fit_phases:
+        times = _phase_times(result, FIT_PHASES[phase][1])
+        if times is None:
+            continue
+        base_times = (
+            _phase_times(base_result, FIT_PHASES[phase][1]) if base_result is not None else None
+        )
+        _add_times(row, phase, times, base_times, is_base_row)
 
 
 def _column_dict(
@@ -894,7 +955,10 @@ def detailed_results_table_html(
     default_variant_filter: str | None = None,
     json_url_fn: Callable[[Path], str | None] = json_viewer_url,
     profile_url_fn: Callable[[Path], str | None] = profile_viewer_url,
+    fit_phases: Collection[str] = tuple(FIT_PHASES),
 ) -> str:
+    """`fit_phases` selects the `FIT_PHASES` columns to fill. The others stay
+    empty, and so hidden."""
     rows_by_key: dict[str, dict] = {}
 
     resolve_baseline_label = (
@@ -915,6 +979,7 @@ def detailed_results_table_html(
                 profile_url_fn=profile_url_fn,
                 hardware_label=hardware_label,
                 env_label=env_label,
+            fit_phases=fit_phases,
                 is_baseline=True,
             )
             _add_result_method(
@@ -927,6 +992,7 @@ def detailed_results_table_html(
                 profile_url_fn=profile_url_fn,
                 hardware_label=hardware_label,
                 env_label=env_label,
+            fit_phases=fit_phases,
                 scores_comparable=scores_comparable,
             )
 
@@ -953,6 +1019,7 @@ def detailed_results_table_html(
             profile_url_fn=profile_url_fn,
             hardware_label=hardware_label,
             env_label=env_label,
+            fit_phases=fit_phases,
             is_baseline=True,
         )
 
@@ -966,6 +1033,7 @@ def detailed_results_table_html(
             profile_url_fn=profile_url_fn,
             hardware_label=hardware_label,
             env_label=env_label,
+            fit_phases=fit_phases,
         )
 
     if not rows_by_key:
@@ -973,8 +1041,13 @@ def detailed_results_table_html(
 
     # Every ColumnGroupSpec (hyperparams, env vars) expands into one
     # Tabulator field per key that varies across rows - resolved once here,
-    # then applied uniformly when flattening each row below.
+    # then applied uniformly when flattening each row below. A key that only
+    # changes along with the Env column (e.g. a thread cap set for one BLAS)
+    # is left out: it would repeat what that column already tells apart.
     column_groups = [spec for spec in COLUMNS if isinstance(spec, ColumnGroupSpec)]
+    rows_by_env: dict[str | None, list[dict]] = {}
+    for row in rows_by_key.values():
+        rows_by_env.setdefault(row["env"], []).append(row)
     # The "OMP active wait" column already shows these env vars, with the
     # build's default when the case doesn't set them.
     omp_active_wait_spec = next(
@@ -998,7 +1071,10 @@ def detailed_results_table_html(
         varying_names = [
             name
             for name in candidate_keys
-            if len({_format_value(raw.get(name)) for raw in raw_dicts}) > 1
+            if any(
+                len({_format_value(row[group_key].get(name)) for row in env_rows}) > 1
+                for env_rows in rows_by_env.values()
+            )
             and not (group.field_prefix == "env" and name in hidden_env_names)
         ]
         group_fields[group.field_prefix] = {
