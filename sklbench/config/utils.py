@@ -169,12 +169,11 @@ _CUML_ESTIMATORS = {
     "KMeans",
 }
 
-# The synthetic linear grid runs LogisticRegression three times, once per
-# solver name. The cuML wrapper maps every one of those names onto solver
-# "qn", so the newton variants would time the same algorithm as lbfgs.
-# Real-dataset cases are recognized by data["dataset"] and are kept even
-# when they request newton-cholesky: both libraries ask for that name.
-_DROPPED_SYNTHETIC_CUML_LR_SOLVERS = {"newton-cg", "newton-cholesky"}
+# The synthetic LogisticRegression cases are generated once per solver name (lbfgs,
+# newton-cg, newton-cholesky). The cuML wrapper runs solver `qn` for every name, so we
+# drop the two Newton cases. Real datasets set data["dataset"] and are kept. When one of
+# them asks for newton-cholesky, scikit-learn runs it and cuML still runs qn.
+_DROPPED_REDUNDANT_CUML_LR_SOLVERS = {"newton-cg", "newton-cholesky"}
 
 
 def is_cuml_supported_case(case: dict | EstimatorCase) -> bool:
@@ -199,7 +198,7 @@ def is_cuml_supported_case(case: dict | EstimatorCase) -> bool:
     if estimator not in _CUML_ESTIMATORS:
         return False
     if estimator == "LogisticRegression" and dataset is None:
-        if solver in _DROPPED_SYNTHETIC_CUML_LR_SOLVERS:
+        if solver in _DROPPED_REDUNDANT_CUML_LR_SOLVERS:
             return False
     return True
 
