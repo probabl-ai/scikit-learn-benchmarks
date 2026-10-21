@@ -25,7 +25,8 @@ path (`kick`'s second LogisticRegression case below), which opts in via
 
 The clustering cases (`sift`, `nytimes_256`, `fashion_mnist_784`) are dense
 embedding datasets from ann-benchmarks.com and only get a single KMeans
-case each, run at library-default hyperparameters aside from `n_clusters`:
+case each, run at library-default hyperparameters aside from `n_clusters`
+and a fixed number of iterations (`tol=0`, `max_iter=100`):
 unlike the linear/tree cases above, the interesting axis here is
 n_samples/n_clusters, not per-model hyperparameter tuning.
 """
@@ -50,6 +51,7 @@ if cpu_count() > 64:
     _KMEANS_ENV["OMP_NUM_THREADS"] = "64"
     _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "64"
 KMEANS_BENCH = {"env": _KMEANS_ENV}
+_KMEANS_PARAMS = {"tol": 0, "max_iter": 100}
 
 # Forests run with n_jobs=-1, as most users would: one thread per logical CPU.
 N_THREADS = cpu_count()
@@ -601,20 +603,20 @@ def sift(implem: dict):
     # KMeans, full dataset, few clusters: ~3s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10},
+        "estimator_params": {"n_clusters": 10, **_KMEANS_PARAMS},
         "tier": "fast",
         "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~29s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100},
+        "estimator_params": {"n_clusters": 100, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
     # n_samples/n_clusters ~= 100 (10000/100).
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 1000},
+        "estimator_params": {"n_clusters": 1000, **_KMEANS_PARAMS},
         "split_kwargs": {"train_size": 100000, "test_size": 1000},
         "bench": KMEANS_BENCH,
     }
@@ -630,13 +632,13 @@ def nytimes_256(implem: dict):
     # KMeans, full dataset, few clusters: ~2s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10},
+        "estimator_params": {"n_clusters": 10, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~15s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100},
+        "estimator_params": {"n_clusters": 100, **_KMEANS_PARAMS},
         "tier": "normal",
         "bench": KMEANS_BENCH,
     }
@@ -649,7 +651,7 @@ def fashion_mnist_784(implem: dict):
     # default. KMeans, full dataset, many clusters: ~7.5s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100},
+        "estimator_params": {"n_clusters": 100, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
 
@@ -665,13 +667,13 @@ def road_network_points(implem: dict):
     # KMeans, full dataset, few clusters: ~0.2s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10},
+        "estimator_params": {"n_clusters": 10, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~14s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 1000},
+        "estimator_params": {"n_clusters": 1000, **_KMEANS_PARAMS},
         "tier": "normal",
         "bench": KMEANS_BENCH,
     }
