@@ -51,7 +51,7 @@ if cpu_count() > 64:
     _KMEANS_ENV["OMP_NUM_THREADS"] = "64"
     _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "64"
 KMEANS_BENCH = {"env": _KMEANS_ENV}
-_KMEANS_PARAMS = {"tol": 0, "max_iter": 100}
+_KMEANS_PARAMS = {"tol": 1e-9, "max_iter": 100}
 
 # Forests run with n_jobs=-1, as most users would: one thread per logical CPU.
 N_THREADS = cpu_count()
