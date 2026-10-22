@@ -26,7 +26,7 @@ path (`kick`'s second LogisticRegression case below), which opts in via
 The clustering cases (`sift`, `nytimes_256`, `fashion_mnist_784`) are dense
 embedding datasets from ann-benchmarks.com and only get a single KMeans
 case each, run at library-default hyperparameters aside from `n_clusters`
-and a fixed number of iterations (`tol=0`, `max_iter=100`):
+and a fixed number of iterations (`tol=1e-9`, `max_iter=100`):
 unlike the linear/tree cases above, the interesting axis here is
 n_samples/n_clusters, not per-model hyperparameter tuning.
 """
