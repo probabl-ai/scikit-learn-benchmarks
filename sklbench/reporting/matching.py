@@ -193,7 +193,8 @@ class MethodResult:
         never makes sense to compare them.
 
         `source_config` is excluded so that a subset config (e.g.
-        configs/all_models_16gb.py) matches its parent's identical cases.
+        configs/all_models_16gb.py or configs/all_models_cuml_only.py)
+        matches its parent's identical cases.
         """
         case = without_keys(
             self.case,

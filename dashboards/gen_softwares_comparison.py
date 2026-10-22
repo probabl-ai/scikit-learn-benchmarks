@@ -118,6 +118,12 @@ ABOUT_HTML = """<section class="panel">
           scikit-learn with NumPy.</li>
         </ul>
       </li>
+      <li>cuML <b>LogisticRegression</b> always runs the quasi-Newton <dfn>solver</dfn>
+      <code>qn</code> (L-BFGS or OWL-QN). The point label can still say
+      <code>lbfgs</code>, <code>newton-cg</code>, or <code>newton-cholesky</code>:
+      the wrapper maps every one of those names onto <code>qn</code>. On the
+      cuML side, the three synthetic solver cases time the same algorithm.
+      scikit-learn runs the named solver.</li>
     </ul>
   </details>
 </section>"""
