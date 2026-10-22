@@ -18,6 +18,9 @@ RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
 # versions, so a driver update alone mints a new hash.
 HARDWARE_HASH_ALIASES = {
     "37bc7b": "3b5e61",  # Intel Core Ultra laptop, Level Zero 1.15 -> 1.17
+    # Xeon server, captured by orchestrators pinned to one core
+    # (gbdt_pareto_single_thread.py), which see 1 physical core.
+    "7e7d2b": "534824",
 }
 METRIC_ABS_TOLERANCE_FLOOR = 0.01
 METRIC_REL_TOLERANCE_FLOOR = 0.01
