@@ -334,6 +334,25 @@ def _openmp_runtime_family(info: dict) -> str:
     return "unknown OpenMP runtime"
 
 
+# threadpoolctl prefixes of the OpenMP libraries that print KMP_* variables
+_KMP_RUNTIME_NAMES = {"libomp": "LLVM OpenMP", "libiomp": "Intel OpenMP"}
+
+
+def _openmp_runtime_name(env: dict) -> str:
+    """`_openmp_runtime_family`, naming the runtime when the env loaded only
+    one of LLVM's libomp or Intel's libiomp5: their OMP_DISPLAY_ENV dumps are
+    the same, so only the loaded libraries tell them apart."""
+    family = _openmp_runtime_family(env["openmp_runtime_info"])
+    if family != "Intel/LLVM OpenMP":
+        return family
+    names = {
+        _KMP_RUNTIME_NAMES.get(info.get("prefix"))
+        for info in env.get("threadpool_info", [])
+        if info.get("user_api") == "openmp"
+    } - {None}
+    return names.pop() if len(names) == 1 else family
+
+
 @lru_cache(maxsize=None)
 def openmp_runtime_family(software_hash: str) -> str:
     """Which OpenMP runtime a software build links against ("GNU libgomp",
@@ -443,7 +462,7 @@ def _openmp_summary(env: dict, case_env: dict | None = None) -> list[str]:
     info = env.get("openmp_runtime_info")
     if not info:
         return []
-    label = _openmp_runtime_family(info)
+    label = _openmp_runtime_name(env)
     spec_code = _openmp_env_value(info, "_OPENMP")
     if spec_code:
         spec_version = _OPENMP_SPEC_VERSIONS.get(spec_code)
