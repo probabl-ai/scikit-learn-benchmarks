@@ -21,6 +21,7 @@ on:
           - intel-laptop
           - intel-xeon
           - both
+          - aws-nvidia-l4
       config:
         description: >
           Path to a benchmark config script, e.g. configs/all_models.py.
@@ -49,9 +50,13 @@ jobs:
     # runner labels. intel-laptop is registered org-wide (same physical box
     # array-api-intel.yml targets as its float64-gpu runner_labels).
     # intel-xeon is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
+    # aws-nvidia-l4 is a persistent EC2 g6.xlarge (4 vCPU, 16 GiB RAM,
+    # 1x L4 24 GB). It is always dispatched alone: see the matrix comment
+    # above, and the provision/runner-ready jobs that wake the instance.
     runs-on: ${{ fromJSON(
       matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
       matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
+      matrix.runner == 'aws-nvidia-l4' && '["self-hosted","Linux","X64","aws-nvidia-l4"]' ||
       '[]') }}
     # Default job timeout is 360 min (6h), too short for a full run of
     # configs/all_models.py across all envs on this self-hosted runner.
@@ -108,6 +113,14 @@ jobs:
               # Intel GPU - unlike `intel`'s scikit-learn-intelex-gpu, which
               # falls back to CPU gracefully.
               all_envs="sklearn-pypi intel skl-cpu"
+              ;;
+            aws-nvidia-l4)
+              # Everything this host can actually run: PyPI sklearn, its own
+              # CPU builds, the NVIDIA/CuPy GPU stack, and Intel's CPU
+              # extensions. No skl-intel (no Intel GPU), no skl-mps (osx-only),
+              # no sklearn-dev* (same as every other `[all]`). Default runs
+              # should use configs/all_models_16gb.py: the host has 16 GiB.
+              all_envs="sklearn-pypi skl-cpu skl-nvidia intel"
               ;;
             *)
               echo "::error::no [all] mapping defined for runner '$BENCH_RUNNER'"
