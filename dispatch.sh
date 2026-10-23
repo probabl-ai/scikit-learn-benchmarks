@@ -154,14 +154,12 @@ fi
 # per-env rather than under a single fixed environment.
 #
 # The workflow re-validates on the benchmark host before running, so this is
-# only a fast local feedback loop. Skip it where it cannot work: skl-nvidia's
-# CUDA platform only resolves on a GPU host, and an AWS dispatch is validated
-# there anyway.
-skip_local_validation=false
-if [ "$runner" = "aws-nvidia-l4" ]; then
-    skip_local_validation=true
-fi
-
+# only a fast local feedback loop. Skip it where it cannot work: the
+# skl-nvidia environment can only be installed on a machine with a CUDA GPU,
+# and installing it just to check a config would pull a multi-GB CUDA stack.
+# The workflow validates it on the benchmark host instead. CPU-only
+# environments are still validated here when they are named explicitly;
+# [all]/[builds] are resolved per runner by the workflow and validated there.
 validated=()
 for env in "${real_envs[@]}"; do
     already_validated=false
@@ -176,7 +174,7 @@ for env in "${real_envs[@]}"; do
     fi
     validated+=("$env")
 
-    if [ "$skip_local_validation" = true ] || [ "$env" = "skl-nvidia" ]; then
+    if [ "$env" = "skl-nvidia" ]; then
         echo "note: skipping local validation for '$env' (validated on the benchmark host)" >&2
         continue
     fi
