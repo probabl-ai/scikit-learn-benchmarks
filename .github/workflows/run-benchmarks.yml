@@ -202,15 +202,19 @@ jobs:
         # Runs even when an earlier step failed (bad role ARN, failed waiter,
         # ...): a provisioning error must not leave `runner-ready` queued
         # until GitHub's 24h queue timeout. Cancelling an already-cancelled
-        # or already-finished run is harmless.
+        # or already-finished run is harmless. Non-fatal on purpose: this is
+        # a backstop and must not turn a successful provision into a failure
+        # if the jobs API hiccups.
         if: always()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           status="$(gh api \
             "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
-            --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')"
+            --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
+            || status="unknown"
           if [ "$status" = "queued" ] || [ "$status" = "missing" ]; then
             echo "::error::cancelling the run: runner-ready is still $status"
             gh api -X POST \
