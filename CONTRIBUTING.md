@@ -187,6 +187,90 @@ first on the PATH of non-interactive ssh commands:
 `pixi global install bash util-linux --expose flock=flock --expose setsid=setsid`,
 with `~/.pixi/bin` and `~/.local/bin` added to the PATH in `~/.zshenv`.
 
+The `aws-nvidia-l4` runner is exempt: it is dedicated to
+`run-benchmarks.yml` and has a single job slot, so the workflow skips
+`benchlock` there.
+
+## GPU Benchmarks on the AWS Host
+
+The NVIDIA L4 results come from the same `run-benchmarks.yml` workflow, with
+`--runner aws-nvidia-l4`. The machine is a persistent `g6.xlarge` (4 vCPU,
+16 GiB RAM, 1x L4 24 GB) that an AWS inactivity rule stops when idle. CI only
+starts it; it never stops it.
+
+```bash
+./dispatch.sh '[all]' --config configs/all_models_16gb.py --runner aws-nvidia-l4
+```
+
+- `[all]` on this host is `sklearn-pypi skl-cpu skl-nvidia intel`. `[builds]`
+  works but is opt-in. `skl-intel` is absent (no Intel GPU); `skl-mps` and
+  `sklearn-dev*` are never part of `[all]` on any host.
+- Use `configs/all_models_16gb.py`: 16 GiB of RAM cannot run the largest
+  `configs/all_models.py` cases. `--validate-only` and
+  `--load-datasets-only` are useful pre-checks.
+- Dispatch it alone. There is deliberately no `all` runner choice, and
+  `dispatch.sh` refuses a second AWS dispatch while one is still active.
+
+### How the wake-up works
+
+`provision` (GitHub-hosted) assumes an AWS role through OIDC, starts the
+instance if it is stopped, and polls this run's jobs API. The `runner-ready`
+job (`self-hosted, Linux, X64, aws-nvidia-l4`) is queued from the start; once
+a runner picks it up, `nvidia-smi -L` checks the GPU and the benchmark job
+starts. If the gate job is still queued after 15 minutes, `provision` cancels
+the run, so it cannot sit in the queue for GitHub's 24-hour limit. The
+benchmark job itself holds no AWS credentials.
+
+The config is validated on the host before benchmarking (`--validate-only`,
+once per installed environment), which is also why `dispatch.sh` skips that
+step for AWS dispatches.
+
+### Runner registration and IAM (one-time, org admin)
+
+Register the runner **at organization level**, in a dedicated runner group
+whose *Workflow access* is *Selected workflows*, listing:
+
+```
+probabl-ai/scikit-learn-benchmarks/.github/workflows/run-benchmarks.yml@refs/heads/main
+```
+
+During a rollout, add the same workflow file at the rollout branch's ref.
+Repo-level runners have no workflow allowlist and are not acceptable for this
+public repository. Labels: `aws-nvidia-l4` (`self-hosted`, `Linux` and `X64`
+are added automatically). Install it as a boot-enabled service. It is not
+ephemeral: `.pixi/` and `data_cache/` are kept between runs.
+
+AWS side:
+
+- Repository variables: `AWS_GPU_INSTANCE_ID`, `AWS_GPU_ROLE_ARN`,
+  `AWS_REGION`.
+- Trust the GitHub OIDC provider with `aud = sts.amazonaws.com`, `sub`
+  (`repo:probabl-ai/scikit-learn-benchmarks:ref:refs/heads/main` without an
+  environment, or `...:environment:aws-gpu` with one), `workflow_ref` pinned
+  to the same workflow file and ref, and `event_name = workflow_dispatch`.
+  Mirror the immutable `owner@id/repo@id` subject format if the existing
+  role already uses it.
+- The permission policy should only allow `ec2:DescribeInstances` and
+  `ec2:StartInstances` on that instance. No SSM, no terminate, no
+  `iam:PassRole`.
+- Optionally, an `aws-gpu` GitHub environment with a branch policy and
+  required reviewers adds a human gate. Add `environment: aws-gpu` to the
+  `provision` job and include the environment in the IAM `sub` condition.
+
+The host needs `git-lfs`, pixi (>= 0.75), a recent NVIDIA driver (CUDA 12.9
+for the `linux-64-cuda-12-9` platform), and enough disk for `.pixi/` and
+`data_cache/`.
+
+### Caveats
+
+- Cloud CPU numbers are noisy and slower than the dedicated Intel boxes.
+  They are tagged with their own hardware hash and shown in their own
+  dashboard tab; don't mix them into CPU comparisons.
+- The instance is billed while it runs, and a full `[all]` run takes hours.
+  Keep runs inside the inactivity window and prefer separate `[all]` and
+  `[builds]` dispatches over one very long run: results are pushed only at
+  the end, so a box stopped mid-run loses the session.
+
 ## Running Against scikit-learn Branches
 
 To check a performance PR locally, use one of the development Pixi
