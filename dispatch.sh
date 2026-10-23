@@ -12,13 +12,17 @@ usage() {
     echo "  form (see run.sh --help)." >&2
     echo "" >&2
     echo "  --config PATH    benchmark config script (required)" >&2
-    echo "  --runner RUNNER  intel-laptop (default) | intel-xeon | both" >&2
+    echo "  --runner RUNNER  intel-laptop (default) | intel-xeon | both |" >&2
+    echo "                   aws-nvidia-l4. The AWS runner must be dispatched" >&2
+    echo "                   alone (no 'all' choice); use the 16 GiB config," >&2
+    echo "                   e.g. configs/all_models_16gb.py." >&2
     echo "  --branch BRANCH  dispatch off BRANCH instead of main. Requires you to be" >&2
     echo "                   checked out on BRANCH and for it to be up to date with" >&2
     echo "                   its remote tracking branch." >&2
     echo "" >&2
     echo "  Example: $0 sklearn-pypi intel --config configs/smoke_check_test.py" >&2
     echo "  Example: $0 '[all]' --config configs/all_models.py --runner both" >&2
+    echo "  Example: $0 '[all]' --config configs/all_models_16gb.py --runner aws-nvidia-l4" >&2
     echo "  Example: $0 '[all]' --config configs/all_models.py --branch my-feature" >&2
 }
 
@@ -74,6 +78,14 @@ if [ -z "$config" ]; then
     exit 2
 fi
 
+case "$runner" in
+    intel-laptop|intel-xeon|both|aws-nvidia-l4) ;;
+    *)
+        echo "error: unknown --runner '$runner' (expected intel-laptop, intel-xeon, both or aws-nvidia-l4)" >&2
+        exit 2
+        ;;
+esac
+
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [ "$current_branch" != "$branch" ]; then
     echo "error: current branch is '$current_branch', not '$branch'; switch to '$branch' before dispatching (pass --branch to dispatch off a branch other than main)" >&2
@@ -116,10 +128,40 @@ if [ "$status" -ne 0 ]; then
     exit 1
 fi
 
+# An AWS dispatch queues a `runner-ready` gate job on the GPU box before the
+# instance is started. If another AWS dispatch is already active, that gate
+# job would sit behind it and burn this run's readiness window, so refuse
+# early. Only AWS runs matter: an Intel benchmark uses a different runner
+# and is safe to overlap.
+if [ "$runner" = "aws-nvidia-l4" ]; then
+    active_runs="$(gh run list --workflow run-benchmarks.yml --limit 20 \
+        --json databaseId,status \
+        --jq '.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending" or .status == "requested") | .databaseId')"
+    while IFS= read -r run_id; do
+        [ -n "$run_id" ] || continue
+        has_gate_job="$(gh run view "$run_id" --json jobs \
+            --jq '[.jobs[] | select(.name == "runner-ready")] | length > 0')"
+        if [ "$has_gate_job" = "true" ]; then
+            echo "error: AWS benchmark run $run_id is still active; wait for it to finish (or cancel it) before dispatching another one" >&2
+            exit 1
+        fi
+    done <<< "$active_runs"
+fi
+
 # Validate the config under each real pixi environment being dispatched:
 # configs read PIXI_ENVIRONMENT_NAME (via implementations_for_pixi_env) to
 # pick which implementations to generate cases for, so validation has to run
 # per-env rather than under a single fixed environment.
+#
+# The workflow re-validates on the benchmark host before running, so this is
+# only a fast local feedback loop. Skip it where it cannot work: skl-nvidia's
+# CUDA platform only resolves on a GPU host, and an AWS dispatch is validated
+# there anyway.
+skip_local_validation=false
+if [ "$runner" = "aws-nvidia-l4" ]; then
+    skip_local_validation=true
+fi
+
 validated=()
 for env in "${real_envs[@]}"; do
     already_validated=false
@@ -133,6 +175,11 @@ for env in "${real_envs[@]}"; do
         continue
     fi
     validated+=("$env")
+
+    if [ "$skip_local_validation" = true ] || [ "$env" = "skl-nvidia" ]; then
+        echo "note: skipping local validation for '$env' (validated on the benchmark host)" >&2
+        continue
+    fi
 
     echo "=== pixi run --frozen -e $env python -m sklbench --config $config --validate-only ===" >&2
     if ! pixi run --frozen -e "$env" python -m sklbench --config "$config" --validate-only; then
