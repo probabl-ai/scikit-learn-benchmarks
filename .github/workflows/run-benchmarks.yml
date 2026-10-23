@@ -21,6 +21,7 @@ on:
           - intel-laptop
           - intel-xeon
           - both
+          - aws-nvidia-l4
       config:
         description: >
           Path to a benchmark config script, e.g. configs/all_models.py.
@@ -34,7 +35,199 @@ permissions:
   pull-requests: write
 
 jobs:
+  runner-ready:
+    # "Hello World" gate. It is queued as soon as the run starts, on the
+    # self-hosted runner labels, so `provision` can observe when the instance
+    # has booted and the runner has connected. It deliberately has no
+    # `needs`: it must be waiting before the instance is started.
+    #
+    # `timeout-minutes` only bounds execution, not queue time (GitHub allows
+    # a job to stay queued for 24h). The queue bound lives in `provision`,
+    # which cancels the run if this job is still queued after its deadline.
+    if: inputs.runner == 'aws-nvidia-l4'
+    runs-on: ["self-hosted", "Linux", "X64", "aws-nvidia-l4"]
+    timeout-minutes: 5
+    # No repository access is needed here, and this runs on the GPU box:
+    # don't hand it a write-scoped token.
+    permissions: {}
+    steps:
+      - name: Confirm the runner is online
+        run: |
+          echo "runner online on $(hostname)"
+          nvidia-smi -L
+
+  provision:
+    # GitHub-hosted job that wakes the EC2 instance and waits for the runner
+    # above to pick up its job. It holds the run's only AWS credentials:
+    # `id-token: write` is scoped to this job, so the benchmark job (and any
+    # Python it runs from configs/) can never mint cloud access.
+    #
+    # 15-minute internal deadline (READY_DEADLINE), 20-minute job timeout:
+    # the watchdog must always have time to POST the cancel before GitHub
+    # kills this job, otherwise `runner-ready` would stay queued for 24h.
+    if: inputs.runner == 'aws-nvidia-l4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      id-token: write  # OIDC token for sts:AssumeRoleWithWebIdentity
+      contents: read
+      actions: write   # list this run's jobs, cancel the run on timeout
+    steps:
+      - name: Check repository variables
+        env:
+          INSTANCE_ID: ${{ vars.AWS_GPU_INSTANCE_ID }}
+          ROLE_ARN: ${{ vars.AWS_GPU_ROLE_ARN }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          : "${INSTANCE_ID:?repository variable AWS_GPU_INSTANCE_ID is not set}"
+          : "${ROLE_ARN:?repository variable AWS_GPU_ROLE_ARN is not set}"
+          : "${REGION:?repository variable AWS_REGION is not set}"
+          # Absolute deadline for "runner-ready is no longer queued", shared
+          # with the watchdog step through GITHUB_ENV. Starting the instance
+          # and waiting for it to boot eats into it too.
+          echo "READY_DEADLINE=$(( $(date +%s) + 900 ))" >> "$GITHUB_ENV"
+
+      - name: Assume the AWS role through OIDC
+        env:
+          ROLE_ARN: ${{ vars.AWS_GPU_ROLE_ARN }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          # The runner exposes a URL + bearer token for minting a short-lived
+          # OIDC token. AWS trusts its `sub` / `workflow_ref` claims, so there
+          # is no static secret in GitHub. Plain curl + AWS CLI, no
+          # third-party Action, so the org Action allowlist is unchanged.
+          token_response="$(curl -sS -f \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")"
+          web_identity_token="$(jq -r '.value' <<<"$token_response")"
+
+          credentials="$(aws sts assume-role-with-web-identity \
+            --role-arn "$ROLE_ARN" \
+            --role-session-name "benchmark-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --web-identity-token "$web_identity_token" \
+            --duration-seconds 3600 \
+            --region "$REGION" \
+            --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+            --output text)"
+
+          read -r access_key secret_key session_token <<<"$credentials"
+          for secret in "$access_key" "$secret_key" "$session_token"; do
+            echo "::add-mask::$secret"
+          done
+          {
+            echo "AWS_ACCESS_KEY_ID=$access_key"
+            echo "AWS_SECRET_ACCESS_KEY=$secret_key"
+            echo "AWS_SESSION_TOKEN=$session_token"
+            echo "AWS_REGION=$REGION"
+            echo "AWS_DEFAULT_REGION=$REGION"
+          } >> "$GITHUB_ENV"
+
+      - name: Start the instance if needed
+        env:
+          INSTANCE_ID: ${{ vars.AWS_GPU_INSTANCE_ID }}
+          REGION: ${{ vars.AWS_REGION }}
+          # Bound each waiter so a slow transition cannot eat the job timeout
+          # that the watchdog needs in order to cancel the run.
+          AWS_MAX_ATTEMPTS: "20"
+          AWS_POLL_DELAY_SECONDS: "5"
+        run: |
+          set -euo pipefail
+          state="$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --region "$REGION" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)"
+          echo "instance $INSTANCE_ID is $state"
+          case "$state" in
+            running|pending)
+              ;;
+            stopped)
+              aws ec2 start-instances \
+                --instance-ids "$INSTANCE_ID" --region "$REGION" >/dev/null
+              ;;
+            stopping)
+              # The inactivity rule (or a very recent run) is still shutting
+              # it down; wait for that to finish, then start it again.
+              aws ec2 wait instance-stopped \
+                --instance-ids "$INSTANCE_ID" --region "$REGION"
+              aws ec2 start-instances \
+                --instance-ids "$INSTANCE_ID" --region "$REGION" >/dev/null
+              ;;
+            *)
+              echo "::error::instance $INSTANCE_ID is $state; refusing to continue"
+              exit 1
+              ;;
+          esac
+          if [ "$state" != "running" ]; then
+            aws ec2 wait instance-running \
+              --instance-ids "$INSTANCE_ID" --region "$REGION"
+            echo "instance $INSTANCE_ID is running"
+          fi
+
+      - name: Wait for the self-hosted runner
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Watch this run's own `runner-ready` job. The REST API reports
+          # `queued` until a runner picks it up, then `in_progress` /
+          # `completed`. A missing entry just means the job has not been
+          # registered yet; keep polling.
+          while [ "$(date +%s)" -lt "$READY_DEADLINE" ]; do
+            status="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+              --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')"
+            case "$status" in
+              queued|missing)
+                sleep 10
+                ;;
+              *)
+                echo "runner-ready is $status; the self-hosted runner picked it up"
+                exit 0
+                ;;
+            esac
+          done
+
+          echo "::error::the self-hosted runner did not pick up runner-ready before the deadline; cancelling the run"
+          # Cancels this whole run, which also clears the queued gate job
+          # instead of leaving it to expire after 24h.
+          gh api -X POST \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+            >/dev/null || true
+          exit 1
+
+      - name: Do not leave the gate job queued
+        # Runs even when an earlier step failed (bad role ARN, failed waiter,
+        # ...): a provisioning error must not leave `runner-ready` queued
+        # until GitHub's 24h queue timeout. Cancelling an already-cancelled
+        # or already-finished run is harmless. Non-fatal on purpose: this is
+        # a backstop and must not turn a successful provision into a failure
+        # if the jobs API hiccups.
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          status="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
+            || status="unknown"
+          if [ "$status" = "queued" ] || [ "$status" = "missing" ]; then
+            echo "::error::cancelling the run: runner-ready is still $status"
+            gh api -X POST \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+              >/dev/null || true
+          fi
+
   benchmark:
+    # The gate jobs are skipped for the Intel runners; the AWS case requires
+    # both to succeed. `!cancelled()` keeps a run cancelled by the watchdog
+    # above from starting the benchmark.
+    needs: [provision, runner-ready]
+    if: ${{ !cancelled() && (needs.provision.result == 'success' || needs.provision.result == 'skipped') && (needs.runner-ready.result == 'success' || needs.runner-ready.result == 'skipped') }}
     strategy:
       # "both" fans out to one job per physical runner; a single named
       # runner just runs as a one-element matrix. fail-fast: false so one
@@ -49,9 +242,13 @@ jobs:
     # runner labels. intel-laptop is registered org-wide (same physical box
     # array-api-intel.yml targets as its float64-gpu runner_labels).
     # intel-xeon is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
+    # aws-nvidia-l4 is a persistent EC2 g6.xlarge (4 vCPU, 16 GiB RAM,
+    # 1x L4 24 GB). It is always dispatched alone: see the matrix comment
+    # above, and the provision/runner-ready jobs that wake the instance.
     runs-on: ${{ fromJSON(
       matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
       matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
+      matrix.runner == 'aws-nvidia-l4' && '["self-hosted","Linux","X64","aws-nvidia-l4"]' ||
       '[]') }}
     # Default job timeout is 360 min (6h), too short for a full run of
     # configs/all_models.py across all envs on this self-hosted runner.
@@ -87,6 +284,11 @@ jobs:
         # holds the whole machine until the release step below, setup and
         # sklearn builds included. The `concurrency` group above only
         # serializes GitHub jobs between themselves.
+        #
+        # The AWS runner is dedicated to this workflow and is already
+        # serialized by its single runner slot, so benchlock has nothing to
+        # coordinate there (and scripts/benchlock is not installed on it).
+        if: matrix.runner != 'aws-nvidia-l4'
         run: |
           pid=$(scripts/benchlock hold --tag "${{ github.workflow }} run ${{ github.run_id }}" all)
           echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
@@ -108,6 +310,14 @@ jobs:
               # Intel GPU - unlike `intel`'s scikit-learn-intelex-gpu, which
               # falls back to CPU gracefully.
               all_envs="sklearn-pypi intel skl-cpu"
+              ;;
+            aws-nvidia-l4)
+              # Everything this host can actually run: PyPI sklearn, its own
+              # CPU builds, the NVIDIA/CuPy GPU stack, and Intel's CPU
+              # extensions. No skl-intel (no Intel GPU), no skl-mps (osx-only),
+              # no sklearn-dev* (same as every other `[all]`). Default runs
+              # should use configs/all_models_16gb.py: the host has 16 GiB.
+              all_envs="sklearn-pypi skl-cpu skl-nvidia intel"
               ;;
             *)
               echo "::error::no [all] mapping defined for runner '$BENCH_RUNNER'"
@@ -202,6 +412,23 @@ jobs:
           # dir instead (as the setup-pixi README recommends for self-hosted
           # runners) sidesteps that without affecting env/cache persistence.
           pixi-bin-path: ${{ runner.temp }}/bin/pixi
+
+      - name: Validate benchmark config
+        # dispatch.sh runs this locally, per env, before dispatching, but it
+        # cannot for GPU-only envs: skl-nvidia's CUDA platform is not
+        # resolvable on a laptop. Validate on the actual machine instead.
+        # setup_pixi_envs excludes sklearn-dev* (installed lazily by run.sh
+        # once sklearn-src/ exists), so skip those here as well.
+        env:
+          CONFIG: ${{ inputs.config }}
+          PIXI_ENVS: ${{ steps.resolve.outputs.setup_pixi_envs }}
+        run: |
+          set -euo pipefail
+          for env in $PIXI_ENVS; do
+            echo "=== validating $CONFIG under pixi env $env ==="
+            pixi run --frozen -e "$env" python -m sklbench \
+              --config "$CONFIG" --validate-only
+          done
 
       - name: Run benchmarks
         # sklbench already logs and moves on past isolated per-case
