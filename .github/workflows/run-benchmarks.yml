@@ -280,6 +280,11 @@ jobs:
         # holds the whole machine until the release step below, setup and
         # sklearn builds included. The `concurrency` group above only
         # serializes GitHub jobs between themselves.
+        #
+        # The AWS runner is dedicated to this workflow and is already
+        # serialized by its single runner slot, so benchlock has nothing to
+        # coordinate there (and scripts/benchlock is not installed on it).
+        if: matrix.runner != 'aws-nvidia-l4'
         run: |
           pid=$(scripts/benchlock hold --tag "${{ github.workflow }} run ${{ github.run_id }}" all)
           echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
@@ -403,6 +408,23 @@ jobs:
           # dir instead (as the setup-pixi README recommends for self-hosted
           # runners) sidesteps that without affecting env/cache persistence.
           pixi-bin-path: ${{ runner.temp }}/bin/pixi
+
+      - name: Validate benchmark config
+        # dispatch.sh runs this locally, per env, before dispatching, but it
+        # cannot for GPU-only envs: skl-nvidia's CUDA platform is not
+        # resolvable on a laptop. Validate on the actual machine instead.
+        # setup_pixi_envs excludes sklearn-dev* (installed lazily by run.sh
+        # once sklearn-src/ exists), so skip those here as well.
+        env:
+          CONFIG: ${{ inputs.config }}
+          PIXI_ENVS: ${{ steps.resolve.outputs.setup_pixi_envs }}
+        run: |
+          set -euo pipefail
+          for env in $PIXI_ENVS; do
+            echo "=== validating $CONFIG under pixi env $env ==="
+            pixi run --frozen -e "$env" python -m sklbench \
+              --config "$CONFIG" --validate-only
+          done
 
       - name: Run benchmarks
         # sklbench already logs and moves on past isolated per-case
