@@ -13,14 +13,19 @@ on:
         default: "[all]"
         type: string
       runner:
-        description: Self-hosted runner to benchmark on
+        description: >
+          Self-hosted runner to benchmark on. "intel-all" runs both Intel
+          machines; "aws-nvidia-l4" runs only the AWS L4 host; "all" runs
+          both Intel machines and the AWS L4 host.
         required: true
         default: intel-laptop
         type: choice
         options:
           - intel-laptop
           - intel-xeon
-          - both
+          - intel-all
+          - aws-nvidia-l4
+          - all
       config:
         description: >
           Path to a benchmark config script, e.g. configs/all_models.py.
@@ -34,254 +39,107 @@ permissions:
   pull-requests: write
 
 jobs:
-  benchmark:
+  runner-ready:
+    # Runs on the AWS runner so `provision` can tell when that runner is
+    # online. No `needs`: it is queued from the start, in parallel with
+    # `provision`.
+    if: inputs.runner == 'aws-nvidia-l4' || inputs.runner == 'all'
+    # Persistent self-hosted runner; it keeps `.pixi/` and `data_cache/`
+    # between runs. `provision` starts the host, and this job stays queued
+    # until the runner is online.
+    runs-on:
+      group: aws-gpu-runners
+    # Execution timeout only; `provision` decides when to give up waiting.
+    timeout-minutes: 5
+    # Runs on the GPU box; no repository access needed.
+    permissions: {}
+    steps:
+      - name: Confirm the runner is online
+        run: |
+          echo "runner online on $(hostname)"
+          nvidia-smi -L
+
+  provision:
+    # The reusable workflow starts the instance and waits for `runner-ready`.
+    # Only this caller gets the AWS permissions.
+    if: inputs.runner == 'aws-nvidia-l4' || inputs.runner == 'all'
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    uses: ./.github/workflows/aws-provision.yml
+
+  benchmark-intel:
+    # No AWS dependency: the Intel runners are always online.
+    if: inputs.runner != 'aws-nvidia-l4'
+    permissions:
+      contents: write
+      pull-requests: write
     strategy:
-      # "both" fans out to one job per physical runner; a single named
-      # runner just runs as a one-element matrix. fail-fast: false so one
-      # runner's failure doesn't cancel the other's in-progress run.
+      # `intel-all` expands to one job per machine; `fail-fast: false` lets
+      # both finish even if one fails.
       fail-fast: false
       matrix:
-        runner: ${{ fromJSON(inputs.runner == 'both' && '["intel-laptop","intel-xeon"]' || format('["{0}"]', inputs.runner)) }}
-    concurrency:
-      group: benchmark-${{ matrix.runner }}
-      cancel-in-progress: false
-    # Maps the friendly `runner` matrix value to the actual self-hosted
-    # runner labels. intel-laptop is registered org-wide (same physical box
-    # array-api-intel.yml targets as its float64-gpu runner_labels).
-    # intel-xeon is a CPU-only Xeon 6787P (Granite Rapids) server, no GPU.
-    runs-on: ${{ fromJSON(
-      matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-      matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
-      '[]') }}
-    # Default job timeout is 360 min (6h), too short for a full run of
-    # configs/all_models.py across all envs on this self-hosted runner.
-    timeout-minutes: 1440
+        runner: ${{ fromJSON(
+          inputs.runner == 'intel-laptop' && '["intel-laptop"]' ||
+          inputs.runner == 'intel-xeon' && '["intel-xeon"]' ||
+          '["intel-laptop","intel-xeon"]') }}
+    uses: ./.github/workflows/benchmark-run.yml
+    with:
+      runner: ${{ matrix.runner }}
+      runs_on: ${{ matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '["Linux","X64","intel-xeon"]' }}
+      env: ${{ inputs.env }}
+      config: ${{ inputs.config }}
+
+  benchmark-aws:
+    # Separate caller because it needs `runner-ready`. `provision` can return
+    # while that job is still queued behind another benchmark.
+    if: inputs.runner == 'aws-nvidia-l4' || inputs.runner == 'all'
+    needs: [provision, runner-ready]
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: ./.github/workflows/benchmark-run.yml
+    with:
+      runner: aws-nvidia-l4
+      runs_on: '{"group":"aws-gpu-runners"}'
+      env: ${{ inputs.env }}
+      config: ${{ inputs.config }}
+
+  cleanup-aws:
+    # Clear `runner-ready` after an unsuccessful provision. For `all`, wait
+    # for Intel; for AWS-only, `benchmark-intel` is skipped. Do not cancel
+    # when provision succeeded and left the job queued behind a busy runner.
+    needs: [benchmark-intel, provision]
+    if: >
+      always() &&
+      needs.provision.result != 'success' &&
+      (inputs.runner == 'all' || inputs.runner == 'aws-nvidia-l4')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
-      - name: Check out repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-        # We only ever add new files under results/ and push them; we never
-        # read existing LFS content, so skip the `git lfs pull` checkout
-        # would otherwise do (git-lfs still needs to be installed on the
-        # runner for the push-side clean filter to work, per CONTRIBUTING.md).
-        #
-        # clean defaults to true, which runs `git clean -ffdx` before
-        # checkout - on this persistent self-hosted runner that wipes
-        # .pixi/ (installed envs) and data_cache/ (sklbench's dataset
-        # cache) every run, forcing a full reinstall/re-download each
-        # time. Keep them across runs.
-        with:
-          lfs: false
-          clean: false
-
-      - name: Clean up results from previous runs
-        # checkout's `clean: false` (above) intentionally keeps .pixi/,
-        # data_cache/, and sklearn-src/ across runs, but any untracked
-        # results/ left over from an earlier run (e.g. a "test" config run,
-        # which never commits) shouldn't leak into this one. Only untracked files
-        # under results/ are removed; anything already committed on main is
-        # safe.
-        run: git clean -ffdx results/
-
-      - name: Lock the benchmark machine
-        # Waits for agents' runs on this box (see scripts/benchlock), then
-        # holds the whole machine until the release step below, setup and
-        # sklearn builds included. The `concurrency` group above only
-        # serializes GitHub jobs between themselves.
-        run: |
-          pid=$(scripts/benchlock hold --tag "${{ github.workflow }} run ${{ github.run_id }}" all)
-          echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
-
-      - name: Resolve environments
-        id: resolve
+      - name: Clear runner-ready after an unsuccessful provision
         env:
-          ENV_INPUT: ${{ inputs.env }}
-          BENCH_RUNNER: ${{ matrix.runner }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          case "$BENCH_RUNNER" in
-            intel-laptop)
-              all_envs="sklearn-pypi skl-intel intel skl-cpu"
+          status="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
+            || status="unknown"
+          case "$status" in
+            in_progress|completed)
+              echo "runner-ready is $status; nothing to clear"
               ;;
-            intel-xeon)
-              # skl-intel pulls torch/triton-xpu (Intel GPU/XPU build), which
-              # hard-crashes with no traceback on this box since it has no
-              # Intel GPU - unlike `intel`'s scikit-learn-intelex-gpu, which
-              # falls back to CPU gracefully.
-              all_envs="sklearn-pypi intel skl-cpu"
+            unknown)
+              echo "::warning::could not read runner-ready status; leaving the run for manual cleanup"
               ;;
             *)
-              echo "::error::no [all] mapping defined for runner '$BENCH_RUNNER'"
-              exit 1
+              echo "::error::runner-ready is still $status after the Intel jobs finished; cancelling the run to clear it"
+              gh api -X POST \
+                "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+                >/dev/null || true
               ;;
           esac
-          build_envs="sklearn-cf-default sklearn-cf-libgomp-openblas sklearn-cf-libomp-openblas-omp sklearn-cf-mkl"
-
-          resolved=()
-          for token in $(echo "$ENV_INPUT" | tr ',' ' '); do
-            case "$token" in
-              "[all]") resolved+=($all_envs) ;;
-              "[builds]") resolved+=($build_envs) ;;
-              *) resolved+=("$token") ;;
-            esac
-          done
-
-          deduped=()
-          for e in "${resolved[@]}"; do
-            already=0
-            for seen in "${deduped[@]:-}"; do
-              [ "$seen" = "$e" ] && already=1 && break
-            done
-            [ "$already" -eq 0 ] && deduped+=("$e")
-          done
-
-          echo "envs=${deduped[*]}" >> "$GITHUB_OUTPUT"
-          echo "Resolved environments: ${deduped[*]}"
-
-          # run.sh accepts "env@owner:ref" specs (see its usage text) and
-          # strips the "@owner:ref" suffix itself before calling pixi. Steps
-          # here that talk to pixi directly (setup-pixi, `pixi run -e`) need
-          # the same bare env name - pixi doesn't understand the suffix.
-          bare=()
-          for e in "${deduped[@]}"; do
-            bare+=("${e%%@*}")
-          done
-          deduped_bare=()
-          for e in "${bare[@]}"; do
-            already=0
-            for seen in "${deduped_bare[@]:-}"; do
-              [ "$seen" = "$e" ] && already=1 && break
-            done
-            [ "$already" -eq 0 ] && deduped_bare+=("$e")
-          done
-          echo "pixi_envs=${deduped_bare[*]}" >> "$GITHUB_OUTPUT"
-
-          # sklearn-dev and sklearn-dev-libomp (same sklearn-src path
-          # dependency, see pixi.toml) need sklearn-src/ to already be a real
-          # checkout before pixi can install them (see CONTRIBUTING.md's
-          # "Setup" note). run.sh's own per-env loop produces that by running
-          # setup_sklearn_ref.sh right before benchmarking each
-          # sklearn-dev[-libomp]@owner:ref entry - but only once it actually
-          # runs, which is after `Set up pixi` (below). Excluding these envs
-          # from that step's eager pre-install avoids the chicken-and-egg:
-          # pixi binary/other envs still get set up there, and sklearn-dev
-          # variants install lazily, correctly, when run.sh's `pixi run -e
-          # sklearn-dev[-libomp]` actually executes. Matched by prefix so any
-          # future sklearn-dev-* variant is covered without editing this again.
-          setup_pixi_envs=()
-          for e in "${deduped_bare[@]}"; do
-            [[ "$e" == sklearn-dev* ]] || setup_pixi_envs+=("$e")
-          done
-          echo "setup_pixi_envs=${setup_pixi_envs[*]}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up pixi
-        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
-        with:
-          pixi-version: v0.75.0
-          environments: ${{ steps.resolve.outputs.setup_pixi_envs }}
-          # `locked` (`pixi install --locked`) makes pixi verify the whole
-          # workspace lock is fresh, which canonicalizes every environment's
-          # path dependencies - including sklearn-dev's local scikit-learn
-          # checkout, which may not exist here if this run doesn't select
-          # sklearn-dev. `frozen` trusts the lock as-is and skips that
-          # cross-environment check.
-          locked: false
-          frozen: true
-          # This runner is a persistent self-hosted box, not an ephemeral
-          # GitHub-hosted VM: the .pixi env already lives on local disk
-          # between runs, so the GH Actions remote cache would just add
-          # needless network I/O and consume shared cache quota for nothing.
-          cache: false
-          # setup-pixi defaults post-cleanup to true, which deletes the
-          # installed environments and the rattler package cache at the end
-          # of every job - defeating clean: false above and forcing a full
-          # reinstall/re-download each run on this persistent runner.
-          post-cleanup: false
-          # With post-cleanup: false, the pixi binary itself now persists at
-          # ~/.pixi/bin/pixi too, but setup-pixi's downloader errors if that
-          # destination already exists. Installing it to the per-job temp
-          # dir instead (as the setup-pixi README recommends for self-hosted
-          # runners) sidesteps that without affecting env/cache persistence.
-          pixi-bin-path: ${{ runner.temp }}/bin/pixi
-
-      - name: Run benchmarks
-        # sklbench already logs and moves on past isolated per-case
-        # failures/timeouts, so a non-zero run.sh exit here isn't
-        # necessarily a real problem; the classify step below decides
-        # pass/fail, not this step's own exit code.
-        continue-on-error: true
-        env:
-          CONFIG: ${{ inputs.config }}
-          ENVS: ${{ steps.resolve.outputs.envs }}
-        run: |
-          ./run.sh $ENVS --config "$CONFIG" 2>&1 | tee "$RUNNER_TEMP/bench.log"
-
-      - name: Release the benchmark machine
-        # The runner also kills the holder process when a cancelled job ends.
-        if: always() && env.BENCHLOCK_PID != ''
-        run: kill "$BENCHLOCK_PID"
-
-      - name: Commit and push results
-        id: commit
-        if: always() && !contains(inputs.config, 'test')
-        env:
-          BENCH_RUNNER: ${{ matrix.runner }}
-          ENVS: ${{ steps.resolve.outputs.envs }}
-          CONFIG: ${{ inputs.config }}
-        run: |
-          set -euo pipefail
-          if [ -n "$(git status --porcelain results/)" ]; then
-            branch="bench-results/${BENCH_RUNNER}-${{ github.run_id }}"
-            git switch -c "$branch"
-            git add results/
-            git -c user.name="github-actions[bot]" \
-                -c user.email="github-actions[bot]@users.noreply.github.com" \
-                commit -m "Benchmark results: ${ENVS} (config=${CONFIG}, runner=${BENCH_RUNNER})"
-            git push origin "$branch"
-            echo "branch=$branch" >> "$GITHUB_OUTPUT"
-          else
-            echo "No result changes to commit."
-          fi
-
-      - name: Build PR body
-        if: always() && steps.commit.outputs.branch != ''
-        env:
-          ENVS: ${{ steps.resolve.outputs.envs }}
-          BENCH_RUNNER: ${{ matrix.runner }}
-          CONFIG: ${{ inputs.config }}
-        run: |
-          first_env="${ENVS%% *}"
-          first_env="${first_env%%@*}"
-          # --frozen: skip the lock-freshness check, same reasoning as the
-          # `frozen: true` on the Set up pixi step - it would otherwise try
-          # to canonicalize sklearn-dev's local sklearn-src path dependency,
-          # which doesn't exist unless sklearn-dev was in this run's envs.
-          pixi run --frozen -e "$first_env" python scripts/build_bench_pr_body.py \
-            --summary "Benchmark results for \`${ENVS}\` (config=${CONFIG}, runner=${BENCH_RUNNER})." \
-            --log "$RUNNER_TEMP/bench.log" \
-            --out "$RUNNER_TEMP/pr_body.md"
-
-      - name: Open PR with results
-        if: always() && steps.commit.outputs.branch != ''
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          BRANCH: ${{ steps.commit.outputs.branch }}
-          ENVS: ${{ steps.resolve.outputs.envs }}
-          BENCH_RUNNER: ${{ matrix.runner }}
-        run: |
-          first_env="${ENVS%% *}"
-          first_env="${first_env%%@*}"
-          pixi run --frozen -e "$first_env" python scripts/create_pr.py \
-            --repo "$GITHUB_REPOSITORY" \
-            --base main \
-            --head "$BRANCH" \
-            --title "Benchmark results: ${ENVS} (${BENCH_RUNNER})" \
-            --body-file "$RUNNER_TEMP/pr_body.md"
-
-      - name: Classify benchmark results
-        if: always()
-        env:
-          ENVS: ${{ steps.resolve.outputs.envs }}
-        run: |
-          first_env="${ENVS%% *}"
-          first_env="${first_env%%@*}"
-          pixi run --frozen -e "$first_env" python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"

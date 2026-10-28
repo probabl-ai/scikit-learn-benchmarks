@@ -12,13 +12,21 @@ usage() {
     echo "  form (see run.sh --help)." >&2
     echo "" >&2
     echo "  --config PATH    benchmark config script (required)" >&2
-    echo "  --runner RUNNER  intel-laptop (default) | intel-xeon | both" >&2
+    echo "  --runner RUNNER  intel-laptop (default) | intel-xeon | intel-all |" >&2
+    echo "                   aws-nvidia-l4 | all. 'intel-all' runs both Intel" >&2
+    echo "                   machines; 'aws-nvidia-l4' runs only the AWS L4" >&2
+    echo "                   host; 'all' runs the Intel machines and the AWS" >&2
+    echo "                   host in one run. The AWS host runs one benchmark" >&2
+    echo "                   at a time. Use configs/all_models.py for the AWS" >&2
+    echo "                   host." >&2
     echo "  --branch BRANCH  dispatch off BRANCH instead of main. Requires you to be" >&2
     echo "                   checked out on BRANCH and for it to be up to date with" >&2
     echo "                   its remote tracking branch." >&2
     echo "" >&2
     echo "  Example: $0 sklearn-pypi intel --config configs/smoke_check_test.py" >&2
-    echo "  Example: $0 '[all]' --config configs/all_models.py --runner both" >&2
+    echo "  Example: $0 '[all]' --config configs/all_models.py --runner intel-all" >&2
+    echo "  Example: $0 '[all]' --config configs/all_models.py --runner aws-nvidia-l4" >&2
+    echo "  Example: $0 '[all]' --config configs/all_models.py --runner all" >&2
     echo "  Example: $0 '[all]' --config configs/all_models.py --branch my-feature" >&2
 }
 
@@ -74,6 +82,14 @@ if [ -z "$config" ]; then
     exit 2
 fi
 
+case "$runner" in
+    intel-laptop|intel-xeon|intel-all|aws-nvidia-l4|all) ;;
+    *)
+        echo "error: unknown --runner '$runner' (expected intel-laptop, intel-xeon, intel-all, aws-nvidia-l4 or all)" >&2
+        exit 2
+        ;;
+esac
+
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 if [ "$current_branch" != "$branch" ]; then
     echo "error: current branch is '$current_branch', not '$branch'; switch to '$branch' before dispatching (pass --branch to dispatch off a branch other than main)" >&2
@@ -120,6 +136,14 @@ fi
 # configs read PIXI_ENVIRONMENT_NAME (via implementations_for_pixi_env) to
 # pick which implementations to generate cases for, so validation has to run
 # per-env rather than under a single fixed environment.
+#
+# The workflow re-validates on the benchmark host before running, so this is
+# only a fast local feedback loop. Skip it where it cannot work: the
+# skl-nvidia environment can only be installed on a machine with a CUDA GPU,
+# and installing it just to check a config would pull a multi-GB CUDA stack.
+# The workflow validates it on the benchmark host instead. CPU-only
+# environments are still validated here when they are named explicitly;
+# [all]/[builds] are resolved per runner by the workflow and validated there.
 validated=()
 for env in "${real_envs[@]}"; do
     already_validated=false
@@ -133,6 +157,11 @@ for env in "${real_envs[@]}"; do
         continue
     fi
     validated+=("$env")
+
+    if [ "$env" = "skl-nvidia" ]; then
+        echo "note: skipping local validation for '$env' (validated on the benchmark host)" >&2
+        continue
+    fi
 
     echo "=== pixi run --frozen -e $env python -m sklbench --config $config --validate-only ===" >&2
     if ! pixi run --frozen -e "$env" python -m sklbench --config "$config" --validate-only; then
