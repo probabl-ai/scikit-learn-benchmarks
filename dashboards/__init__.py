@@ -47,12 +47,15 @@ HARDWARE_PLATFORMS = {
 # configs/all_models.py matrix across every Pixi env it sweeps - kept here
 # once rather than tripled across those modules. configs/all_models_16gb.py is
 # a strict subset of it (same cases), run on machines with 16GB of RAM.
+# configs/all_models_cuml_only.py is the same kind of subset, limited to the
+# estimators with a native cuML wrapper.
 # configs/smoke_check_test.py
 # is deliberately excluded - it's a CI-only sanity config, not meant to
 # produce dashboard-worthy results.
 GENERAL_SOURCE_CONFIGS = [
     "configs/all_models.py",
     "configs/all_models_16gb.py",
+    "configs/all_models_cuml_only.py",
 ]
 
 GENERAL_SOURCE_ENVS = [
