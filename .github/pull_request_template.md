@@ -18,7 +18,7 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
 
 - `sklearn_ref`: `<fork owner>:<branch or ref>`.
 - `runs`: comma-separated `[runner#][env#]configs/<name>.py` entries.
-  runner: `intel-laptop`, `intel-xeon` or `both` (default `both`);
+  runner: `intel-laptop`, `intel-xeon` or `intel-all` (default `intel-all`);
   env: `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl` or
   `sklearn-dev-freethreading` (default `sklearn-dev`).
 - Put `[skip main]` in a commit message to reuse the last published `main`
