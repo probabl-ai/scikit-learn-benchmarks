@@ -24,19 +24,21 @@ GPU_NAMES = {
     "d189c4": "NVIDIA L4 g6.2xlarge",
 }
 
-# Pixi platform (as declared by `platforms = [...]` in pixi.toml's
-# [feature.*] blocks) each hardware hash actually runs, so
+# Set of Pixi platforms (as declared by `platforms = [...]` in pixi.toml's
+# [feature.*] blocks) each hardware hash can run, so
 # `scripts/what_to_rerun.py --hardware` can drop envs that can't even be
 # installed there (see `sklbench.reporting.envs.env_platforms`). This is
 # genuinely new information (which OS/arch each physical machine runs) that
-# isn't derivable from anywhere else in the repo.
+# isn't derivable from anywhere else in the repo. A machine with a CUDA GPU
+# can run both the plain `linux-64` envs and the `linux-64-cuda-12-9`
+# variants; a CPU-only Linux machine only the former.
 HARDWARE_PLATFORMS = {
-    "3b5e61": "linux-64",
-    "534824": "linux-64",
-    "be1055": "linux-64",
-    "b281b2": "osx-arm64",
-    "5dcf30": "win-64",
-    "d189c4": "linux-64",
+    "3b5e61": {"linux-64"},
+    "534824": {"linux-64"},
+    "be1055": {"linux-64"},
+    "b281b2": {"osx-arm64"},
+    "5dcf30": {"win-64"},
+    "d189c4": {"linux-64", "linux-64-cuda-12-9"},
 }
 
 # `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison
