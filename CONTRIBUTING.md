@@ -57,6 +57,8 @@ The project uses these Pixi environments:
 - `skl-cpu`: Array API on CPU (PyTorch CPU)
 - `skl-intel`, `skl-nvidia`: Array API on Intel/NVIDIA GPUs (PyTorch, dpnp)
 - `intel`: scikit-learn-intelex on CPU and GPU
+- `gbdt`: conda-forge scikit-learn with XGBoost, LightGBM and CatBoost, for
+  comparing gradient boosting libraries (`configs/gbdt_pareto.py`)
 - `reporting`: dashboard generation and reporting utilities
 - `sklearn-cf-*`: conda-forge scikit-learn builds with different BLAS/OpenMP
   backends (see the `[environments]` table in `pixi.toml` for the exact

@@ -91,6 +91,16 @@ SKLEARNEX_GPU_IMPLEMENTATION = {
 }
 
 
+# Third-party gradient boosting libraries, alongside the scikit-learn of the
+# same env (see configs/gbdt_pareto.py).
+GBDT_IMPLEMENTATIONS = [
+    {"library": "sklearn"},
+    {"library": "xgboost"},
+    {"library": "lightgbm"},
+    {"library": "catboost"},
+]
+
+
 PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-pypi": SKLEARN_IMPLEMENTATIONS,
     "sklearn-pypi-freethreading": SKLEARN_IMPLEMENTATIONS,
@@ -108,6 +118,7 @@ PIXI_TO_IMPLEMENTATIONS = {
     "skl-nvidia": ARRAY_API_NVIDIA_IMPLEMENTATIONS,
     "skl-mps": ARRAY_API_MPS_IMPLEMENTATIONS,
     "intel": [SKLEARNEX_CPU_IMPLEMENTATION, SKLEARNEX_GPU_IMPLEMENTATION],
+    "gbdt": GBDT_IMPLEMENTATIONS,
 }
 
 
