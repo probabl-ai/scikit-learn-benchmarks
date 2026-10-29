@@ -1,23 +1,34 @@
 """The KMeans cases of `configs/all_models.py` (`configs/all_models_kmeans.py`):
 scikit-learn `main` vs a scikit-learn branch vs scikit-learn-intelex.
 
-One table per hardware and scikit-learn build: `sklearn-dev` (OpenBLAS +
-libgomp) with the conda-forge OpenBLAS and with OpenBLAS `develop` swapped into
-the env, and `sklearn-dev-mkl` (MKL + libomp). Each table compares the branch
-build and sklearnex (`intel` env) with the `main` build of that table.
+Seven builds per hardware: `main` and the branch, each with the conda-forge
+OpenBLAS (`sklearn-dev`), with OpenBLAS `develop` swapped into `sklearn-dev`, and
+with MKL (`sklearn-dev-mkl`), plus sklearnex (`intel` env). Any of them can be
+picked as the baseline of the speed-up plots and table, as on the software
+comparison page.
 """
+from html import escape
 from pathlib import Path
 
 from dashboards import HARDWARE_NAMES
-from sklbench.reporting.envs import read_env, software_build_name, summarize_hardware_env
+from dashboards.gen_softwares_comparison import BASELINE_SWITCH_SCRIPT
+from sklbench.reporting.envs import (
+    read_env, software_build_name, summarize_hardware_env, summarize_software_env,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
+    SOFTWARE_TEMPLATE,
+    assemble_plots_in_grid,
     detailed_results_table_html,
     render_hardware_tabs,
+    render_software_tabs,
+    speedup_plot_html,
+    variant_color_map,
 )
 from sklbench.reporting.matching import (
+    BenchmarkRecord,
     MethodResult,
     append_iterations_warning,
     date_range,
@@ -26,22 +37,30 @@ from sklbench.reporting.matching import (
     read_all_results,
     read_failed_records,
 )
-from sklbench.reporting.utils import groupby
 
 
 TITLE = "KMeans: scikit-learn main vs branch vs sklearnex"
 SOURCE_CONFIGS = ["configs/all_models_kmeans.py"]
 SOURCE_ENVS = ["sklearn-dev", "sklearn-dev-mkl", "intel"]
 
+SKLEARNEX_ENV = "intel"
+REF_LABELS = {"main": "main", "kmeans/lloyd_no_blocking_sync": "branch"}
 # Keyed by (pixi env, OpenBLAS version): both OpenBLAS builds ran in the
 # `sklearn-dev` env, so only the version that threadpoolctl reports tells them
 # apart.
-SKLEARN_TABLES = {
-    ("sklearn-dev", "0.3.34"): "OpenBLAS 0.3.34 + libgomp (sklearn-dev)",
-    ("sklearn-dev", "0.3.34.dev"): "OpenBLAS develop + libgomp (sklearn-dev)",
-    ("sklearn-dev-mkl", None): "MKL + libomp (sklearn-dev-mkl)",
+RUNTIME_LABELS = {
+    ("sklearn-dev", "0.3.34"): "OpenBLAS 0.3.34",
+    ("sklearn-dev", "0.3.34.dev"): "OpenBLAS develop",
+    ("sklearn-dev-mkl", None): "MKL",
 }
-SKLEARNEX_ENV = "intel"
+VARIANTS = [
+    f"{ref}, {runtime}"
+    for runtime in RUNTIME_LABELS.values()
+    for ref in REF_LABELS.values()
+] + ["sklearnex"]
+DEFAULT_BASELINE = VARIANTS[0]
+METHODS = ["fit", "predict"]
+ROW = "KMeans"
 
 ABOUT_HTML = """<section class="panel">
   <p>This page compares <b>KMeans</b> in scikit-learn <code>main</code>, in the
@@ -50,15 +69,19 @@ ABOUT_HTML = """<section class="panel">
   and in <b>scikit-learn-intelex</b>, on the KMeans cases of
   <code>configs/all_models.py</code>: real datasets, default
   <dfn>hyperparameters</dfn> (k-means++ init, default <code>tol</code>).</p>
-  <p>scikit-learn is built from source with three <dfn term="blas/openmp runtime">BLAS/OpenMP runtimes</dfn>, one
-  table each: <dfn>OpenBLAS</dfn> 0.3.34 from conda-forge, OpenBLAS
-  <code>develop</code> and MKL. The fit <dfn>speed-up</dfn> is relative to <code>main</code> built with
-  the same runtime, and sklearnex is the same run in all tables. The init and
-  Lloyd speed-ups only exist for scikit-learn, whose instrumented KMeans times
+  <p>scikit-learn is built from source with three <dfn term="blas/openmp runtime">BLAS/OpenMP runtimes</dfn>:
+  <dfn>OpenBLAS</dfn> 0.3.34 from conda-forge, OpenBLAS <code>develop</code>
+  and MKL. Each build has a tab in each machine tab. Click "Pick as baseline"
+  in a build's tab to compare every other build with it. The default baseline
+  is <code>main</code> with OpenBLAS 0.3.34.</p>
+  <p>The plots show the fit and predict <dfn>speed-up</dfn> over the baseline,
+  in log scale, one point per case and build: hover a point to see the case.
+  The table under the plots also has the init and Lloyd speed-ups, for
+  scikit-learn builds only, since only the instrumented scikit-learn KMeans times
   each phase. The number of iterations varies between implementations and
   between repeats (no <code>random_state</code> is set), so check the
   <code>n_iter</code> column before reading a fit speed-up.</p>
-  <p>Both scikit-learn builds use threadpoolctl <code>master</code>
+  <p>All the scikit-learn builds use threadpoolctl <code>master</code>
   (<a href="https://github.com/joblib/threadpoolctl/commit/0e9d19d7cd529ba947dd2f82777a6b62ec56e2e5">0e9d19d</a>),
   as if <a href="https://github.com/joblib/threadpoolctl/pull/283">threadpoolctl#283</a>
   was released. With threadpoolctl 3.7.0, the
@@ -117,18 +140,7 @@ def _env_of(build_name: str) -> str:
     return build_name.split("@", 1)[0]
 
 
-def _variant_label(result: MethodResult) -> str:
-    build_name = software_build_name(result.software_hash)
-    if _env_of(build_name) == SKLEARNEX_ENV:
-        return "sklearnex"
-    return build_name.rsplit(":", 1)[-1]
-
-
-def _is_main(build_name: str) -> bool:
-    return build_name.rsplit(":", 1)[-1] == "main"
-
-
-def _table_key(software_hash: str) -> tuple[str, str | None]:
+def _runtime_key(software_hash: str) -> tuple[str, str | None]:
     env = _env_of(software_build_name(software_hash))
     if env != "sklearn-dev":
         return env, None
@@ -136,82 +148,153 @@ def _table_key(software_hash: str) -> tuple[str, str | None]:
     return env, next(t["version"] for t in threadpools if t["internal_api"] == "openblas")
 
 
-def _table_html(table_key, results: list[MethodResult], failed_records: list) -> str | None:
-    def in_table(software_hash: str) -> bool:
-        return (
-            _env_of(software_build_name(software_hash)) == SKLEARNEX_ENV
-            or _table_key(software_hash) == table_key
-        )
+def variant_label(result: MethodResult | BenchmarkRecord) -> str:
+    build_name = software_build_name(result.software_hash)
+    if _env_of(build_name) == SKLEARNEX_ENV:
+        return "sklearnex"
+    ref = REF_LABELS[build_name.rsplit(":", 1)[-1]]
+    return f"{ref}, {RUNTIME_LABELS[_runtime_key(result.software_hash)]}"
 
-    base_results = [
-        r for r in results
-        if _table_key(r.software_hash) == table_key
-        and _is_main(software_build_name(r.software_hash))
-    ]
-    if not base_results:
-        return None
-    base_ids = {id(r) for r in base_results}
-    candidates = [
-        r for r in results if in_table(r.software_hash) and id(r) not in base_ids
-    ]
-    matches = find_matches(base_results, candidates, _result_matches)
-    matched_bases = {id(m.base_result) for m in matches}
-    base_keys = {r.minimal_match_key for r in base_results}
-    failed = [
-        (record, _variant_label(record))
-        for record in failed_records
-        if in_table(record.software_hash)
-    ]
+
+def _speedup_view_html(
+    results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
+    *,
+    baseline_label: str,
+    variant_colors: dict[str, str],
+) -> str:
+    def is_baseline(result: MethodResult | BenchmarkRecord) -> bool:
+        return variant_label(result) == baseline_label
+
+    candidate_failed = [r for r in failed_records if not is_baseline(r)]
+    plots = []
+    matches_by_method = {}
+    unmatched_base, unmatched_candidates = [], []
+    for method in METHODS:
+        base_results = [r for r in results if r.method == method and is_baseline(r)]
+        candidates = [r for r in results if r.method == method and not is_baseline(r)]
+        matches = find_matches(base_results, candidates, _result_matches)
+        matches_by_method[method] = matches
+        matched_bases = {id(m.base_result) for m in matches}
+        base_keys = {r.minimal_match_key for r in base_results}
+        unmatched_base += [r for r in base_results if id(r) not in matched_bases]
+        unmatched_candidates += [r for r in candidates if r.minimal_match_key not in base_keys]
+        plots.append({
+            "category": ROW,
+            "method": method,
+            "case_count": len({m.base_result.minimal_match_key for m in matches}),
+            "plot": speedup_plot_html(
+                matches,
+                baseline_label=baseline_label,
+                variant_colors=variant_colors,
+                trace_variant=lambda match: variant_label(match.matched_result),
+                variant_sort_key=VARIANTS.index,
+                failed_records=candidate_failed,
+            ),
+        })
     table_html = detailed_results_table_html(
-        SKLEARN_TABLES[table_key],
-        groupby(matches, lambda m: m.matched_result.method),
-        baseline_label="main",
-        variant_label=_variant_label,
-        failed_records=failed,
-        unmatched_base_results=[r for r in base_results if id(r) not in matched_bases],
-        unmatched_candidate_results=[
-            r for r in candidates if r.minimal_match_key not in base_keys
-        ],
-        collapsible=False,
+        ROW,
+        matches_by_method,
+        baseline_label=baseline_label,
+        variant_label=variant_label,
+        failed_records=[(record, variant_label(record)) for record in failed_records],
+        unmatched_base_results=unmatched_base,
+        unmatched_candidate_results=unmatched_candidates,
+        open=True,
         variant_column_title="Build",
         fit_phases=["init", "lloyd"],
     )
-    return f'<section class="panel"><h2>{SKLEARN_TABLES[table_key]}</h2>{table_html}</section>'
+    return assemble_plots_in_grid(
+        plots,
+        rows={"category": [ROW]},
+        columns={"method": METHODS},
+        details_by_row={ROW: table_html},
+    )
 
 
-def render_hardware_page(results, failed_records, hardware_hash: str) -> str | None:
+def render_hardware_page(
+    results: list[MethodResult],
+    failed_records: list[BenchmarkRecord],
+    hardware_hash: str,
+    *,
+    variant_colors: dict[str, str],
+) -> str | None:
     results = [r for r in results if r.hardware_hash == hardware_hash]
     failed_records = [r for r in failed_records if r.hardware_hash == hardware_hash]
-    tables = [
-        html for table_key in SKLEARN_TABLES
-        if (html := _table_html(table_key, results, failed_records)) is not None
-    ]
-    if not tables:
+    present = {variant_label(r) for r in results}
+    labels = [label for label in VARIANTS if label in present]
+    if len(labels) < 2:
         return None
-    return "".join([
+    default_baseline = DEFAULT_BASELINE if DEFAULT_BASELINE in labels else labels[0]
+
+    baseline_views = []
+    for baseline_label in labels:
+        view_html = _speedup_view_html(
+            results, failed_records,
+            baseline_label=baseline_label, variant_colors=variant_colors,
+        )
+        active = " active" if baseline_label == default_baseline else ""
+        baseline_views.append(
+            f'<div class="baseline-view{active}" data-baseline="{escape(baseline_label)}">'
+            f"{view_html}</div>"
+        )
+
+    first_result_by_label = {}
+    for r in results:
+        first_result_by_label.setdefault(variant_label(r), r)
+    softwares = []
+    for label in labels:
+        r = first_result_by_label[label]
+        summary = summarize_software_env(
+            read_env("software", r.software_hash),
+            r.implementation,
+            software_hash=r.software_hash,
+        )
+        summary["name"] = label
+        summary["actions_html"] = (
+            '<button type="button" class="baseline-pick" '
+            f'data-baseline="{escape(label)}" style="--variant-color: {variant_colors[label]}">'
+            "Pick as baseline</button>"
+        )
+        softwares.append(summary)
+
+    rows = [
         DATE_RANGE_TEMPLATE.render(date_range(results)),
         HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hardware_hash))),
-        *tables,
-    ])
+        render_software_tabs(
+            [SOFTWARE_TEMPLATE.render(**summary) for summary in softwares],
+            variant_colors=variant_colors,
+            labels=labels,
+        ),
+        "".join(baseline_views),
+    ]
+    return (
+        '<div class="baseline-switch">'
+        + "".join(f'<div class="page-row">{row}</div>' for row in rows)
+        + "</div>"
+    )
 
 
 def generate(output_dir: Path) -> None:
     results = [
         r for r in read_all_results()
-        if r.method == "fit" and matches_source_configs(r.case, SOURCE_CONFIGS)
+        if r.method in METHODS and matches_source_configs(r.case, SOURCE_CONFIGS)
     ]
     failed_records = [
         r for r in read_failed_records() if matches_source_configs(r.case, SOURCE_CONFIGS)
     ]
+    variant_colors = variant_color_map(VARIANTS)
     hardware_hashes = sorted({r.hardware_hash for r in results})
     hardware_pages = [
         (HARDWARE_NAMES.get(hardware_hash, hardware_hash),
-         render_hardware_page(results, failed_records, hardware_hash))
+         render_hardware_page(
+             results, failed_records, hardware_hash, variant_colors=variant_colors
+         ))
         for hardware_hash in hardware_hashes
     ]
     html = BASE_TEMPLATE.render(
         title=TITLE,
-        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
+        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages), BASELINE_SWITCH_SCRIPT],
     )
     output = output_dir / "kmeans_sklearnex.html"
     output.write_text(html)
