@@ -1,11 +1,10 @@
 """The KMeans cases of `configs/kmeans_init_lloyd.py`: scikit-learn `main` vs a
 scikit-learn branch vs scikit-learn-intelex.
 
-Seven builds per hardware: `main` and the branch, each with the conda-forge
-OpenBLAS (`sklearn-dev`), with OpenBLAS `develop` swapped into `sklearn-dev`, and
-with MKL (`sklearn-dev-mkl`), plus sklearnex (`intel` env). Any of them can be
-picked as the baseline of the speed-up plots and table, as on the software
-comparison page.
+Five builds per hardware: `main` and the branch, each with OpenBLAS `develop`
+swapped into `sklearn-dev` and with MKL (`sklearn-dev-mkl`), plus sklearnex
+(`intel` env). Any of them can be picked as the baseline of the speed-up plots
+and table, as on the software comparison page.
 """
 from html import escape
 from pathlib import Path
@@ -37,7 +36,6 @@ from sklbench.reporting.matching import (
     read_all_results,
     read_failed_records,
 )
-from sklbench.reporting.utils import stable_json, without_keys
 
 
 TITLE = "KMeans: scikit-learn main vs branch vs sklearnex"
@@ -46,11 +44,10 @@ SOURCE_ENVS = ["sklearn-dev", "sklearn-dev-mkl", "intel"]
 
 SKLEARNEX_ENV = "intel"
 REF_LABELS = {"main": "main", "kmeans/lloyd_no_blocking_sync": "branch"}
-# Keyed by (pixi env, OpenBLAS version): both OpenBLAS builds ran in the
-# `sklearn-dev` env, so only the version that threadpoolctl reports tells them
-# apart.
+# Keyed by (pixi env, OpenBLAS version): OpenBLAS `develop` is swapped into the
+# `sklearn-dev` env, whose own OpenBLAS is 0.3.34, so only the version that
+# threadpoolctl reports tells them apart.
 RUNTIME_LABELS = {
-    ("sklearn-dev", "0.3.34"): "OpenBLAS 0.3.34",
     ("sklearn-dev", "0.3.34.dev"): "OpenBLAS develop",
     ("sklearn-dev-mkl", None): "MKL",
 }
@@ -156,15 +153,6 @@ def _runtime_key(software_hash: str) -> tuple[str, str | None]:
     return env, next(t["version"] for t in threadpools if t["internal_api"] == "openblas")
 
 
-def _match_key(result: MethodResult) -> str:
-    """`minimal_match_key` without `bench.env`: `configs/_kmeans.py` sets one
-    OpenMP thread per core with MKL, but caps OpenBLAS builds at 64."""
-    case = without_keys(
-        result.case, excluded_names={"implementation", "max_bins", "source_config", "env"}
-    )
-    return stable_json({**case, "method": result.method})
-
-
 def variant_label(result: MethodResult | BenchmarkRecord) -> str:
     build_name = software_build_name(result.software_hash)
     if _env_of(build_name) == SKLEARNEX_ENV:
@@ -190,16 +178,16 @@ def _speedup_view_html(
     for method in METHODS:
         base_results = [r for r in results if r.method == method and is_baseline(r)]
         candidates = [r for r in results if r.method == method and not is_baseline(r)]
-        matches = find_matches(base_results, candidates, _result_matches, match_key=_match_key)
+        matches = find_matches(base_results, candidates, _result_matches)
         matches_by_method[method] = matches
         matched_bases = {id(m.base_result) for m in matches}
-        base_keys = {_match_key(r) for r in base_results}
+        base_keys = {r.minimal_match_key for r in base_results}
         unmatched_base += [r for r in base_results if id(r) not in matched_bases]
-        unmatched_candidates += [r for r in candidates if _match_key(r) not in base_keys]
+        unmatched_candidates += [r for r in candidates if r.minimal_match_key not in base_keys]
         plots.append({
             "category": ROW,
             "method": method,
-            "case_count": len({_match_key(m.base_result) for m in matches}),
+            "case_count": len({m.base_result.minimal_match_key for m in matches}),
             "plot": speedup_plot_html(
                 matches,
                 baseline_label=baseline_label,
