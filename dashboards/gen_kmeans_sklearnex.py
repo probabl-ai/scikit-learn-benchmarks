@@ -64,23 +64,26 @@ ABOUT_HTML = """<section class="panel">
   <p>This page compares <b>KMeans</b> in scikit-learn <code>main</code>, in the
   <a href="https://github.com/cakedev0/scikit-learn/tree/kmeans/lloyd_no_blocking_sync">kmeans/lloyd_no_blocking_sync</a>
   branch (<a href="https://github.com/scikit-learn/scikit-learn/pull/35193">scikit-learn#35193</a>)
-  and in <b>scikit-learn-intelex</b>, on the KMeans cases of
-  <code>configs/all_models.py</code>: real datasets, default
-  <dfn>hyperparameters</dfn> (k-means++ init, default <code>tol</code>).</p>
-  <p>scikit-learn is built from source with three <dfn term="blas/openmp runtime">BLAS/OpenMP runtimes</dfn>:
-  <dfn>OpenBLAS</dfn> 0.3.34 from conda-forge, OpenBLAS <code>develop</code>
-  and MKL. Each build has a tab in each machine tab. Click "Pick as baseline"
-  in a build's tab to compare every other build with it. The default baseline
-  is <code>main</code> with OpenBLAS 0.3.34.</p>
+  and in <b>scikit-learn-intelex</b>, on the cases of
+  <code>configs/kmeans_init_lloyd.py</code>: 17 workloads on real datasets
+  (16 to 3072 features, 10 to 3000 clusters, two of them sparse), in float32
+  and float64. Each fit runs the k-means++ init, then up to 100 Lloyd
+  iterations (<code>tol=0</code>, <code>max_iter=100</code>).</p>
+  <p>scikit-learn is built from source with two <dfn term="blas/openmp runtime">BLAS/OpenMP runtimes</dfn>:
+  <dfn>OpenBLAS</dfn> <code>develop</code> and MKL. Each build has a tab in
+  each machine tab. Click "Pick as baseline" in a build's tab to compare every
+  other build with it. The default baseline is <code>main</code> with OpenBLAS
+  <code>develop</code>.</p>
   <p>The plots show the fit and predict <dfn>speed-up</dfn> over the baseline,
   in log scale, one point per case and build: hover a point to see the case.
   The table under the plots also has the init and Lloyd speed-ups, for
   scikit-learn builds only, since only the instrumented scikit-learn KMeans times
   each phase. Repeat <i>i</i> of a case passes <code>random_state=i</code>, so
-  the scikit-learn builds start from the same centers, but sklearnex draws
-  its k-means++ centers with its own random generator. The number
-  of iterations then differs, by up to ~5x between seeds of the same library,
-  so check the <code>n_iter</code> column before reading a fit speed-up.</p>
+  the scikit-learn builds start from the same centers and run the same number
+  of iterations. sklearnex draws its k-means++ centers with its own random
+  generator, and strict convergence (labels that stop changing) can end its
+  fits at a different iteration, so check the <code>n_iter</code> column
+  before reading its fit speed-up.</p>
   <p>All the scikit-learn builds use threadpoolctl <code>master</code>
   (<a href="https://github.com/joblib/threadpoolctl/commit/0e9d19d7cd529ba947dd2f82777a6b62ec56e2e5">0e9d19d</a>),
   as if <a href="https://github.com/joblib/threadpoolctl/pull/283">threadpoolctl#283</a>
@@ -97,35 +100,29 @@ ABOUT_HTML = """<section class="panel">
   which removes the contention between threads calling BLAS at the same time,
   as the OpenMP threads of KMeans do. No OpenBLAS release has it yet.</p>
   <p>On the Xeon server, every case runs on socket 0 (86 cores, 172 logical
-  CPUs). scikit-learn runs 64 OpenMP threads, the cap of
-  <code>configs/_real_datasets.py</code>
-  (<a href="https://github.com/OpenMathLib/OpenBLAS/issues/5958">OpenBLAS#5958</a>),
-  and sklearnex uses every logical CPU of the socket.</p>
+  CPUs) with the libraries' default thread counts: 172 OpenMP threads for
+  scikit-learn and every logical CPU of the socket for sklearnex.</p>
   <p>On the benchmarked cases:</p>
   <ul>
     <li>On the Xeon socket, a Lloyd iteration of <b>scikit-learn</b>
-    <code>main</code> takes ~20 ms whatever the data, even with 3 features and
-    10 clusters. The branch makes each iteration 1.2x to 8.5x faster (52x on
-    that smallest case with <b>MKL</b>), and the fits 1.2x to 4.3x faster.</li>
-    <li>On the Xeon socket, <b>OpenBLAS</b> <code>develop</code> doesn't
-    change <code>main</code>, but with the branch it makes the Lloyd
-    iterations up to 4.3x faster than OpenBLAS 0.3.34 on the cases with few
-    features or clusters (road_network and sift with 10 clusters, sift with 100
-    clusters). With both, the fits are 1.5x to 6.8x faster than
-    <code>main</code> with OpenBLAS 0.3.34.</li>
-    <li>On the laptop, the branch doesn't change the time per Lloyd
-    iteration (0.96x to 1.07x), except on road_network with 10 clusters and
-    <b>MKL</b> (0.8x, on 0.6 ms iterations). <b>OpenBLAS</b>
-    <code>develop</code> only helps on road_network with 10 clusters (~2x per
-    iteration).</li>
-    <li>On the laptop, <b>sklearnex</b> and <b>scikit-learn</b> are within
-    ~1.4x of each other, except on the smallest workloads (sift and
-    road_network with 10 clusters), where sklearnex is 1.6x to 2.9x faster.</li>
-    <li>On the Xeon socket, with the branch, <b>scikit-learn</b> is faster than
-    <b>sklearnex</b> on 6 of the 8 cases, up to ~4x on sift with 100 clusters
-    (~7x with OpenBLAS <code>develop</code>). sklearnex stays faster on
-    road_network (3 features): 1.9x to 3.9x with OpenBLAS 0.3.34, ~1.8x with
-    OpenBLAS <code>develop</code>.</li>
+    <code>main</code> takes at least ~35 ms on every dense case with 50,000
+    samples or more, whatever the number of features or clusters. The branch
+    makes the Lloyd iterations 1.6x to 23x faster on the dense cases, and the
+    fits 1.5x to 13x faster.</li>
+    <li>On the Xeon socket, <code>main</code> is much slower on the sparse
+    cases: 0.2 to 2.9 s per Lloyd iteration, 9x to 38x slower than the branch.
+    One of the five repeats of rcv1 in float64 didn't finish within the time
+    limit, so that case has four.</li>
+    <li>On the laptop, the branch doesn't change the dense cases much (0.83x to
+    1.03x per Lloyd iteration, the lowest on iterations under 16 ms), but it
+    makes the sparse ones faster: 1.5x to 3.9x on 20newsgroups, 1.7x on rcv1 in
+    float64.</li>
+    <li>On the laptop, <b>sklearnex</b> is faster than <b>scikit-learn</b> with
+    the branch on the sparse cases (~1.7x per iteration on rcv1, ~1.35x on
+    20newsgroups in float32), but not on the dense ones: it takes 0.83x to 1.8x
+    the fit time per iteration of the branch with <b>OpenBLAS</b>
+    <code>develop</code> (up to 2x that of <b>MKL</b>), the most on
+    road_network and on sift with 16 features.</li>
     <li>The different numbers of iterations of <b>sklearnex</b> come from its
     k-means++ random draws, not from its Lloyd iterations: starting from the
     same centers, it runs the same number of iterations as <b>scikit-learn</b>
