@@ -87,3 +87,35 @@ Unpinned runs with T < 86 vary up to 2x between processes (threads land on
 HT siblings / different SNC domains). From exp 4 on, A/B runs use
 `sweep.py --pin compact` (taskset to the first T physical cores, siblings
 after all cores are used).
+
+Note: conda-forge's 0.3.34 picks Cooperlake on the Xeon 6787P, my develop
+builds pick SapphireRapids; conda-forge and develop results are within +-3%
+for s/dgemm, so the kernel table choice is not a factor for these routines.
+
+## Exp 4: OpenBLAS patches A/B (pinned compact)
+
+`scripts/run_patches.sh xeon-s0 8,22,43,86` (s0 slot) and
+`scripts/run_patches.sh gamer 8,16,24`; variants: conda-forge 0.3.34,
+MKL (no OpenMP binding, but taskset to T cores), develop 800bb92a (base),
+split-K v1, l1stride, split-K forced to T chunks. Correctness:
+`scripts/check_patches.sh` (all OK; the only "FAIL"s are k = 200000 at
+1e-12 relative error, identical with split-K off, i.e. a too-strict
+threshold). Results: `results/{xeon-s0,gamer}/patches.csv`.
+
+Outcome:
+- Pinned runs are reproducible: conda-forge and base agree within +-3%.
+- split-K (v1 trigger) on 100x100x1e6:NT f64: 4.2x at 22T, 6.5x at 43T,
+  20x at 86T (88 -> 1742 GF/s, MKL 1732); f32 86T: 133 -> 4080 (MKL 3317).
+  200x200x50000:TN at 86T: 5.1x f64 / 8.3x f32 (beats MKL 1.8-2.3x).
+  Forced split shows the v1 trigger was too conservative (8T: +1.9x on
+  100x100, +1.7x on 200x200x50000) -> v2 trigger: split when
+  m*n < T*128^2, k/T >= 512, and >= T/2 chunks fit in 64 MiB scratch.
+- l1stride: thin X @ W 1.3-3.5x at 8-43T on the Xeon (10x1e6x100 f64 22T:
+  110 -> 302, MKL 290) and on the gamer (7x116203x100 f64 24T: 47 -> 178,
+  MKL 102). At 86T on the Xeon it was erratic (one round of 7x116203x100 at
+  54 GF/s, f32 thin shapes -30%): re-measured in exp 7 with 3 rounds.
+- Gamer: OpenBLAS large squares do not gain from E cores (4096^3 f64:
+  8T 569, 24T 568 GF/s; MKL 561 -> 755). Gamer absolute numbers drift
+  10-15% between rounds (power/thermal); compare within a round only.
+- MKL without OpenMP binding but with taskset to 86 physical cores still
+  loses (4096^3: 2531 vs OpenBLAS 3750): migration, not HT siblings.

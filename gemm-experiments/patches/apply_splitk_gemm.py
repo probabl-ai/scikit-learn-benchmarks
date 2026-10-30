@@ -2,8 +2,8 @@
 
 usage: python apply_splitk_gemm.py OPENBLAS_SRC
 
-When the M x N partition of level3_thread.c can only feed a fraction of the
-threads (small m, n) and k is long, split k into one chunk per thread, run the
+When each thread's share of C is small (m * n < nthreads * 128^2) and k is
+long (k / nthreads >= 512), split k into one chunk per thread, run the
 single-threaded driver on each chunk (chunk 0 writes C with the user's beta,
 the others write private buffers with beta = 0), then reduce the buffers into
 C in parallel over columns. OPENBLAS_GEMM_SPLITK=0 disables it, =N forces N
@@ -37,14 +37,23 @@ static BLASLONG splitk_nchunks(BLASLONG m, BLASLONG n, BLASLONG k, int nthreads)
   if (splitk_env == 0 || nthreads < 2) return 1;
   BLASLONG p = nthreads;
   if (splitk_env > 0) return MIN(splitk_env, nthreads);
+#ifdef SPLITK_V1
   /* The M x N partition already feeds the threads with 32 x 32 tiles. */
   BLASLONG tiles = MAX(1, m / 32) * MAX(1, n / 32);
   if (2 * tiles >= nthreads) return 1;
+#else
+  /* Each thread's share of C is large enough for the M x N partition. */
+  if (m * n >= (BLASLONG)nthreads * 128 * 128) return 1;
+#endif
   /* Keep chunks long enough to amortize packing. */
   if (k / p < 512) p = k / 512;
   /* Cap the scratch buffers at 64 MiB. */
   BLASLONG cap = (64L << 20) / (m * n * (BLASLONG)sizeof(FLOAT));
   if (p - 1 > cap) p = cap + 1;
+#ifndef SPLITK_V1
+  /* With single-threaded chunks, fewer than half the threads would work. */
+  if (2 * p < nthreads) return 1;
+#endif
   return p < 2 ? 1 : p;
 }
 
