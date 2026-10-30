@@ -7,9 +7,10 @@ the variants of an A/B comparison alternate within each round.
         --variant openblas --variant mkl --variant mine=/path/libopenblas.so \
         --shapes 4096x4096x4096 1000000x100x100:TN
 
-A variant is a preset name (see PRESETS) or NAME=LIBPATH[,KEY=VAL...]; the
+A variant is a preset name (see PRESETS), LABEL:PRESET, or
+NAME=LIBPATH[,KEY=VAL...] (a preset's environment is not added then); the
 KEY=VAL pairs are extra environment variables, and {T} in a value is replaced
-by the thread count.
+by the thread count. E.g. mkl-close:mkl,OMP_PROC_BIND=close,OMP_PLACES=cores
 """
 
 import argparse
@@ -47,7 +48,8 @@ if sys.platform == "darwin":
 def parse_variant(spec):
     if "=" not in spec.split(",")[0]:
         name, *extra = spec.split(",")
-        path, env = PRESETS[name]
+        name, _, preset = name.partition(":")
+        path, env = PRESETS[preset or name]
         env = dict(env)
     else:
         head, *extra = spec.split(",")
@@ -58,6 +60,24 @@ def parse_variant(spec):
         k, v = kv.split("=", 1)
         env[k] = v
     return name, str(path), env
+
+
+def compact_cpus(t):
+    """First t CPUs of this process's affinity, one per physical core first.
+
+    Physical cores are taken in CPU-number order (on the hybrid Core Ultra
+    that is P cores before E cores; on a Xeon socket slot it fills one SNC
+    domain before the next), hyperthread siblings only after every core.
+    """
+    allowed = sorted(os.sched_getaffinity(0))
+    first, second = [], []
+    seen = set()
+    for c in allowed:
+        sib = Path(f"/sys/devices/system/cpu/cpu{c}/topology/thread_siblings_list")
+        key = sib.read_text().strip() if sib.exists() else str(c)
+        (second if key in seen else first).append(c)
+        seen.add(key)
+    return (first + second)[:t]
 
 
 def run_cmd(cmd):
@@ -78,6 +98,8 @@ def main():
     p.add_argument("--min-time", default="0.3")
     p.add_argument("--init", default="serial")
     p.add_argument("--prefix-cmd", default="", help="e.g. 'numactl --interleave=all'")
+    p.add_argument("--pin", choices=["none", "compact"], default="none",
+                   help="compact: restrict each run to its first T physical cores")
     p.add_argument("--note", default="")
     args = p.parse_args()
 
@@ -108,7 +130,11 @@ def main():
                     env = dict(os.environ)
                     env.update({k: v.replace("{T}", str(t)) for k, v in extra.items()})
                     for dtype in args.dtype.split(","):
-                        cmd = args.prefix_cmd.split() + [
+                        pin = []
+                        if args.pin == "compact":
+                            cpus = compact_cpus(t)
+                            pin = ["taskset", "-c", ",".join(map(str, cpus))]
+                        cmd = pin + args.prefix_cmd.split() + [
                             str(BIN), "--lib", path, "--label", name, "--dtype", dtype,
                             "--min-time", args.min_time, "--init", args.init,
                             "--threads", str(t), *args.shapes,
