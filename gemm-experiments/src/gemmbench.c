@@ -18,6 +18,31 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef __APPLE__
+// macOS has no pthread barriers.
+typedef struct { pthread_mutex_t mu; pthread_cond_t cv; int n, count, gen; } pthread_barrier_t;
+static int pthread_barrier_init(pthread_barrier_t *b, void *attr, int n) {
+    (void)attr;
+    pthread_mutex_init(&b->mu, NULL);
+    pthread_cond_init(&b->cv, NULL);
+    b->n = n; b->count = 0; b->gen = 0;
+    return 0;
+}
+static int pthread_barrier_wait(pthread_barrier_t *b) {
+    pthread_mutex_lock(&b->mu);
+    int gen = b->gen;
+    if (++b->count == b->n) { b->count = 0; b->gen++; pthread_cond_broadcast(&b->cv); }
+    else while (gen == b->gen) pthread_cond_wait(&b->cv, &b->mu);
+    pthread_mutex_unlock(&b->mu);
+    return 0;
+}
+static int pthread_barrier_destroy(pthread_barrier_t *b) {
+    pthread_mutex_destroy(&b->mu);
+    pthread_cond_destroy(&b->cv);
+    return 0;
+}
+#endif
+
 enum { ColMajor = 102 };
 enum { NoTrans = 111, Trans = 112 };
 
@@ -69,8 +94,8 @@ static void op_call(const struct op *o) {
         if (d) dsyrk(ColMajor, Upper, o->ta, o->n, o->k, 1.0, o->A, lda, 0.0, o->C, o->n);
         else ssyrk(ColMajor, Upper, o->ta, o->n, o->k, 1.0f, o->A, lda, 0.0f, o->C, o->n);
     } else {
-        if (d) dgemv(ColMajor, o->ta, o->m, o->n, 1.0, o->A, o->m, o->B, 1, 0.0, o->C, 1);
-        else sgemv(ColMajor, o->ta, o->m, o->n, 1.0f, o->A, o->m, o->B, 1, 0.0f, o->C, 1);
+        if (d) dgemv(ColMajor, o->ta, o->m, o->n, 1.0, o->A, o->m, o->B, 1, o->beta, o->C, 1);
+        else sgemv(ColMajor, o->ta, o->m, o->n, 1.0f, o->A, o->m, o->B, 1, (float)o->beta, o->C, 1);
     }
 }
 
@@ -137,7 +162,10 @@ static void *alloc_init(size_t nelem, int esize, int nthreads, unsigned seed) {
 // Compare one gemm call against a naive double-precision reference, on a copy
 // of C so that beta != 0 is checked too. Returns max abs error / max abs ref.
 // The inputs have 24-bit mantissas, so float64 results are often exact.
+static double check_gemv(struct op *o, int esize);
+
 static double check_gemm(struct op *o, int esize) {
+    if (o->routine == 'v') return check_gemv(o, esize);
     long m = o->m, n = o->n, k = o->k;
     long lda = o->ta == NoTrans ? m : k, ldb = o->tb == NoTrans ? k : n;
     double *c0 = malloc(m * n * sizeof(double));
@@ -161,6 +189,29 @@ static double check_gemm(struct op *o, int esize) {
         }
 #undef AT
     free(c0);
+    return maxerr / maxref;
+}
+
+// Same for gemv: y = A x (N) or A^T x (T), A m x n, on a copy of y.
+static double check_gemv(struct op *o, int esize) {
+    long m = o->m, n = o->n, ny = o->ta == NoTrans ? m : n;
+    double *y0 = malloc(ny * sizeof(double));
+#define AT(p, i) (esize == 8 ? ((double *)(p))[i] : (double)((float *)(p))[i])
+    for (long i = 0; i < ny; i++) y0[i] = AT(o->C, i);
+    op_call(o);
+    double maxerr = 0, maxref = 1e-300;
+    for (long i = 0; i < ny; i++) {
+        double acc = 0;
+        if (o->ta == NoTrans) for (long j = 0; j < n; j++) acc += AT(o->A, i + j * m) * AT(o->B, j);
+        else for (long j = 0; j < m; j++) acc += AT(o->A, j + i * m) * AT(o->B, j);
+        double ref = acc + o->beta * y0[i];
+        double err = ref - AT(o->C, i);
+        if (err < 0) err = -err;
+        if (err > maxerr) maxerr = err;
+        if ((ref < 0 ? -ref : ref) > maxref) maxref = ref < 0 ? -ref : ref;
+    }
+#undef AT
+    free(y0);
     return maxerr / maxref;
 }
 
@@ -326,7 +377,7 @@ int main(int argc, char **argv) {
             ops[p].B = alloc_init(nb, esize, init_threads, 2 + 3 * p);
             ops[p].C = alloc_init(nc, esize, init_threads, 3 + 3 * p);
         }
-        if (check && o.routine == 'g') {
+        if (check && o.routine != 's') {
             double rel = check_gemm(&ops[0], esize);
             printf("check,%c,%ld,%ld,%ld,%s,beta=%g,relerr=%.3g,%s\n", dtype, o.m, o.n,
                    o.k, name, beta, rel, rel < (dtype == 'd' ? 1e-13 : 1e-5) ? "OK" : "FAIL");

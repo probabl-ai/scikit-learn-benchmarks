@@ -1,0 +1,256 @@
+Processes: 1065 total, 8 running, 1 stuck, 1056 sleeping, 4624 threads 
+2026/10/30 12:23:04
+Load Avg: 2.67, 3.62, 5.37 
+CPU usage: 22.33% user, 19.0% sys, 58.66% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 359263 total, 2705M resident, 326M private, 1045M shared.
+PhysMem: 12G used (2086M wired, 3969M compressor), 2884M unused.
+VM: 506T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7168948/7087M in, 4397079/2972M out.
+Disks: 24364135/378G read, 8666874/131G written.
+
+COMMAND          %CPU
+nsattributedstri 0.0 
+storekitagent    0.0 
+Telegram         0.0 
+Brave Browser He 0.0 
+Processes: 1069 total, 4 running, 1065 sleeping, 4593 threads 
+2026/10/30 12:23:14
+Load Avg: 2.49, 3.55, 5.32 
+CPU usage: 15.40% user, 1.91% sys, 82.67% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 167 total, 6032K resident, 326M private, 1045M shared.
+PhysMem: 12G used (2079M wired, 3969M compressor), 2880M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169110/7087M in, 4397289/2972M out.
+Disks: 24364146/378G read, 8667436/131G written.
+
+COMMAND          %CPU
+Brave Browser He 5.5 
+airportd         5.1 
+kernel_task      3.6 
+loginwindow      1.6 
+Processes: 1067 total, 3 running, 1064 sleeping, 4510 threads 
+2026/10/30 12:23:28
+Load Avg: 2.49, 3.52, 5.29 
+CPU usage: 25.57% user, 2.33% sys, 72.9% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 68 total, 4960K resident, 326M private, 1045M shared.
+PhysMem: 12G used (2077M wired, 3969M compressor), 2895M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169232/7087M in, 4397450/2972M out.
+Disks: 24364155/378G read, 8668157/131G written.
+
+COMMAND          %CPU
+airportd         4.1 
+kernel_task      3.1 
+launchd          2.2 
+Brave Browser He 1.7 
+Processes: 1067 total, 3 running, 1064 sleeping, 4539 threads 
+2026/10/30 12:23:39
+Load Avg: 2.87, 3.57, 5.28 
+CPU usage: 42.62% user, 2.27% sys, 55.10% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 93 total, 3664K resident, 326M private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3969M compressor), 2895M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169349/7087M in, 4397603/2972M out.
+Disks: 24364162/378G read, 8668787/131G written.
+
+COMMAND          %CPU
+airportd         5.8 
+Brave Browser He 4.8 
+kernel_task      4.1 
+com.apple.Driver 1.1 
+Processes: 1067 total, 4 running, 1063 sleeping, 4668 threads 
+2026/10/30 12:23:55
+Load Avg: 3.77, 3.73, 5.32 
+CPU usage: 66.98% user, 2.35% sys, 30.65% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 85 total, 24M resident, 326M private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3968M compressor), 2869M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169470/7087M in, 4397763/2973M out.
+Disks: 24364165/378G read, 8669434/131G written.
+
+COMMAND          %CPU
+airportd         3.6 
+kernel_task      2.6 
+Brave Browser He 1.5 
+opendirectoryd   0.6 
+Processes: 1068 total, 9 running, 1059 sleeping, 4695 threads 
+2026/10/30 12:24:09
+Load Avg: 4.74, 3.94, 5.37 
+CPU usage: 90.69% user, 3.37% sys, 5.93% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 224 total, 19M resident, 326M private, 1047M shared.
+PhysMem: 12G used (2079M wired, 3968M compressor), 2866M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169563/7087M in, 4397885/2973M out.
+Disks: 24364173/378G read, 8670246/131G written.
+
+COMMAND          %CPU
+airportd         4.4 
+kernel_task      3.5 
+Brave Browser He 2.4 
+launchd          1.9 
+Processes: 1067 total, 22 running, 1 stuck, 1044 sleeping, 4629 threads 
+2026/10/30 12:24:23
+Load Avg: 4.24, 3.85, 5.33 
+CPU usage: 18.81% user, 1.63% sys, 79.54% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 66 total, 3520K resident, 326M private, 1047M shared.
+PhysMem: 12G used (2076M wired, 3968M compressor), 2897M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169605/7087M in, 4397940/2973M out.
+Disks: 24364180/378G read, 8670645/131G written.
+
+COMMAND          %CPU
+kernel_task      3.9 
+Brave Browser He 1.3 
+airportd         1.3 
+top              0.9 
+Processes: 1068 total, 3 running, 1065 sleeping, 4552 threads 
+2026/10/30 12:24:33
+Load Avg: 3.89, 3.79, 5.29 
+CPU usage: 24.54% user, 1.81% sys, 73.63% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 132 total, 6160K resident, 326M private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3968M compressor), 2892M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169723/7087M in, 4398095/2973M out.
+Disks: 24364193/378G read, 8671130/131G written.
+
+COMMAND          %CPU
+airportd         3.9 
+kernel_task      2.3 
+com.apple.Driver 0.7 
+opendirectoryd   0.6 
+Processes: 1068 total, 3 running, 1065 sleeping, 4572 threads 
+2026/10/30 12:24:47
+Load Avg: 3.97, 3.82, 5.28 
+CPU usage: 39.34% user, 2.36% sys, 58.29% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 74 total, 13M resident, 326M private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3968M compressor), 2883M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169823/7087M in, 4398230/2973M out.
+Disks: 24364214/378G read, 8671939/131G written.
+
+COMMAND          %CPU
+airportd         4.8 
+kernel_task      3.2 
+launchd          1.2 
+com.apple.Driver 0.9 
+Processes: 1068 total, 3 running, 1065 sleeping, 4679 threads 
+2026/10/30 12:25:00
+Load Avg: 3.97, 3.82, 5.26 
+CPU usage: 63.6% user, 2.39% sys, 34.53% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 75 total, 4688K resident, 326M private, 1047M shared.
+PhysMem: 12G used (2086M wired, 3967M compressor), 2878M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7169922/7087M in, 4398364/2973M out.
+Disks: 24364232/378G read, 8672875/131G written.
+
+COMMAND          %CPU
+airportd         4.8 
+kernel_task      3.5 
+PerfPowerService 1.0 
+com.apple.Driver 0.8 
+Processes: 1068 total, 10 running, 1058 sleeping, 4709 threads 
+2026/10/30 12:25:14
+Load Avg: 5.83, 4.22, 5.39 
+CPU usage: 92.86% user, 2.98% sys, 4.15% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 169 total, 17M resident, 3184K private, 1047M shared.
+PhysMem: 12G used (2079M wired, 3966M compressor), 2866M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7170024/7087M in, 4398498/2973M out.
+Disks: 24364240/378G read, 8673917/131G written.
+
+COMMAND          %CPU
+airportd         4.3 
+kernel_task      3.6 
+loginwindow      1.2 
+com.apple.Driver 0.8 
+Processes: 1067 total, 3 running, 2 stuck, 1062 sleeping, 4636 threads 
+2026/10/30 12:25:28
+Load Avg: 5.16, 4.13, 5.34 
+CPU usage: 31.43% user, 2.25% sys, 66.31% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 84 total, 3088K resident, 3184K private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3965M compressor), 2886M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7170067/7087M in, 4398554/2973M out.
+Disks: 24364242/378G read, 8674585/131G written.
+
+COMMAND          %CPU
+kernel_task      3.0 
+airportd         1.8 
+launchd          1.4 
+top              0.6 
+Processes: 1067 total, 5 running, 1062 sleeping, 4554 threads 
+2026/10/30 12:25:38
+Load Avg: 4.67, 4.06, 5.30 
+CPU usage: 22.49% user, 1.61% sys, 75.88% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 87 total, 2624K resident, 3184K private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3965M compressor), 2890M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7170229/7087M in, 4398755/2973M out.
+Disks: 24364249/378G read, 8674924/131G written.
+
+COMMAND          %CPU
+Arc              4.9 
+airportd         4.4 
+kernel_task      2.5 
+opendirectoryd   0.8 
+Processes: 1068 total, 3 running, 1065 sleeping, 4502 threads 
+2026/10/30 12:25:51
+Load Avg: 4.42, 4.03, 5.28 
+CPU usage: 36.81% user, 2.4% sys, 61.13% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 119 total, 15M resident, 3184K private, 1047M shared.
+PhysMem: 12G used (2077M wired, 3964M compressor), 2875M unused.
+VM: 508T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7170350/7087M in, 4398919/2973M out.
+Disks: 24364255/378G read, 8675640/131G written.
+
+COMMAND          %CPU
+airportd         4.2 
+Brave Browser He 4.0 
+kernel_task      3.1 
+com.apple.Driver 0.8 
+Processes: 1066 total, 3 running, 1063 sleeping, 4639 threads 
+2026/10/30 12:26:04
+Load Avg: 4.75, 4.11, 5.29 
+CPU usage: 53.66% user, 2.79% sys, 43.54% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 106 total, 8352K resident, 3184K private, 1047M shared.
+PhysMem: 12G used (2079M wired, 3964M compressor), 2888M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7170449/7087M in, 4399053/2973M out.
+Disks: 24364261/378G read, 8676401/131G written.
+
+COMMAND          %CPU
+airportd         4.9 
+kernel_task      3.6 
+Brave Browser He 3.3 
+launchd          2.2 
+Processes: 1065 total, 7 running, 1058 sleeping, 4674 threads 
+2026/10/30 12:26:18
+Load Avg: 6.41, 4.48, 5.41 
+CPU usage: 90.65% user, 2.83% sys, 6.50% idle 
+SharedLibs: 589M resident, 118M data, 89M linkedit.
+MemRegions: 81 total, 6640K resident, 3184K private, 1047M shared.
+PhysMem: 12G used (2076M wired, 3964M compressor), 2897M unused.
+VM: 506T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7170572/7087M in, 4399197/2973M out.
+Disks: 24364266/378G read, 8677024/131G written.
+
+COMMAND          %CPU
+airportd         4.5 
+kernel_task      3.3 
+top              0.9 
+com.apple.Driver 0.8 

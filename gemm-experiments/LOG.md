@@ -119,3 +119,23 @@ Outcome:
   10-15% between rounds (power/thermal); compare within a round only.
 - MKL without OpenMP binding but with taskset to 86 physical cores still
   loses (4096^3: 2531 vs OpenBLAS 3750): migration, not HT siblings.
+
+## Exp 6: hybrid P/E cores (intel-gamer-gpu)
+
+`scripts/run_hybrid.sh gamer`: same sweep under taskset to CPU 0 (P), 8 (E),
+0-7 (8P), 8-23 (16E), 0-23 (24), and 8 threads floating on 0-23.
+Results `results/gamer/hybrid_*.csv`.
+
+Outcome (f64 4096^3, GF/s): 1 P core 77, 1 E core 50 (sgemm 160 vs 95);
+8P 576 (94% of 8x77), 16E 695 (87% of 16x50), all 24: OpenBLAS 864,
+MKL 811, BLIS 755 in this run, but 568 vs 755 in exp 4 for the same
+setting: at 24 threads on this machine round-to-round swings reach +-40%
+(2000x2000x200 f64: OpenBLAS 311 vs the identical-code l1 build 594 in the
+same round). 8 threads floating over all 24 CPUs lose 10-15% vs pinned to P.
+An even static split over 8P+16E would be E-bound at ~24x43 = 1030 GF/s;
+the ideal (P + E throughput) is ~1270.
+
+Build note: develop 800bb92a with `NO_AFFINITY=0 BUILD_BFLOAT16=1` fails with
+GCC 15 (`interface/gemm.c:812: passing argument 5 of 'gemm_thread_mn' from
+incompatible pointer type` for sbgemm; GCC 15 makes this an error). The
+affinity build therefore uses `BUILD_BFLOAT16=0` (bf16 is not benchmarked).

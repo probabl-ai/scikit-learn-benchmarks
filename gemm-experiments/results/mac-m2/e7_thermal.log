@@ -1,0 +1,62 @@
+# start Fri Oct 30 12:10:28 CET 2026 12:10  up 9 days,  1:08, 2 users, load averages: 4.28 6.23 7.14
+# background %CPU: 20
+# PID    COMMAND          %CPU
+# 23085  top              5.8 
+# 0      kernel_task      1.8 
+# 8682   WhatsApp         0.3 
+# 484    WindowServer     0.2 
+# 542    mDNSResponder    0.2 
+# 442    mds              0.1 
+# locked Fri Oct 30 12:10:33 CET 2026 12:10  up 9 days,  1:08, 2 users, load averages: 4.01 6.15 7.11
+r0 T=  4     accelerate s 2048x2048x2048:NN    1051.0 GF/s (best    1246.3)
+r0 T=  4     accelerate d 2048x2048x2048:NN     248.9 GF/s (best     307.4)
+r0 T=  4       openblas s 2048x2048x2048:NN     366.2 GF/s (best     377.3)
+r0 T=  4       openblas d 2048x2048x2048:NN     171.3 GF/s (best     187.5)
+r1 T=  4     accelerate s 2048x2048x2048:NN    1039.2 GF/s (best    1234.4)
+r1 T=  4     accelerate d 2048x2048x2048:NN     249.1 GF/s (best     312.3)
+r1 T=  4       openblas s 2048x2048x2048:NN     359.0 GF/s (best     374.9)
+r1 T=  4       openblas d 2048x2048x2048:NN     179.5 GF/s (best     183.3)
+r2 T=  4     accelerate s 2048x2048x2048:NN    1041.7 GF/s (best    1237.3)
+r2 T=  4     accelerate d 2048x2048x2048:NN     250.4 GF/s (best     314.4)
+r2 T=  4       openblas s 2048x2048x2048:NN     362.7 GF/s (best     376.2)
+r2 T=  4       openblas d 2048x2048x2048:NN     151.5 GF/s (best     175.2)
+r3 T=  4     accelerate s 2048x2048x2048:NN     999.0 GF/s (best    1241.1)
+r3 T=  4     accelerate d 2048x2048x2048:NN     249.1 GF/s (best     301.1)
+r3 T=  4       openblas s 2048x2048x2048:NN     162.9 GF/s (best     314.2)
+r3 T=  4       openblas d 2048x2048x2048:NN     169.8 GF/s (best     186.9)
+r4 T=  4     accelerate s 2048x2048x2048:NN     979.6 GF/s (best    1164.6)
+r4 T=  4     accelerate d 2048x2048x2048:NN     245.7 GF/s (best     310.2)
+r4 T=  4       openblas s 2048x2048x2048:NN     188.5 GF/s (best     305.9)
+r4 T=  4       openblas d 2048x2048x2048:NN      84.7 GF/s (best      90.0)
+r5 T=  4     accelerate s 2048x2048x2048:NN    1006.4 GF/s (best    1056.7)
+r5 T=  4     accelerate d 2048x2048x2048:NN     250.1 GF/s (best     309.0)
+r5 T=  4       openblas s 2048x2048x2048:NN     157.4 GF/s (best     349.9)
+r5 T=  4       openblas d 2048x2048x2048:NN     141.3 GF/s (best     168.1)
+r6 T=  4     accelerate s 2048x2048x2048:NN     924.4 GF/s (best    1124.9)
+r6 T=  4     accelerate d 2048x2048x2048:NN     226.2 GF/s (best     269.7)
+r6 T=  4       openblas s 2048x2048x2048:NN     295.7 GF/s (best     350.0)
+r6 T=  4       openblas d 2048x2048x2048:NN     122.9 GF/s (best     142.1)
+r7 T=  4     accelerate s 2048x2048x2048:NN     912.0 GF/s (best    1053.1)
+r7 T=  4     accelerate d 2048x2048x2048:NN     226.0 GF/s (best     268.6)
+r7 T=  4       openblas s 2048x2048x2048:NN     299.2 GF/s (best     349.8)
+r7 T=  4       openblas d 2048x2048x2048:NN     123.0 GF/s (best     140.8)
+r8 T=  4     accelerate s 2048x2048x2048:NN     942.3 GF/s (best    1055.6)
+r8 T=  4     accelerate d 2048x2048x2048:NN     249.2 GF/s (best     311.3)
+r8 T=  4       openblas s 2048x2048x2048:NN     208.8 GF/s (best     298.6)
+r8 T=  4       openblas d 2048x2048x2048:NN     183.7 GF/s (best     188.3)
+r9 T=  4     accelerate s 2048x2048x2048:NN    1042.8 GF/s (best    1244.0)
+r9 T=  4     accelerate d 2048x2048x2048:NN     252.3 GF/s (best     309.7)
+r9 T=  4       openblas s 2048x2048x2048:NN     332.7 GF/s (best     376.8)
+r9 T=  4       openblas d 2048x2048x2048:NN     121.6 GF/s (best     160.9)
+r10 T=  4     accelerate s 2048x2048x2048:NN    1035.5 GF/s (best    1176.9)
+r10 T=  4     accelerate d 2048x2048x2048:NN     252.1 GF/s (best     311.5)
+r10 T=  4       openblas s 2048x2048x2048:NN     333.4 GF/s (best     377.5)
+r10 T=  4       openblas d 2048x2048x2048:NN     149.0 GF/s (best     166.9)
+r11 T=  4     accelerate s 2048x2048x2048:NN    1023.8 GF/s (best    1241.6)
+r11 T=  4     accelerate d 2048x2048x2048:NN     251.8 GF/s (best     314.9)
+r11 T=  4       openblas s 2048x2048x2048:NN     314.2 GF/s (best     376.7)
+r11 T=  4       openblas d 2048x2048x2048:NN     105.3 GF/s (best     124.4)
+# exit 0 Fri Oct 30 12:16:34 CET 2026 12:16  up 9 days,  1:14, 2 users, load averages: 4.18 4.79 6.23
+# Note: No thermal warning level has been recorded
+# Note: No performance warning level has been recorded
+# Note: No CPU power status has been recorded

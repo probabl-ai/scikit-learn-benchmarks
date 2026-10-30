@@ -1,0 +1,78 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/mac-m2/e3_accel_controls.csv",
+  "--threads",
+  "1,8",
+  "--dtype",
+  "d,s",
+  "--rounds",
+  "3",
+  "--variant",
+  "accelerate",
+  "--variant",
+  "acc-single:accelerate,GEMMBENCH_BLAS_THREADING=1",
+  "--variant",
+  "acc-newlapack:accelerate,GEMMBENCH_SUFFIX=$NEWLAPACK",
+  "--shapes",
+  "64x64x64",
+  "256x256x256",
+  "1024x1024x1024",
+  "2048x2048x2048",
+  "4096x4096x4096",
+  "100x100x1000000:NT",
+  "10x1000000x100:NN",
+  "8x1000000x100:TN",
+  "256x100000x100:TN",
+  "20x100000x1000:NN",
+  "100x200x784:NN",
+  "syrk:100x1000000:N",
+  "--note",
+  "Accelerate threading controls and NEWLAPACK"
+ ],
+ "note": "Accelerate threading controls and NEWLAPACK",
+ "host": "Irinas-MacBook-Pro-5.local",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "start": "2026-10-30T11:18:23+0100",
+ "variants": {
+  "accelerate": {
+   "lib": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+   "env": {
+    "VECLIB_MAXIMUM_THREADS": "{T}"
+   }
+  },
+  "acc-single": {
+   "lib": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+   "env": {
+    "VECLIB_MAXIMUM_THREADS": "{T}",
+    "GEMMBENCH_BLAS_THREADING": "1"
+   }
+  },
+  "acc-newlapack": {
+   "lib": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+   "env": {
+    "VECLIB_MAXIMUM_THREADS": "{T}",
+    "GEMMBENCH_SUFFIX": "$NEWLAPACK"
+   }
+  }
+ },
+ "lscpu": "hw.memsize: 17179869184\nhw.perflevel0.physicalcpu: 4\nhw.perflevel0.physicalcpu_max: 4\nhw.perflevel0.logicalcpu: 4\nhw.perflevel0.logicalcpu_max: 4\nhw.perflevel0.l1icachesize: 196608\nhw.perflevel0.l1dcachesize: 131072\nhw.perflevel0.l2cachesize: 16777216\nhw.perflevel0.cpusperl2: 4\nhw.perflevel0.name: Performance\nhw.perflevel1.physicalcpu: 4\nhw.perflevel1.physicalcpu_max: 4\nhw.perflevel1.logicalcpu: 4\nhw.perflevel1.logicalcpu_max: 4\nhw.perflevel1.l1icachesize: 131072\nhw.perflevel1.l1dcachesize: 65536\nhw.perflevel1.l2cachesize: 4194304\nhw.perflevel1.cpusperl2: 4\nhw.perflevel1.name: Efficiency\nhw.memsize_usable: 16375169024\nmachdep.cpu.cores_per_package: 8\nmachdep.cpu.core_count: 8\nmachdep.cpu.logical_per_package: 8\nmachdep.cpu.thread_count: 8\nmachdep.cpu.brand_string: Apple M2\n",
+ "affinity": "",
+ "loadavg_start": [
+  4.86376953125,
+  8.45947265625,
+  8.78369140625
+ ],
+ "lib_headers": {
+  "accelerate": "# BLASGetThreading: 0\n# library threads: 1",
+  "acc-single": "# BLASGetThreading: 1\n# library threads: 1",
+  "acc-newlapack": "# BLASGetThreading: 0\n# library threads: 1"
+ },
+ "end": "2026-10-30T11:22:13+0100",
+ "loadavg_end": [
+  3.1962890625,
+  5.51025390625,
+  7.39501953125
+ ]
+}

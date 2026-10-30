@@ -1,0 +1,640 @@
+Processes: 1061 total, 3 running, 1058 sleeping, 4433 threads 
+2026/10/30 11:22:19
+Load Avg: 3.02, 5.44, 7.36 
+CPU usage: 26.95% user, 17.2% sys, 56.2% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 342024 total, 2380M resident, 259M private, 961M shared.
+PhysMem: 13G used (2047M wired, 4164M compressor), 2319M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134479/7070M in, 4362926/2960M out.
+Disks: 24078645/370G read, 8515941/129G written.
+
+COMMAND          %CPU
+nsattributedstri 0.0 
+storekitagent    0.0 
+Telegram         0.0 
+Brave Browser He 0.0 
+Processes: 1067 total, 4 running, 1063 sleeping, 4489 threads 
+2026/10/30 11:22:29
+Load Avg: 2.94, 5.34, 7.30 
+CPU usage: 27.81% user, 2.75% sys, 69.42% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 295 total, 14M resident, 259M private, 964M shared.
+PhysMem: 13G used (2048M wired, 4162M compressor), 2284M unused.
+VM: 506T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134549/7070M in, 4363007/2960M out.
+Disks: 24078787/370G read, 8516382/129G written.
+
+COMMAND          %CPU
+spotlightknowled 96.3
+Brave Browser He 7.8 
+Google Chrome He 6.4 
+Google Chrome He 5.6 
+Processes: 1067 total, 4 running, 1063 sleeping, 4451 threads 
+2026/10/30 11:22:39
+Load Avg: 2.87, 5.24, 7.24 
+CPU usage: 27.61% user, 3.0% sys, 69.38% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 69 total, 61M resident, 259M private, 964M shared.
+PhysMem: 13G used (2048M wired, 4161M compressor), 2255M unused.
+VM: 506T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134605/7070M in, 4363129/2960M out.
+Disks: 24078929/371G read, 8516862/129G written.
+
+COMMAND          %CPU
+spotlightknowled 98.3
+Brave Browser He 8.0 
+Google Chrome He 6.9 
+Google Chrome He 5.4 
+Processes: 1070 total, 3 running, 1067 sleeping, 4448 threads 
+2026/10/30 11:22:49
+Load Avg: 2.89, 5.17, 7.19 
+CPU usage: 32.94% user, 2.55% sys, 64.50% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 269 total, 4304K resident, 259M private, 967M shared.
+PhysMem: 13G used (2049M wired, 4160M compressor), 2281M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134654/7070M in, 4363193/2960M out.
+Disks: 24079034/371G read, 8517008/129G written.
+
+COMMAND          %CPU
+spotlightknowled 98.5
+Google Chrome He 5.5 
+Google Chrome He 4.4 
+Arc              3.2 
+Processes: 1069 total, 4 running, 1065 sleeping, 4430 threads 
+2026/10/30 11:22:59
+Load Avg: 3.06, 5.13, 7.16 
+CPU usage: 38.34% user, 2.86% sys, 58.78% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 88 total, 9872K resident, 259M private, 969M shared.
+PhysMem: 13G used (2046M wired, 4160M compressor), 2302M unused.
+VM: 507T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134673/7070M in, 4363216/2960M out.
+Disks: 24079155/371G read, 8517386/129G written.
+
+COMMAND          %CPU
+spotlightknowled 97.7
+Google Chrome He 7.1 
+Google Chrome He 6.5 
+Brave Browser He 4.2 
+Processes: 1064 total, 4 running, 1060 sleeping, 4436 threads 
+2026/10/30 11:23:09
+Load Avg: 3.20, 5.09, 7.12 
+CPU usage: 39.67% user, 4.24% sys, 56.8% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 77 total, 120M resident, 259M private, 969M shared.
+PhysMem: 13G used (2046M wired, 4159M compressor), 2207M unused.
+VM: 505T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134810/7070M in, 4363356/2960M out.
+Disks: 24079482/371G read, 8517793/129G written.
+
+COMMAND          %CPU
+spotlightknowled 95.8
+PerfPowerService 8.9 
+Google Chrome He 6.8 
+runningboardd    5.8 
+Processes: 1062 total, 4 running, 1058 sleeping, 4424 threads 
+2026/10/30 11:23:19
+Load Avg: 3.40, 5.07, 7.09 
+CPU usage: 48.86% user, 2.78% sys, 48.34% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 86 total, 333M resident, 259M private, 969M shared.
+PhysMem: 13G used (2047M wired, 4159M compressor), 2029M unused.
+VM: 504T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134821/7070M in, 4363370/2960M out.
+Disks: 24079849/371G read, 8517815/129G written.
+
+COMMAND          %CPU
+spotlightknowled 97.7
+Google Chrome He 6.9 
+Google Chrome He 5.9 
+kernel_task      3.3 
+Processes: 1065 total, 4 running, 1061 sleeping, 4437 threads 
+2026/10/30 11:23:29
+Load Avg: 3.65, 5.07, 7.06 
+CPU usage: 50.63% user, 2.64% sys, 46.72% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 222 total, 29M resident, 259M private, 956M shared.
+PhysMem: 13G used (2047M wired, 4159M compressor), 2320M unused.
+VM: 505T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134843/7070M in, 4363395/2960M out.
+Disks: 24079962/371G read, 8518017/129G written.
+
+COMMAND          %CPU
+spotlightknowled 98.3
+Google Chrome He 6.3 
+Google Chrome He 4.8 
+kernel_task      3.1 
+Processes: 1065 total, 5 running, 1060 sleeping, 4477 threads 
+2026/10/30 11:23:40
+Load Avg: 4.02, 5.10, 7.05 
+CPU usage: 60.15% user, 4.48% sys, 35.35% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 111 total, 446M resident, 259M private, 956M shared.
+PhysMem: 14G used (2047M wired, 4155M compressor), 1686M unused.
+VM: 505T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134863/7070M in, 4363411/2960M out.
+Disks: 24083215/371G read, 8518633/129G written.
+
+COMMAND          %CPU
+spotlightknowled 65.6
+spotlightknowled 39.1
+mediaanalysisd   37.4
+corespotlightd   16.7
+Processes: 1065 total, 8 running, 1057 sleeping, 4456 threads 
+2026/10/30 11:23:50
+Load Avg: 5.40, 5.36, 7.12 
+CPU usage: 70.20% user, 2.82% sys, 26.96% idle 
+SharedLibs: 568M resident, 108M data, 74M linkedit.
+MemRegions: 78 total, 26M resident, 259M private, 956M shared.
+PhysMem: 13G used (2047M wired, 4155M compressor), 2098M unused.
+VM: 505T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134877/7070M in, 4363425/2960M out.
+Disks: 24083460/371G read, 8518800/129G written.
+
+COMMAND          %CPU 
+mediaanalysisd   153.8
+spotlightknowled 8.3  
+Google Chrome He 6.6  
+Google Chrome He 5.8  
+Processes: 1065 total, 4 running, 1061 sleeping, 4463 threads 
+2026/10/30 11:24:00
+Load Avg: 5.65, 5.41, 7.12 
+CPU usage: 77.59% user, 3.14% sys, 19.26% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 91 total, 239M resident, 976K private, 956M shared.
+PhysMem: 13G used (2053M wired, 4153M compressor), 1858M unused.
+VM: 505T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7134970/7070M in, 4363519/2961M out.
+Disks: 24083849/371G read, 8519162/129G written.
+
+COMMAND          %CPU 
+mediaanalysisd   170.4
+spotlightknowled 55.9 
+Google Chrome He 6.0  
+Google Chrome He 4.9  
+Processes: 1063 total, 4 running, 1059 sleeping, 4429 threads 
+2026/10/30 11:24:10
+Load Avg: 5.62, 5.42, 7.10 
+CPU usage: 66.83% user, 3.19% sys, 29.97% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 118 total, 557M resident, 976K private, 956M shared.
+PhysMem: 14G used (2047M wired, 4153M compressor), 1548M unused.
+VM: 504T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135006/7070M in, 4363554/2961M out.
+Disks: 24084346/371G read, 8520811/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 94.8 
+Google Chrome He 5.7  
+Brave Browser He 5.6  
+Google Chrome He 4.8  
+Processes: 1062 total, 4 running, 1058 sleeping, 4404 threads 
+2026/10/30 11:24:20
+Load Avg: 5.68, 5.43, 7.08 
+CPU usage: 72.61% user, 3.30% sys, 24.7% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 101 total, 554M resident, 976K private, 956M shared.
+PhysMem: 14G used (2046M wired, 4152M compressor), 1571M unused.
+VM: 504T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135039/7070M in, 4363586/2961M out.
+Disks: 24084469/371G read, 8521010/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 92.8 
+Google Chrome He 7.2  
+Google Chrome He 5.5  
+Brave Browser He 4.2  
+Processes: 1067 total, 4 running, 1063 sleeping, 4436 threads 
+2026/10/30 11:24:30
+Load Avg: 5.73, 5.45, 7.07 
+CPU usage: 73.19% user, 3.5% sys, 23.75% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 325 total, 306M resident, 976K private, 956M shared.
+PhysMem: 13G used (2046M wired, 4152M compressor), 1793M unused.
+VM: 506T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135059/7070M in, 4363608/2961M out.
+Disks: 24084622/371G read, 8521346/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 92.5 
+Google Chrome He 6.3  
+Google Chrome He 5.5  
+kernel_task      3.3  
+Processes: 1067 total, 13 running, 1054 sleeping, 4396 threads 
+2026/10/30 11:24:40
+Load Avg: 7.70, 5.88, 7.19 
+CPU usage: 69.51% user, 2.78% sys, 27.69% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 126 total, 668M resident, 976K private, 956M shared.
+PhysMem: 14G used (2049M wired, 4152M compressor), 1443M unused.
+VM: 506T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135078/7070M in, 4363629/2961M out.
+Disks: 24084679/371G read, 8521777/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 54.4 
+Google Chrome He 5.9  
+Google Chrome He 4.9  
+Brave Browser He 4.3  
+Processes: 1062 total, 4 running, 1058 sleeping, 4414 threads 
+2026/10/30 11:24:51
+Load Avg: 7.67, 5.93, 7.19 
+CPU usage: 79.99% user, 3.46% sys, 16.54% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 110 total, 664M resident, 976K private, 956M shared.
+PhysMem: 14G used (2044M wired, 4147M compressor), 1453M unused.
+VM: 504T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135166/7070M in, 4363717/2961M out.
+Disks: 24084743/371G read, 8522101/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 65.9 
+Google Chrome He 7.2  
+Google Chrome He 6.1  
+kernel_task      4.0  
+Processes: 1062 total, 4 running, 1058 sleeping, 4548 threads 
+2026/10/30 11:25:01
+Load Avg: 7.64, 5.98, 7.20 
+CPU usage: 81.35% user, 3.84% sys, 14.79% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 80 total, 20M resident, 976K private, 956M shared.
+PhysMem: 13G used (2054M wired, 4136M compressor), 2039M unused.
+VM: 504T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135267/7070M in, 4363840/2961M out.
+Disks: 24085293/371G read, 8522591/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 69.9 
+Google Chrome He 6.8  
+Google Chrome He 5.7  
+kernel_task      4.7  
+Processes: 1057 total, 16 running, 1041 sleeping, 4419 threads 
+2026/10/30 11:25:11
+Load Avg: 8.63, 6.24, 7.28 
+CPU usage: 71.26% user, 4.50% sys, 24.22% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 142 total, 890M resident, 976K private, 956M shared.
+PhysMem: 14G used (2046M wired, 4111M compressor), 1095M unused.
+VM: 501T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135282/7070M in, 4363859/2961M out.
+Disks: 24086675/371G read, 8523021/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 28.7 
+coreaudiod       8.4  
+Google Chrome He 5.8  
+Google Chrome He 4.7  
+Processes: 1059 total, 5 running, 1054 sleeping, 4440 threads 
+2026/10/30 11:25:21
+Load Avg: 10.70, 6.76, 7.45 
+CPU usage: 88.57% user, 2.97% sys, 8.44% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 215 total, 888M resident, 976K private, 956M shared.
+PhysMem: 14G used (2046M wired, 4110M compressor), 1099M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135323/7070M in, 4363906/2961M out.
+Disks: 24086680/371G read, 8523364/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 8.0  
+Google Chrome He 6.4  
+Google Chrome He 5.4  
+corespotlightd   4.3  
+Processes: 1059 total, 11 running, 1048 sleeping, 4427 threads 
+2026/10/30 11:25:31
+Load Avg: 13.23, 7.44, 7.68 
+CPU usage: 86.96% user, 2.48% sys, 10.54% idle 
+SharedLibs: 569M resident, 108M data, 74M linkedit.
+MemRegions: 119 total, 477M resident, 976K private, 956M shared.
+PhysMem: 14G used (2046M wired, 4104M compressor), 1491M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135358/7070M in, 4363941/2961M out.
+Disks: 24086773/371G read, 8523397/129G written.
+
+COMMAND          %CPU 
+corespotlightd   14.7 
+spotlightknowled 6.2  
+Google Chrome He 5.8  
+Google Chrome He 4.4  
+Processes: 1057 total, 4 running, 1053 sleeping, 4608 threads 
+2026/10/30 11:25:41
+Load Avg: 13.05, 7.61, 7.74 
+CPU usage: 66.51% user, 3.72% sys, 29.76% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 0 total, 0B resident, 0B private, 956M shared.
+PhysMem: 13G used (2046M wired, 4100M compressor), 1921M unused.
+VM: 501T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135421/7070M in, 4364010/2961M out.
+Disks: 24087254/371G read, 8523995/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 42.9 
+corespotlightd   22.0 
+coreaudiod       5.8  
+Google Chrome He 5.5  
+Processes: 1059 total, 4 running, 1055 sleeping, 4433 threads 
+2026/10/30 11:25:51
+Load Avg: 11.43, 7.44, 7.68 
+CPU usage: 26.81% user, 2.44% sys, 70.74% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 84 total, 5696K resident, 0B private, 956M shared.
+PhysMem: 13G used (2043M wired, 4097M compressor), 1919M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135487/7070M in, 4364078/2961M out.
+Disks: 24087477/371G read, 8524187/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 98.7 
+Google Chrome He 6.1  
+Google Chrome He 4.6  
+Arc              3.1  
+Processes: 1060 total, 5 running, 1055 sleeping, 4429 threads 
+2026/10/30 11:26:02
+Load Avg: 10.36, 7.34, 7.64 
+CPU usage: 28.69% user, 3.14% sys, 68.15% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 116 total, 62M resident, 0B private, 956M shared.
+PhysMem: 13G used (2050M wired, 4094M compressor), 1837M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135609/7070M in, 4364207/2961M out.
+Disks: 24087912/371G read, 8525514/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 98.5 
+Brave Browser He 7.2  
+Google Chrome He 6.8  
+Google Chrome He 5.9  
+Processes: 1059 total, 4 running, 1055 sleeping, 4420 threads 
+2026/10/30 11:26:12
+Load Avg: 9.47, 7.25, 7.60 
+CPU usage: 37.83% user, 2.94% sys, 59.22% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 79 total, 222M resident, 0B private, 956M shared.
+PhysMem: 14G used (2046M wired, 4093M compressor), 1686M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135640/7070M in, 4364236/2961M out.
+Disks: 24088054/371G read, 8526185/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 97.6 
+Google Chrome He 6.5  
+Brave Browser He 5.8  
+Google Chrome He 4.7  
+Processes: 1059 total, 4 running, 1055 sleeping, 4409 threads 
+2026/10/30 11:26:22
+Load Avg: 8.55, 7.12, 7.55 
+CPU usage: 38.13% user, 2.69% sys, 59.17% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 69 total, 7920K resident, 0B private, 956M shared.
+PhysMem: 13G used (2046M wired, 4091M compressor), 1897M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135694/7070M in, 4364296/2961M out.
+Disks: 24088247/371G read, 8526223/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 98.0 
+Google Chrome He 6.4  
+Google Chrome He 5.4  
+kernel_task      3.2  
+Processes: 1060 total, 4 running, 1056 sleeping, 4414 threads 
+2026/10/30 11:26:32
+Load Avg: 7.77, 7.00, 7.50 
+CPU usage: 41.89% user, 2.82% sys, 55.27% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 148 total, 336M resident, 0B private, 956M shared.
+PhysMem: 14G used (2046M wired, 4090M compressor), 1561M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135718/7070M in, 4364325/2961M out.
+Disks: 24088364/371G read, 8526484/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 97.5 
+Google Chrome He 6.9  
+Google Chrome He 5.9  
+Brave Browser He 5.0  
+Processes: 1059 total, 4 running, 1055 sleeping, 4422 threads 
+2026/10/30 11:26:42
+Load Avg: 7.50, 6.97, 7.49 
+CPU usage: 50.66% user, 3.13% sys, 46.19% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 86 total, 333M resident, 0B private, 956M shared.
+PhysMem: 14G used (2047M wired, 4089M compressor), 1568M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135806/7070M in, 4364400/2961M out.
+Disks: 24088616/371G read, 8527080/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 97.1 
+Google Chrome He 7.3  
+Google Chrome He 5.7  
+kernel_task      3.6  
+Processes: 1059 total, 4 running, 1055 sleeping, 4408 threads 
+2026/10/30 11:26:52
+Load Avg: 6.96, 6.87, 7.45 
+CPU usage: 50.88% user, 2.64% sys, 46.47% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 72 total, 11M resident, 0B private, 956M shared.
+PhysMem: 13G used (2045M wired, 4089M compressor), 1887M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135846/7070M in, 4364426/2961M out.
+Disks: 24088817/371G read, 8527105/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 97.5 
+Google Chrome He 5.7  
+Google Chrome He 4.6  
+Brave Browser He 4.4  
+Processes: 1059 total, 4 running, 1055 sleeping, 4449 threads 
+2026/10/30 11:27:02
+Load Avg: 6.83, 6.84, 7.43 
+CPU usage: 58.10% user, 2.94% sys, 38.94% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 78 total, 26M resident, 0B private, 956M shared.
+PhysMem: 13G used (2050M wired, 4088M compressor), 1859M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135911/7070M in, 4364489/2961M out.
+Disks: 24088977/371G read, 8527424/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 96.9 
+Google Chrome He 6.3  
+Google Chrome He 5.0  
+kernel_task      3.4  
+Processes: 1058 total, 4 running, 1054 sleeping, 4485 threads 
+2026/10/30 11:27:12
+Load Avg: 6.71, 6.81, 7.41 
+CPU usage: 62.10% user, 3.59% sys, 34.30% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 96 total, 18M resident, 0B private, 956M shared.
+PhysMem: 13G used (2049M wired, 4086M compressor), 1851M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135944/7070M in, 4364520/2961M out.
+Disks: 24089150/371G read, 8528018/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 91.9 
+corespotlightd   14.5 
+Google Chrome He 7.2  
+Google Chrome He 5.1  
+Processes: 1058 total, 4 running, 1054 sleeping, 4401 threads 
+2026/10/30 11:27:22
+Load Avg: 6.60, 6.79, 7.39 
+CPU usage: 61.33% user, 2.87% sys, 35.79% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 91 total, 239M resident, 976K private, 956M shared.
+PhysMem: 14G used (2045M wired, 4086M compressor), 1631M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7135977/7070M in, 4364560/2961M out.
+Disks: 24089227/371G read, 8528046/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 94.9 
+Google Chrome He 6.7  
+Google Chrome He 5.5  
+kernel_task      3.5  
+Processes: 1059 total, 4 running, 1055 sleeping, 4448 threads 
+2026/10/30 11:27:32
+Load Avg: 6.97, 6.86, 7.41 
+CPU usage: 71.31% user, 3.20% sys, 25.47% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 189 total, 557M resident, 976K private, 956M shared.
+PhysMem: 14G used (2049M wired, 4086M compressor), 1308M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136003/7070M in, 4364591/2961M out.
+Disks: 24089463/371G read, 8528279/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 94.8 
+Google Chrome He 5.5  
+Google Chrome He 4.3  
+kernel_task      3.0  
+Processes: 1061 total, 5 running, 1056 sleeping, 4435 threads 
+2026/10/30 11:27:43
+Load Avg: 7.12, 6.90, 7.42 
+CPU usage: 72.82% user, 3.11% sys, 24.5% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 227 total, 311M resident, 976K private, 957M shared.
+PhysMem: 14G used (2046M wired, 4084M compressor), 1519M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136083/7070M in, 4364679/2961M out.
+Disks: 24089931/371G read, 8528774/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 95.3 
+Google Chrome He 6.4  
+Google Chrome He 4.9  
+kernel_task      3.3  
+Processes: 1061 total, 4 running, 1057 sleeping, 4404 threads 
+2026/10/30 11:27:53
+Load Avg: 7.02, 6.88, 7.41 
+CPU usage: 74.17% user, 3.8% sys, 22.74% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 108 total, 56M resident, 976K private, 957M shared.
+PhysMem: 14G used (2046M wired, 4081M compressor), 1759M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136183/7070M in, 4364772/2961M out.
+Disks: 24090152/371G read, 8528805/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 93.2 
+Google Chrome He 7.0  
+Google Chrome He 5.7  
+Arc              3.8  
+Processes: 1062 total, 5 running, 1057 sleeping, 4443 threads 
+2026/10/30 11:28:03
+Load Avg: 7.43, 6.98, 7.44 
+CPU usage: 73.49% user, 3.16% sys, 23.33% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 155 total, 666M resident, 976K private, 957M shared.
+PhysMem: 14G used (2052M wired, 4081M compressor), 1126M unused.
+VM: 504T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136385/7070M in, 4364973/2961M out.
+Disks: 24090234/371G read, 8529076/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 32.8 
+Google Chrome He 5.6  
+Google Chrome He 4.7  
+Brave Browser He 3.7  
+Processes: 1060 total, 4 running, 1056 sleeping, 4412 threads 
+2026/10/30 11:28:13
+Load Avg: 8.03, 7.13, 7.48 
+CPU usage: 79.76% user, 3.19% sys, 17.3% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 121 total, 368M resident, 976K private, 957M shared.
+PhysMem: 14G used (2044M wired, 4081M compressor), 1439M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136397/7070M in, 4364991/2961M out.
+Disks: 24090272/371G read, 8529464/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 72.9 
+Google Chrome He 6.2  
+Google Chrome He 5.1  
+kernel_task      3.4  
+Processes: 1061 total, 5 running, 1056 sleeping, 4418 threads 
+2026/10/30 11:28:23
+Load Avg: 7.95, 7.14, 7.48 
+CPU usage: 80.62% user, 3.35% sys, 16.1% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 162 total, 75M resident, 976K private, 957M shared.
+PhysMem: 14G used (2047M wired, 4080M compressor), 1730M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136455/7070M in, 4365049/2961M out.
+Disks: 24090358/371G read, 8529870/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 64.6 
+Google Chrome He 7.0  
+Google Chrome He 5.9  
+kernel_task      3.9  
+Processes: 1061 total, 11 running, 1050 sleeping, 4457 threads 
+2026/10/30 11:28:33
+Load Avg: 9.13, 7.42, 7.58 
+CPU usage: 73.10% user, 2.91% sys, 23.97% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 125 total, 885M resident, 976K private, 957M shared.
+PhysMem: 14G used (2047M wired, 4079M compressor), 912M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136484/7070M in, 4365078/2961M out.
+Disks: 24090379/371G read, 8530165/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 6.4  
+Google Chrome He 5.7  
+PerfPowerService 4.7  
+Google Chrome He 4.5  
+Processes: 1060 total, 11 running, 1049 sleeping, 4423 threads 
+2026/10/30 11:28:44
+Load Avg: 9.71, 7.60, 7.64 
+CPU usage: 88.31% user, 3.24% sys, 8.44% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 136 total, 490M resident, 976K private, 957M shared.
+PhysMem: 14G used (2046M wired, 4079M compressor), 1317M unused.
+VM: 503T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136523/7070M in, 4365126/2961M out.
+Disks: 24090387/371G read, 8530664/129G written.
+
+COMMAND          %CPU 
+spotlightknowled 9.9  
+Google Chrome He 7.4  
+Google Chrome He 6.8  
+runningboardd    4.7  
+Processes: 1059 total, 16 running, 1043 sleeping, 4406 threads 
+2026/10/30 11:28:54
+Load Avg: 11.42, 8.04, 7.80 
+CPU usage: 91.53% user, 2.43% sys, 6.3% idle 
+SharedLibs: 583M resident, 110M data, 75M linkedit.
+MemRegions: 119 total, 477M resident, 976K private, 957M shared.
+PhysMem: 14G used (2046M wired, 4079M compressor), 1335M unused.
+VM: 502T vsize, 57G framework vsize, 0(0) swapins, 0(0) swapouts.
+Networks: packets: 7136533/7070M in, 4365138/2961M out.
+Disks: 24090422/371G read, 8530915/129G written.
+
+COMMAND          %CPU 
+Google Chrome He 7.1  
+spotlightknowled 6.1  
+Brave Browser He 5.8  
+Google Chrome He 5.1  

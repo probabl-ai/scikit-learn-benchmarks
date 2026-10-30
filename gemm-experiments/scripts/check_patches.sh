@@ -16,3 +16,15 @@ for b in "$@"; do
     done
   done
 done
+# gemv (split-x patch): column-split path with partial-y reduction
+for b in "$@"; do
+  for beta in 0 0.5; do
+    for dt in d s; do
+      for t in 2 8 43 86; do
+        OPENBLAS_NUM_THREADS=$t build/gemmbench --lib $b/lib/libopenblas.so.0 \
+          --label $b --dtype $dt --beta $beta --check 1 gemv:126x36168:N \
+          gemv:37x50000:N gemv:1000x40000:N gemv:126x36168:T 2>/dev/null | sed "s|^|$b T=$t |"
+      done
+    done
+  done
+done

@@ -1,0 +1,70 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/mac-m2/e8_scaling.csv",
+  "--threads",
+  "1,2,3,4,5,6,7,8",
+  "--dtype",
+  "d,s",
+  "--rounds",
+  "5",
+  "--variant",
+  "openblas",
+  "--variant",
+  "blis",
+  "--variant",
+  "accelerate",
+  "--shapes",
+  "512x512x512",
+  "2048x2048x2048",
+  "100x100x1000000:NT",
+  "10x1000000x100:NN",
+  "8x1000000x100:TN",
+  "256x100000x100:TN",
+  "--note",
+  "thread scaling, 5 rounds"
+ ],
+ "note": "thread scaling, 5 rounds",
+ "host": "Irinas-MacBook-Pro-5.local",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "start": "2026-10-30T11:29:54+0100",
+ "variants": {
+  "openblas": {
+   "lib": "/Users/Arthur/work/gemm-experiments/.pixi/envs/default/lib/libopenblas.0.dylib",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "blis": {
+   "lib": "/Users/Arthur/work/gemm-experiments/.pixi/envs/default/lib/libblis.dylib",
+   "env": {
+    "BLIS_NUM_THREADS": "{T}"
+   }
+  },
+  "accelerate": {
+   "lib": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+   "env": {
+    "VECLIB_MAXIMUM_THREADS": "{T}"
+   }
+  }
+ },
+ "lscpu": "hw.memsize: 17179869184\nhw.perflevel0.physicalcpu: 4\nhw.perflevel0.physicalcpu_max: 4\nhw.perflevel0.logicalcpu: 4\nhw.perflevel0.logicalcpu_max: 4\nhw.perflevel0.l1icachesize: 196608\nhw.perflevel0.l1dcachesize: 131072\nhw.perflevel0.l2cachesize: 16777216\nhw.perflevel0.cpusperl2: 4\nhw.perflevel0.name: Performance\nhw.perflevel1.physicalcpu: 4\nhw.perflevel1.physicalcpu_max: 4\nhw.perflevel1.logicalcpu: 4\nhw.perflevel1.logicalcpu_max: 4\nhw.perflevel1.l1icachesize: 131072\nhw.perflevel1.l1dcachesize: 65536\nhw.perflevel1.l2cachesize: 4194304\nhw.perflevel1.cpusperl2: 4\nhw.perflevel1.name: Efficiency\nhw.memsize_usable: 16375169024\nmachdep.cpu.cores_per_package: 8\nmachdep.cpu.core_count: 8\nmachdep.cpu.logical_per_package: 8\nmachdep.cpu.thread_count: 8\nmachdep.cpu.brand_string: Apple M2\n",
+ "affinity": "",
+ "loadavg_start": [
+  6.66455078125,
+  7.22412109375,
+  7.5029296875
+ ],
+ "lib_headers": {
+  "openblas": "# openblas config: OpenBLAS 0.3.34 NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 1",
+  "blis": "# blis 2.1\n# library threads: 1",
+  "accelerate": "# BLASGetThreading: 0\n# library threads: 1"
+ },
+ "end": "2026-10-30T11:47:47+0100",
+ "loadavg_end": [
+  15.2158203125,
+  9.66162109375,
+  8.05517578125
+ ]
+}

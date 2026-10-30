@@ -26,6 +26,12 @@ e4_callers)
   CMD="bash scripts/mac_callers.sh" $S e4_callers 2 1,2,3,4,5,6,8 d,s 2 \
     512x512x512 2048x2048x2048
   ;;
+e9_kmeans_callers)
+  # KMeans' pattern: each OpenMP thread calls a single-threaded GEMM on a
+  # 256-sample chunk, X_chunk @ centers.T (column-major n_clusters x 256 x d:TN).
+  CMD="bash scripts/mac_callers.sh" $S e9_kmeans_callers 3 1,2,4,8 d,s 1 \
+    8x256x100:TN 100x256x100:TN 1000x256x50:TN
+  ;;
 e5_small)
   $S e5_small --threads 1,4,8 --dtype d,s --rounds 3 \
     --variant accelerate --variant openblas --variant blis \
@@ -44,6 +50,13 @@ e7_thermal)
   $S e7_thermal --threads 4 --dtype s,d --rounds 12 --min-time 5 \
     --variant accelerate --variant openblas \
     --shapes 2048x2048x2048 --note "thermal drift, 12 rounds of 5 s per point"
+  ;;
+e8_scaling)
+  # e2 again on fewer shapes and more rounds: thread scaling over P then E cores.
+  $S e8_scaling --threads 1,2,3,4,5,6,7,8 --dtype d,s --rounds 5 \
+    --variant openblas --variant blis --variant accelerate \
+    --shapes 512x512x512 2048x2048x2048 100x100x1000000:NT 10x1000000x100:NN \
+      8x1000000x100:TN 256x100000x100:TN --note "thread scaling, 5 rounds"
   ;;
 *) echo "unknown experiment $1"; exit 2 ;;
 esac

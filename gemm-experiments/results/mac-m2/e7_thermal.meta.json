@@ -1,0 +1,58 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/mac-m2/e7_thermal.csv",
+  "--threads",
+  "4",
+  "--dtype",
+  "s,d",
+  "--rounds",
+  "12",
+  "--min-time",
+  "5",
+  "--variant",
+  "accelerate",
+  "--variant",
+  "openblas",
+  "--shapes",
+  "2048x2048x2048",
+  "--note",
+  "thermal drift, 12 rounds of 5 s per point"
+ ],
+ "note": "thermal drift, 12 rounds of 5 s per point",
+ "host": "Irinas-MacBook-Pro-5.local",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "start": "2026-10-30T12:10:33+0100",
+ "variants": {
+  "accelerate": {
+   "lib": "/System/Library/Frameworks/Accelerate.framework/Accelerate",
+   "env": {
+    "VECLIB_MAXIMUM_THREADS": "{T}"
+   }
+  },
+  "openblas": {
+   "lib": "/Users/Arthur/work/gemm-experiments/.pixi/envs/default/lib/libopenblas.0.dylib",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  }
+ },
+ "lscpu": "hw.memsize: 17179869184\nhw.perflevel0.physicalcpu: 4\nhw.perflevel0.physicalcpu_max: 4\nhw.perflevel0.logicalcpu: 4\nhw.perflevel0.logicalcpu_max: 4\nhw.perflevel0.l1icachesize: 196608\nhw.perflevel0.l1dcachesize: 131072\nhw.perflevel0.l2cachesize: 16777216\nhw.perflevel0.cpusperl2: 4\nhw.perflevel0.name: Performance\nhw.perflevel1.physicalcpu: 4\nhw.perflevel1.physicalcpu_max: 4\nhw.perflevel1.logicalcpu: 4\nhw.perflevel1.logicalcpu_max: 4\nhw.perflevel1.l1icachesize: 131072\nhw.perflevel1.l1dcachesize: 65536\nhw.perflevel1.l2cachesize: 4194304\nhw.perflevel1.cpusperl2: 4\nhw.perflevel1.name: Efficiency\nhw.memsize_usable: 16375169024\nmachdep.cpu.cores_per_package: 8\nmachdep.cpu.core_count: 8\nmachdep.cpu.logical_per_package: 8\nmachdep.cpu.thread_count: 8\nmachdep.cpu.brand_string: Apple M2\n",
+ "affinity": "",
+ "loadavg_start": [
+  4.0126953125,
+  6.1455078125,
+  7.1083984375
+ ],
+ "lib_headers": {
+  "accelerate": "# BLASGetThreading: 0\n# library threads: 4",
+  "openblas": "# openblas config: OpenBLAS 0.3.34 NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 4"
+ },
+ "end": "2026-10-30T12:16:34+0100",
+ "loadavg_end": [
+  4.17822265625,
+  4.7861328125,
+  6.2333984375
+ ]
+}
