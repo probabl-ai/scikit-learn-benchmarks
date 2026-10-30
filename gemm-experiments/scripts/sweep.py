@@ -118,6 +118,7 @@ def main():
         "affinity": run_cmd("numactl --show || true"),
         "loadavg_start": os.getloadavg(),
         "lib_headers": {},
+        "stderr": {},
     }
     fields = ["round", "variant", "dtype", "m", "n", "k", "trans", "threads_requested",
               "threads", "reps", "best_s", "median_s", "gflops_best", "gflops_median"]
@@ -141,6 +142,7 @@ def main():
                         ]
                         res = subprocess.run(cmd, env=env, capture_output=True, text=True)
                         meta["lib_headers"].setdefault(name, res.stderr.strip())
+                        meta["stderr"][f"{name} T={t} {dtype}"] = res.stderr.strip()
                         if res.returncode:
                             print(res.stderr, file=sys.stderr)
                             raise SystemExit(res.returncode)

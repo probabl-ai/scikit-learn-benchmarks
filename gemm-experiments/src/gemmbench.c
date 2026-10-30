@@ -11,12 +11,14 @@
 // calls the library's setter when it has one.
 // Output: one CSV row per shape on stdout.
 #define _GNU_SOURCE
+#include <dirent.h>
 #include <dlfcn.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifdef __APPLE__
 // macOS has no pthread barriers.
@@ -270,6 +272,69 @@ static void run_callers(struct op *ops, int P, double min_time, int max_reps,
     pthread_barrier_destroy(&bar);
 }
 
+// Sets "K=V;K=V" in the environment, as a Python caller would with os.environ
+// once the BLAS library is loaded.
+static void apply_env(const char *spec) {
+    char *buf = strdup(spec), *save = NULL;
+    for (char *kv = strtok_r(buf, ";", &save); kv; kv = strtok_r(NULL, ";", &save)) {
+        char *eq = strchr(kv, '=');
+        if (eq) { *eq = 0; setenv(kv, eq + 1, 1); }
+    }
+    free(buf);
+}
+
+static int count_cpus(const char *list) {
+    int n = 0, a, b, len;
+    while (sscanf(list, "%d%n", &a, &len) == 1) {
+        list += len;
+        b = a;
+        if (*list == '-' && sscanf(list + 1, "%d%n", &b, &len) == 1) list += 1 + len;
+        n += b - a + 1;
+        if (*list != ',') break;
+        list++;
+    }
+    return n;
+}
+
+// How many of our threads are bound to at most one core (2 CPUs), and
+// which OpenMP runtime is loaded (Linux /proc).
+static void report_affinity(void) {
+    char dirpath[64], path[512], line[8192], omp[512] = "none";
+    int tasks = 0, bound = 0;
+    snprintf(dirpath, sizeof dirpath, "/proc/%d/task", (int)getpid());
+    DIR *dir = opendir(dirpath);
+    if (!dir) return;
+    struct dirent *e;
+    while ((e = readdir(dir))) {
+        if (e->d_name[0] == '.') continue;
+        snprintf(path, sizeof path, "%s/%s/status", dirpath, e->d_name);
+        FILE *st = fopen(path, "r");
+        if (!st) continue;
+        while (fgets(line, sizeof line, st))
+            if (!strncmp(line, "Cpus_allowed_list:", 18)) {
+                tasks++;
+                if (count_cpus(line + 18 + strspn(line + 18, " \t")) <= 2) bound++;
+            }
+        fclose(st);
+    }
+    closedir(dir);
+    FILE *maps = fopen("/proc/self/maps", "r");
+    while (maps && fgets(line, sizeof line, maps)) {
+        char *p = strchr(line, '/');
+        if (p && strstr(p, "omp") && strstr(p, ".so")) {
+            p[strcspn(p, "\n")] = 0;
+            const char *base = strrchr(p, '/') + 1;
+            if (!strstr(omp, base)) {
+                if (!strcmp(omp, "none")) omp[0] = 0;
+                snprintf(omp + strlen(omp), sizeof omp - strlen(omp), "%s%s",
+                         omp[0] ? "," : "", p);
+            }
+        }
+    }
+    if (maps) fclose(maps);
+    fprintf(stderr, "# affinity: threads=%d bound_to_one_core=%d openmp=%s\n", tasks, bound, omp);
+}
+
 int main(int argc, char **argv) {
     const char *lib = NULL, *prefix = "", *suffix = "", *label = "", *init = "serial";
     char dtype = 'd';
@@ -300,6 +365,10 @@ int main(int argc, char **argv) {
     if (!*suffix && getenv("GEMMBENCH_SUFFIX")) suffix = getenv("GEMMBENCH_SUFFIX");
     void *h = dlopen(lib, RTLD_NOW | RTLD_GLOBAL);
     if (!h) { fprintf(stderr, "dlopen: %s\n", dlerror()); return 1; }
+    const char *late = getenv("GEMMBENCH_LATE_ENV");
+    const char *late_at = getenv("GEMMBENCH_LATE_ENV_AT");
+    if (!late_at) late_at = "setter";
+    if (late && !strcmp(late_at, "dlopen")) apply_env(late);
 
     if (threads > 0) {
         void (*f)(int);
@@ -335,6 +404,22 @@ int main(int argc, char **argv) {
     if (!dgemm || !sgemm || !dsyrk || !ssyrk || !dgemv || !sgemv) {
         fprintf(stderr, "cblas symbols not found\n");
         return 1;
+    }
+    // GEMMBENCH_LATE_ENV="K=V;..." is set once the library is loaded, at
+    // GEMMBENCH_LATE_ENV_AT: "dlopen" (before any call), "setter" (default,
+    // after the thread setter/getter calls above, like threadpoolctl) or
+    // "call" (after one threaded dgemm has started the thread pool).
+    if (late && strcmp(late_at, "dlopen")) {
+        if (!strcmp(late_at, "call")) {
+            struct op w = {.routine = 'g', .dtype = 'd', .m = 512, .n = 512, .k = 512,
+                           .ta = NoTrans, .tb = NoTrans};
+            w.A = alloc_init(512 * 512, 8, 1, 1);
+            w.B = alloc_init(512 * 512, 8, 1, 2);
+            w.C = alloc_init(512 * 512, 8, 1, 3);
+            op_call(&w);
+            free(w.A); free(w.B); free(w.C);
+        }
+        apply_env(late);
     }
 
     if (header)
@@ -421,5 +506,6 @@ int main(int argc, char **argv) {
         for (int p = 0; p < P; p++) { free(ops[p].A); free(ops[p].B); free(ops[p].C); }
         free(ops);
     }
+    report_affinity();
     return 0;
 }

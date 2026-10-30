@@ -8,11 +8,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 MACHINE=$1
 THREADS=$2
-SHAPES=(1024x1024x1024 4096x4096x4096 8192x8192x8192 16384x16384x16384
-        syrk:990x463810:N 100x200000x100:NN)
+SHAPES=(256x256x256 1024x1024x1024 2000x2000x200 4096x4096x4096 8192x8192x8192
+        16384x16384x16384 syrk:990x463810:N 100x200000x100:NN 7x116203x100:NN)
 V=(--variant openblas --variant "mkl-close:mkl,OMP_PROC_BIND=close,OMP_PLACES=cores"
+   --variant openblas-omp
    --variant "openblas-omp-close:openblas-omp,OMP_PROC_BIND=close,OMP_PLACES=cores")
 for b in t256 aff; do
+  [ -f builds/$b/lib/libopenblas.so.0 ] || continue  # aff fails its tests with GCC 15
   V+=(--variant "$b=builds/$b/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}")
 done
 NODES=$(numactl --show | sed -n 's/^membind: //p' | tr ' ' ',' | sed 's/,$//')
