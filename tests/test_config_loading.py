@@ -31,7 +31,7 @@ ENV_SENSITIVE_CONFIGS = {
     # same implementations as hptuning.py.
     Path("configs/kmeans_init.py"): GENERAL_ENVS,
     Path("configs/kmeans_lloyd.py"): GENERAL_ENVS,
-    Path("configs/all_models_kmeans.py"): GENERAL_ENVS,
+    Path("configs/kmeans_init_lloyd.py"): GENERAL_ENVS,
 }
 
 
