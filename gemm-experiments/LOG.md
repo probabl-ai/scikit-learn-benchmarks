@@ -237,5 +237,5 @@ Outcome:
   would therefore have to run before anything queries MKL, i.e. it cannot be
   a `threadpool_limits` option.
 - On this laptop (hybrid Core Ultra), conda-forge's libomp reports
-  KMP_BLOCKTIME=0ms by default (LLVM picks 0 on hybrid CPUs), 200ms on the
-  Xeon.
+  KMP_BLOCKTIME=0ms by default (with no OMP_/KMP_ variable set), 200ms on the
+  Xeon: the default depends on the CPU (not checked in the libomp sources).
