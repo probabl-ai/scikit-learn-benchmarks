@@ -423,3 +423,20 @@ Outcome (all vs develop base; GF/s):
 - Still unpatched gaps at 64-86T: mid-size squares (2000x2000x200 86T: 2191
   vs MKL 10623 in f32), gemv T at 64-86T (100x200000 f32: ~300 vs MKL
   2100-2590, the 80 MB matrix sits in the socket's L3 for MKL).
+
+## Exp 13: syrk split-K (xeon-s1)
+
+`BUILDS="base all all2" scripts/run_all.sh xeon-s1 8,22,43,86 all2`, where
+`all2` = all + `apply_splitk_syrk.py`. 3 rounds pinned.
+`results/xeon-s1/all2.csv`; checks `check_all2.txt` (442 OK; the 24 FAIL are
+syrk 200x60000:T at relerr 1.19e-13 with split-K off, forced and auto alike:
+threshold artifact).
+
+Outcome (f64 unless noted, GF/s, all -> all2, bound MKL):
+- 100x100x1e6 syrk 86T: 48 -> 2096 (1828); f32 111 -> 4695 (5190).
+- 300x300x200000 syrk 43T: 281 -> 2010 (1917); 86T: 234 -> 1397 (2981).
+- 50x50x500000:T 86T: 35 -> 1834 (2232).
+- 990x463810 and larger n unchanged (no split: n^2 too large for the
+  64 MiB cap with enough chunks). Non-syrk shapes unchanged within noise.
+
+FINDINGS.md written from exps 1-13.
