@@ -297,3 +297,34 @@ Outcome:
 Exp 11d (`scripts/probe_placement.sh`, harness `GEMMBENCH_SAMPLE_PLACEMENT=1`)
 samples every 20 ms which CPU/core each running thread is on, to confirm the
 stacking directly.
+
+## Exp 11d: thread placement (xeon-s1)
+
+`scripts/probe_placement.sh results/xeon-s1/probe_placement.csv 43 86 172`,
+3 rounds, 20 ms samples of the CPU of each running thread while timing.
+Columns: average running threads, distinct CPUs, distinct physical cores.
+
+| T | shape | setting | GF/s (3 rounds) | running / CPUs / cores |
+| --- | --- | --- | --- | --- |
+| 43 | 4096^3 | default | 1436, 1439, 3227 | 42.5 / 42.5 / 41.2, 35.5, 42.0 |
+| 43 | 4096^3 | Intel libiomp5 | 3527, 3477, 3483 | 43 / 43 / 43 |
+| 86 | 4096^3 | default | 2897, 2530, 2585 | 85 / 85 / 50-64 |
+| 86 | 4096^3 | bound, Intel, blocktime=inf | 4260-4760 (2 slow rounds) | 84-86 / same / 83-85 |
+| 172 | 4096^3 | default | 1758, 1061, 1790 | 168 / 118-132 / 66-69 |
+| 172 | 4096^3 | others | 3200-4240 | 168 / 165-169 / 83-85 |
+| 172 | 100x100x1e6:NT | default | 752, 406, 429 | 170 / 104-124 / 62-66 |
+
+Outcome: confirmed. With conda-forge's LLVM libomp at default settings the
+kernel leaves MKL's spinning workers badly placed for the whole run: at 86
+threads 20-35 of them share a physical core with another worker while as
+many cores stay idle, and at 172 threads 35-64 are stacked two per CPU
+(millions of involuntary switches). With Intel's runtime, blocktime=infinite
+or binding, the workers occupy distinct cores. Placement varies from
+process to process, hence the bimodal timings. (Intel and blocktime=infinite
+also had a few slow rounds with good placement, e.g. 86T 4096^3 2458 and
+2769: another, smaller noise source, possibly the s0 neighbour's memory
+traffic.)
+
+Exp 11e (`scripts/probe_yield.sh`, strace -c) checks whether default libomp
+calls sched_yield while waiting, which would explain why the kernel never
+fixes the placement.
