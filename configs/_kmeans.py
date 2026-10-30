@@ -19,10 +19,9 @@ Every workload runs in float32 and float64, with C-ordered input for the dense
 ones: KMeans copies its input to C order anyway, so F-ordered input only adds
 the cost of that copy.
 
-On a multi-socket machine, every case is pinned to socket 0 with one OpenMP
-thread per physical core, with OpenBLAS (which reads `OMP_NUM_THREADS` too) as
-with MKL. That is fewer threads than the OpenBLAS builds' `NUM_THREADS=128`,
-so the buffer exhaustion of OpenMathLib/OpenBLAS#5958 can't happen.
+On a multi-socket machine, every case is pinned to socket 0 and keeps the
+libraries' default thread counts, which follow that affinity: one OpenMP thread
+per logical CPU of the socket.
 """
 from _utils.implementations import implementations_for_pixi_env
 from _utils.numa import cpu_affinity_for_socket
@@ -62,10 +61,6 @@ def _bench() -> dict:
     socket_cpus = cpu_affinity_for_socket(0)
     if socket_cpus is not None:
         bench["cpu_affinity"] = socket_cpus
-        # sklearn's default thread count ignores the affinity mask, so it
-        # would otherwise start one thread per logical CPU of the machine.
-        n_cores = len(cpu_affinity_for_socket(0, with_siblings=False))
-        bench["env"] = {"OMP_NUM_THREADS": str(n_cores)}
     return bench
 
 
