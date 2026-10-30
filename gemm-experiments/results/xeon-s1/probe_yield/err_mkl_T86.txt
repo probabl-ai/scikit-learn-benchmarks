@@ -1,0 +1,3 @@
+# Intel(R) oneAPI Math Kernel Library Version 2026.1-Product Build 20260612 for Intel(R) 64 architecture applications
+# library threads: 86
+# affinity: threads=86 bound_to_one_core=0 voluntary_switches=118868 involuntary_switches=631 migrations=800 openmp=/home/alacote/work/gemm-experiments/.pixi/envs/default/lib/libomp.so

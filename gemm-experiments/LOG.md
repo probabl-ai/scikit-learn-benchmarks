@@ -340,3 +340,24 @@ Outcome: gemv N (X.T @ r) with few rows, f64: 126x36168 22T 13 -> 154 GF/s
 Wide gemv N (>= 2199 rows) unchanged or slightly better; gemv T: no case
 below 0.98x of base (56 cases). Not closed: 20x2000000 at 22-43T (59 vs MKL
 94) and 4096x4096 (no split-x there since rows are enough; MKL 1.4-1.7x).
+
+## Exp 11e: syscalls while waiting (xeon-s1, strace -c, 20 calls of 4096^3)
+
+`scripts/probe_yield.sh results/xeon-s1/probe_yield 86 172`.
+
+| setting | T | sched_yield | futex |
+| --- | --- | ---: | ---: |
+| default LLVM libomp | 86 / 172 | 56932 / 29170 | 644 / 1361 |
+| KMP_BLOCKTIME=infinite | 86 / 172 | 136719 / 493598 | 5 / 5 |
+| bound (close, cores) | 86 / 172 | 25171 / 21639 | 637 / 1368 |
+| Intel libiomp5 | 86 / 172 | 49566 / 57657 | 596 / 1312 |
+
+Outcome: the sched_yield hypothesis is refuted. Every setting yields while
+waiting (blocktime=infinite the most), and Intel's runtime makes as many
+yield and futex calls as default libomp. The syscall mix does not separate
+the good from the bad placement, so the trigger has to be elsewhere: how and
+from which thread libomp creates its workers (Intel's runtime reports
+`KMP_AFFINITY=...,nobind_init,perf_bind`, which hints at an
+initial-placement step that LLVM's lacks) or how the kernel places them at
+creation. Not pursued further: `perf sched` traces of thread creation would
+be the next step. The practical conclusion does not depend on it.
