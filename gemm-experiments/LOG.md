@@ -361,3 +361,43 @@ from which thread libomp creates its workers (Intel's runtime reports
 initial-placement step that LLVM's lacks) or how the kernel places them at
 creation. Not pursued further: `perf sched` traces of thread creation would
 be the next step. The practical conclusion does not depend on it.
+
+## Exp 10: high thread counts, memory placement (xeon-s1)
+
+`scripts/run_scaling_hi.sh xeon-s1 22,43,64,86,128,172`, pinned compact, 2
+rounds, f64; memory first-touched by one thread (`local`) vs
+`numactl --interleave` over the socket's 4 SNC nodes.
+`results/xeon-s1/scaling_hi_{local,interleave}.csv`. Variants: conda-forge
+OpenBLAS (pthreads), bound MKL, conda-forge OpenBLAS OpenMP build unbound
+(`openblas-omp`, libgomp) and bound, develop built with NUM_THREADS=256
+(`t256`). (The `aff` NO_AFFINITY=0 build was dropped: it fails its own tests.)
+
+Outcome (GF/s, local memory unless noted):
+- syrk cliff: `X.T @ X` 990x463810 runs at 1061 (43T) and then 81 GF/s, one
+  core, from 62 threads up (scan: 979 at 60T, 81 at 62T). Cause:
+  `level3_syrk_threaded.c` goes single-threaded when n < nthreads *
+  switch_ratio (16 here: 990 < 62 x 16). GEMM lowers its thread count
+  instead. Bound MKL: 434-750 at 64-172T. -> patch `apply_syrk_nthreads.py`.
+- OpenBLAS OpenMP build without binding collapses from 43 threads on mid
+  sizes (1024^3: 98 at 64-86T vs 1575-2108 for the pthreads build; 256^3 at
+  86T: 5.6). Bound it is close to the pthreads build. Same placement
+  problem as MKL's (exp 11), here with libgomp.
+- Bound MKL vs OpenBLAS at 86T on mid sizes, both well placed: 2000x2000x200
+  5568 vs 1695 (OpenBLAS OpenMP bound: 1946), 1024^3 2471 vs 1575 (2060),
+  256^3 1225 vs 283 (464). Thread placement explains a part (bound OpenMP
+  OpenBLAS gains 15-60%), most of the gap is OpenBLAS's own partitioning
+  and synchronisation in level3_thread.c: not intrinsic, MKL shows 3x more
+  is possible on this socket.
+- Large squares scale to the end in both: 16384^3 at 86T: OpenBLAS 3619
+  (interleaved 5386), MKL 4519 (5966).
+- Memory placement: interleaving the socket's 4 SNC nodes helps OpenBLAS on
+  large or memory-bound calls at 64-172T when inputs were first-touched by
+  one thread (16384^3 86T 3619 -> 5386, 100x200000x100 86T 1420 -> 2601), and
+  hurts nothing measurably at 22-43T. numpy arrays are usually written by
+  one thread, so `numactl --interleave` (or MPOL_INTERLEAVE in the process)
+  is a cheap user-side gain at full-socket thread counts.
+- Beyond 86 threads (hyperthreads): no gain for anyone on GEMM; MKL bound
+  `close` with 128 threads on 86 cores is erratic (8192^3: 438) because
+  some cores get two threads and the static split waits for them.
+- NUM_THREADS=256 (t256) vs the conda-forge 128 cap: 172T 4096^3 3957 vs
+  3306 interleaved, otherwise within noise. Not worth it.

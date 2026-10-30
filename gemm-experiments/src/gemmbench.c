@@ -166,9 +166,11 @@ static void *alloc_init(size_t nelem, int esize, int nthreads, unsigned seed) {
 // of C so that beta != 0 is checked too. Returns max abs error / max abs ref.
 // The inputs have 24-bit mantissas, so float64 results are often exact.
 static double check_gemv(struct op *o, int esize);
+static double check_syrk(struct op *o, int esize);
 
 static double check_gemm(struct op *o, int esize) {
     if (o->routine == 'v') return check_gemv(o, esize);
+    if (o->routine == 's') return check_syrk(o, esize);
     long m = o->m, n = o->n, k = o->k;
     long lda = o->ta == NoTrans ? m : k, ldb = o->tb == NoTrans ? k : n;
     double *c0 = malloc(m * n * sizeof(double));
@@ -215,6 +217,27 @@ static double check_gemv(struct op *o, int esize) {
     }
 #undef AT
     free(y0);
+    return maxerr / maxref;
+}
+
+// Same for syrk: upper triangle of C = op(A) op(A)^T (beta 0 in op_call).
+static double check_syrk(struct op *o, int esize) {
+    long n = o->n, k = o->k, lda = o->ta == NoTrans ? n : k;
+#define AT(p, i) (esize == 8 ? ((double *)(p))[i] : (double)((float *)(p))[i])
+    op_call(o);
+    double maxerr = 0, maxref = 1e-300;
+    for (long j = 0; j < n; j++)
+        for (long i = 0; i <= j; i++) {
+            double acc = 0;
+            for (long l = 0; l < k; l++)
+                acc += o->ta == NoTrans ? AT(o->A, i + l * lda) * AT(o->A, j + l * lda)
+                                        : AT(o->A, l + i * lda) * AT(o->A, l + j * lda);
+            double err = acc - AT(o->C, i + j * n);
+            if (err < 0) err = -err;
+            if (err > maxerr) maxerr = err;
+            if ((acc < 0 ? -acc : acc) > maxref) maxref = acc < 0 ? -acc : acc;
+        }
+#undef AT
     return maxerr / maxref;
 }
 
@@ -542,7 +565,7 @@ int main(int argc, char **argv) {
             ops[p].B = alloc_init(nb, esize, init_threads, 2 + 3 * p);
             ops[p].C = alloc_init(nc, esize, init_threads, 3 + 3 * p);
         }
-        if (check && o.routine != 's') {
+        if (check) {
             double rel = check_gemm(&ops[0], esize);
             printf("check,%c,%ld,%ld,%ld,%s,beta=%g,relerr=%.3g,%s\n", dtype, o.m, o.n,
                    o.k, name, beta, rel, rel < (dtype == 'd' ? 1e-13 : 1e-5) ? "OK" : "FAIL");

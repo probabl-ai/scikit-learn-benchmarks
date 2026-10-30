@@ -28,3 +28,13 @@ for b in "$@"; do
     done
   done
 done
+# syrk (thread-count patch): n just under / over nthreads * switch_ratio
+for b in "$@"; do
+  for dt in d s; do
+    for t in 8 43 62 86; do
+      OPENBLAS_NUM_THREADS=$t build/gemmbench --lib $b/lib/libopenblas.so.0 \
+        --label $b --dtype $dt --check 1 syrk:990x4000:N syrk:990x4000:T \
+        syrk:300x20000:N syrk:1500x2000:T syrk:37x50000:N 2>/dev/null | sed "s|^|$b T=$t |"
+    done
+  done
+done
