@@ -189,3 +189,53 @@ gemv T unchanged (within noise; one f32 24T case 398 -> 340 to recheck).
 Build note: develop `NO_AFFINITY=0 NUM_THREADS=256 BUILD_BFLOAT16=0` builds
 but its own BLAS tests segfault (sblat1 at 1 thread, cblat3_3m at 2), so the
 `aff` variant is dropped from exp 10.
+
+## Exp 11: MKL OpenMP runtime, binding, late binding (xeon-s1, unpinned)
+
+`scripts/run_mkl_runtime.sh xeon-s1 22,43,86,172`, 2 rounds, unpinned (whole
+s1 socket mask, like a user's process). `results/xeon-s1/mkl_runtime.csv`;
+the harness now prints how many threads are bound to one core and which
+OpenMP runtime is mapped (`.meta.json` "stderr").
+
+f64 median GF/s at 86 threads (bound MKL = `mkl-close`):
+
+| variant | 256^3 | 1024^3 | 4096^3 | 7x116203x100 | 100x100x1e6:NT | 100x200000x100 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| conda-forge OpenBLAS | 306 | 1461 | 2775 | 351 | 137 | 1226 |
+| MKL default (LLVM libomp 23.1.4) | 624 | 1581 | 2554 | 1283 | 1781 | 2665 |
+| + OMP_PROC_BIND=close, OMP_PLACES=cores | 1144 | 2496 | 4758 | 2971 | 1978 | 2663 |
+| + KMP_BLOCKTIME=infinite (unbound) | 744 | 2174 | 4607 | 3083 | 3263 | 4998 |
+| + KMP_BLOCKTIME=0 | 20 | 971 | 2843 | 105 | 1987 | 1590 |
+| + KMP_HW_SUBSET=1t | 539 | 2572 | 4707 | 2833 | 1978 | 2398 |
+| Intel libiomp5 2026.1.2 (LD_PRELOAD), unbound | 1077 | 2498 | 4787 | 3021 | 3281 | 5024 |
+| Intel libiomp5, bound | 1141 | 2458 | 4707 | 2965 | 1981 | 2784 |
+| MKL_THREADING_LAYER=GNU, unbound | 617 | 1602 | 2497 | 1356 | 1778 | 2277 |
+| GNU, bound | 1147 | 2456 | 4683 | 2934 | 1975 | 2803 |
+| bind vars set right after dlopen | 1150 | 2482 | 4717 | 3014 | 1977 | 2879 |
+| bind vars set after MKL_Set/Get_Max_Threads | 605 | 1542 | 2493 | 867 | 2302 | 3095 |
+
+Same pattern at 43 and 172 threads (at 172: default 4096^3 1696, bound 4170,
+Intel unbound 4207, blocktime=infinite 4265).
+
+Outcome:
+- Not (only) migration: Intel's own libiomp5, unbound, is as fast as bound
+  MKL on compute-bound shapes and 1.6-1.9x faster than bound on the
+  memory-bound ones (100x100x1e6:NT, 100x200000x100). conda-forge's LLVM
+  libomp with KMP_BLOCKTIME=infinite does the same. Both runtimes print the
+  same defaults with KMP_SETTINGS=1 on the Xeon (KMP_BLOCKTIME=200ms,
+  throughput, hyper barriers); Intel's additionally shows
+  `KMP_AFFINITY=...,nobind_init,perf_bind`. So LLVM libomp's default waiting
+  behaves differently from Intel's at >= 43 threads; exp 11b counts worker
+  sleeps (voluntary context switches) to check.
+- Binding to cores costs 1.6-1.9x on memory-bound shapes vs the best unbound
+  setting (close packing one thread per core over SNC domains filled in
+  order vs. the scheduler spreading?), so OMP_PROC_BIND is not a free default.
+- Late binding: the bind variables only take effect when set before the
+  first MKL thread query. After `MKL_Set_Num_Threads`/`MKL_Get_Max_Threads`
+  (what threadpoolctl calls) libomp has read its environment: 0 of 86
+  threads bound, same speed as default. A threadpoolctl "bind" feature
+  would therefore have to run before anything queries MKL, i.e. it cannot be
+  a `threadpool_limits` option.
+- On this laptop (hybrid Core Ultra), conda-forge's libomp reports
+  KMP_BLOCKTIME=0ms by default (LLVM picks 0 on hybrid CPUs), 200ms on the
+  Xeon.
