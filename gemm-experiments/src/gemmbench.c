@@ -94,8 +94,8 @@ static void op_call(const struct op *o) {
         else sgemm(ColMajor, o->ta, o->tb, o->m, o->n, o->k, 1.0f, o->A, lda, o->B, ldb, (float)o->beta, o->C, o->m);
     } else if (o->routine == 's') {
         long lda = o->ta == NoTrans ? o->n : o->k;
-        if (d) dsyrk(ColMajor, Upper, o->ta, o->n, o->k, 1.0, o->A, lda, 0.0, o->C, o->n);
-        else ssyrk(ColMajor, Upper, o->ta, o->n, o->k, 1.0f, o->A, lda, 0.0f, o->C, o->n);
+        if (d) dsyrk(ColMajor, Upper, o->ta, o->n, o->k, 1.0, o->A, lda, o->beta, o->C, o->n);
+        else ssyrk(ColMajor, Upper, o->ta, o->n, o->k, 1.0f, o->A, lda, (float)o->beta, o->C, o->n);
     } else {
         if (d) dgemv(ColMajor, o->ta, o->m, o->n, 1.0, o->A, o->m, o->B, 1, o->beta, o->C, 1);
         else sgemv(ColMajor, o->ta, o->m, o->n, 1.0f, o->A, o->m, o->B, 1, (float)o->beta, o->C, 1);
@@ -220,10 +220,12 @@ static double check_gemv(struct op *o, int esize) {
     return maxerr / maxref;
 }
 
-// Same for syrk: upper triangle of C = op(A) op(A)^T (beta 0 in op_call).
+// Same for syrk: upper triangle of C = op(A) op(A)^T + beta C.
 static double check_syrk(struct op *o, int esize) {
     long n = o->n, k = o->k, lda = o->ta == NoTrans ? n : k;
 #define AT(p, i) (esize == 8 ? ((double *)(p))[i] : (double)((float *)(p))[i])
+    double *c0 = malloc(n * n * sizeof(double));
+    for (long i = 0; i < n * n; i++) c0[i] = AT(o->C, i);
     op_call(o);
     double maxerr = 0, maxref = 1e-300;
     for (long j = 0; j < n; j++)
@@ -232,12 +234,14 @@ static double check_syrk(struct op *o, int esize) {
             for (long l = 0; l < k; l++)
                 acc += o->ta == NoTrans ? AT(o->A, i + l * lda) * AT(o->A, j + l * lda)
                                         : AT(o->A, l + i * lda) * AT(o->A, l + j * lda);
+            acc += o->beta * c0[i + j * n];
             double err = acc - AT(o->C, i + j * n);
             if (err < 0) err = -err;
             if (err > maxerr) maxerr = err;
             if ((acc < 0 ? -acc : acc) > maxref) maxref = acc < 0 ? -acc : acc;
         }
 #undef AT
+    free(c0);
     return maxerr / maxref;
 }
 

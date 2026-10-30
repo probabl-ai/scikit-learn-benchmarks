@@ -28,13 +28,19 @@ for b in "$@"; do
     done
   done
 done
-# syrk (thread-count patch): n just under / over nthreads * switch_ratio
+# syrk (thread-count and split-K patches): n just under / over nthreads *
+# switch_ratio, long k with split-K forced off, forced to 7 chunks, auto
 for b in "$@"; do
-  for dt in d s; do
-    for t in 8 43 62 86; do
-      OPENBLAS_NUM_THREADS=$t build/gemmbench --lib $b/lib/libopenblas.so.0 \
-        --label $b --dtype $dt --check 1 syrk:990x4000:N syrk:990x4000:T \
-        syrk:300x20000:N syrk:1500x2000:T syrk:37x50000:N 2>/dev/null | sed "s|^|$b T=$t |"
+  for force in 0 7 ""; do
+    for beta in 0 0.5; do
+      for dt in d s; do
+        for t in 8 43 62 86; do
+          OPENBLAS_NUM_THREADS=$t OPENBLAS_SYRK_SPLITK=$force build/gemmbench \
+            --lib $b/lib/libopenblas.so.0 --label $b --dtype $dt --beta $beta --check 1 \
+            syrk:990x4000:N syrk:990x4000:T syrk:300x20000:N syrk:200x60000:T \
+            syrk:1500x2000:T syrk:37x50000:N 2>/dev/null | sed "s|^|$b T=$t syrk_splitk=${force:-auto} |"
+        done
+      done
     done
   done
 done

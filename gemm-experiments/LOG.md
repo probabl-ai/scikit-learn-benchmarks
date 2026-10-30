@@ -401,3 +401,25 @@ Outcome (GF/s, local memory unless noted):
   some cores get two threads and the static split waits for them.
 - NUM_THREADS=256 (t256) vs the conda-forge 128 cap: 172T 4096^3 3957 vs
   3306 interleaved, otherwise within noise. Not worth it.
+
+## Exp 12: all four patches (xeon-s1)
+
+`scripts/run_all.sh xeon-s1 8,22,43,64,86` (develop 800bb92a + split-K v2,
+l1stride, gemv split-x, syrk thread count = `builds/all`), 3 rounds pinned.
+`results/xeon-s1/all.csv`; checks `check_all.txt`: all OK (218, incl. 40
+syrk) except the known k=200000 threshold artifact.
+
+Outcome (all vs develop base; GF/s):
+- syrk thread count: 990x463810 f64 64T 82 -> 974, 86T 81 -> 919 (bound MKL
+  663 and 453); 1000x1000x50000 86T 83 -> 1016 (MKL 714); f32 likewise
+  (64T 165 -> 1621, MKL 1678).
+- syrk with few features and long k is the next gap: 300x300x200000 f64
+  66 GF/s from 22T up (single-threaded below the cliff too: 300 < 19 x 16),
+  282 with the patch, bound MKL 1567-2983. -> syrk split-K
+  (`apply_splitk_syrk.py`, exp 13).
+- Other patches as in exp 7/9. The l1stride regression on 7x116203x100 at
+  64-86T is confirmed (0.75-0.89x; f32 43T 0.73x): needs a guard before
+  proposing it.
+- Still unpatched gaps at 64-86T: mid-size squares (2000x2000x200 86T: 2191
+  vs MKL 10623 in f32), gemv T at 64-86T (100x200000 f32: ~300 vs MKL
+  2100-2590, the 80 MB matrix sits in the socket's L3 for MKL).
