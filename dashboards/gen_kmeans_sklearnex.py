@@ -105,14 +105,24 @@ ABOUT_HTML = """<section class="panel">
   <p>On the benchmarked cases:</p>
   <ul>
     <li>On the Xeon socket, a Lloyd iteration of <b>scikit-learn</b>
-    <code>main</code> takes at least ~35 ms on every dense case with 50,000
-    samples or more, whatever the number of features or clusters. The branch
-    makes the Lloyd iterations 1.6x to 23x faster on the dense cases, and the
-    fits 1.5x to 13x faster.</li>
+    <code>main</code> takes at least ~30 ms on every dense case with 50,000
+    samples or more, whatever the number of features or clusters, with
+    <b>OpenBLAS</b> or <b>MKL</b>. The branch makes the Lloyd iterations 1.6x
+    to 23x faster on the dense cases, and the fits 1.4x to 13x faster.</li>
     <li>On the Xeon socket, <code>main</code> is much slower on the sparse
-    cases: 0.2 to 2.9 s per Lloyd iteration, 9x to 38x slower than the branch.
-    One of the five repeats of rcv1 in float64 didn't finish within the time
-    limit, so that case has four.</li>
+    cases: 0.13 to 2.9 s per Lloyd iteration, 6x to 38x slower than the branch.
+    One of the five repeats of rcv1 in float64 with <b>OpenBLAS</b> didn't
+    finish within the time limit, so that case has four.</li>
+    <li>On the Xeon socket, with the branch, neither BLAS is faster across the
+    board. <b>OpenBLAS</b> <code>develop</code> makes the Lloyd iterations 2x
+    to 4.4x slower than <b>MKL</b> on three float32 cases (sift with 16
+    features, nytimes with 64 features and 1000 clusters), and up to ~2x
+    faster on others (sift with 128 features and 100 clusters, nytimes with 64
+    features and 100 clusters in float32).</li>
+    <li>On the Xeon socket, <b>sklearnex</b> takes 2.6x to 3.8x the fit time
+    per iteration of the faster branch build on the sparse cases, and 2.9x to
+    3.7x on cifar (3072 features). It is up to ~1.9x faster on the cases with
+    the most samples (sift with 1M samples, nytimes with 290,000).</li>
     <li>On the laptop, the branch doesn't change the dense cases much (0.83x to
     1.03x per Lloyd iteration, the lowest on iterations under 16 ms), but it
     makes the sparse ones faster: 1.5x to 3.9x on 20newsgroups, 1.7x on rcv1 in
