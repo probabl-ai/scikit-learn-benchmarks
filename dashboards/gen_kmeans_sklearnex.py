@@ -6,6 +6,10 @@ OpenBLAS (`sklearn-dev`), with OpenBLAS `develop` swapped into `sklearn-dev`, an
 with MKL (`sklearn-dev-mkl`), plus sklearnex (`intel` env). Any of them can be
 picked as the baseline of the speed-up plots and table, as on the software
 comparison page.
+
+cuML ran on another machine (NVIDIA L4 VM). Its results are added to every
+machine tab as one more build, matched on the case regardless of the thread
+env, so picking it as the baseline compares that GPU with the tab's CPU.
 """
 from html import escape
 from pathlib import Path
@@ -37,6 +41,7 @@ from sklbench.reporting.matching import (
     read_all_results,
     read_failed_records,
 )
+from sklbench.reporting.utils import stable_json, without_keys
 
 
 TITLE = "KMeans: scikit-learn main vs branch vs sklearnex"
@@ -58,6 +63,8 @@ VARIANTS = [
     for runtime in RUNTIME_LABELS.values()
     for ref in REF_LABELS.values()
 ] + ["sklearnex"]
+CUML_LABEL = "cuML (NVIDIA L4)"
+VARIANTS.append(CUML_LABEL)
 DEFAULT_BASELINE = VARIANTS[0]
 METHODS = ["fit", "predict"]
 ROW = "KMeans"
@@ -78,9 +85,11 @@ ABOUT_HTML = """<section class="panel">
   in log scale, one point per case and build: hover a point to see the case.
   The table under the plots also has the init and Lloyd speed-ups, for
   scikit-learn builds only, since only the instrumented scikit-learn KMeans times
-  each phase. The number of iterations varies between implementations and
-  between repeats (no <code>random_state</code> is set), so check the
-  <code>n_iter</code> column before reading a fit speed-up.</p>
+  each phase. Repeat <i>i</i> of a case passes <code>random_state=i</code>, so
+  the scikit-learn builds start from the same centers, but sklearnex and cuML
+  draw their k-means++ centers with their own random generators. The number
+  of iterations then differs, by up to ~5x between seeds of the same library,
+  so check the <code>n_iter</code> column before reading a fit speed-up.</p>
   <p>All the scikit-learn builds use threadpoolctl <code>master</code>
   (<a href="https://github.com/joblib/threadpoolctl/commit/0e9d19d7cd529ba947dd2f82777a6b62ec56e2e5">0e9d19d</a>),
   as if <a href="https://github.com/joblib/threadpoolctl/pull/283">threadpoolctl#283</a>
@@ -101,6 +110,14 @@ ABOUT_HTML = """<section class="panel">
   <code>configs/_real_datasets.py</code>
   (<a href="https://github.com/OpenMathLib/OpenBLAS/issues/5958">OpenBLAS#5958</a>),
   and sklearnex uses every logical CPU of the socket.</p>
+  <p><b>cuML</b> 26.06 ran on another machine, an AWS VM with an NVIDIA L4 GPU
+  and 4 vCPUs, through the cuML wrapper of
+  <a href="https://github.com/probabl-ai/scikit-learn-benchmarks/pull/142">#142</a>,
+  which runs k-means++ as cuML's <code>scalable-k-means++</code> with
+  <code>oversampling_factor=0</code>. Its results show up in every machine tab,
+  so picking it as the baseline compares that GPU with the tab's CPU. cuML has
+  its own stopping criterion: it runs 12 to 63 iterations where scikit-learn
+  runs 11 to 300, for a median inertia within 0.7% of scikit-learn's.</p>
   <p>On the benchmarked cases:</p>
   <ul>
     <li>On the Xeon socket, a Lloyd iteration of <b>scikit-learn</b>
@@ -126,6 +143,19 @@ ABOUT_HTML = """<section class="panel">
     (~7x with OpenBLAS <code>develop</code>). sklearnex stays faster on
     road_network (3 features): 1.9x to 3.9x with OpenBLAS 0.3.34, ~1.8x with
     OpenBLAS <code>develop</code>.</li>
+    <li>The different numbers of iterations of <b>sklearnex</b> come from its
+    k-means++ random draws, not from its Lloyd iterations: starting from the
+    same centers, it runs the same number of iterations as <b>scikit-learn</b>
+    on sift and road_network, and within the spread scikit-learn has between
+    64 and 8 threads on nytimes and fashion_mnist, with the same inertia.</li>
+    <li><b>cuML</b> on the L4 fits 1.8x to 3.5x faster than the fastest
+    <b>scikit-learn</b> build on the Xeon socket on 5 of the 8 cases, mostly
+    because it stops after fewer iterations. Measured separately at a fixed
+    number of iterations, a cuML iteration on the L4 is 1.3x to 5.4x slower
+    than one of the branch with OpenBLAS <code>develop</code> on the Xeon
+    socket, as fast on fashion_mnist and 2x faster on sift with 1000 clusters.
+    Its k-means++, copy of the data to the GPU included, is 2.4x to 10x
+    slower.</li>
   </ul>
 </section>"""
 
@@ -148,7 +178,25 @@ def _runtime_key(software_hash: str) -> tuple[str, str | None]:
     return env, next(t["version"] for t in threadpools if t["internal_api"] == "openblas")
 
 
+def _is_cuml(result: MethodResult | BenchmarkRecord) -> bool:
+    return result.implementation.library == "cuml"
+
+
+def _match_key(result: MethodResult) -> str:
+    """`minimal_match_key` without the bench settings that differ between the
+    cuML machine and the others: the CPU thread counts and profiling."""
+    case = without_keys(
+        result.case,
+        excluded_names={
+            "implementation", "max_bins", "source_config", "env", "py_spy_profiling",
+        },
+    )
+    return stable_json({**case, "method": result.method})
+
+
 def variant_label(result: MethodResult | BenchmarkRecord) -> str:
+    if _is_cuml(result):
+        return CUML_LABEL
     build_name = software_build_name(result.software_hash)
     if _env_of(build_name) == SKLEARNEX_ENV:
         return "sklearnex"
@@ -173,16 +221,16 @@ def _speedup_view_html(
     for method in METHODS:
         base_results = [r for r in results if r.method == method and is_baseline(r)]
         candidates = [r for r in results if r.method == method and not is_baseline(r)]
-        matches = find_matches(base_results, candidates, _result_matches)
+        matches = find_matches(base_results, candidates, _result_matches, match_key=_match_key)
         matches_by_method[method] = matches
         matched_bases = {id(m.base_result) for m in matches}
-        base_keys = {r.minimal_match_key for r in base_results}
+        base_keys = {_match_key(r) for r in base_results}
         unmatched_base += [r for r in base_results if id(r) not in matched_bases]
-        unmatched_candidates += [r for r in candidates if r.minimal_match_key not in base_keys]
+        unmatched_candidates += [r for r in candidates if _match_key(r) not in base_keys]
         plots.append({
             "category": ROW,
             "method": method,
-            "case_count": len({m.base_result.minimal_match_key for m in matches}),
+            "case_count": len({_match_key(m.base_result) for m in matches}),
             "plot": speedup_plot_html(
                 matches,
                 baseline_label=baseline_label,
@@ -219,8 +267,10 @@ def render_hardware_page(
     *,
     variant_colors: dict[str, str],
 ) -> str | None:
-    results = [r for r in results if r.hardware_hash == hardware_hash]
-    failed_records = [r for r in failed_records if r.hardware_hash == hardware_hash]
+    results = [r for r in results if r.hardware_hash == hardware_hash or _is_cuml(r)]
+    failed_records = [
+        r for r in failed_records if r.hardware_hash == hardware_hash or _is_cuml(r)
+    ]
     present = {variant_label(r) for r in results}
     labels = [label for label in VARIANTS if label in present]
     if len(labels) < 2:
@@ -284,7 +334,7 @@ def generate(output_dir: Path) -> None:
         r for r in read_failed_records() if matches_source_configs(r.case, SOURCE_CONFIGS)
     ]
     variant_colors = variant_color_map(VARIANTS)
-    hardware_hashes = sorted({r.hardware_hash for r in results})
+    hardware_hashes = sorted({r.hardware_hash for r in results if not _is_cuml(r)})
     hardware_pages = [
         (HARDWARE_NAMES.get(hardware_hash, hardware_hash),
          render_hardware_page(
