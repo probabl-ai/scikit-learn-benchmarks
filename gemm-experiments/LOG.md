@@ -328,3 +328,15 @@ traffic.)
 Exp 11e (`scripts/probe_yield.sh`, strace -c) checks whether default libomp
 calls sched_yield while waiting, which would explain why the kernel never
 fixes the placement.
+
+## Exp 9 (xeon-s1): gemv split-x A/B
+
+`scripts/run_gemv.sh xeon-s1 1,2,4,8,22,43,86`, 3 rounds pinned.
+`results/xeon-s1/gemv.csv`. Checks (`check.txt`): all gemv cases OK.
+
+Outcome: gemv N (X.T @ r) with few rows, f64: 126x36168 22T 13 -> 154 GF/s
+(bound MKL 170), 86T 37 -> 199 (MKL 174); 100x200000 86T 21 -> 278 (MKL
+276); 20x2000000 86T 4.6 -> 97 (MKL 94); 1000x40000 43T 49 -> 101 (MKL 106).
+Wide gemv N (>= 2199 rows) unchanged or slightly better; gemv T: no case
+below 0.98x of base (56 cases). Not closed: 20x2000000 at 22-43T (59 vs MKL
+94) and 4096x4096 (no split-x there since rows are enough; MKL 1.4-1.7x).
