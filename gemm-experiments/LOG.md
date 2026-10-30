@@ -139,3 +139,53 @@ Build note: develop 800bb92a with `NO_AFFINITY=0 BUILD_BFLOAT16=1` fails with
 GCC 15 (`interface/gemm.c:812: passing argument 5 of 'gemm_thread_mn' from
 incompatible pointer type` for sbgemm; GCC 15 makes this an error). The
 affinity build therefore uses `BUILD_BFLOAT16=0` (bf16 is not benchmarked).
+
+## Exp 7: combined patch (split-K v2 + l1stride) A/B, 3 rounds pinned
+
+`scripts/run_combo.sh` on xeon-s1 (8,22,43,86 T) and gamer (24 T); variants
+conda-forge, bound MKL, develop `base`, `l1`, `combo`. `results/*/combo.csv`.
+
+Outcome (median GF/s, max over rounds):
+- combo never loses to base beyond noise except thin X @ W at 86T, where the
+  l1stride gain disappears (7x116203x100 f64 86T: base 427, l1 410, combo 380;
+  f32 43T: 718 -> 534). The l1stride change needs a thread-count guard.
+- split-K v2: 100x100x1e6:NT f64 8T 177 -> 336 (MKL 522), 86T 168 -> 1752
+  (MKL 1977); f32 86T 210 -> 4080 (MKL 4419). 50x1000x100000:NT now splits too:
+  f32 86T 1089 -> 3383, 2.5x bound MKL.
+- Gamer 24T: split-K 2.0-2.6x, l1stride 2.8-3.8x on 7-10 output columns
+  (7x116203x100 f64 47 -> 177, MKL 130).
+- Remaining gap at 86T on the Xeon, untouched by both patches: mid-size
+  squares and medium-k shapes. Bound MKL vs combo: 256^3 1351 vs 321,
+  1024^3 5612 vs 1629 (f32), 2000x2000x200 5576 vs 1633 (f64), 10554 vs 2245
+  (f32). At 22T the same shapes are within 1.0-1.8x. -> exp 10 adds
+  bound/unbound OpenMP OpenBLAS on those shapes to separate threading
+  overhead from thread placement.
+
+## Exp 8: KMeans-like concurrent single-threaded callers (xeon-s1)
+
+`scripts/run_callers.sh xeon-s1`: P callers each run their own 1-thread GEMM
+(the KMeans chunk pattern). `results/xeon-s1/callers.csv`, aggregate GF/s.
+
+Outcome:
+- conda-forge OpenBLAS 0.3.34 collapses on the smallest chunk
+  (10x256x100:TN, i.e. 10 clusters): f64 297 GF/s at 22 callers, 200 at 86,
+  while develop (`base`) scales to 2221 at 86. Larger chunks scale the same
+  in both. Something between 0.3.34 and develop 800bb92a fixed a contention
+  on small calls (to bisect if it matters for KMeans users on 0.3.34).
+- Per call, MKL is 1.2-1.9x faster than OpenBLAS on these small shapes
+  (10x256x100:TN f64 1 caller: 60 vs 31; 100x256x784:TN 87 vs 58) and keeps
+  that lead at 86 callers (3539 vs 2221). Small-GEMM call overhead and/or
+  the TN small-matrix path in OpenBLAS: next thing to profile.
+
+## Exp 9: gemv split-x (gamer done, xeon re-queued)
+
+`scripts/run_gemv.sh`. The first xeon-s1 run lacked the `gemv` build (the
+chain stopped when the `aff` build failed its tests, see below).
+
+Gamer outcome: gemv N (X.T @ r) with ~100 rows: 99x26215 f64 24T 5.4 -> 103
+GF/s (MKL 63), f32 20.6 -> 207 (MKL 73); 126x36168 f64 8T 12.5 -> 53 (MKL 54).
+gemv T unchanged (within noise; one f32 24T case 398 -> 340 to recheck).
+
+Build note: develop `NO_AFFINITY=0 NUM_THREADS=256 BUILD_BFLOAT16=0` builds
+but its own BLAS tests segfault (sblat1 at 1 thread, cblat3_3m at 2), so the
+`aff` variant is dropped from exp 10.
