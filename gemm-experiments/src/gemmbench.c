@@ -297,12 +297,12 @@ static int count_cpus(const char *list) {
 }
 
 // How many of our threads are bound to at most one core (2 CPUs), how often
-// they slept (voluntary context switches) and which OpenMP runtime is loaded
+// they slept, were preempted or migrated, and which OpenMP runtime is loaded
 // (Linux /proc).
 static void report_affinity(void) {
     char dirpath[64], path[512], line[8192], omp[512] = "none";
     int tasks = 0, bound = 0;
-    long vcsw = 0, n;
+    long vcsw = 0, ivcsw = 0, migr = 0, n;
     snprintf(dirpath, sizeof dirpath, "/proc/%d/task", (int)getpid());
     DIR *dir = opendir(dirpath);
     if (!dir) return;
@@ -318,8 +318,16 @@ static void report_affinity(void) {
                 if (count_cpus(line + 18 + strspn(line + 18, " \t")) <= 2) bound++;
             } else if (sscanf(line, "voluntary_ctxt_switches: %ld", &n) == 1) {
                 vcsw += n;
+            } else if (sscanf(line, "nonvoluntary_ctxt_switches: %ld", &n) == 1) {
+                ivcsw += n;
             }
         fclose(st);
+        snprintf(path, sizeof path, "%s/%s/sched", dirpath, e->d_name);
+        if ((st = fopen(path, "r"))) {
+            while (fgets(line, sizeof line, st))
+                if (sscanf(line, "se.nr_migrations : %ld", &n) == 1) migr += n;
+            fclose(st);
+        }
     }
     closedir(dir);
     FILE *maps = fopen("/proc/self/maps", "r");
@@ -336,8 +344,9 @@ static void report_affinity(void) {
         }
     }
     if (maps) fclose(maps);
-    fprintf(stderr, "# affinity: threads=%d bound_to_one_core=%d voluntary_switches=%ld openmp=%s\n",
-            tasks, bound, vcsw, omp);
+    fprintf(stderr, "# affinity: threads=%d bound_to_one_core=%d voluntary_switches=%ld "
+            "involuntary_switches=%ld migrations=%ld openmp=%s\n",
+            tasks, bound, vcsw, ivcsw, migr, omp);
 }
 
 int main(int argc, char **argv) {

@@ -239,3 +239,30 @@ Outcome:
 - On this laptop (hybrid Core Ultra), conda-forge's libomp reports
   KMP_BLOCKTIME=0ms by default (with no OMP_/KMP_ variable set), 200ms on the
   Xeon: the default depends on the CPU (not checked in the libomp sources).
+
+## Exp 11c: two concurrent processes on one socket (xeon-s1)
+
+`scripts/collide.py --threads 43,86`: one shape in two processes started
+together, `min-time 2`; total GF/s of the pair (best of 2 rounds).
+`results/xeon-s1/collide.csv`.
+
+| T per process | shape | OpenBLAS alone / x2 | MKL default alone / x2 | MKL bound alone / x2 same cores / x2 on socket halves |
+| --- | --- | --- | --- | --- |
+| 43 | 4096^3 | 3333 / 2848 | 3450 / 3198 | 2690 / 2935 / 5477 |
+| 43 | 7x116203x100 | 398 / 543 | 1068 / 612 | 1293 / 728 / 2350 |
+| 86 | 4096^3 | 2982 / 3990 | 2916 / 2567 | 4651 / 4191 / 4548 |
+| 86 | 7x116203x100 | 349 / 538 | 619 / 598 | 2962 / 1228 / 2359 |
+
+Outcome:
+- Two bound processes with the same thread count both bind to the first
+  cores of the socket: at 43 threads each, the pair gets about half of what
+  the same pair gets on disjoint halves (4096^3: 2935 vs 5477). Binding by
+  default is unsafe for multi-process use (joblib/loky workers, several
+  jobs on one node) unless every process gets its own mask.
+- But two unbound default MKL processes are not better than two bound ones
+  (3198 vs 2935; 612 vs 728), and at 86+86 threads bound beats unbound
+  (4191 vs 2567).
+- `close` binding of 43 threads alone loses 22% on 4096^3 vs unbound (2690 vs
+  3450; exp 11 too: 2689 vs Intel unbound 3524): close packs the threads on
+  the first SNC domains. `spread` would be the better default for partial
+  thread counts.
