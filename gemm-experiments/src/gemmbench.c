@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 
 #ifdef __APPLE__
@@ -272,6 +273,67 @@ static void run_callers(struct op *ops, int P, double min_time, int max_reps,
     pthread_barrier_destroy(&bar);
 }
 
+// GEMMBENCH_SAMPLE_PLACEMENT=1: a thread samples every 20 ms on which CPU
+// each running thread (state R) sits while a shape is timed, to see threads stacked on one CPU or
+// sharing a core while other cores idle.
+#define MAXCPU 1024
+static int core_of[MAXCPU];
+static volatile int sampling = 1, timing = 0;
+static double s_samples, s_running, s_cpus, s_cores;
+
+static void *placement_sampler(void *arg) {
+    (void)arg;
+    for (int c = 0; c < MAXCPU; c++) {
+        char p[128];
+        int core = -1, pkg = 0;
+        snprintf(p, sizeof p, "/sys/devices/system/cpu/cpu%d/topology/core_id", c);
+        FILE *f = fopen(p, "r");
+        if (f) { if (fscanf(f, "%d", &core) != 1) core = -1; fclose(f); }
+        snprintf(p, sizeof p, "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", c);
+        if ((f = fopen(p, "r"))) { if (fscanf(f, "%d", &pkg) != 1) pkg = 0; fclose(f); }
+        core_of[c] = core < 0 ? -1 : pkg * 4096 + core;
+    }
+    char dirpath[64], path[512], line[1024];
+    snprintf(dirpath, sizeof dirpath, "/proc/%d/task", (int)getpid());
+    pid_t self = (pid_t)syscall(SYS_gettid);
+    static unsigned char cpu_seen[MAXCPU];
+    static int cores[MAXCPU];
+    while (sampling) {
+        struct timespec ts = {0, 20000000};
+        nanosleep(&ts, NULL);
+        if (!timing) continue;
+        memset(cpu_seen, 0, sizeof cpu_seen);
+        int running = 0, ncpu = 0, ncore = 0;
+        DIR *dir = opendir(dirpath);
+        struct dirent *e;
+        while (dir && (e = readdir(dir))) {
+            if (e->d_name[0] == '.' || atoi(e->d_name) == self) continue;
+            snprintf(path, sizeof path, "%s/%s/stat", dirpath, e->d_name);
+            FILE *f = fopen(path, "r");
+            if (!f) continue;
+            char *ok = fgets(line, sizeof line, f);
+            fclose(f);
+            char *q = ok ? strrchr(line, ')') : NULL;
+            if (!q || q[2] != 'R') continue;
+            // fields after the comm: state is field 3, processor is field 39
+            int field = 2, cpu = -1;
+            for (char *t = q + 1; *t; t++)
+                if (*t == ' ' && ++field == 39) { cpu = atoi(t + 1); break; }
+            if (cpu < 0 || cpu >= MAXCPU) continue;
+            running++;
+            if (!cpu_seen[cpu]++) {
+                ncpu++;
+                int k, c = core_of[cpu];
+                for (k = 0; k < ncore && cores[k] != c; k++) {}
+                if (k == ncore) cores[ncore++] = c;
+            }
+        }
+        if (dir) closedir(dir);
+        s_samples++; s_running += running; s_cpus += ncpu; s_cores += ncore;
+    }
+    return NULL;
+}
+
 // Sets "K=V;K=V" in the environment, as a Python caller would with os.environ
 // once the BLAS library is loaded.
 static void apply_env(const char *spec) {
@@ -436,6 +498,10 @@ int main(int argc, char **argv) {
         apply_env(late);
     }
 
+    pthread_t sampler;
+    int sample = getenv("GEMMBENCH_SAMPLE_PLACEMENT") != NULL;
+    if (sample) pthread_create(&sampler, NULL, placement_sampler, NULL);
+
     if (header)
         printf("label,dtype,m,n,k,trans,threads,reps,best_s,median_s,"
                "gflops_best,gflops_median\n");
@@ -494,6 +560,7 @@ int main(int argc, char **argv) {
         } else {
             // Warm up the thread pool, caches and page tables for >= 50 ms.
             o = ops[0];
+            timing = 1;
             double t0 = now();
             int w = 0;
             do { op_call(&o); w++; } while (now() - t0 < 0.05 && w < max_reps);
@@ -508,6 +575,7 @@ int main(int argc, char **argv) {
                 if (reps == cap) { cap *= 2; times = realloc(times, cap * sizeof(double)); }
                 times[reps++] = b - a;
             }
+            timing = 0;
             qsort(times, reps, sizeof(double), cmp_double);
             best = times[0];
             med = times[reps / 2];
@@ -519,6 +587,13 @@ int main(int argc, char **argv) {
         fflush(stdout);
         for (int p = 0; p < P; p++) { free(ops[p].A); free(ops[p].B); free(ops[p].C); }
         free(ops);
+    }
+    if (sample) {
+        sampling = 0;
+        pthread_join(sampler, NULL);
+        if (s_samples > 0)
+            fprintf(stderr, "# placement: samples=%.0f running=%.1f cpus=%.1f cores=%.1f\n",
+                    s_samples, s_running / s_samples, s_cpus / s_samples, s_cores / s_samples);
     }
     report_affinity();
     return 0;

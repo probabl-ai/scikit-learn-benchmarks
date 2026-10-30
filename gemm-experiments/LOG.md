@@ -266,3 +266,34 @@ Outcome:
   3450; exp 11 too: 2689 vs Intel unbound 3524): close packs the threads on
   the first SNC domains. `spread` would be the better default for partial
   thread counts.
+
+## Exp 11b: do the workers sleep, migrate or get preempted? (xeon-s1)
+
+`scripts/probe_sleep.sh` (fixed number of calls per process, unpinned; the
+harness sums `/proc/self/task/*/status` context switches and
+`/proc/self/task/*/sched` `se.nr_migrations`). v1 (`probe_sleep_v1.csv`):
+voluntary switches only; v2 (`probe_migrations.csv`): 3 rounds with
+involuntary switches and migrations.
+
+Outcome:
+- Workers do not sleep in any setting: <= 0.2 voluntary switches per thread
+  per call, the same for default, bound, blocktime=infinite and Intel.
+- They barely migrate either: 0.1-0.2 migrations per thread per 4096^3 call
+  for default and Intel alike. Migration is not the cause (my exp 3 guess
+  was wrong).
+- Involuntary switches are the difference. Per thread per call, default
+  LLVM libomp: 47 (86T, 100x100x1e6), 400 (172T, same), 978 (172T, 4096^3);
+  every other setting: < 1. Spinning threads preempted hundreds of times
+  per call means two threads of the team share a CPU and yield to each
+  other.
+- Default speed is bimodal from process to process: 43T 4096^3 1416-1604
+  GF/s here vs 3265 in v1 for the same setting; blocktime=infinite, Intel
+  and bound stay at 3200-3500.
+- `KMP_USE_YIELD=0` makes it worse (172T 256^3: 6 GF/s), consistent with
+  stacked threads that now spin a full time slice each.
+- `KMP_BLOCKTIME=1000` (1 s) behaves like the default 200 ms, unlike
+  `infinite`: the fix is not "spin longer".
+
+Exp 11d (`scripts/probe_placement.sh`, harness `GEMMBENCH_SAMPLE_PLACEMENT=1`)
+samples every 20 ms which CPU/core each running thread is on, to confirm the
+stacking directly.
