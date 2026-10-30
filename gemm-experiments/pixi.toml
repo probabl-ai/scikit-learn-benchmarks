@@ -1,0 +1,30 @@
+# Standalone workspace for the GEMM experiments (not part of the repo's
+# benchmark environments). Every BLAS is installed side by side and loaded by
+# path with dlopen from src/gemmbench.c, so no libblas metapackage is pinned.
+[workspace]
+name = "gemm-experiments"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[dependencies]
+python = "3.12.*"
+c-compiler = "*"
+make = "*"
+blis = "*"
+
+[target.linux-64.dependencies]
+mkl = "*"
+numactl = "*"
+
+[feature.pthreads.dependencies]
+libopenblas = { version = "*", build = "*pthreads*" }
+
+[feature.omp.dependencies]
+libopenblas = { version = "*", build = "*openmp*" }
+
+[environments]
+default = { features = ["pthreads"] }
+omp = { features = ["omp"] }
+
+[tasks]
+build = "mkdir -p build && cc -O2 -Wall -o build/gemmbench src/gemmbench.c -ldl -lpthread"
