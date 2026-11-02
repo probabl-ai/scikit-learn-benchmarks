@@ -47,7 +47,11 @@ ABOUT_HTML = """<section class="panel">
   <p><code>sklearn-cf-default</code> installs conda-forge's scikit-learn without pinning
   either, which gives the same libraries as <code>sklearn-cf-libgomp-openblas</code>.</p>
   <p>The "Threadpools" and "OpenMP" lines of each environment tab show what
-  was loaded at run time.</p>
+  was loaded at run time. <code>sklearn-pypi</code> lists two <code>libscipy_openblas</code>:
+  the NumPy and SciPy wheels each ship their own copy of OpenBLAS, and both get
+  loaded, often in different versions. NumPy's matrix products run on NumPy's
+  copy, SciPy's linear algebra (used by some solvers) on SciPy's. On
+  conda-forge, NumPy and SciPy share a single OpenBLAS.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Read each cell like in
