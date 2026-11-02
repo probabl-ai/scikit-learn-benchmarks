@@ -100,6 +100,7 @@ def main():
     p.add_argument("--prefix-cmd", default="", help="e.g. 'numactl --interleave=all'")
     p.add_argument("--pin", choices=["none", "compact"], default="none",
                    help="compact: restrict each run to its first T physical cores")
+    p.add_argument("--harness-args", default="", help="extra gemmbench options, e.g. '--cycle 1'")
     p.add_argument("--note", default="")
     args = p.parse_args()
 
@@ -138,7 +139,7 @@ def main():
                         cmd = pin + args.prefix_cmd.split() + [
                             str(BIN), "--lib", path, "--label", name, "--dtype", dtype,
                             "--min-time", args.min_time, "--init", args.init,
-                            "--threads", str(t), *args.shapes,
+                            "--threads", str(t), *args.harness_args.split(), *args.shapes,
                         ]
                         res = subprocess.run(cmd, env=env, capture_output=True, text=True)
                         meta["lib_headers"].setdefault(name, res.stderr.strip())

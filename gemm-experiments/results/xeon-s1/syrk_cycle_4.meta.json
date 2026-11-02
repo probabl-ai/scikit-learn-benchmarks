@@ -1,0 +1,154 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/xeon-s1/syrk_cycle_4.csv",
+  "--threads",
+  "22,43,86",
+  "--variant",
+  "sr-base=builds/sr-base/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sr-base-omp-llvm=builds/sr-base-omp/lib/libopenblas.so.0,OMP_NUM_THREADS={T},LD_LIBRARY_PATH=/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib",
+  "--variant",
+  "sr-base-omp-llvm-bound=builds/sr-base-omp/lib/libopenblas.so.0,OMP_NUM_THREADS={T},LD_LIBRARY_PATH=/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib,OMP_PROC_BIND=close,OMP_PLACES=cores",
+  "--variant",
+  "sr-base-omp-gnu=builds/sr-base-omp/lib/libopenblas.so.0,OMP_NUM_THREADS={T},LD_LIBRARY_PATH=/home/alacote/work/gemm-experiments/vendor/gnu-gomp",
+  "--variant",
+  "sr-syrk=builds/sr-syrk/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sr-syrk-omp-llvm=builds/sr-syrk-omp/lib/libopenblas.so.0,OMP_NUM_THREADS={T},LD_LIBRARY_PATH=/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib",
+  "--variant",
+  "sr-syrk-omp-llvm-bound=builds/sr-syrk-omp/lib/libopenblas.so.0,OMP_NUM_THREADS={T},LD_LIBRARY_PATH=/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib,OMP_PROC_BIND=close,OMP_PLACES=cores",
+  "--variant",
+  "sr-syrk-omp-gnu=builds/sr-syrk-omp/lib/libopenblas.so.0,OMP_NUM_THREADS={T},LD_LIBRARY_PATH=/home/alacote/work/gemm-experiments/vendor/gnu-gomp",
+  "--dtype",
+  "d",
+  "--rounds",
+  "3",
+  "--min-time",
+  "0.3",
+  "--harness-args",
+  "--cycle 1",
+  "--pin",
+  "compact",
+  "--note",
+  "exp15 syrk thread-count changes between calls: syrk:64x2000:N syrk:200x2000:N syrk:990x2000:N",
+  "--shapes",
+  "syrk:64x2000:N",
+  "syrk:200x2000:N",
+  "syrk:990x2000:N"
+ ],
+ "note": "exp15 syrk thread-count changes between calls: syrk:64x2000:N syrk:200x2000:N syrk:990x2000:N",
+ "host": "igk-0805",
+ "platform": "Linux-7.0.0-27-generic-x86_64-with-glibc2.43",
+ "start": "2026-11-02T11:39:49+0000",
+ "variants": {
+  "sr-base": {
+   "lib": "builds/sr-base/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sr-base-omp-llvm": {
+   "lib": "builds/sr-base-omp/lib/libopenblas.so.0",
+   "env": {
+    "OMP_NUM_THREADS": "{T}",
+    "LD_LIBRARY_PATH": "/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib"
+   }
+  },
+  "sr-base-omp-llvm-bound": {
+   "lib": "builds/sr-base-omp/lib/libopenblas.so.0",
+   "env": {
+    "OMP_NUM_THREADS": "{T}",
+    "LD_LIBRARY_PATH": "/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib",
+    "OMP_PROC_BIND": "close",
+    "OMP_PLACES": "cores"
+   }
+  },
+  "sr-base-omp-gnu": {
+   "lib": "builds/sr-base-omp/lib/libopenblas.so.0",
+   "env": {
+    "OMP_NUM_THREADS": "{T}",
+    "LD_LIBRARY_PATH": "/home/alacote/work/gemm-experiments/vendor/gnu-gomp"
+   }
+  },
+  "sr-syrk": {
+   "lib": "builds/sr-syrk/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sr-syrk-omp-llvm": {
+   "lib": "builds/sr-syrk-omp/lib/libopenblas.so.0",
+   "env": {
+    "OMP_NUM_THREADS": "{T}",
+    "LD_LIBRARY_PATH": "/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib"
+   }
+  },
+  "sr-syrk-omp-llvm-bound": {
+   "lib": "builds/sr-syrk-omp/lib/libopenblas.so.0",
+   "env": {
+    "OMP_NUM_THREADS": "{T}",
+    "LD_LIBRARY_PATH": "/home/alacote/work/gemm-experiments/.pixi/envs/omp/lib",
+    "OMP_PROC_BIND": "close",
+    "OMP_PLACES": "cores"
+   }
+  },
+  "sr-syrk-omp-gnu": {
+   "lib": "builds/sr-syrk-omp/lib/libopenblas.so.0",
+   "env": {
+    "OMP_NUM_THREADS": "{T}",
+    "LD_LIBRARY_PATH": "/home/alacote/work/gemm-experiments/vendor/gnu-gomp"
+   }
+  }
+ },
+ "lscpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           52 bits physical, 57 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  344\nOn-line CPU(s) list:                     0-343\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Xeon(R) 6787P\nCPU family:                              6\nModel:                                   173\nThread(s) per core:                      2\nCore(s) per socket:                      86\nSocket(s):                               2\nStepping:                                1\nCPU(s) scaling MHz:                      21%\nCPU max MHz:                             3800.0000\nCPU min MHz:                             800.0000\nBogoMIPS:                                4000.00\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l3 cat_l2 cdp_l3 intel_ppin cdp_l2 ssbd mba ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb intel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local split_lock_detect user_shstk avx_vnni avx512_bf16 wbnoinvd dtherm ida arat pln pts hwp hwp_act_window hwp_epp hwp_pkg_req vnmi avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq la57 rdpid bus_lock_detect cldemote movdiri movdir64b enqcmd fsrm md_clear serialize tsxldtrk pconfig arch_lbr ibt amx_bf16 avx512_fp16 amx_tile amx_int8 flush_l1d arch_capabilities\nVirtualization:                          VT-x\nL1d cache:                               8.1 MiB (172 instances)\nL1i cache:                               10.8 MiB (172 instances)\nL2 cache:                                344 MiB (172 instances)\nL3 cache:                                672 MiB (2 instances)\nNUMA node(s):                            8\nNUMA node0 CPU(s):                       0-21,172-193\nNUMA node1 CPU(s):                       22-42,194-214\nNUMA node2 CPU(s):                       43-64,215-236\nNUMA node3 CPU(s):                       65-85,237-257\nNUMA node4 CPU(s):                       86-107,258-279\nNUMA node5 CPU(s):                       108-128,280-300\nNUMA node6 CPU(s):                       129-150,301-322\nNUMA node7 CPU(s):                       151-171,323-343\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Vulnerable\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS Not affected; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+ "affinity": "policy: bind\npreferred node: 4\nphyscpubind: 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 289 290 291 292 293 294 295 296 297 298 299 300 301 302 303 304 305 306 307 308 309 310 311 312 313 314 315 316 317 318 319 320 321 322 323 324 325 326 327 328 329 330 331 332 333 334 335 336 337 338 339 340 341 342 343 \ncpubind: 4 5 6 7 \nnodebind: 4 5 6 7 \nmembind: 4 5 6 7 \npreferred: 4 5 6 7 \n",
+ "loadavg_start": [
+  36.4765625,
+  30.43798828125,
+  22.15283203125
+ ],
+ "lib_headers": {
+  "sr-base": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=46 involuntary_switches=238 migrations=0 openmp=none",
+  "sr-base-omp-llvm": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=44 involuntary_switches=240 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-base-omp-llvm-bound": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=22 voluntary_switches=32 involuntary_switches=2394 migrations=1 openmp=/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0,/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so",
+  "sr-base-omp-gnu": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=40 involuntary_switches=242 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=40 involuntary_switches=265 migrations=0 openmp=none",
+  "sr-syrk-omp-llvm": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=38 involuntary_switches=238 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-llvm-bound": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=22 voluntary_switches=93 involuntary_switches=3128 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-gnu": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=41 involuntary_switches=250 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0"
+ },
+ "stderr": {
+  "sr-base T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=42 involuntary_switches=271 migrations=0 openmp=none",
+  "sr-base-omp-llvm T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=32 involuntary_switches=271 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-base-omp-llvm-bound T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=22 voluntary_switches=32 involuntary_switches=2294 migrations=1 openmp=/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0,/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so",
+  "sr-base-omp-gnu T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=45 involuntary_switches=283 migrations=2 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=33 involuntary_switches=247 migrations=0 openmp=none",
+  "sr-syrk-omp-llvm T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=41 involuntary_switches=247 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-llvm-bound T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=22 voluntary_switches=92 involuntary_switches=3165 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-gnu T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=41 involuntary_switches=259 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-base T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=73 involuntary_switches=279 migrations=1 openmp=none",
+  "sr-base-omp-llvm T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=73 involuntary_switches=283 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-base-omp-llvm-bound T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=43 voluntary_switches=57 involuntary_switches=3324 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-base-omp-gnu T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=75 involuntary_switches=290 migrations=3 openmp=/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0,/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so",
+  "sr-syrk T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=77 involuntary_switches=268 migrations=0 openmp=none",
+  "sr-syrk-omp-llvm T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=95 involuntary_switches=267 migrations=0 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-llvm-bound T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=43 voluntary_switches=158 involuntary_switches=4149 migrations=1 openmp=/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0,/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so",
+  "sr-syrk-omp-gnu T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=70 involuntary_switches=276 migrations=2 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-base T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=146 involuntary_switches=297 migrations=2 openmp=none",
+  "sr-base-omp-llvm T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=141 involuntary_switches=211 migrations=1 openmp=/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0,/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so",
+  "sr-base-omp-llvm-bound T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=86 voluntary_switches=94 involuntary_switches=422 migrations=1 openmp=/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0,/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so",
+  "sr-base-omp-gnu T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=140 involuntary_switches=299 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-base-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=144 involuntary_switches=287 migrations=0 openmp=none",
+  "sr-syrk-omp-llvm T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=168 involuntary_switches=408 migrations=4 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-llvm-bound T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=86 voluntary_switches=207 involuntary_switches=4530 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0",
+  "sr-syrk-omp-gnu T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=146 involuntary_switches=326 migrations=1 openmp=/home/alacote/work/gemm-experiments/builds/sr-syrk-omp/lib/libopenblasp-r0.3.34.dev.so,/home/alacote/.cache/rattler/cache/cached-envs-v0/5878b7645b07a3ee/lib/libgomp.so.1.0.0"
+ },
+ "end": "2026-11-02T11:43:07+0000",
+ "loadavg_end": [
+  19.66748046875,
+  24.43115234375,
+  21.30615234375
+ ]
+}

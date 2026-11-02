@@ -442,7 +442,7 @@ int main(int argc, char **argv) {
     const char *lib = NULL, *prefix = "", *suffix = "", *label = "", *init = "serial";
     char dtype = 'd';
     double min_time = 0.5;
-    int max_reps = 100000, threads = 0, header = 0, callers = 0, check = 0;
+    int max_reps = 100000, threads = 0, header = 0, callers = 0, check = 0, cycle = 0;
     double beta = 0;
     int i = 1;
     for (; i < argc && strncmp(argv[i], "--", 2) == 0; i += 2) {
@@ -461,6 +461,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--callers")) callers = atoi(v);
         else if (!strcmp(argv[i], "--beta")) beta = atof(v);
         else if (!strcmp(argv[i], "--check")) check = atoi(v);
+        else if (!strcmp(argv[i], "--cycle")) cycle = atoi(v);
         else { fprintf(stderr, "unknown option %s\n", argv[i]); return 2; }
     }
     if (!lib) { fprintf(stderr, "--lib is required\n"); return 2; }
@@ -532,6 +533,8 @@ int main(int argc, char **argv) {
     if (header)
         printf("label,dtype,m,n,k,trans,threads,reps,best_s,median_s,"
                "gflops_best,gflops_median\n");
+    struct op *kept = NULL;
+    int nkept = 0;
     int init_threads = !strcmp(init, "parallel") ? (nthr > 0 ? nthr : 1) : 1;
     int esize = dtype == 'd' ? 8 : 4;
     for (; i < argc; i++) {
@@ -612,9 +615,42 @@ int main(int argc, char **argv) {
                o.m, o.n, o.k, name, callers > 0 ? -P : nthr, reps, best, med,
                flops / best * 1e-9, flops / med * 1e-9);
         fflush(stdout);
+        if (cycle && callers == 0) {
+            kept = realloc(kept, (nkept + 1) * sizeof *kept);
+            kept[nkept++] = ops[0];
+            free(ops);
+            continue;
+        }
         for (int p = 0; p < P; p++) { free(ops[p].A); free(ops[p].B); free(ops[p].C); }
         free(ops);
     }
+    // --cycle 1: after timing each shape alone, time the shapes called one
+    // after the other in a loop (one rep = one call of each), to see the cost
+    // of switching between calls that use different numbers of threads.
+    if (nkept > 0) {
+        double flops = 0;
+        for (int j = 0; j < nkept; j++) flops += op_flops(&kept[j]);
+        double t0 = now();
+        do { for (int j = 0; j < nkept; j++) op_call(&kept[j]); } while (now() - t0 < 0.05);
+        int cap = 1 << 16, reps = 0;
+        double *times = malloc(cap * sizeof(double));
+        double start = now();
+        while (reps < max_reps && (reps < 3 || now() - start < min_time)) {
+            double a = now();
+            for (int j = 0; j < nkept; j++) op_call(&kept[j]);
+            double b = now();
+            if (reps == cap) { cap *= 2; times = realloc(times, cap * sizeof(double)); }
+            times[reps++] = b - a;
+        }
+        qsort(times, reps, sizeof(double), cmp_double);
+        printf("%s,%c,0,0,0,cycle%d,%d,%d,%.9g,%.9g,%.4f,%.4f\n", label, dtype, nkept, nthr,
+               reps, times[0], times[reps / 2], flops / times[0] * 1e-9,
+               flops / times[reps / 2] * 1e-9);
+        fflush(stdout);
+        free(times);
+        for (int j = 0; j < nkept; j++) { free(kept[j].A); free(kept[j].B); free(kept[j].C); }
+    }
+    free(kept);
     if (sample) {
         sampling = 0;
         pthread_join(sampler, NULL);

@@ -469,3 +469,27 @@ Outcome (f64, base -> fix, GF/s; f32 unchanged except the usual noise on
   The fix is right for consistency but not shippable alone: either keep 16
   for double on these x86 targets in param.h, or cap the thread count of
   small squares where it is decided.
+
+## Exp 15: does PR #3 cost anything when syrk calls switch thread counts?
+
+`scripts/xeon_s1_chain6.sh` (OpenMP builds of fork develop and PR #3) then
+`scripts/run_syrk_cycle.sh xeon-s1 22,43,86`: each process times every shape
+alone, then the shapes called in a loop (`gemmbench --cycle 1`). pthreads,
+OpenMP on LLVM libomp (conda-forge's libgomp.so.1), OpenMP on GNU libgomp
+(`vendor/gnu-gomp`, from conda-forge `libgomp`). 3 rounds pinned.
+`results/xeon-s1/syrk_cycle_{0..4}.csv`, median GF/s.
+
+Outcome:
+- Switching thread counts between calls costs nothing measurable, with any
+  runtime: n=32 <-> n=160, k=20000 (PR: 2 <-> 10 threads at 86T) cycles at
+  136-152 GF/s vs 54-55 on develop, and the PR's cycle time equals the sum
+  of the two calls timed alone. k=2000: 118-154 vs 55. n=64 -> 200 -> 990
+  (k=2000): 716-835 vs 534-588 at 22-43T, 715-758 vs 80 at 86T.
+- Problem found instead: tiny syrk calls get slower. 64x2000 (0.18 ms on one
+  thread) runs at 45 GF/s on one thread and 18-26 with the PR's 4 threads;
+  32 x {2000, 20000} gains nothing from 2 threads. The cliff kept them on
+  one thread before. The PR needs a work-per-thread limit too (exp 16).
+- The OpenMP + LLVM + `OMP_PROC_BIND=close OMP_PLACES=cores` variant runs
+  every threaded call at 1-12 GF/s, for develop and the PR alike. Probably
+  taskset pinning + OMP_PLACES with this build; conda-forge's own OpenMP
+  OpenBLAS was fine bound in exp 10. Left out, not investigated.
