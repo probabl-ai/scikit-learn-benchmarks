@@ -12,12 +12,7 @@ from html import escape
 from dashboards import (
     HARDWARE_NAMES,
     dashboard_output_dir,
-    gen_builds_comparison,
-    gen_hardware_comparisons,
-    gen_hgb_scalability_breakdown,
-    gen_hptuning_scalability,
-    gen_models_scalability,
-    gen_softwares_comparison,
+    gen_kmeans_sklearnex,
 )
 from sklbench.reporting.envs import read_env, summarize_hardware_env
 from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_software_tabs
@@ -69,22 +64,12 @@ ABOUT_HTML = """<section class="panel">
 DASHBOARDS = [
     (module.TITLE, module, href)
     for module, href in [
-        (gen_softwares_comparison, "per_hardware.html"),
-        (gen_builds_comparison, "builds_comparison.html"),
-        (gen_hardware_comparisons, "hardware_comparisons.html"),
-        (gen_models_scalability, "models_scalability.html"),
-        (gen_hptuning_scalability, "hptuning_scalability.html"),
-        (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+        (gen_kmeans_sklearnex, "kmeans_sklearnex.html"),
     ]
 ]
 
 DASHBOARD_DESCRIPTIONS = {
-    "per_hardware.html": "scikit-learn-intelex and <dfn>Array API</dfn> backends vs stock scikit-learn.",
-    "builds_comparison.html": "<dfn>PyPI</dfn> vs <dfn>conda-forge</dfn> <dfn>BLAS/OpenMP builds</dfn> of scikit-learn.",
-    "hardware_comparisons.html": "Same software on different machines.",
-    "models_scalability.html": "How a single fit scales with more CPU cores.",
-    "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
-    "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
+    "kmeans_sklearnex.html": "KMeans in scikit-learn <code>main</code>, in scikit-learn#35193 and in scikit-learn-intelex.",
 }
 
 # Machines that are benchmarked but not presented on the index page.
