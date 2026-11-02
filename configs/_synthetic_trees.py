@@ -48,7 +48,6 @@ def _synthetic_tree_cases(implem: dict, scale: int = 10) -> Iterable[dict]:
     bench = {
         "n_runs": 5,
         "time_limit": time_limit,
-        "py_spy_profiling": False,
     }
 
     base_data = tree_data_shapes(scale)

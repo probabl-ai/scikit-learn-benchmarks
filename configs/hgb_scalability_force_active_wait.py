@@ -12,7 +12,6 @@ def generate_cases() -> list[dict]:
                     "KMP_BLOCKTIME": "200ms",
                     "OMP_NUM_THREADS": case["bench"]["env"]["OMP_NUM_THREADS"],
                 },
-                "py_spy_profiling": False,
             },
         }
         for case in hgb_scalability.generate_cases()
