@@ -48,8 +48,11 @@ A few configs inspect the machine to size or filter their matrix:
   one CPU socket.
   `hgb_scalability.py` and `models_scalability.py` use them for scaling
   sweeps.
-- `_synthetic_trees.py` and `hptuning.py` size `n_estimators`, worker counts
-  and time limits from `joblib.cpu_count()`.
+- `_synthetic_trees.py` sizes `n_estimators`, worker counts and time limits
+  from `joblib.cpu_count()`.
+- `hptuning.py` sizes its outer `n_jobs` sweep from the physical core count,
+  with one CV split per outer worker. Each fit stays the same on every
+  machine.
 - `_real_datasets.py` caps KMeans' `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
   machines with very many cores (to avoid an OpenBLAS bug in the PyPI wheel),
   and sizes `N_JOBS` from the physical core count.

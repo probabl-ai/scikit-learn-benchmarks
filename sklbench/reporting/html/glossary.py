@@ -144,6 +144,12 @@ TERMS = {
         "and scored on every cross-validation split.",
         aliases=("candidate",),
     ),
+    "cv splits": Term(
+        "Train/test splits of the data used by cross-validation: each "
+        "candidate is fitted on the train part and scored on the test part.",
+        aliases=("cv split",),
+        glossary="cross-validation",
+    ),
     "n_jobs": Term(
         "Parameter setting how many jobs scikit-learn runs in parallel with "
         "joblib. -1 means one per CPU.",

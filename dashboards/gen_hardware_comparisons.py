@@ -59,7 +59,6 @@ from sklbench.reporting.matching import (
     read_all_results,
     date_range,
     matches_source_configs,
-    read_benchmark_records,
     BenchmarkRecord,
     Match,
     MatchWarning,
@@ -99,13 +98,6 @@ ABOUT_HTML = """<section class="panel">
       <li>For <b>linear models</b>, the server is often slower than the
       laptop. A single fit doesn't use many cores well, so the laptop's
       faster cores probably win.</li>
-      <li>Hyper-parameter searches are where the server pays off. Running
-      many <dfn>candidates</dfn> in parallel fills its cores, and it gets through fits
-      ~10x to 15x faster than the laptop, even for the <b>linear models</b>.
-      That is close to the ratio of <dfn>physical cores</dfn> (172 vs 16). The gain is
-      smaller for <b>HistGradientBoosting</b> on small datasets. <b>Random
-      forests</b> and <b>extra trees</b> aren't compared yet, because their
-      forest size differs between the two machines.</li>
       <li><b>HistGradientBoosting</b> results are hard to interpret, because
       of known scalability issues on laptops with <b><dfn>conda-forge</dfn></b> builds and on
       machines with many cores. See
@@ -306,12 +298,9 @@ def match_variant_label(match: Match) -> str:
 
 
 SEARCH_ROW = "hyper-parameter search"
-# `configs/hptuning.py` scales `n_iter` (and RF/ET's `n_estimators`) with the
-# machine and sweeps the outer `n_jobs`, so neither is part of a search's
-# identity. `n_estimators` is kept: a bigger forest is a different workload,
-# and dividing by it would hide each fit's fixed costs (preprocessing, CV
-# split), so RF/ET searches only match when their forests have the same size.
-_SEARCH_MATCH_EXCLUDED_NAMES = {"implementation", "max_bins", "n_jobs", "n_iter", "source_config"}
+# `configs/hptuning.py` sweeps the outer `n_jobs` with one CV split per worker,
+# so neither is part of a search's identity: each fit is the same.
+_SEARCH_MATCH_EXCLUDED_NAMES = {"implementation", "max_bins", "n_jobs", "n_splits", "source_config"}
 
 
 def _search_match_key(result: MethodResult) -> str:
@@ -332,7 +321,7 @@ def _round_floats(value):
 def _search_result(record: BenchmarkRecord) -> MethodResult | None:
     """A search as a "fit" result whose times are the mean time per `.fit()`
     call (see `gen_hptuning_scalability._seconds_per_fit`), which divides out
-    the machine-dependent `n_iter`."""
+    the `n_jobs`-dependent `n_splits`."""
     n_fits = hptuning._n_fits(record)
     times = [run["duration_s"] * 1000 / n_fits for run in record.runs if "duration_s" in run]
     if not times:
@@ -359,11 +348,7 @@ def _search_result(record: BenchmarkRecord) -> MethodResult | None:
 def read_search_results() -> list[MethodResult]:
     """One result per (machine, env, search), at the outer `n_jobs` with the
     lowest time per fit: the setting a user would pick on that machine."""
-    records = hptuning._dedup_latest([
-        record
-        for record in read_benchmark_records()
-        if matches_source_configs(record.case, hptuning.SOURCE_CONFIGS)
-    ])
+    records = hptuning.read_records()
     best: dict[tuple, MethodResult] = {}
     for record in records:
         result = _search_result(record)
@@ -665,13 +650,12 @@ def render_comparison(
 
 
 SEARCH_NOTE = (
-    "RandomizedSearchCV from the "
+    "Searches from the "
     '<a href="hptuning_scalability.html">hyper-parameter search dashboard</a>. '
     "Time per fit over the whole search, with each machine at its fastest outer "
-    "<code><dfn>n_jobs</dfn></code>. The search size scales with the machine (2 <dfn>candidates</dfn> "
-    "per core on the laptop, 1 on the server), so this is the speed-up for a search "
-    "big enough to fill each machine. Searches whose data or forest size differs "
-    "between the two machines are left out."
+    "<code><dfn>n_jobs</dfn></code>. Each search fits the same 8 <dfn>candidates</dfn> on "
+    "<code>n_jobs</code> <dfn>CV splits</dfn>, so every fit is the same on both machines and "
+    "every worker has 8 fits to do."
 )
 
 

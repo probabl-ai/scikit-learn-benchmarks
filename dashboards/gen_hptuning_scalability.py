@@ -1,52 +1,19 @@
-"""Outer-parallelism scalability for `configs/hptuning.py`'s
-`RandomizedSearchCV` sweep.
+"""Outer-parallelism scalability of `configs/hptuning.py`'s hyper-parameter
+searches.
 
-That config leaves both the outer (`RandomizedSearchCV(n_jobs=...)`) and
-inner (each candidate's own parallelism - RF/ET's explicit `n_jobs=-1`,
-HGB's OpenMP thread pool, BLAS threads under Ridge/LogisticRegression)
-parallelism to do whatever they do on their own, and sweeps outer `n_jobs`
-log-spaced from 1 up to half the machine's physical cores (see
-`configs/hptuning.py`'s `_case`/`get_n_cores_list` usage) specifically to see
-whether that composition scales or falls over. One small multiple per
-(estimator, dataset): seconds per fit vs. outer `n_jobs`, with each swept
-environment (`sklearn-pypi`/`sklearn-cf-mkl`/`sklearnex`) as its own colored line
-on the same plot (see `ENV_COLORS`) rather than a separate plot per
-environment, so a build's effect on scaling reads directly off one cell. Mean
-CPU utilization (from the record's `system_telemetry` - meant to tell "busy
-but inefficient", e.g. HGB's own thread pool colliding with concurrent outer
-candidates, apart from "idle", e.g. dispatch/IPC overhead dominating over
-too-cheap candidates) sizes each point's marker rather than getting its own
-panel - see `_env_series`.
+One small multiple per (estimator, dataset): seconds per fit vs. the search's
+outer `n_jobs`, one line per environment (see `ENV_COLORS`), marker size from
+the mean CPU utilization in the record's `system_telemetry`.
 
-Seconds *per fit* (`duration_s` divided by the number of fits the search
-actually ran, see `_seconds_per_fit`), i.e. mean wall-clock time per
-`.fit()` call across the whole search, not raw wall time: the number of fits
-is the same for every point in a row's `n_jobs` sweep, so this is just
-`duration_s` rescaled by a row-constant factor and answers the actual
-question directly - does raising outer `n_jobs` let the
-machine push through more fits per second? A line dropping roughly ∝
-`1 / n_jobs` is ideal (linear) scaling; flat means more outer workers buy
-nothing; rising means outer parallelism is actively hurting (typically
-oversubscription against an inner parallelism the candidate already uses -
-see RF/ET's explicit `n_jobs=-1`).
+Each search fits `K` candidates on `n_jobs` splits, so the number of fits
+grows with `n_jobs` but each fit is the same: seconds per fit (`duration_s`
+divided by the fits the search ran, see `_seconds_per_fit`) is comparable
+across `n_jobs` and machines.
 
-Records are identified by `metadata.source_config` (see `SOURCE_CONFIGS` and
-`sklbench.reporting.matching.matches_source_configs`), stamped at load time
-by `sklbench.config.loader.load_cases_from_script`. `duration_s`/
-`cpu_percent` aren't columns `MethodResult`/
-`read_all_results()` understands (that machinery expects a `time_ms` dict
-keyed by run method, e.g. "fit"/"predict" - `sklbench/runners/hptuning.py`
-writes flat `duration_s`/`best_score` rows instead), so this reads raw
-`BenchmarkRecord`s directly, same as `gen_hgb_scalability_breakdown.py` does
-for its own custom instrumented fields. `system_telemetry` isn't parsed into
-`BenchmarkRecord` at all, so it's read straight from `record.record_path`.
-
-Two datasets sharing a `data.source` name (e.g. `make_classification`) can
-still be two different shapes - `SYNTHETIC_SPECS` in `configs/hptuning.py`
-pairs `LogisticRegression` with a different `make_classification` shape in
-two different specs, one per tree-estimator counterpart (RandomForest vs
-ExtraTrees) - so the small-multiple identity below is (estimator, dataset
-name, shape), not just (estimator, dataset name).
+`duration_s` isn't a column `read_all_results()` understands, so this reads
+raw `BenchmarkRecord`s, like `gen_hgb_scalability_breakdown.py`.
+`system_telemetry` isn't parsed into `BenchmarkRecord`, so it's read straight
+from `record.record_path`.
 """
 from html import escape
 import json
@@ -93,14 +60,20 @@ CPU_METRIC = "CPU utilization (%)"
 
 
 # Page header and index page label.
-TITLE = "RandomizedSearchCV outer-parallelism scalability"
+TITLE = "Hyper-parameter search outer-parallelism scalability"
 SOURCE_CONFIGS = ["configs/hptuning.py"]
 
 ABOUT_HTML = """<section class="panel">
-  <p>RandomizedSearchCV has two levels of parallelism: its outer
-  <code><dfn>n_jobs</dfn></code> runs <dfn>candidates</dfn> in parallel, and each candidate can use
+  <p>A hyper-parameter search has two levels of parallelism: its outer
+  <code><dfn>n_jobs</dfn></code> fits <dfn>candidates</dfn> in parallel, and each fit can use
   <dfn>threads</dfn> itself. This dashboard sweeps the outer <code>n_jobs</code> to
   check how the two levels interact.</p>
+  <p>Each search fits 8 fixed candidates, each on <code>n_jobs</code> random 80/20
+  <dfn>CV splits</dfn>. So every outer worker has 8 fits to do at every
+  <code>n_jobs</code>, and each fit is the same on every machine (same data size and
+  number of trees). With many workers, that is more splits than anyone runs
+  in practice: this measures the throughput of the search, not its
+  statistical quality.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>The outer <code><dfn>n_jobs</dfn></code> uses <dfn term="joblib">joblib</dfn>'s default backend (<dfn>loky</dfn>),
@@ -126,9 +99,11 @@ ABOUT_HTML = """<section class="panel">
     </ul>
     <p>There is one tab per machine and one plot per (estimator, dataset)
     pair. The x-axis is the outer <code>n_jobs</code> (log scale), the y-axis
-    is the mean time per <code><dfn>.fit()</dfn></code> call over the search, with one
-    line per <dfn>environment</dfn>. The marker size is the <dfn>CPU load</dfn> (100% means all cores
-    busy). The line shape tells how the two levels interact:</p>
+    is the wall time of the search divided by its number of
+    <code><dfn>.fit()</dfn></code> calls, with one line per <dfn>environment</dfn>. Since each fit
+    is the same everywhere, the y-axis also compares machines. The marker
+    size is the <dfn>CPU load</dfn> (100% means all cores busy). The line shape tells
+    how the two levels interact:</p>
     <ul>
       <li>going down as 1/n_jobs: a single fit has little inner parallelism,
       and the search scales with outer workers;</li>
@@ -136,44 +111,6 @@ ABOUT_HTML = """<section class="panel">
       workers bring nothing;</li>
       <li>rising: oversubscription, or bad interactions between joblib and
       the inner threading layer (they don't coordinate).</li>
-    </ul>
-    <p>In general, we expect more outer workers to run in parallel the
-    sequential parts of each fit, so the search gets faster and the CPU
-    load goes up.</p>
-  </details>
-  <details class="about-section">
-    <summary>Findings</summary>
-    <p>These results match what the
-    <a href="models_scalability.html">models core-count scalability</a>
-    dashboard shows. On the benchmarked cases:</p>
-    <ul>
-      <li>More <dfn>outer workers</dfn> make the search faster with a higher CPU
-      load in most cases, as expected. The exceptions are
-      HistGradientBoosting and the linear models on the Xeon server: they get
-      faster while the CPU load goes down. It's unclear why.</li>
-      <li>Ridge and LogisticRegression: outer parallelism helps, but less
-      than one could hope. These workloads are probably <dfn>memory bound</dfn>, so
-      more cores don't help much.</li>
-      <li>HistGradientBoosting: outer parallelism works well on small
-      datasets or on a big machine, because HGB's own threads are
-      counter-productive there (see the
-      <a href="hgb_scaling.html">HistGradientBoosting thread-scalability
-      breakdown</a>).</li>
-      <li>RandomForest and ExtraTrees: on susy, the curve is mostly
-      flat, as expected since a single fit already uses all cores. On the
-      smaller datasets with <dfn>preprocessing</dfn>, the search still speeds up with
-      outer workers and the CPU load goes up. <dfn>Oversubscription</dfn> is mostly
-      harmless on the laptop. On the Xeon server, RandomForestClassifier gets
-      up to ~1.8x slower beyond ~22 outer workers.</li>
-      <li><b>scikit-learn-intelex</b>: on the Xeon server, the search got up to
-      ~2x slower beyond ~22 outer workers, for the trees and for <b>Ridge</b>.
-      This was not oversubscription. Those searches had few candidates (12 for
-      RandomForestClassifier on susy, so 36 fits): with about as many workers
-      as fits, the slowest candidate sets the search time, and it gets fewer
-      threads as <code>n_jobs</code> grows. With 86 candidates, going from 22
-      to 86 workers costs ~10% instead of ~1.7x (on one Xeon socket, see
-      <a href="https://github.com/probabl-ai/scikit-learn-benchmarks/issues/129">#129</a>).
-      The susy RandomForestClassifier case now has 180 candidates.</li>
     </ul>
   </details>
 </section>"""
@@ -239,19 +176,20 @@ def _n_jobs(record: BenchmarkRecord) -> int:
     return record.case["hptuning"].get("n_jobs", 1)
 
 
-def _n_iter(record: BenchmarkRecord) -> int:
-    return record.case["hptuning"].get("n_iter", 14)
+def _n_candidates(record: BenchmarkRecord) -> int:
+    return len(record.case["hptuning"]["candidates"])
+
+
+def _n_splits(record: BenchmarkRecord) -> int:
+    # Serialized without the key when it equals the model default.
+    return record.case["hptuning"].get("n_splits", 3)
 
 
 def _n_fits(record: BenchmarkRecord) -> int:
-    """Number of `.fit()` calls the search made, counted from the recorded
-    per-task times rather than `n_iter * cv_n_splits`: when the search space
-    is a grid smaller than `n_iter`, `RandomizedSearchCV` samples the whole
-    grid and stops there."""
     for run in record.runs:
         if "cv_task_times" in run:
             return len(run["cv_task_times"])
-    return _n_iter(record) * record.case["hptuning"].get("cv_n_splits", 3)
+    return _n_candidates(record) * _n_splits(record)
 
 
 def _env(record: BenchmarkRecord) -> str:
@@ -325,7 +263,7 @@ def _memory_percent_max(record: BenchmarkRecord) -> float | None:
 
 
 def _hover_extra(record: BenchmarkRecord) -> str:
-    parts = [f"fits: {_n_fits(record)} (n_iter: {_n_iter(record)})"]
+    parts = [f"fits: {_n_candidates(record)} candidates x {_n_splits(record)} splits"]
     duration = _duration_s(record)
     if duration is not None:
         parts.append(f"wall time: {format_duration_ms(duration * 1000)}")
@@ -528,13 +466,19 @@ def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> 
     return "".join(sections)
 
 
+def read_records() -> list[BenchmarkRecord]:
+    """Latest records of the current design: records from before the
+    fixed-candidates rewrite (no `candidates` key) aren't comparable."""
+    return _dedup_latest([
+        record
+        for record in read_benchmark_records()
+        if matches_source_configs(record.case, SOURCE_CONFIGS)
+        and "candidates" in record.case.get("hptuning", {})
+    ])
+
+
 def generate(output_dir: Path) -> None:
-    records = _dedup_latest(
-        [
-            record for record in read_benchmark_records()
-            if matches_source_configs(record.case, SOURCE_CONFIGS)
-        ]
-    )
+    records = read_records()
     hardware_hashes = sorted(
         {record.hardware_hash for record in records},
         key=lambda hardware_hash: (

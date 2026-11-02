@@ -1,5 +1,11 @@
 """
-RandomizedSearchCV cases over a short, hand-picked list of real datasets:
+Outer-parallelism benchmark of a hyper-parameter search.
+
+Each case sweeps the search's outer `n_jobs` and fits `K` fixed candidates,
+each on `n_jobs` random 80/20 train/test splits (`K * n_jobs` fits). Every
+outer worker has `K` fits to do at every point of the sweep, and each fit is
+the same on every machine (fixed data size and `n_estimators`), so the time
+per fit compares `n_jobs` points and machines.
 
 Each `REAL_DATASET_CASES` entry is:
 
@@ -10,10 +16,11 @@ Each `REAL_DATASET_CASES` entry is:
         options,                         # optional: {"skip_libraries": (...)}
     )
 
-`options["max_samples_by_n_cores"]` overrides `max_samples` on machines with
-that many physical cores (e.g. `{172: None}` for full size on the big server).
-
+List values in `search_space` form the grid that `_candidates` draws the `K`
+candidates from, other values are fixed estimator params.
 """
+
+import itertools
 
 import numpy as np
 import math
@@ -24,19 +31,23 @@ from _utils.implementations import implementations_for_pixi_env
 from sklbench.config import Algorithm, Data, HPTuning, HPTuningCase
 
 BENCH = {"n_runs": 3}
+K = 8
+# Data sizes keep a single-threaded fit under ~3s, so each worker has at
+# most ~K * 3s of work.
+N_CORES = cpu_count(only_physical_cores=True)
 # Row counts of the datasets used at full size (`max_samples=None`), for
 # sklearnex's tree `max_bins`.
-DATASET_N_SAMPLES = {"kddcup09_churn": 50_000, "ames_housing": 1_460}
+DATASET_N_SAMPLES = {"ames_housing": 1_460}
 TREES = [
     "RandomForestClassifier", "RandomForestRegressor",
     "ExtraTreesRegressor", "ExtraTreesClassifier"
 ]
-N_ESTIMATORS = 2 * cpu_count() if cpu_count() <= 32 else cpu_count()
+N_ESTIMATORS = 100
 
 REAL_DATASET_CASES = [
     # Trees:
     (
-        ("kddcup09_churn", None, "trees"),
+        ("kddcup09_churn", 20_000, "trees"),
         "RandomForestClassifier",
         {   # search space:
             "encoder": {
@@ -54,18 +65,14 @@ REAL_DATASET_CASES = [
         {"preprocessing_kwargs_by_library": {"sklearnex": {"remove_nans": True}}},
     ),
     (
-        ("susy", 300_000),
+        ("susy", 20_000),
         "RandomForestClassifier",
         {   # search space:
-            # 180 candidates, more than n_iter on every machine: with a
-            # smaller grid, RandomizedSearchCV runs the whole grid and, once
-            # n_jobs reaches the number of fits, the slowest candidate sets
-            # the search time (issue #129).
             "estimator": {
                 "n_jobs": -1,
                 "n_estimators": N_ESTIMATORS,
-                "min_samples_split": sorted({int(v) for v in np.geomspace(50, 5000, 15)}),
-                "min_impurity_decrease": list(np.geomspace(1e-6, 3e-4, 12)),
+                "min_samples_split": [50, 500, 5000],
+                "min_impurity_decrease": [3e-4, 1e-4, 1e-5, 1e-6]
             }
         }
     ),
@@ -94,7 +101,7 @@ REAL_DATASET_CASES = [
         "Ridge",
         {   # search space:
             "estimator": {
-                "alpha": list(np.logspace(-3, 3, 13)),
+                "alpha": list(np.logspace(-3, 3, K)),
             }
         },
         # Skipped for sklearnex: too slow here (this dataset's "linear"
@@ -111,7 +118,7 @@ REAL_DATASET_CASES = [
         "Ridge",
         {   # search space:
             "estimator": {
-                "alpha": list(np.logspace(-3, 3, 13)),
+                "alpha": list(np.logspace(-3, 3, K)),
             }
         },
         {"scoring": "r2"},
@@ -121,10 +128,9 @@ REAL_DATASET_CASES = [
         "Ridge",
         {   # search space:
             "estimator": {
-                "alpha": list(np.logspace(-3, 3, 13)),
+                "alpha": list(np.logspace(-3, 3, K)),
             }
         },
-        {"max_samples_by_n_cores": {172: None}},
     ),
     (
         ("amazon_employee_access", None, "linear"),
@@ -133,7 +139,7 @@ REAL_DATASET_CASES = [
             "estimator": {
                 "solver": "lbfgs",
                 "max_iter": 1000,
-                "C": list(np.logspace(-3, 3, 13)),
+                "C": list(np.logspace(-3, 3, K // 2)),
                 "fit_intercept": [True, False],
             }
         }
@@ -145,11 +151,10 @@ REAL_DATASET_CASES = [
             "estimator": {
                 "solver": "lbfgs",
                 "max_iter": 1000,
-                "C": list(np.logspace(-3, 3, 13)),
+                "C": list(np.logspace(-3, 3, K // 2)),
                 "fit_intercept": [True, False],
             }
         },
-        {"max_samples_by_n_cores": {172: 1_000_000}},
     ),
     # HGB
     (
@@ -168,7 +173,7 @@ REAL_DATASET_CASES = [
         {"skip_libraries": ("sklearnex",)},
     ),
     (
-        ("kddcup09_churn", None, "hgb"),
+        ("kddcup09_churn", 20_000, "hgb"),
         "HistGradientBoostingClassifier",
         {   # search space:
             "estimator": {
@@ -238,36 +243,48 @@ KMEANS_CASES = [
 def _split_search_space(search_space: dict) -> tuple[dict, dict]:
     _FAMILY_PREFIXES = {"estimator": "estimator__", "encoder": "preprocessor__encoder__"}
     estimator_params = {}
-    param_distributions = {}
+    grid = {}
     for family, params in search_space.items():
         prefix = _FAMILY_PREFIXES[family]
         for name, value in params.items():
             if isinstance(value, list):
-                param_distributions[f"{prefix}{name}"] = value
+                grid[f"{prefix}{name}"] = value
             elif family == "estimator":
                 estimator_params[name] = value
             else:
                 raise ValueError(f"Fixed (non-list) {family!r} param {name!r} isn't supported")
-    return estimator_params, param_distributions
+    return estimator_params, grid
 
 
-def get_n_iter_and_n_jobs_list(estimator: str):
-    is_tree = estimator in TREES
-    n_cores = cpu_count(only_physical_cores=True)
-    n_iter = n_cores * 2
-    # default:
-    n_jobs_list = [round(math.pow(n_cores, v)) for v in [0.5, 0.7, 1]]
-    if is_tree:
+def _python_scalar(value):
+    return value.item() if isinstance(value, np.generic) else value
+
+
+def _candidates(grid: dict, k: int = K, seed: int = 0) -> list[dict]:
+    """`k` distinct points of `grid`, the same on every machine (legacy
+    `RandomState` streams don't change across numpy versions)."""
+    names = sorted(grid)
+    points = list(itertools.product(*(grid[name] for name in names)))
+    if len(points) < k:
+        raise ValueError(f"The grid {grid} has {len(points)} points, fewer than {k}")
+    indices = np.random.RandomState(seed).choice(len(points), size=k, replace=False)
+    return [
+        {name: _python_scalar(value) for name, value in zip(names, points[index])}
+        for index in sorted(indices)
+    ]
+
+
+def get_n_jobs_list(estimator: str) -> list[int]:
+    n_jobs_list = [round(math.pow(N_CORES, v)) for v in [0.5, 0.7, 1]]
+    if estimator in TREES:
         n_jobs_list = [1, 2, *n_jobs_list]
-    n_jobs_list = sorted(set([min(n_jobs, n_cores) for n_jobs in n_jobs_list]))
+    n_jobs_list = sorted(set([min(n_jobs, N_CORES) for n_jobs in n_jobs_list]))
 
-    if n_cores == 16:
+    if N_CORES == 16:
         n_jobs_list = [1, 2, 4, 8, 16]
-    elif n_cores == 172:
-        n_iter = n_cores
+    elif N_CORES == 172:
         n_jobs_list = [1, 2, 5, 11, 22, 43, 86, 172]
-
-    return n_iter, n_jobs_list
+    return n_jobs_list
 
 
 def _case(
@@ -281,7 +298,8 @@ def _case(
     scoring: str | None,
     preprocessing_kwargs_by_library: dict[str, dict] | None,
 ) -> list[HPTuningCase]:
-    estimator_params, param_distributions = _split_search_space(search_space)
+    estimator_params, grid = _split_search_space(search_space)
+    candidates = _candidates(grid)
     if scoring is None:
         # `hptuning`'s own auto-scoring (see `_default_scoring`) picks
         # roc_auc*/r2 off the *dataset*'s n_classes, regardless of
@@ -308,18 +326,15 @@ def _case(
             n_samples = max_samples if max_samples is not None else DATASET_N_SAMPLES[dataset]
             implem_estimator_params = {**estimator_params, "max_bins": n_samples}
 
-        n_iter, n_jobs_list = get_n_iter_and_n_jobs_list(estimator)
-
-        for n_jobs in n_jobs_list:
+        for n_jobs in get_n_jobs_list(estimator):
             cases.append(HPTuningCase(
                 bench=BENCH,
                 algorithm=Algorithm(estimator=estimator, estimator_params=implem_estimator_params),
                 data=data,
                 implementation=implem,
                 hptuning=HPTuning(
-                    param_distributions=param_distributions,
-                    n_iter=n_iter,
-                    cv_n_splits=3,
+                    candidates=candidates,
+                    n_splits=n_jobs,
                     max_samples=max_samples,
                     n_jobs=n_jobs,
                     scoring=scoring,
@@ -345,9 +360,6 @@ def generate_cases() -> list[HPTuningCase]:
         skip_libraries = options.get("skip_libraries", ())
         scoring = options.get("scoring")
         preprocessing_kwargs_by_library = options.get("preprocessing_kwargs_by_library")
-        max_samples = options.get("max_samples_by_n_cores", {}).get(
-            cpu_count(only_physical_cores=True), max_samples
-        )
 
         for estimator in estimators if isinstance(estimators, list) else [estimators]:
             cases.extend(_case(
