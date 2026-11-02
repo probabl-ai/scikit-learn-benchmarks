@@ -18,12 +18,12 @@ candidates, apart from "idle", e.g. dispatch/IPC overhead dominating over
 too-cheap candidates) sizes each point's marker rather than getting its own
 panel - see `_env_series`.
 
-Seconds *per fit* (`duration_s / (n_iter * cv_n_splits)` - see
-`_seconds_per_fit`), i.e. mean wall-clock time per `.fit()` call across the
-whole search, not raw wall time: `configs/hptuning.py`'s `n_iter` is fixed
-per machine (same value for every point in a row's `n_jobs` sweep - see its
-`_case`), so this is just `duration_s` rescaled by a row-constant factor and
-answers the actual question directly - does raising outer `n_jobs` let the
+Seconds *per fit* (`duration_s` divided by the number of fits the search
+actually ran, see `_seconds_per_fit`), i.e. mean wall-clock time per
+`.fit()` call across the whole search, not raw wall time: the number of fits
+is the same for every point in a row's `n_jobs` sweep, so this is just
+`duration_s` rescaled by a row-constant factor and answers the actual
+question directly - does raising outer `n_jobs` let the
 machine push through more fits per second? A line dropping roughly ∝
 `1 / n_jobs` is ideal (linear) scaling; flat means more outer workers buy
 nothing; rising means outer parallelism is actively hurting (typically
@@ -120,9 +120,9 @@ ABOUT_HTML = """<section class="panel">
       <a href="https://github.com/joblib/joblib/pull/1825">joblib#1825</a>
       would limit nested <code>n_jobs=-1</code> calls like it does for OpenMP
       and BLAS.</li>
-      <li>scikit-learn-intelex uses
-      <dfn>oneTBB</dfn> threads,
-      which joblib does not limit either.</li>
+      <li>scikit-learn-intelex uses <dfn>oneTBB</dfn> threads. It reads the
+      OpenMP limit set by joblib and applies it to its own threads, so they
+      don't oversubscribe the machine either.</li>
     </ul>
     <p>There is one tab per machine and one plot per (estimator, dataset)
     pair. The x-axis is the outer <code>n_jobs</code> (log scale), the y-axis
@@ -165,9 +165,15 @@ ABOUT_HTML = """<section class="panel">
       outer workers and the CPU load goes up. <dfn>Oversubscription</dfn> is mostly
       harmless on the laptop. On the Xeon server, RandomForestClassifier gets
       up to ~1.8x slower beyond ~22 outer workers.</li>
-      <li>scikit-learn-intelex: oversubscription is harmless on the laptop.
-      On the Xeon server, the search gets up to ~2x slower beyond ~22 outer
-      workers, for the trees and for <b>Ridge</b>.</li>
+      <li><b>scikit-learn-intelex</b>: on the Xeon server, the search got up to
+      ~2x slower beyond ~22 outer workers, for the trees and for <b>Ridge</b>.
+      This was not oversubscription. Those searches had few candidates (12 for
+      RandomForestClassifier on susy, so 36 fits): with about as many workers
+      as fits, the slowest candidate sets the search time, and it gets fewer
+      threads as <code>n_jobs</code> grows. With 86 candidates, going from 22
+      to 86 workers costs ~10% instead of ~1.7x (on one Xeon socket, see
+      <a href="https://github.com/probabl-ai/scikit-learn-benchmarks/issues/129">#129</a>).
+      The susy RandomForestClassifier case now has 180 candidates.</li>
     </ul>
   </details>
 </section>"""
@@ -238,11 +244,13 @@ def _n_iter(record: BenchmarkRecord) -> int:
 
 
 def _n_fits(record: BenchmarkRecord) -> int:
-    """Total `.fit()` calls `RandomizedSearchCV` makes for this case:
-    `n_iter` candidates x `cv_n_splits` folds each - `cv_n_splits` defaults
-    to 3 and `configs/hptuning.py` never overrides it, so it's omitted from
-    the serialized case the same way `n_jobs=1`/plain-sklearn
-    `implementation` are (see `_n_jobs`/`_implementation`)."""
+    """Number of `.fit()` calls the search made, counted from the recorded
+    per-task times rather than `n_iter * cv_n_splits`: when the search space
+    is a grid smaller than `n_iter`, `RandomizedSearchCV` samples the whole
+    grid and stops there."""
+    for run in record.runs:
+        if "cv_task_times" in run:
+            return len(run["cv_task_times"])
     return _n_iter(record) * record.case["hptuning"].get("cv_n_splits", 3)
 
 
@@ -317,7 +325,7 @@ def _memory_percent_max(record: BenchmarkRecord) -> float | None:
 
 
 def _hover_extra(record: BenchmarkRecord) -> str:
-    parts = [f"n_iter: {_n_iter(record)}"]
+    parts = [f"fits: {_n_fits(record)} (n_iter: {_n_iter(record)})"]
     duration = _duration_s(record)
     if duration is not None:
         parts.append(f"wall time: {format_duration_ms(duration * 1000)}")

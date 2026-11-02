@@ -57,11 +57,15 @@ REAL_DATASET_CASES = [
         ("susy", 300_000),
         "RandomForestClassifier",
         {   # search space:
+            # 180 candidates, more than n_iter on every machine: with a
+            # smaller grid, RandomizedSearchCV runs the whole grid and, once
+            # n_jobs reaches the number of fits, the slowest candidate sets
+            # the search time (issue #129).
             "estimator": {
                 "n_jobs": -1,
                 "n_estimators": N_ESTIMATORS,
-                "min_samples_split": [50, 500, 5000],
-                "min_impurity_decrease": [3e-4, 1e-4, 1e-5, 1e-6]
+                "min_samples_split": sorted({int(v) for v in np.geomspace(50, 5000, 15)}),
+                "min_impurity_decrease": list(np.geomspace(1e-6, 3e-4, 12)),
             }
         }
     ),
