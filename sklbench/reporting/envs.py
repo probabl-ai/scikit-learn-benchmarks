@@ -292,9 +292,19 @@ def _package_versions(env: dict, names: list[str]) -> list[dict[str, str]]:
     return versions
 
 
+# threadpoolctl `threading_layer` values meaning the BLAS runs on an OpenMP
+# runtime ("intel" and "gnu" are MKL's names for libiomp5 and libgomp).
+_OPENMP_THREADING_LAYERS = {"openmp", "intel", "gnu"}
+
+
 def _threadpool_summary(env: dict) -> list[str]:
+    threadpool_info = env.get("threadpool_info", [])
+    openmp_libs = sorted({
+        info.get("prefix") or "OpenMP"
+        for info in threadpool_info if info.get("user_api") == "openmp"
+    })
     summary = []
-    for info in env.get("threadpool_info", []):
+    for info in threadpool_info:
         name = info.get("prefix") or info.get("internal_api") or info.get("user_api")
         version = info.get("version")
         threads = info.get("num_threads")
@@ -302,12 +312,18 @@ def _threadpool_summary(env: dict) -> list[str]:
         if version:
             label += f" {version}"
         # The threading layer is what tells the pthreads and OpenMP builds of
-        # the same OpenBLAS apart.
+        # the same OpenBLAS apart. For an OpenMP one, name the runtime it
+        # shares with scikit-learn when only one is loaded.
+        details = []
         threading_layer = info.get("threading_layer")
-        if threading_layer and threading_layer != "unknown":
-            label += f", {threading_layer} threading"
+        if threading_layer in _OPENMP_THREADING_LAYERS:
+            details.append(openmp_libs[0] if len(openmp_libs) == 1 else "OpenMP")
+        elif threading_layer and threading_layer != "unknown":
+            details.append(threading_layer)
         if threads is not None:
-            label += f" ({threads} threads)"
+            details.append(f"{threads} threads")
+        if details:
+            label += f" ({', '.join(details)})"
         summary.append(label)
     return summary
 
