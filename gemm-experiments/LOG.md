@@ -579,3 +579,11 @@ Outcome:
   1e6 samples, now on 4-7 threads, at 0.93-1.04x (memory-bound).
 - PR #3 branch now points at the v4 commit (7fb55238); the earlier commits
   stay on fork branch syrk-fewer-threads-v3.
+- Thread-switching cycles on v4 (`xeon_s1_chain10.sh`, `syrk4_cycle_*.csv`,
+  pthreads + OpenMP LLVM/GNU, 22-86T): v4 >= develop in every set and
+  runtime (n=32 <-> 160, k=2000: 132-154 vs 55-56; n=64 -> 200 -> 990:
+  705-805 vs 540-590 at 22-43T, 695-728 vs 80 at 86T). Cycle time vs the sum
+  of the calls timed alone: median +1.5% (develop +1.2%); worst +27% on the
+  shortest cycle (32x2000 <-> 160x2000, 0.37 ms per cycle: waking 10 threads
+  after a 1-thread call adds 0.03-0.1 ms), still 2.4x faster than develop.
+- PR #3 description rewritten with these numbers.
