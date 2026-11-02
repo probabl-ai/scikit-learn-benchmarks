@@ -636,6 +636,6 @@ ul.compact {
   vertical-align: top;
   border-bottom: 1px solid var(--line);
 }
-.sources-table td:nth-child(2) {
+.sources-table td:nth-child(3) {
   text-align: right;
 }

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 import re
@@ -178,23 +177,50 @@ def record_source(record_path: Path | None, ci_run_url: str | None) -> RecordSou
     )
 
 
-def summarize_sources(
-    records: Iterable[tuple[Path | None, str | None, datetime, str | None]],
-) -> list[dict]:
-    """One row per source, newest first, from `(record_path, ci_run_url,
-    timestamp, source_config)` tuples (one per record)."""
-    groups: dict[RecordSource, list] = defaultdict(list)
-    for record_path, ci_run_url, timestamp, source_config in records:
-        groups[record_source(record_path, ci_run_url)].append((timestamp, source_config))
+def _hardware_name(hardware_hash: str) -> str:
+    # The dashboards own the display names. The fallback is the CPU model.
+    try:
+        from dashboards import HARDWARE_NAMES
+    except ImportError:
+        HARDWARE_NAMES = {}
+    if hardware_hash in HARDWARE_NAMES:
+        return HARDWARE_NAMES[hardware_hash]
+    # Not at module level: envs imports matching, which imports this module.
+    from .envs import read_env
+
+    try:
+        return read_env("hardware", hardware_hash)["CPU"]["name"]
+    except (OSError, KeyError, TypeError):
+        return hardware_hash
+
+
+def _env_name(software_hash: str) -> str:
+    from .envs import software_build_name
+
+    try:
+        return software_build_name(software_hash)
+    except (OSError, KeyError):
+        return software_hash
+
+
+def summarize_sources(records: Iterable) -> list[dict]:
+    """One row per source and hardware, newest first, from `BenchmarkRecord`s."""
+    groups: dict[tuple[RecordSource, str], list] = defaultdict(list)
+    for record in records:
+        source = record_source(record.record_path, record.ci_run_url)
+        groups[source, record.hardware_hash].append(record)
     rows = []
-    for source, entries in groups.items():
-        timestamps = [timestamp for timestamp, _ in entries]
+    for (source, hardware_hash), group in groups.items():
+        timestamps = [record.timestamp_recorded for record in group]
+        configs = {record.case.get("metadata", {}).get("source_config") for record in group}
         rows.append({
             "source": source,
-            "count": len(entries),
+            "hardware": _hardware_name(hardware_hash),
+            "count": len(group),
             "start": min(timestamps),
             "end": max(timestamps),
-            "configs": sorted({config for _, config in entries if config}),
+            "envs": sorted({_env_name(record.software_hash) for record in group}),
+            "configs": sorted(config for config in configs if config),
         })
-    rows.sort(key=lambda row: row["end"], reverse=True)
+    rows.sort(key=lambda row: (row["end"], row["hardware"]), reverse=True)
     return rows

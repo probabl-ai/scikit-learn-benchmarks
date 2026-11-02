@@ -829,15 +829,7 @@ def date_range(results: list[MethodResult] | list[BenchmarkRecord]) -> dict:
         )
         if record is not None
     }
-    sources = summarize_sources(
-        (
-            record.record_path,
-            record.ci_run_url,
-            record.timestamp_recorded,
-            record.case.get("metadata", {}).get("source_config"),
-        )
-        for record in records.values()
-    )
+    sources = summarize_sources(records.values())
     return {
         "count": len(results),
         "start": start.isoformat(),
