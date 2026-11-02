@@ -508,3 +508,34 @@ threads at MNK / 262144; syrk's interface only checks the minimum size.
 -> second PR commit: `args.nthreads <= NNK / (8 * SMP_THRESHOLD_MIN *
 GEMM_MULTITHREAD_THRESHOLD)` (~3.5M per thread for real types) in
 `interface/syrk.c`. Exp 17 re-tests it.
+
+## Exp 17: PR #3 v2 (work-per-thread cap), xeon-s1
+
+`scripts/xeon_s1_chain7.sh`: build `sr-syrk2` (fork branch at 4edf4ccc),
+pthreads + OpenMP, checks (`check_syrk2.txt`: 442 OK, only the known
+threshold artifacts), `scripts/run_syrk_pr.sh xeon-s1 8,22,43,86` (f64+f32,
+3 rounds, `syrk_pr.csv`) and the exp 15 cycles again (`syrk2_cycle_*.csv`).
+
+Outcome:
+- f64: the tiny-call loss is gone (64x2000 86T: develop 46, v1 ~21, v2 45-47;
+  OpenMP same) and every v1 gain is kept (128x1000 86T 62 -> 129; 990x463810
+  86T 82 -> 895; 300x200000 43T 65 -> 283). No f64 case below 0.94x develop.
+- Cycles: v2 >= develop in every set and runtime (2 <-> 10 threads,
+  n=32 <-> 160, k=20000: 136-151 vs 55; n=64 -> 200 -> 990: 697-800 vs
+  538-586 at 22-43T, 716-720 vs 80 at 86T).
+- f32: still slower than develop for small n at >= 8 threads: 64x5000
+  91 -> 47 (0.51x), 64x{20000,100000} ~0.85x, 128x1000 127 -> 104-108.
+
+## Exp 18: small syrk crossover in f32 and f64 (xeon-s1)
+
+`scripts/run_syrk_small2.sh xeon-s1 1,2,3,4,6,8,16` with the v1 build
+(threads = min(T, n/16), no cap), `syrk_small2.csv`.
+
+Outcome: f32 single-thread syrk at small n is 2x faster than f64 (64x5000:
+91 vs 39 GF/s), but the threaded driver tops out at the same ~60 GF/s for
+n=64 in both, so threads lose in f32 at every k for n=64 (0.5-0.85x), at
+k <= 5000 for n=96, at k=1000 for n=128, and with 2 threads for n=192. The
+same losses exist on develop at low thread counts (develop with T=4 on n=64
+is the v1 run at T=4: f32 64x5000 46 vs 91 on one thread), so they are a
+pre-existing small-n inefficiency of threaded syrk that the cliff happened
+to hide at high T. 2 or 3 threads on n=64 behave like one thread.
