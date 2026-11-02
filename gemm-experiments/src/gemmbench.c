@@ -18,7 +18,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef __linux__
 #include <sys/syscall.h>
+#endif
 #include <unistd.h>
 
 #ifdef __APPLE__
@@ -300,6 +302,7 @@ static void run_callers(struct op *ops, int P, double min_time, int max_reps,
     pthread_barrier_destroy(&bar);
 }
 
+#ifdef __linux__
 // GEMMBENCH_SAMPLE_PLACEMENT=1: a thread samples every 20 ms on which CPU
 // each running thread (state R) sits while a shape is timed, to see threads stacked on one CPU or
 // sharing a core while other cores idle.
@@ -360,6 +363,7 @@ static void *placement_sampler(void *arg) {
     }
     return NULL;
 }
+#endif
 
 // Sets "K=V;K=V" in the environment, as a Python caller would with os.environ
 // once the BLAS library is loaded.
@@ -526,9 +530,11 @@ int main(int argc, char **argv) {
         apply_env(late);
     }
 
+#ifdef __linux__
     pthread_t sampler;
     int sample = getenv("GEMMBENCH_SAMPLE_PLACEMENT") != NULL;
     if (sample) pthread_create(&sampler, NULL, placement_sampler, NULL);
+#endif
 
     if (header)
         printf("label,dtype,m,n,k,trans,threads,reps,best_s,median_s,"
@@ -590,7 +596,9 @@ int main(int argc, char **argv) {
         } else {
             // Warm up the thread pool, caches and page tables for >= 50 ms.
             o = ops[0];
+#ifdef __linux__
             timing = 1;
+#endif
             double t0 = now();
             int w = 0;
             do { op_call(&o); w++; } while (now() - t0 < 0.05 && w < max_reps);
@@ -605,7 +613,9 @@ int main(int argc, char **argv) {
                 if (reps == cap) { cap *= 2; times = realloc(times, cap * sizeof(double)); }
                 times[reps++] = b - a;
             }
+#ifdef __linux__
             timing = 0;
+#endif
             qsort(times, reps, sizeof(double), cmp_double);
             best = times[0];
             med = times[reps / 2];
@@ -651,6 +661,7 @@ int main(int argc, char **argv) {
         for (int j = 0; j < nkept; j++) { free(kept[j].A); free(kept[j].B); free(kept[j].C); }
     }
     free(kept);
+#ifdef __linux__
     if (sample) {
         sampling = 0;
         pthread_join(sampler, NULL);
@@ -658,6 +669,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "# placement: samples=%.0f running=%.1f cpus=%.1f cores=%.1f\n",
                     s_samples, s_running / s_samples, s_cpus / s_samples, s_cores / s_samples);
     }
+#endif
     report_affinity();
     return 0;
 }

@@ -539,3 +539,22 @@ same losses exist on develop at low thread counts (develop with T=4 on n=64
 is the v1 run at T=4: f32 64x5000 46 vs 91 on one thread), so they are a
 pre-existing small-n inefficiency of threaded syrk that the cliff happened
 to hide at high T. 2 or 3 threads on n=64 behave like one thread.
+
+## Exp 19: PR #3 v3 and v4 vs develop (xeon-s1)
+
+v3 (fork branch `syrk-fewer-threads-v3`): v2 + "single precision stays on one
+thread below 8 threads" in the interface cap and the driver. `syrk_v3.csv`
+(grid n 32..512 x k 1000..100000 + large, f32/f64, 4-86T): still below
+develop for f64 96x1000 (4T: 78 -> 54, 8-86T: 57 -> 53; the interface cap left
+2 threads, slower than 1) and f32 160x{1000,5000} at 8T (cap -> 1 thread).
+
+v4 (`syrk-fewer-threads-v4`, single commit on develop, driver only): calls
+that develop already threads are unchanged; where develop falls back to one
+thread (n < nthreads * switch_ratio), use min(n / switch_ratio,
+n^2 k / 3.5e6) threads, and one thread if that is < 4 (f64) or < 8 (f32).
+`check_syrk4.txt` 442 OK; `syrk_v4.csv`: gains kept (990x463810 86T f64
+82 -> 895, f32 166 -> 1519; 300x200000 43T 65 -> 283; f32 128x5000 86T
+110 -> 217; f64 128x1000 86T 62 -> 129), former losses back to develop
+(f64 96x1000 86T 56 -> 57, 64x2000 46 -> 47; f32 160x1000 138 -> 138). Ten
+cases at 0.86-0.95x all sit where v4 runs develop's code path; rerun with
+v4 first (`syrk_v4_recheck.csv`) gives 0.97-1.21x: run order and noise.

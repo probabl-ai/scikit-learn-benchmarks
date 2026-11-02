@@ -12,8 +12,15 @@ shift 2
 JOBS=${JOBS:-32}
 cd "$SRC"
 make clean >/dev/null 2>&1 || true
-FLAGS="DYNAMIC_ARCH=1 BINARY=64 NO_LAPACK=0 TARGET=PRESCOTT BUILD_BFLOAT16=1 NO_AFFINITY=1 USE_THREAD=1 NUM_THREADS=128 USE_OPENMP=0 INTERFACE64=0 $*"
-pixi exec -s gcc_linux-64=15 -s gfortran_linux-64=15 -s make -- bash -c "
+if [ "$(uname)" = Darwin ]; then
+  # conda-forge osx-arm64 builds a single VORTEX target (no DYNAMIC_ARCH).
+  FLAGS="BINARY=64 NO_LAPACK=0 TARGET=VORTEX NO_AFFINITY=1 USE_THREAD=1 NUM_THREADS=128 USE_OPENMP=0 INTERFACE64=0 $*"
+  TOOLS=(-s clang_osx-arm64 -s gfortran_osx-arm64 -s make)
+else
+  FLAGS="DYNAMIC_ARCH=1 BINARY=64 NO_LAPACK=0 TARGET=PRESCOTT BUILD_BFLOAT16=1 NO_AFFINITY=1 USE_THREAD=1 NUM_THREADS=128 USE_OPENMP=0 INTERFACE64=0 $*"
+  TOOLS=(-s gcc_linux-64=15 -s gfortran_linux-64=15 -s make)
+fi
+pixi exec "${TOOLS[@]}" -- bash -c "
 set -eu
 export FFLAGS=\"\${FFLAGS:-} -frecursive\"
 make -j$JOBS $FLAGS CC=\$CC FC=\$FC HOSTCC=\$CC >$PREFIX/build.log 2>&1
@@ -22,4 +29,4 @@ make $FLAGS CC=\$CC FC=\$FC HOSTCC=\$CC PREFIX=$PREFIX install >>$PREFIX/build.l
 git -C "$SRC" rev-parse HEAD > "$PREFIX/commit.txt"
 git -C "$SRC" diff > "$PREFIX/patch.diff"
 echo "$FLAGS" > "$PREFIX/flags.txt"
-ls "$PREFIX/lib"/libopenblas*.so*
+ls "$PREFIX/lib"/libopenblas*
