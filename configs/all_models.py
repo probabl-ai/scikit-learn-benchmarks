@@ -1,4 +1,3 @@
-from _utils.common import disable_profiling_for_array_api_gpu_cases
 from _utils.implementations import implementations_for_pixi_env
 
 from _synthetic_trees import generate_cases as generate_tree_cases
@@ -23,7 +22,6 @@ def generate_cases() -> list[dict]:
 
     for case in cases:
         case['bench'] = {'time_limit': 300, **case.get('bench', {}), 'n_runs': 5}
-    disable_profiling_for_array_api_gpu_cases(cases)
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_cuml_supported_cases_if_needed(cases))

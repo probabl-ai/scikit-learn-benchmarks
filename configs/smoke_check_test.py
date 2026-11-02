@@ -1,6 +1,5 @@
 import sys
 
-from _utils.common import disable_profiling_for_array_api_gpu_cases
 from _utils.implementations import implementations_for_pixi_env
 
 from _synthetic_trees import generate_cases as generate_tree_cases
@@ -46,17 +45,15 @@ def generate_cases() -> list[dict]:
     cases += generate_hgb_scaling_cases()
 
     benchs = [
-        {'n_runs': 1, 'py_spy_profiling': True},
-        {'n_runs': 1, 'py_spy_profiling': True, 'py_spy_native': False},
-        {'n_runs': 1, 'py_spy_profiling': False, 'cprofile_profiling': True},
+        {'n_runs': 1, 'cprofile_profiling': True},
     ]
     if sys.platform != "darwin":
         # Exercises bench.cpu_affinity end to end (pinned via psutil in
         # sklbench/orchestrator/commands.py). Not supported on macOS -
         # pin_process_affinity raises there rather than silently no-op'ing
         # - so this case is deliberately not run there.
-        benchs.append({'n_runs': 1, 'py_spy_profiling': False, 'cpu_affinity': [0]})
-    benchs += [{'n_runs': 1, 'py_spy_profiling': False}] * len(cases)
+        benchs.append({'n_runs': 1, 'cpu_affinity': [0]})
+    benchs += [{'n_runs': 1}] * len(cases)
     for case, bench in zip(cases, benchs):
         # 4s was too tight even for the first of these trivial synthetic
         # cases on a GitHub-hosted macOS runner: one-time interpreter/import
@@ -67,16 +64,10 @@ def generate_cases() -> list[dict]:
         # budget. 20s gives headroom for that too without making this "small
         # exploratory matrix" meaningfully slower.
         case['bench'] = {'time_limit': 20, **case.get('bench', {}), **bench}
-    disable_profiling_for_array_api_gpu_cases(cases)
     for case in cases:
-        # On an L4, attaching py-spy pushes even 3s cuML fits past the time
-        # limit, and the cProfile fallback is killed as well.
+        # On an L4, profiling pushes even 3s cuML fits past the time limit.
         if case["implementation"].get("library") == "cuml":
-            case["bench"] = {
-                **case["bench"],
-                "py_spy_profiling": False,
-                "cprofile_profiling": False,
-            }
+            case["bench"] = {**case["bench"], "cprofile_profiling": False}
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
     cases = list(filter_cuml_supported_cases_if_needed(cases))
