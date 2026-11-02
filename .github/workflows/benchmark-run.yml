@@ -53,8 +53,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         # We only ever add new files under results/ and push them; we never
         # read existing LFS content, so skip the `git lfs pull` checkout
-        # would otherwise do (git-lfs still needs to be installed on the
-        # runner for the push-side clean filter to work, per CONTRIBUTING.md).
+        # would otherwise do. The commit step sets up the clean filter.
         #
         # clean defaults to true, which runs `git clean -ffdx` before
         # checkout - on this persistent self-hosted runner that wipes
@@ -252,6 +251,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$(git status --porcelain results/)" ]; then
+            # Without the LFS filter, `git add` silently stores results as
+            # raw blobs (it happened on the AWS runner, see #162). --local
+            # also installs the pre-push hook that uploads the objects.
+            command -v git-lfs >/dev/null || pixi global install git-lfs
+            git lfs install --local
             branch="bench-results/${BENCH_RUNNER}-${{ github.run_id }}"
             git switch -c "$branch"
             git add results/
