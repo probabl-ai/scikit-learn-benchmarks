@@ -440,3 +440,32 @@ Outcome (f64 unless noted, GF/s, all -> all2, bound MKL):
   64 MiB cap with enough chunks). Non-syrk shapes unchanged within noise.
 
 FINDINGS.md written from exps 1-13.
+
+## Exp 14: per-precision SWITCH_RATIO in DYNAMIC_ARCH builds (xeon-s1)
+
+In DYNAMIC_ARCH builds the gotoblas table is filled in `kernel/setparam-ref.c`,
+compiled without DOUBLE, so `switch_ratio` and `preferred_size` hold the
+single-precision values of `param.h` for every precision (16 instead of 8
+for d/z on SKYLAKEX, COOPERLAKE, SAPPHIRERAPIDS; also ZEN, HASWELL and
+several ARM64 targets). Fork branch `switch-ratio-per-precision` stores both
+values and picks by precision. `scripts/xeon_s1_chain5.sh`: four builds from
+fork develop b8d14a66 (base, fix, syrk fix, both), checks
+(`check_switch_ratio.txt`, 884 OK, nothing unexpected), then
+`scripts/run_switch_ratio.sh xeon-s1 8,22,43,64,86`, 3 rounds pinned.
+`results/xeon-s1/switch_ratio.csv`.
+
+Outcome (f64, base -> fix, GF/s; f32 unchanged except the usual noise on
+256^3/512^3, 0.6-1.2x):
+- gains: syrk cliff moves to 124 threads (990x463810 64T 82 -> 905, 86T 82 ->
+  898; 1000x50000 ~12x; 500x100000 43T 73 -> 623); 200x200x50000:TN 1.17-1.35x
+  at 8-86T; 256x100000x50:TN 86T 1713 -> 2036; with the syrk patch,
+  300x200000 syrk another 1.14-1.25x.
+- losses: 512^3 43T 939 -> 764, 64T 1261 -> 523, 86T 900 -> 396; 256^3 64-86T
+  ~0.5x; 2000x2000x200 86T 1705 -> 1517. Repeated in all rounds and in both
+  builds with the fix.
+- So switch_ratio 16 was acting as a brake on over-threading small squares
+  (the interface hands 512^3 all 86 threads). Static TARGET=SAPPHIRERAPIDS
+  builds use 8 for d and probably have these losses today (not measured).
+  The fix is right for consistency but not shippable alone: either keep 16
+  for double on these x86 targets in param.h, or cap the thread count of
+  small squares where it is decided.

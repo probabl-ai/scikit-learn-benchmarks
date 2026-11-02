@@ -1,0 +1,136 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/xeon-s1/switch_ratio.csv",
+  "--threads",
+  "8,22,43,64,86",
+  "--variant",
+  "sr-base=builds/sr-base/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sr-fix=builds/sr-fix/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sr-syrk=builds/sr-syrk/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sr-syrk-fix=builds/sr-syrk-fix/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--dtype",
+  "d,s",
+  "--rounds",
+  "3",
+  "--min-time",
+  "0.3",
+  "--note",
+  "exp14 per-precision SWITCH_RATIO in DYNAMIC_ARCH",
+  "--pin",
+  "compact",
+  "--shapes",
+  "256x256x256",
+  "512x512x512",
+  "1024x1024x1024",
+  "4096x4096x4096",
+  "2000x2000x200",
+  "100x200000x100:NN",
+  "7x116203x100:NN",
+  "10x1000000x100:NN",
+  "50x100000x1000:NN",
+  "256x100000x50:TN",
+  "200x200x50000:TN",
+  "1000x1000x100000:NT",
+  "syrk:990x463810:N",
+  "syrk:1000x50000:N",
+  "syrk:500x100000:N",
+  "syrk:300x200000:N",
+  "syrk:2000x100000:N"
+ ],
+ "note": "exp14 per-precision SWITCH_RATIO in DYNAMIC_ARCH",
+ "host": "igk-0805",
+ "platform": "Linux-7.0.0-27-generic-x86_64-with-glibc2.43",
+ "start": "2026-11-02T10:42:44+0000",
+ "variants": {
+  "sr-base": {
+   "lib": "builds/sr-base/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sr-fix": {
+   "lib": "builds/sr-fix/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sr-syrk": {
+   "lib": "builds/sr-syrk/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sr-syrk-fix": {
+   "lib": "builds/sr-syrk-fix/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  }
+ },
+ "lscpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           52 bits physical, 57 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  344\nOn-line CPU(s) list:                     0-343\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Xeon(R) 6787P\nCPU family:                              6\nModel:                                   173\nThread(s) per core:                      2\nCore(s) per socket:                      86\nSocket(s):                               2\nStepping:                                1\nCPU(s) scaling MHz:                      21%\nCPU max MHz:                             3800.0000\nCPU min MHz:                             800.0000\nBogoMIPS:                                4000.00\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l3 cat_l2 cdp_l3 intel_ppin cdp_l2 ssbd mba ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb intel_pt avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local split_lock_detect user_shstk avx_vnni avx512_bf16 wbnoinvd dtherm ida arat pln pts hwp hwp_act_window hwp_epp hwp_pkg_req vnmi avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq la57 rdpid bus_lock_detect cldemote movdiri movdir64b enqcmd fsrm md_clear serialize tsxldtrk pconfig arch_lbr ibt amx_bf16 avx512_fp16 amx_tile amx_int8 flush_l1d arch_capabilities\nVirtualization:                          VT-x\nL1d cache:                               8.1 MiB (172 instances)\nL1i cache:                               10.8 MiB (172 instances)\nL2 cache:                                344 MiB (172 instances)\nL3 cache:                                672 MiB (2 instances)\nNUMA node(s):                            8\nNUMA node0 CPU(s):                       0-21,172-193\nNUMA node1 CPU(s):                       22-42,194-214\nNUMA node2 CPU(s):                       43-64,215-236\nNUMA node3 CPU(s):                       65-85,237-257\nNUMA node4 CPU(s):                       86-107,258-279\nNUMA node5 CPU(s):                       108-128,280-300\nNUMA node6 CPU(s):                       129-150,301-322\nNUMA node7 CPU(s):                       151-171,323-343\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Vulnerable\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS Not affected; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+ "affinity": "policy: bind\npreferred node: 4\nphyscpubind: 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 289 290 291 292 293 294 295 296 297 298 299 300 301 302 303 304 305 306 307 308 309 310 311 312 313 314 315 316 317 318 319 320 321 322 323 324 325 326 327 328 329 330 331 332 333 334 335 336 337 338 339 340 341 342 343 \ncpubind: 4 5 6 7 \nnodebind: 4 5 6 7 \nmembind: 4 5 6 7 \npreferred: 4 5 6 7 \n",
+ "loadavg_start": [
+  5.138671875,
+  3.5830078125,
+  3.00830078125
+ ],
+ "lib_headers": {
+  "sr-base": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=125 involuntary_switches=2518 migrations=19 openmp=none",
+  "sr-fix": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=121 involuntary_switches=2543 migrations=17 openmp=none",
+  "sr-syrk": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=122 involuntary_switches=2534 migrations=21 openmp=none",
+  "sr-syrk-fix": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=122 involuntary_switches=2538 migrations=20 openmp=none"
+ },
+ "stderr": {
+  "sr-base T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=123 involuntary_switches=2544 migrations=20 openmp=none",
+  "sr-base T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=99 involuntary_switches=1683 migrations=9 openmp=none",
+  "sr-fix T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=123 involuntary_switches=2504 migrations=15 openmp=none",
+  "sr-fix T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=107 involuntary_switches=1780 migrations=9 openmp=none",
+  "sr-syrk T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=122 involuntary_switches=2547 migrations=17 openmp=none",
+  "sr-syrk T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=103 involuntary_switches=1791 migrations=9 openmp=none",
+  "sr-syrk-fix T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=122 involuntary_switches=2556 migrations=20 openmp=none",
+  "sr-syrk-fix T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=105 involuntary_switches=1750 migrations=9 openmp=none",
+  "sr-base T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=256 involuntary_switches=1993 migrations=30 openmp=none",
+  "sr-base T=22 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=219 involuntary_switches=1558 migrations=12 openmp=none",
+  "sr-fix T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=272 involuntary_switches=1861 migrations=14 openmp=none",
+  "sr-fix T=22 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=225 involuntary_switches=1576 migrations=16 openmp=none",
+  "sr-syrk T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=273 involuntary_switches=1877 migrations=34 openmp=none",
+  "sr-syrk T=22 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=222 involuntary_switches=1545 migrations=13 openmp=none",
+  "sr-syrk-fix T=22 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=275 involuntary_switches=1857 migrations=14 openmp=none",
+  "sr-syrk-fix T=22 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 22\n# affinity: threads=22 bound_to_one_core=0 voluntary_switches=233 involuntary_switches=1582 migrations=18 openmp=none",
+  "sr-base T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=446 involuntary_switches=2319 migrations=13 openmp=none",
+  "sr-base T=43 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=427 involuntary_switches=1829 migrations=26 openmp=none",
+  "sr-fix T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=448 involuntary_switches=2115 migrations=10 openmp=none",
+  "sr-fix T=43 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=400 involuntary_switches=1463 migrations=8 openmp=none",
+  "sr-syrk T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=462 involuntary_switches=1763 migrations=25 openmp=none",
+  "sr-syrk T=43 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=425 involuntary_switches=1764 migrations=26 openmp=none",
+  "sr-syrk-fix T=43 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=476 involuntary_switches=1753 migrations=10 openmp=none",
+  "sr-syrk-fix T=43 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 43\n# affinity: threads=43 bound_to_one_core=0 voluntary_switches=436 involuntary_switches=495 migrations=26 openmp=none",
+  "sr-base T=64 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=576 involuntary_switches=5002 migrations=21 openmp=none",
+  "sr-base T=64 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=450 involuntary_switches=3426 migrations=19 openmp=none",
+  "sr-fix T=64 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=647 involuntary_switches=2457 migrations=35 openmp=none",
+  "sr-fix T=64 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=477 involuntary_switches=3497 migrations=9 openmp=none",
+  "sr-syrk T=64 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=653 involuntary_switches=2266 migrations=31 openmp=none",
+  "sr-syrk T=64 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=515 involuntary_switches=1950 migrations=26 openmp=none",
+  "sr-syrk-fix T=64 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=650 involuntary_switches=2264 migrations=29 openmp=none",
+  "sr-syrk-fix T=64 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 64\n# affinity: threads=64 bound_to_one_core=0 voluntary_switches=536 involuntary_switches=1964 migrations=12 openmp=none",
+  "sr-base T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=782 involuntary_switches=5803 migrations=27 openmp=none",
+  "sr-base T=86 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=503 involuntary_switches=3535 migrations=6 openmp=none",
+  "sr-fix T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=823 involuntary_switches=2483 migrations=11 openmp=none",
+  "sr-fix T=86 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=512 involuntary_switches=3496 migrations=6 openmp=none",
+  "sr-syrk T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=840 involuntary_switches=2319 migrations=30 openmp=none",
+  "sr-syrk T=86 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=654 involuntary_switches=2155 migrations=6 openmp=none",
+  "sr-syrk-fix T=86 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=838 involuntary_switches=2431 migrations=12 openmp=none",
+  "sr-syrk-fix T=86 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Cooperlake MAX_THREADS=128 core: Cooperlake\n# library threads: 86\n# affinity: threads=86 bound_to_one_core=0 voluntary_switches=578 involuntary_switches=2071 migrations=6 openmp=none"
+ },
+ "end": "2026-11-02T11:16:19+0000",
+ "loadavg_end": [
+  33.466796875,
+  34.01025390625,
+  26.88330078125
+ ]
+}
