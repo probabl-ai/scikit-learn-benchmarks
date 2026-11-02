@@ -116,14 +116,15 @@ ABOUT_HTML = """<section class="panel">
     <li>On the Xeon socket, with the branch, the Lloyd iterations with
     <b>OpenBLAS</b> are up to 4.4x slower than with <b>MKL</b> on the small
     cases (sift with 16 features), and vary 2x to 3x between repeats. That
-    comes from thread pools, not from the BLAS kernels: the k-means++ init
-    runs BLAS calls on OpenBLAS's own threads, which keep spinning after the
-    call while the 172 OpenMP threads of the Lloyd iterations need every
-    logical CPU of the socket
+    comes from the OpenMP runtime, not from the BLAS: the OpenBLAS builds use
+    GCC's libgomp, the <b>MKL</b> ones LLVM's libomp. On small data, the
+    k-means++ init runs on a few threads and the others go to sleep. Once
+    woken up for the Lloyd iterations, some of the 172 threads share a CPU,
+    and libgomp threads spin without giving the CPU back
     (<a href="https://github.com/scikit-learn/scikit-learn/issues/17334">scikit-learn#17334</a>).
-    MKL runs on the same OpenMP threads as scikit-learn. One OpenBLAS call
-    before a fit makes its Lloyd iterations ~8x slower with 172 OpenMP
-    threads, and doesn't change them with 86.</li>
+    With 86 threads, with <code>OMP_WAIT_POLICY=active</code> or with a
+    libgomp that yields while spinning, these Lloyd iterations are ~8x
+    faster.</li>
     <li>On the Xeon socket, <b>sklearnex</b> takes 2.6x to 3.8x the fit time
     per iteration of the faster branch build on the sparse cases, and 2.9x to
     3.7x on cifar (3072 features). It is up to ~1.9x faster on the cases with
