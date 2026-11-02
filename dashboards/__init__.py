@@ -13,6 +13,7 @@ HARDWARE_NAMES = {
     "534824": "High-end Intel Xeon server",
     "be1055": "Low-end Intel laptop",
     "5dcf30": "AMD Workstation",
+    "332097": "Intel Core Ultra desktop",
     "b281b2": "Apple M4 laptop",
     "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
@@ -21,6 +22,7 @@ GPU_NAMES = {
     "3b5e61": "Intel Core Ultra laptop GPU",
     "b281b2": "Apple M4 laptop GPU",
     "5dcf30": "NVIDIA RTX 2060",
+    "332097": "Intel Arc B580",
     "d189c4": "NVIDIA L4 g6.2xlarge",
 }
 
@@ -38,6 +40,7 @@ HARDWARE_PLATFORMS = {
     "be1055": {"linux-64"},
     "b281b2": {"osx-arm64"},
     "5dcf30": {"win-64"},
+    "332097": {"linux-64"},
     "d189c4": {"linux-64", "linux-64-cuda-12-9"},
 }
 
