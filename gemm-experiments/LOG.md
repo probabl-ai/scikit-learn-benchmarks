@@ -558,3 +558,24 @@ n^2 k / 3.5e6) threads, and one thread if that is < 4 (f64) or < 8 (f32).
 (f64 96x1000 86T 56 -> 57, 64x2000 46 -> 47; f32 160x1000 138 -> 138). Ten
 cases at 0.86-0.95x all sit where v4 runs develop's code path; rerun with
 v4 first (`syrk_v4_recheck.csv`) gives 0.97-1.21x: run order and noise.
+
+## Exp 19 (cont.): PR #3 v4 on intel-laptop and mac-m2
+
+`scripts/setup_syrk_v4_remote.sh` (clone fork, build develop and v4 with the
+conda-forge flags of each platform, checks, `run_syrk_v3.sh` with
+`SMALL_MACHINE=1`, which swaps the two largest shapes for X.T @ X with 8-20
+features). intel-laptop: Core Ultra X7 358H, 16 cores, DYNAMIC_ARCH picks
+Haswell (switch_ratio 8), 2-16T pinned, 2 rounds. mac-m2: static VORTEX
+build (switch_ratio 2, the default), 2-8T unpinned, 3 rounds.
+`results/{intel-laptop,mac-m2}/syrk_v4.csv`, checks 442 OK on both.
+
+Outcome:
+- laptop: every cell where v4 changes the thread count is a gain (it
+  threads: 1.6-2.9x, e.g. f64 96x5000 16T 43 -> 126, f32 96x20000 16T 83 ->
+  228, f64 32x20000 8T 29 -> 49) or equal (it keeps one thread: 0.92-1.06x).
+  Cells where v4 runs develop's code path spread from 0.65x to 1.2x (median
+  0.98-1.0): laptop thermal/noise, not the patch.
+- Mac: no change beyond noise. The only changed cells are 8-15 features x
+  1e6 samples, now on 4-7 threads, at 0.93-1.04x (memory-bound).
+- PR #3 branch now points at the v4 commit (7fb55238); the earlier commits
+  stay on fork branch syrk-fewer-threads-v3.

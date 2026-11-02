@@ -1,0 +1,122 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/mac-m2/syrk_v4.csv",
+  "--threads",
+  "2,4,6,8",
+  "--variant",
+  "sr-base=builds/sr-base/lib/libopenblas.0.dylib,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sr-syrk4=builds/sr-syrk4/lib/libopenblas.0.dylib,OPENBLAS_NUM_THREADS={T}",
+  "--dtype",
+  "d,s",
+  "--rounds",
+  "3",
+  "--min-time",
+  "0.2",
+  "--pin",
+  "none",
+  "--note",
+  "exp19 syrk PR v3 vs develop",
+  "--shapes",
+  "syrk:32x1000:N",
+  "syrk:32x5000:N",
+  "syrk:32x20000:N",
+  "syrk:32x100000:N",
+  "syrk:64x1000:N",
+  "syrk:64x5000:N",
+  "syrk:64x20000:N",
+  "syrk:64x100000:N",
+  "syrk:96x1000:N",
+  "syrk:96x5000:N",
+  "syrk:96x20000:N",
+  "syrk:96x100000:N",
+  "syrk:128x1000:N",
+  "syrk:128x5000:N",
+  "syrk:128x20000:N",
+  "syrk:128x100000:N",
+  "syrk:160x1000:N",
+  "syrk:160x5000:N",
+  "syrk:160x20000:N",
+  "syrk:160x100000:N",
+  "syrk:192x1000:N",
+  "syrk:192x5000:N",
+  "syrk:192x20000:N",
+  "syrk:192x100000:N",
+  "syrk:256x1000:N",
+  "syrk:256x5000:N",
+  "syrk:256x20000:N",
+  "syrk:256x100000:N",
+  "syrk:384x1000:N",
+  "syrk:384x5000:N",
+  "syrk:384x20000:N",
+  "syrk:384x100000:N",
+  "syrk:512x1000:N",
+  "syrk:512x5000:N",
+  "syrk:512x20000:N",
+  "syrk:512x100000:N",
+  "syrk:64x2000:N",
+  "syrk:990x2000:N",
+  "syrk:1000x50000:N",
+  "syrk:300x200000:N",
+  "syrk:8x1000000:N",
+  "syrk:10x1000000:N",
+  "syrk:12x100000:N",
+  "syrk:15x1000000:N",
+  "syrk:20x100000:N"
+ ],
+ "note": "exp19 syrk PR v3 vs develop",
+ "host": "Irinas-MacBook-Pro-5.local",
+ "platform": "macOS-27.0.1-arm64-arm-64bit",
+ "start": "2026-11-02T15:51:23+0100",
+ "variants": {
+  "sr-base": {
+   "lib": "builds/sr-base/lib/libopenblas.0.dylib",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sr-syrk4": {
+   "lib": "builds/sr-syrk4/lib/libopenblas.0.dylib",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  }
+ },
+ "lscpu": "hw.memsize: 17179869184\nhw.perflevel0.physicalcpu: 4\nhw.perflevel0.physicalcpu_max: 4\nhw.perflevel0.logicalcpu: 4\nhw.perflevel0.logicalcpu_max: 4\nhw.perflevel0.l1icachesize: 196608\nhw.perflevel0.l1dcachesize: 131072\nhw.perflevel0.l2cachesize: 16777216\nhw.perflevel0.cpusperl2: 4\nhw.perflevel0.name: Performance\nhw.perflevel1.physicalcpu: 4\nhw.perflevel1.physicalcpu_max: 4\nhw.perflevel1.logicalcpu: 4\nhw.perflevel1.logicalcpu_max: 4\nhw.perflevel1.l1icachesize: 131072\nhw.perflevel1.l1dcachesize: 65536\nhw.perflevel1.l2cachesize: 4194304\nhw.perflevel1.cpusperl2: 4\nhw.perflevel1.name: Efficiency\nhw.memsize_usable: 16375169024\nmachdep.cpu.cores_per_package: 8\nmachdep.cpu.core_count: 8\nmachdep.cpu.logical_per_package: 8\nmachdep.cpu.thread_count: 8\nmachdep.cpu.brand_string: Apple M2\n",
+ "affinity": "",
+ "loadavg_start": [
+  4.740234375,
+  6.5595703125,
+  10.13232421875
+ ],
+ "lib_headers": {
+  "sr-base": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 2",
+  "sr-syrk4": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 2"
+ },
+ "stderr": {
+  "sr-base T=2 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 2",
+  "sr-base T=2 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 2",
+  "sr-syrk4 T=2 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 2",
+  "sr-syrk4 T=2 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 2",
+  "sr-base T=4 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 4",
+  "sr-base T=4 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 4",
+  "sr-syrk4 T=4 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 4",
+  "sr-syrk4 T=4 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 4",
+  "sr-base T=6 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 6",
+  "sr-base T=6 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 6",
+  "sr-syrk4 T=6 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 6",
+  "sr-syrk4 T=6 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 6",
+  "sr-base T=8 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 8",
+  "sr-base T=8 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 8",
+  "sr-syrk4 T=8 d": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 8",
+  "sr-syrk4 T=8 s": "# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX\n# library threads: 8"
+ },
+ "end": "2026-11-02T16:04:05+0100",
+ "loadavg_end": [
+  38.39501953125,
+  77.876953125,
+  59.0712890625
+ ]
+}
