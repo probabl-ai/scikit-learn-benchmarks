@@ -1,0 +1,408 @@
+{
+    "hardware_hash": "d189c4",
+    "software_hash": "a409a6",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 273.0
+        },
+        "metadata": {
+            "source_config": "configs/all_models_cuml_only.py"
+        },
+        "algorithm": {
+            "estimator": "RandomForestRegressor",
+            "estimator_params": {
+                "max_leaf_nodes": 1054,
+                "n_estimators": 16,
+                "max_features": 0.3,
+                "n_jobs": -1
+            }
+        },
+        "data": {
+            "source": "make_trees_regression_data",
+            "generation_kwargs": {
+                "n_samples": 100000,
+                "n_features": 20,
+                "n_informative": 10,
+                "columns": "long-tail",
+                "noise": 0.1
+            }
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C",
+                    "order": "C"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.08215200068661943,
+                "fit": 373.966172002838,
+                "predict": 35.600980001618154
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 152.00656080940004,
+                    "R2": 0.48854148697559274
+                },
+                "predict": {
+                    "RMSE": 161.3950509493962,
+                    "R2": 0.42464893174027984
+                }
+            },
+            "attributes": {
+                "n_features_in": 20,
+                "n_outputs": 1,
+                "total_time": 0.3739465120015666,
+                "build_trees_time": 0.3542896569997538,
+                "build_trees_cpu_time": 2.658039488000213,
+                "n_trees_built": 16,
+                "avg_tree_time": 0.16612746800001332,
+                "other_time": 0.0196568550018128
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C",
+                    "order": "C"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.0673709982947912,
+                "fit": 393.27842999773566,
+                "predict": 24.319271000422304
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 141.85955829405435,
+                    "R2": 0.5144734526662191
+                },
+                "predict": {
+                    "RMSE": 151.77856993305852,
+                    "R2": 0.4517942123501639
+                }
+            },
+            "attributes": {
+                "n_features_in": 20,
+                "n_outputs": 1,
+                "total_time": 0.39325984900278854,
+                "build_trees_time": 0.3797596540025552,
+                "build_trees_cpu_time": 2.9574334579992865,
+                "n_trees_built": 16,
+                "avg_tree_time": 0.1848395911249554,
+                "other_time": 0.013500195000233361
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C",
+                    "order": "C"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.06216100155143067,
+                "fit": 437.05572000180837,
+                "predict": 27.551488998142304
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 120.37435811660175,
+                    "R2": 0.4652853408845955
+                },
+                "predict": {
+                    "RMSE": 128.53904697490336,
+                    "R2": 0.3874737767076788
+                }
+            },
+            "attributes": {
+                "n_features_in": 20,
+                "n_outputs": 1,
+                "total_time": 0.43703999900026247,
+                "build_trees_time": 0.4282152070009033,
+                "build_trees_cpu_time": 3.1663506839977344,
+                "n_trees_built": 16,
+                "avg_tree_time": 0.1978969177498584,
+                "other_time": 0.00882479199935915
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C",
+                    "order": "C"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.058432000514585525,
+                "fit": 351.77977999774157,
+                "predict": 34.80247900006361
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 122.74065026700474,
+                    "R2": 0.5256957911486093
+                },
+                "predict": {
+                    "RMSE": 130.31902180597544,
+                    "R2": 0.46220555589945134
+                }
+            },
+            "attributes": {
+                "n_features_in": 20,
+                "n_outputs": 1,
+                "total_time": 0.351763928996661,
+                "build_trees_time": 0.3438900660003128,
+                "build_trees_cpu_time": 2.6779584159958176,
+                "n_trees_built": 16,
+                "avg_tree_time": 0.1673724009997386,
+                "other_time": 0.00787386299634818
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C",
+                    "order": "C"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": null,
+                    "measured_dtype": "float64",
+                    "samples": 100000,
+                    "features": 20,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.06191100328578614,
+                "fit": 374.1595320025226,
+                "predict": 24.578297001426108
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 141.01363418234286,
+                    "R2": 0.4776947629537698
+                },
+                "predict": {
+                    "RMSE": 150.6953382929427,
+                    "R2": 0.4114859195429166
+                }
+            },
+            "attributes": {
+                "n_features_in": 20,
+                "n_outputs": 1,
+                "total_time": 0.3741459009979735,
+                "build_trees_time": 0.36268848400140996,
+                "build_trees_cpu_time": 2.83926794299623,
+                "n_trees_built": 16,
+                "avg_tree_time": 0.17745424643726437,
+                "other_time": 0.011457416996563552
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "ci_run_url": "https://github.com/probabl-ai/scikit-learn-benchmarks/actions/runs/41477372383",
+    "system_telemetry": [
+        {
+            "timestamp": "2026-11-02T16:08:29.840+00:00",
+            "case_index": 33,
+            "case_name": "sklearn RandomForestRegressor make_trees_regr_data",
+            "cpu_percent": 58.3,
+            "cpu_freq_mhz": 2879.6414999999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 7.0791015625,
+            "memory": {
+                "used_percent": 5.8,
+                "available_mb": 29084.1171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:08:31.842+00:00",
+            "case_index": 33,
+            "case_name": "sklearn RandomForestRegressor make_trees_regr_data",
+            "cpu_percent": 49.5,
+            "cpu_freq_mhz": 3599.006,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 7.0791015625,
+            "memory": {
+                "used_percent": 6.4,
+                "available_mb": 28911.03125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:08:33.846+00:00",
+            "case_index": 33,
+            "case_name": "sklearn RandomForestRegressor make_trees_regr_data",
+            "cpu_percent": 66.8,
+            "cpu_freq_mhz": 2882.131875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 7.0791015625,
+            "memory": {
+                "used_percent": 6.2,
+                "available_mb": 28977.4375,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

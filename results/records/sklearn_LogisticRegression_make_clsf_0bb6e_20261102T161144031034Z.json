@@ -1,0 +1,808 @@
+{
+    "hardware_hash": "d189c4",
+    "software_hash": "a409a6",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 82.0
+        },
+        "metadata": {
+            "source_config": "configs/all_models_cuml_only.py"
+        },
+        "algorithm": {
+            "estimator": "LogisticRegression",
+            "estimator_params": {
+                "solver": "lbfgs"
+            }
+        },
+        "data": {
+            "source": "make_classification",
+            "generation_kwargs": {
+                "n_samples": 20000,
+                "n_features": 1000,
+                "n_informative": 100,
+                "n_classes": 5,
+                "n_redundant": 500
+            },
+            "order": "C",
+            "dtype": "float64"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "order": "C",
+                    "n_classes": 5
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.0970820001384709,
+                "fit": 11174.41009599861,
+                "predict": 21.084920001158025
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8693738516990495,
+                    "Brier score": 0.5264613395399249,
+                    "logloss": 1.0113305667263466
+                },
+                "predict": {
+                    "ROC AUC": 0.8364521402616226,
+                    "Brier score": 0.5853030163293718,
+                    "logloss": 1.1352728220231583
+                }
+            },
+            "attributes": {
+                "n_iter": 100,
+                "n_features_in": 1000
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "order": "C",
+                    "n_classes": 5
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.07821200051694177,
+                "fit": 11124.199075999059,
+                "predict": 20.89652699942235
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.866654376787315,
+                    "Brier score": 0.5365304346032004,
+                    "logloss": 1.0197925089820021
+                },
+                "predict": {
+                    "ROC AUC": 0.837015469143925,
+                    "Brier score": 0.5915989421015502,
+                    "logloss": 1.1288093471053777
+                }
+            },
+            "attributes": {
+                "n_iter": 100,
+                "n_features_in": 1000
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "order": "C",
+                    "n_classes": 5
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.07639199975528754,
+                "fit": 10980.429531999107,
+                "predict": 20.72995200069272
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8676256210829052,
+                    "Brier score": 0.5344318131320177,
+                    "logloss": 1.0186096274272838
+                },
+                "predict": {
+                    "ROC AUC": 0.8355198215898083,
+                    "Brier score": 0.5927472598284639,
+                    "logloss": 1.135416707575877
+                }
+            },
+            "attributes": {
+                "n_iter": 100,
+                "n_features_in": 1000
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "order": "C",
+                    "n_classes": 5
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.09318199954577722,
+                "fit": 10995.634146998782,
+                "predict": 20.87646399741061
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8668582136200476,
+                    "Brier score": 0.5351184224007101,
+                    "logloss": 1.020531111200317
+                },
+                "predict": {
+                    "ROC AUC": 0.8364824817782175,
+                    "Brier score": 0.5892533568339821,
+                    "logloss": 1.1338351909948552
+                }
+            },
+            "attributes": {
+                "n_iter": 100,
+                "n_features_in": 1000
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "order": "C",
+                    "n_classes": 5
+                },
+                "fit": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                },
+                "predict": {
+                    "format": null,
+                    "order": "C",
+                    "dtype": "float64",
+                    "measured_dtype": "float64",
+                    "samples": 20000,
+                    "features": 1000,
+                    "raw_order": "C",
+                    "n_classes": 5
+                }
+            },
+            "time_ms": {
+                "preprocessing": 0.07259099947987124,
+                "fit": 11158.642817998043,
+                "predict": 21.995726001478033
+            },
+            "metrics": {
+                "fit": {
+                    "ROC AUC": 0.8665175899379172,
+                    "Brier score": 0.5368231661869779,
+                    "logloss": 1.019847960193071
+                },
+                "predict": {
+                    "ROC AUC": 0.8339399565802438,
+                    "Brier score": 0.596063579743596,
+                    "logloss": 1.1410464679806607
+                }
+            },
+            "attributes": {
+                "n_iter": 100,
+                "n_features_in": 1000
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": "/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result(\n/home/github-runner/_work/scikit-learn-benchmarks/scikit-learn-benchmarks/.pixi/envs/sklearn-pypi/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:599: ConvergenceWarning: lbfgs failed to converge after 100 iteration(s) (status=1):\nSTOP: TOTAL NO. OF ITERATIONS REACHED LIMIT\n\nIncrease the number of iterations to improve the convergence (max_iter=100).\nYou might also want to scale the data as shown in:\n    https://scikit-learn.org/stable/modules/preprocessing.html\nPlease also refer to the documentation for alternative solver options:\n    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression\n  n_iter_i = _check_optimize_result("
+            }
+        }
+    ],
+    "failed_case": null,
+    "ci_run_url": "https://github.com/probabl-ai/scikit-learn-benchmarks/actions/runs/41477372383",
+    "system_telemetry": [
+        {
+            "timestamp": "2026-11-02T16:11:44.087+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 75.4,
+            "cpu_freq_mhz": 2941.4501250000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.30908203125,
+            "memory": {
+                "used_percent": 5.7,
+                "available_mb": 29103.328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:46.088+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 28.9,
+            "cpu_freq_mhz": 2996.6205,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.1240234375,
+            "memory": {
+                "used_percent": 9.3,
+                "available_mb": 27996.1171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:48.090+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 93.2,
+            "cpu_freq_mhz": 3599.9708750000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.1240234375,
+            "memory": {
+                "used_percent": 7.8,
+                "available_mb": 28482.234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:50.101+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 100.0,
+            "cpu_freq_mhz": 3597.8945000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.2353515625,
+            "memory": {
+                "used_percent": 7.6,
+                "available_mb": 28516.69140625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:52.104+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.7,
+            "cpu_freq_mhz": 3598.857625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.2353515625,
+            "memory": {
+                "used_percent": 7.3,
+                "available_mb": 28637.3671875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:54.110+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.772,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 4.2353515625,
+            "memory": {
+                "used_percent": 7.3,
+                "available_mb": 28636.640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:56.116+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3599.7764999999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.09765625,
+            "memory": {
+                "used_percent": 7.3,
+                "available_mb": 28637.22265625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:11:58.118+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 84.7,
+            "cpu_freq_mhz": 2997.60425,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 5.09765625,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28677.6875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:00.120+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 80.5,
+            "cpu_freq_mhz": 3599.286375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 6.05078125,
+            "memory": {
+                "used_percent": 7.3,
+                "available_mb": 28624.796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:02.127+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3599.950875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 6.05078125,
+            "memory": {
+                "used_percent": 7.2,
+                "available_mb": 28658.796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:04.131+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.526375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 6.05078125,
+            "memory": {
+                "used_percent": 7.2,
+                "available_mb": 28658.796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:06.137+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.6,
+            "cpu_freq_mhz": 3598.6800000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 6.927734375,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28682.796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:08.146+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3598.9415,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 6.927734375,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28682.796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:10.148+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 95.3,
+            "cpu_freq_mhz": 3071.291,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 7.814453125,
+            "memory": {
+                "used_percent": 7.2,
+                "available_mb": 28659.80078125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:12.153+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 70.3,
+            "cpu_freq_mhz": 3599.565125,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 7.814453125,
+            "memory": {
+                "used_percent": 7.3,
+                "available_mb": 28613.34375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:14.159+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3600.03,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 7.814453125,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28670.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:16.162+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3598.4813750000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 8.55029296875,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28670.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:18.168+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.1658749999997,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 8.55029296875,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28670.41015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:20.176+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3599.05225,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 8.74658203125,
+            "memory": {
+                "used_percent": 7.0,
+                "available_mb": 28702.65234375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:22.178+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 97.5,
+            "cpu_freq_mhz": 3599.245,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 8.74658203125,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28689.9921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:24.184+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 68.3,
+            "cpu_freq_mhz": 3598.5011250000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 8.74658203125,
+            "memory": {
+                "used_percent": 7.3,
+                "available_mb": 28613.2890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:26.189+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3597.787625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 9.40771484375,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28677.2890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:28.194+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.9876249999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 9.40771484375,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28677.2890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:30.202+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.6,
+            "cpu_freq_mhz": 3599.1246250000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.01611328125,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28677.2890625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:32.204+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3599.9908750000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.01611328125,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28677.29296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:34.208+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 97.5,
+            "cpu_freq_mhz": 3599.528375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.01611328125,
+            "memory": {
+                "used_percent": 7.0,
+                "available_mb": 28702.26171875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:36.210+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 68.3,
+            "cpu_freq_mhz": 3596.684625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.0146484375,
+            "memory": {
+                "used_percent": 7.4,
+                "available_mb": 28608.56640625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:38.212+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3599.3091249999998,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.0146484375,
+            "memory": {
+                "used_percent": 7.2,
+                "available_mb": 28656.79296875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:40.220+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3596.4170000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.57421875,
+            "memory": {
+                "used_percent": 7.2,
+                "available_mb": 28656.578125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:42.231+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.7,
+            "cpu_freq_mhz": 3598.551625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.57421875,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28678.59375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:44.236+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.8,
+            "cpu_freq_mhz": 3598.499,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 10.57421875,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28678.34765625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:12:46.240+00:00",
+            "case_index": 43,
+            "case_name": "sklearn LogisticRegression make_clsf",
+            "cpu_percent": 99.9,
+            "cpu_freq_mhz": 3598.501625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 11.0888671875,
+            "memory": {
+                "used_percent": 7.1,
+                "available_mb": 28678.34765625,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}

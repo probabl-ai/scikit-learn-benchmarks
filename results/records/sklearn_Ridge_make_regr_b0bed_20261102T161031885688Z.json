@@ -1,0 +1,470 @@
+{
+    "hardware_hash": "d189c4",
+    "software_hash": "a409a6",
+    "case": {
+        "bench": {
+            "n_runs": 5,
+            "time_limit": 202.0
+        },
+        "metadata": {
+            "source_config": "configs/all_models_cuml_only.py"
+        },
+        "algorithm": {
+            "estimator": "Ridge"
+        },
+        "data": {
+            "source": "make_regression",
+            "generation_kwargs": {
+                "n_samples": 2500,
+                "n_features": 20000,
+                "n_informative": 500
+            },
+            "order": "F",
+            "dtype": "float32"
+        },
+        "implementation": {
+            "library": "sklearn"
+        }
+    },
+    "results": [
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C",
+                    "order": "F"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 174.7702489992662,
+                "fit": 515.3721350034175,
+                "predict": 26.58115299709607
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.06911302045103376,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 1229.9175785393102,
+                    "R2": 0.10974693298339844
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 20000
+            },
+            "random_state": {
+                "estimator": 0,
+                "data": 0
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C",
+                    "order": "F"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 174.75198900137912,
+                "fit": 525.2940969985502,
+                "predict": 40.828763998433715
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.06918063030106666,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 1194.0213565929212,
+                    "R2": 0.12028539180755615
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 20000
+            },
+            "random_state": {
+                "estimator": 1,
+                "data": 1
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C",
+                    "order": "F"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 174.06911500074784,
+                "fit": 543.0545999988681,
+                "predict": 21.723244000895647
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.07001062001300161,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 1215.8857368190484,
+                    "R2": 0.11994600296020508
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 20000
+            },
+            "random_state": {
+                "estimator": 2,
+                "data": 2
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C",
+                    "order": "F"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 174.32521999944584,
+                "fit": 515.734501001134,
+                "predict": 36.64289799780818
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.06798539382668266,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 1223.546944338467,
+                    "R2": 0.10173851251602173
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 20000
+            },
+            "random_state": {
+                "estimator": 3,
+                "data": 3
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        },
+        {
+            "data_desc": {
+                "preprocessing": {
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C",
+                    "order": "F"
+                },
+                "fit": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                },
+                "predict": {
+                    "format": null,
+                    "order": "F",
+                    "dtype": "float32",
+                    "measured_dtype": "float32",
+                    "samples": 2500,
+                    "features": 20000,
+                    "raw_order": "C"
+                }
+            },
+            "time_ms": {
+                "preprocessing": 173.91485400003148,
+                "fit": 511.9571409995842,
+                "predict": 21.883459001401206
+            },
+            "metrics": {
+                "fit": {
+                    "RMSE": 0.0704312976625596,
+                    "R2": 1.0
+                },
+                "predict": {
+                    "RMSE": 1138.1083538046805,
+                    "R2": 0.1424310803413391
+                }
+            },
+            "attributes": {
+                "solver": "cholesky",
+                "n_features_in": 20000
+            },
+            "random_state": {
+                "estimator": 4,
+                "data": 4
+            },
+            "detected_cores": {
+                "n_detected_physical_cores": 4,
+                "n_detected_logical_cpus": 8
+            },
+            "logs": {
+                "stdout": "",
+                "stderr": ""
+            }
+        }
+    ],
+    "failed_case": null,
+    "ci_run_url": "https://github.com/probabl-ai/scikit-learn-benchmarks/actions/runs/41477372383",
+    "system_telemetry": [
+        {
+            "timestamp": "2026-11-02T16:10:31.981+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 37.9,
+            "cpu_freq_mhz": 3600.0642500000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.06103515625,
+            "memory": {
+                "used_percent": 6.6,
+                "available_mb": 28830.44921875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:33.987+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 20.7,
+            "cpu_freq_mhz": 2868.0795000000003,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 3.06103515625,
+            "memory": {
+                "used_percent": 7.9,
+                "available_mb": 28444.36328125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:35.988+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 18.0,
+            "cpu_freq_mhz": 2882.756625,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8955078125,
+            "memory": {
+                "used_percent": 9.7,
+                "available_mb": 27896.96875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:37.990+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 39.9,
+            "cpu_freq_mhz": 2911.3828750000002,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.8955078125,
+            "memory": {
+                "used_percent": 8.3,
+                "available_mb": 28312.75390625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:39.992+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 24.2,
+            "cpu_freq_mhz": 3598.4485000000004,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.74365234375,
+            "memory": {
+                "used_percent": 10.8,
+                "available_mb": 27539.05859375,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:41.997+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 35.1,
+            "cpu_freq_mhz": 3028.548,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.74365234375,
+            "memory": {
+                "used_percent": 8.6,
+                "available_mb": 28218.6015625,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:43.999+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 38.2,
+            "cpu_freq_mhz": 3599.1595,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.74365234375,
+            "memory": {
+                "used_percent": 10.2,
+                "available_mb": 27725.66796875,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:46.010+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 22.8,
+            "cpu_freq_mhz": 3599.630875,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.60400390625,
+            "memory": {
+                "used_percent": 9.9,
+                "available_mb": 27829.3828125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:48.013+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 43.6,
+            "cpu_freq_mhz": 2876.736375,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.60400390625,
+            "memory": {
+                "used_percent": 6.9,
+                "available_mb": 28757.1953125,
+                "swap_used_percent": 0.0
+            }
+        },
+        {
+            "timestamp": "2026-11-02T16:10:50.015+00:00",
+            "case_index": 40,
+            "case_name": "sklearn Ridge make_regr",
+            "cpu_percent": 18.0,
+            "cpu_freq_mhz": 2883.2676249999995,
+            "temperatures_c": -0.15,
+            "load_avg_1min": 2.47509765625,
+            "memory": {
+                "used_percent": 10.0,
+                "available_mb": 27787.515625,
+                "swap_used_percent": 0.0
+            }
+        }
+    ]
+}
