@@ -493,3 +493,18 @@ Outcome:
   every threaded call at 1-12 GF/s, for develop and the PR alike. Probably
   taskset pinning + OMP_PLACES with this build; conda-forge's own OpenMP
   OpenBLAS was fine bound in exp 10. Left out, not investigated.
+
+## Exp 16: small syrk thread-count crossover (xeon-s1)
+
+`scripts/run_syrk_small.sh xeon-s1 1,2,4,8,16,32,64,86`: PR #3 build (threads
+= min(T, n/16)), f64 syrk n in {32..512} x k in {1000..100000}, pthreads and
+OpenMP on LLVM libomp, 2 rounds pinned. `results/xeon-s1/syrk_small.csv`.
+
+Outcome (both runtimes alike): threading loses below ~2M n^2 k per thread
+and gains above ~4M (64x1000 on 4 threads: 47 -> 27 GF/s; 64x5000: 39 -> 60;
+128x1000 on 4: 61 -> 129; 256x1000 on 16: 65 -> 290). n=32 gains nothing
+from 2 threads (one thread gets all the columns). The gemm interface caps
+threads at MNK / 262144; syrk's interface only checks the minimum size.
+-> second PR commit: `args.nthreads <= NNK / (8 * SMP_THRESHOLD_MIN *
+GEMM_MULTITHREAD_THRESHOLD)` (~3.5M per thread for real types) in
+`interface/syrk.c`. Exp 17 re-tests it.
