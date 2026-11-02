@@ -12,7 +12,13 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.metrics import silhouette_score
-from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from sklearn.base import clone
+from sklearn.model_selection import (
+    GridSearchCV,
+    ShuffleSplit,
+    StratifiedShuffleSplit,
+    train_test_split,
+)
 from sklearn.pipeline import Pipeline
 from sklearn.utils.parallel import Parallel, delayed
 
@@ -77,7 +83,7 @@ def _silhouette_scorer(estimator, X, y=None) -> float:
 
 
 # `hptuning.scoring` (a plain str, so it round-trips through the JSON case
-# file) resolves through this before reaching RandomizedSearchCV: a name in
+# file) resolves through this before reaching GridSearchCV: a name in
 # here becomes the matching callable, anything else (a builtin sklearn
 # scorer name, or None resolved by `_default_scoring`) passes through as-is.
 _SPECIAL_SCORERS = {"silhouette": _silhouette_scorer}
@@ -97,13 +103,13 @@ def _raw_xy(raw_data: dict):
 
 
 @contextlib.contextmanager
-def _capture_cv_task_times(search: RandomizedSearchCV):
+def _capture_cv_task_times(search: GridSearchCV):
     """`search.cv_results_` only keeps `mean_fit_time`/`mean_score_time`
     (and their `std_*` counterparts), aggregated across CV folds per
     candidate - the raw per-(candidate, fold) timings that `_fit_and_score`
     already computes for each individual joblib task are discarded once
     `_format_results` aggregates them. Monkeypatching `_format_results`
-    (called exactly once for `RandomizedSearchCV`, after `parallel(...)` has
+    (called exactly once by the search, after `parallel(...)` has
     collected every task's result back into the main process) recovers
     them without caring which `joblib_backend` ran the tasks.
     """
@@ -148,12 +154,19 @@ def run_hptuning(case: HPTuningCase) -> dict:
         X = pd.DataFrame(X)
 
     pipeline = _build_pipeline(case)
-    # Keys are full pipeline param paths (e.g. "estimator__C" to tune the
-    # model itself, "preprocessor__categorical__max_categories" to tune
-    # preprocessing instead/as well) - not auto-prefixed, so a case can mix
-    # both or tune preprocessing exclusively (e.g. when the estimator does
-    # its own internal tuning, like RidgeCV's alpha).
-    param_distributions = hptuning.param_distributions
+    # One single-valued grid per candidate, so GridSearchCV fits exactly the
+    # listed candidates. It dispatches all the splits of a candidate before
+    # the next candidate, so concurrent fits mostly share the same params.
+    param_grid = [
+        {name: [value] for name, value in candidate.items()}
+        for candidate in hptuning.candidates
+    ]
+    split_class = StratifiedShuffleSplit if n_classes is not None else ShuffleSplit
+    cv = split_class(
+        n_splits=hptuning.n_splits,
+        test_size=hptuning.test_size,
+        random_state=hptuning.random_state,
+    )
     scoring = hptuning.scoring or _default_scoring(n_classes)
     scorer = _SPECIAL_SCORERS.get(scoring, scoring)
 
@@ -168,28 +181,24 @@ def run_hptuning(case: HPTuningCase) -> dict:
         # the timed search below.
         Parallel(n_jobs=hptuning.n_jobs)(delayed(lambda: None)() for _ in range(hptuning.n_jobs))
 
-        search = RandomizedSearchCV(
+        # No refit: it would run once in the main process whatever n_jobs is.
+        search = GridSearchCV(
             pipeline,
-            param_distributions,
-            n_iter=hptuning.n_iter,
-            cv=hptuning.cv_n_splits,
+            param_grid,
+            cv=cv,
             n_jobs=hptuning.n_jobs,
             scoring=scorer,
             error_score="raise",
-            random_state=hptuning.random_state,
+            refit=False,
         )
         tic = time.time()
         with _capture_cv_task_times(search) as cv_task_times:
             search.fit(X, y)
         duration_s = time.time() - tic
 
-    # `best_estimator_` is the pipeline refit on the whole `X, y` (`refit=True`
-    # by default), so its already-fitted preprocessor step can transform `X`
-    # to recover the shape the estimator actually trained on, without an
-    # extra fit - same `estimator[:-1].transform(X)` pattern
-    # `_silhouette_scorer` uses above. Equals `raw`'s n_features when
-    # `preprocessing_kind` is None (a "passthrough" step).
-    fit_n_features = search.best_estimator_[:-1].transform(X).shape[1]
+    # Shape seen by the estimator, after the best candidate's preprocessing.
+    best_preprocessor = clone(pipeline).set_params(**search.best_params_)[:-1]
+    fit_n_features = best_preprocessor.fit_transform(X, y).shape[1]
 
     return {
         "data_desc": {

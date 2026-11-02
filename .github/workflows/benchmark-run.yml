@@ -254,6 +254,8 @@ jobs:
             # Without the LFS filter, `git add` silently stores results as
             # raw blobs (it happened on the AWS runner, see #162). --local
             # also installs the pre-push hook that uploads the objects.
+            # `pixi global` exposes git-lfs in ~/.pixi/bin, not on PATH.
+            export PATH="$HOME/.pixi/bin:$PATH"
             command -v git-lfs >/dev/null || pixi global install git-lfs
             git lfs install --local
             branch="bench-results/${BENCH_RUNNER}-${{ github.run_id }}"
