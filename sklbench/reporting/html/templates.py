@@ -468,6 +468,29 @@ DATE_RANGE_TEMPLATE = Template("""<section class="panel">
   <h2>No results</h2>
   {% else %}
   <h2 class="date-range" data-count="{{ count }}" data-start="{{ start }}" data-end="{{ end }}"></h2>
+  {% if sources %}
+  <details class="about-section result-sources">
+    <summary>Where these results come from ({{ sources|length }} source{{ "s" if sources|length > 1 }})</summary>
+    <table class="sources-table">
+      <thead><tr><th>Recorded</th><th>Records</th><th>Source</th><th>Config</th></tr></thead>
+      <tbody>
+      {% for row in sources %}
+      {% set source = row.source %}
+        <tr>
+          <td>{{ row.start.strftime("%Y-%m-%d") }}{% if row.end.date() != row.start.date() %} to {{ row.end.strftime("%Y-%m-%d") }}{% endif %}</td>
+          <td>{{ row.count }}</td>
+          <td>
+            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
+            {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
+            {% if source.commit_url %} &middot; <a href="{{ source.commit_url }}" title="{{ source.commit_subject|e }}"><code>{{ source.commit_sha[:8] }}</code></a> <span class="muted">by {{ source.commit_author|e }}</span>{% endif %}
+          </td>
+          <td>{% for config in row.configs %}<code>{{ config|e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </details>
+  {% endif %}
   {% endif %}
 </section>""")
 

@@ -327,6 +327,12 @@ enhancements, new configs, etc.
 Once the PR is merged into `main`, the GitHub Pages workflow regenerates and
 deploys the dashboards.
 
+Each dashboard lists where its results come from, in a collapsed section under
+the record count: the CI run, the PR and the commit that added them. Records
+written by a GitHub Actions run store the run URL (`ci_run_url`). For the
+others, `sklbench/reporting/provenance.py` reads the git history, so the
+dashboard workflows check out the full history.
+
 ## Notes
 
 `results/*.json` and `results/**/*.json` are tracked with Git LFS through

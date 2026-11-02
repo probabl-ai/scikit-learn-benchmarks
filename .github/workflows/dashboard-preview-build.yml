@@ -31,6 +31,9 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           lfs: false
+          # Full history: the dashboards link each result to the commit and
+          # PR that added it (see sklbench/reporting/provenance.py).
+          fetch-depth: 0
           # This checks out and runs untrusted PR code (may be from a
           # fork). No secrets are available to this job, but don't leave a
           # git-credential token around for it to find either.
