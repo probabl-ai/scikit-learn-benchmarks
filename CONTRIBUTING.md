@@ -167,7 +167,7 @@ Locally"](#previewing-dashboards-locally) to look at them.
 
 ### Sharing the Benchmark Machines
 
-Two runs on the same machine slow each other down. On intel-gnr,
+Two runs on the same machine slow each other down. On intel-xeon,
 intel-laptop and the maintainers' laptops, wrap anything you time with
 `scripts/benchlock`, which takes a machine-wide lock:
 
@@ -176,13 +176,16 @@ benchlock --tag "hgb binning A/B" all -- ./run.sh sklearn-pypi --config configs/
 benchlock status --all-hosts
 ```
 
-Slot `all` is the whole machine. On intel-gnr, `s0` and `s1` are one socket
+Slot `all` is the whole machine. On intel-xeon, `s0` and `s1` are one socket
 each, with the command bound to that socket's CPUs and memory by `numactl`.
 They are meant for quick A/B tests only: don't publish results from them.
 `run-benchmarks.yml` and `pr-comparison.yml` hold `all` for the whole
 benchmark, setup included, so they wait for local runs and the other way
 around. Install or update `benchlock` on every machine with
-`scripts/install_benchlock.sh`.
+`scripts/install_benchlock.sh`. On macOS, it needs a recent bash and `flock`
+first on the PATH of non-interactive ssh commands:
+`pixi global install bash util-linux --expose flock=flock --expose setsid=setsid`,
+with `~/.pixi/bin` and `~/.local/bin` added to the PATH in `~/.zshenv`.
 
 ## Running Against scikit-learn Branches
 
@@ -323,6 +326,12 @@ enhancements, new configs, etc.
 
 Once the PR is merged into `main`, the GitHub Pages workflow regenerates and
 deploys the dashboards.
+
+Each dashboard lists where its results come from, in a collapsed section under
+the record count: the CI run, the PR and the commit that added them. Records
+written by a GitHub Actions run store the run URL (`ci_run_url`). For the
+others, `sklbench/reporting/provenance.py` reads the git history, so the
+dashboard workflows check out the full history.
 
 ## Notes
 

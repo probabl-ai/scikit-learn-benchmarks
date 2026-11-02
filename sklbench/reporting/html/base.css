@@ -624,3 +624,18 @@ ul.compact {
 .term-tip a {
   white-space: nowrap;
 }
+.sources-table {
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+.sources-table th,
+.sources-table td {
+  padding: 4px 10px 4px 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.sources-table td:nth-child(3) {
+  text-align: right;
+}
