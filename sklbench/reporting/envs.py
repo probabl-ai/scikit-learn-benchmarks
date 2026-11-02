@@ -301,6 +301,11 @@ def _threadpool_summary(env: dict) -> list[str]:
         label = name
         if version:
             label += f" {version}"
+        # The threading layer is what tells the pthreads and OpenMP builds of
+        # the same OpenBLAS apart.
+        threading_layer = info.get("threading_layer")
+        if threading_layer and threading_layer != "unknown":
+            label += f", {threading_layer} threading"
         if threads is not None:
             label += f" ({threads} threads)"
         summary.append(label)
