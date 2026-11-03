@@ -191,12 +191,11 @@ def map_kmeans_params(params: dict[str, Any]) -> dict[str, Any]:
     init = out.get("init", "k-means++")
     if isinstance(init, str):
         if init == "k-means++":
-            # cuML's "k-means++" string makes n_init="auto" mean 10 restarts.
-            # "scalable-k-means++" with oversampling_factor=0 is the same
-            # one-centroid-per-round procedure, and n_init="auto" then means
-            # 1 restart, matching scikit-learn.
-            out["init"] = "scalable-k-means++"
-            out["oversampling_factor"] = 0.0
+            # One center per round, same rule as scikit-learn. cuML reads
+            # n_init="auto" as 10 restarts for this init and as 1 restart for
+            # scalable-k-means++. scikit-learn's auto with k-means++ is 1.
+            if out.get("n_init", "auto") == "auto":
+                out["n_init"] = 1
         elif init in ("scalable-k-means++", "k-means||", "random"):
             out["init"] = "k-means||" if init == "k-means||" else init
         else:

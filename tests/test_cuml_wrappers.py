@@ -67,15 +67,18 @@ def test_random_forest_regressor_squared_error():
     assert mapped["split_criterion"] == "mse"
 
 
-def test_kmeans_maps_kmeanspp_init():
+def test_kmeans_keeps_kmeanspp_and_one_restart():
     mapped = map_kmeans_params(
-        {"init": "k-means++", "n_clusters": 5, "algorithm": "lloyd", "n_init": 1}
+        {"init": "k-means++", "n_clusters": 5, "algorithm": "lloyd", "n_init": "auto"}
     )
-    assert mapped["init"] == "scalable-k-means++"
-    assert mapped["oversampling_factor"] == 0.0
-    assert mapped["n_clusters"] == 5
+    assert mapped["init"] == "k-means++"
     assert mapped["n_init"] == 1
+    assert mapped["n_clusters"] == 5
     assert "algorithm" not in mapped
+
+    explicit = map_kmeans_params({"init": "k-means++", "n_init": 1})
+    assert explicit["init"] == "k-means++"
+    assert explicit["n_init"] == 1
 
 
 def test_wrapped_estimators_register_cuml():
