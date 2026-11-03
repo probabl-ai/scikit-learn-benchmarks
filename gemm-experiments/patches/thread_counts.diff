@@ -1,0 +1,81 @@
+diff --git a/interface/axpy.c b/interface/axpy.c
+index 458285bc..331a5541 100644
+--- a/interface/axpy.c
++++ b/interface/axpy.c
+@@ -95,10 +95,11 @@ void CNAME(blasint n, FLOAT alpha, FLOAT *x, blasint incx, FLOAT *y, blasint inc
+   //
+   //Temporarily work-around the low performance issue with small input size &
+   //multithreads.
++  //Each thread gets at least 200 kB of x, enough to pay for waking it.
+   if (incx == 0 || incy == 0 || n <= MULTI_THREAD_MINIMAL)
+ 	  nthreads = 1;
+   else
+-	  nthreads = num_cpu_avail(1);
++	  nthreads = MAX(1, MIN(num_cpu_avail(1), n * SIZE / 200000));
+ 
+   if (nthreads == 1) {
+ #endif
+diff --git a/interface/lapack/gesv.c b/interface/lapack/gesv.c
+index ae108f33..2448fbb1 100644
+--- a/interface/lapack/gesv.c
++++ b/interface/lapack/gesv.c
+@@ -137,6 +137,8 @@ void NAME(blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA, blasint *ipiv,
+     else
+       args.nthreads = num_cpu_avail(4);
+ #endif
++  /* Same cap as in getrf: one thread per 200 columns beyond 8 threads. */
++  if (args.nthreads > MAX(8, args.m / 200)) args.nthreads = MAX(8, args.m / 200);
+ 
+   if (args.nthreads == 1) {
+ #endif
+diff --git a/interface/lapack/getrf.c b/interface/lapack/getrf.c
+index 1bd7f44e..785be8aa 100644
+--- a/interface/lapack/getrf.c
++++ b/interface/lapack/getrf.c
+@@ -108,6 +108,10 @@ void NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint
+     args.nthreads = num_cpu_avail(4);
+     if ((args.m*args.n)/args.nthreads <nmax)
+ 	    args.nthreads = (args.m*args.n)/nmax;
++    /* The threads synchronize with each other after every panel, which costs
++       more than it brings beyond about one thread per 200 columns. */
++    if (args.nthreads > MAX(8, MIN(args.m, args.n) / 200))
++	    args.nthreads = MAX(8, MIN(args.m, args.n) / 200);
+   }
+ 
+   if (args.nthreads == 1) {
+diff --git a/interface/symv.c b/interface/symv.c
+index 75625262..92c2246d 100644
+--- a/interface/symv.c
++++ b/interface/symv.c
+@@ -187,10 +187,12 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, blasint n, FLOAT alpha,
+   }
+ 
+ #ifdef SMP
++  /* The threads' partial results are summed serially, so each thread needs
++     at least ~128 rows. */
+   if (n <200)
+ 	  nthreads=1;
+   else
+-  nthreads = num_cpu_avail(2);
++  nthreads = MAX(1, MIN(num_cpu_avail(2), n / 128));
+ 
+   if (nthreads == 1) {
+ #endif
+diff --git a/kernel/x86_64/ddot.c b/kernel/x86_64/ddot.c
+index 569ed241..fb89d156 100644
+--- a/kernel/x86_64/ddot.c
++++ b/kernel/x86_64/ddot.c
+@@ -171,10 +171,12 @@ FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x, FLOAT *y, BLASLONG inc_y)
+ 	FLOAT dot = 0.0;
+ 
+ #if defined(SMP)
++	// Waking each thread costs about as much as a few tens of thousands of
++	// elements, so give every thread at least 25000.
+ 	if (inc_x == 0 || inc_y == 0 || n <= 10000)
+ 		nthreads = 1;
+ 	else
+-		nthreads = num_cpu_avail(1);
++		nthreads = MAX(1, MIN(num_cpu_avail(1), n / 25000));
+ 
+ 	if (nthreads == 1) {
+ 		dot = dot_compute(n, x, inc_x, y, inc_y);

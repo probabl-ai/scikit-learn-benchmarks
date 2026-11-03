@@ -600,3 +600,82 @@ f64 64x20000 12T 48 -> 111), including reduced counts that land on E cores.
 Where v4 keeps one thread: 0.955-1.0x+. Cells running develop's code path:
 0.76-1.12x, median 0.99 (24-thread noise on this machine, see exp 6).
 PR #3 table updated with gamer rows.
+
+## Exp 20: thread scaling of the other routines scikit-learn calls (xeon-s1)
+
+`src/gemmbench.c` now also times float64 level-1/2/3 and LAPACK routines
+through their Fortran symbols (`dot:N`, `axpy:N`, `symv:N`, `trsm:MxN`,
+`potrf:N`, `getrf:MxN`, `geqrf:MxN`, `syevd:N`, `gesdd:MxN`,
+`gelsd:MxNxNRHS`, ...), restoring overwritten inputs outside the timed
+region; `--check 1` compares a T-thread call with a 1-thread call.
+`scripts/run_routines.sh xeon-s1 1,4,8,16,32,43,64,86`: develop (sr-base,
+b8d14a66) vs MKL on Intel's libiomp5, 2 rounds, pinned.
+`results/xeon-s1/routines.csv`, table with `scripts/routines_table.py`
+(best round's median: one round had ~3 ms stalls on every threaded level-1
+call at 86T, another process on the socket).
+
+Outcome, OpenBLAS at 86T vs its best T vs MKL 86T:
+- ddot/daxpy n=2e4-1e6: thread from n > 10000 with every thread; the call
+  costs ~0.35 us per thread (11 us at 32T, 25 us at 64T), so n=1e5 takes
+  26-34 us at 64-86T vs 4 us at 4-8T. MKL: 4-13 us.
+- dsymv n=500-2000: best at 8-32T, 2.9-4.3x slower at 86T.
+- getrf/gesv n=1000-4000: best at 12-16T, 2.6-8x slower at 64-86T
+  (gesv 2000: 15 ms at 16T, 106 ms at 64T; MKL 8.5 ms).
+- trsm left with 100 RHS (cho_solve): best at 16-24T, 2.2x slower at 86T,
+  MKL 10x faster. Each thread packs the whole triangle.
+- No cliff but 3-15x behind MKL: geqrf tall (1e5x200: 116 ms flat from 16T,
+  MKL 14 ms), and through it gelsd (LinearRegression, 1e5x100: 79 vs 16 ms)
+  and gesdd tall (PCA full SVD, 1e5x100: 116 vs 27 ms); potrf/posv (2000:
+  6.4 vs 1.9 ms; 8000: 100 vs 39 ms); syevd 4000 (1.07 s vs 0.46 s).
+- OpenBLAS wins: tall getrf (1e5x20: 2.6 vs 6.2 ms), dger.
+
+## Exp 21: fine thread grid (xeon-s1)
+
+`scripts/run_threadgrid.sh xeon-s1`, develop only, `threadgrid-{l12,lapack}.csv`.
+Best thread count: ddot/daxpy ~n/25000 (1e5: 4-8, 1e6: 16-24, 5e6: all),
+dsymv ~n/125, getrf 4 (n=500) to 24 (n=8000), trsm with 100 RHS ~24
+whatever m, potrf flat from 16-24T.
+
+## Exp 22: thread-count patch vs develop (xeon-s1)
+
+`patches/thread_counts.diff` (fork branch thread-counts, built as
+`builds/tc`): ddot (x86_64 kernel) and axpy use min(T, n/25000) threads
+(axpy: n*sizeof/200000), dsymv min(T, n/128), getrf and gesv at most
+max(8, min(m,n)/200). Checks vs one thread at 8/43/86T: 252 OK
+(`check_tc.txt`). `scripts/run_tc.sh xeon-s1 4,8,16,32,43,64,86`, 3 rounds,
+`tc.csv`.
+
+Outcome (develop -> patch):
+- ddot 1e5: 7 -> 4 us at 16T, 26 -> 4 us at 64T; daxpy 2e4 64T 24 -> 4 us;
+  dsymv 1000 64T 59 -> 14 us; getrf 1000 64T 45 -> 8 ms; getrf 4000 64T
+  158 -> 75 ms; gesv 2000 64T 58 -> 29 ms (86T: 2.4 s -> 24 ms in one
+  round); getrf 20000x500 86T 96 -> 29 ms; syevd 1000 86T 73 -> 54 ms.
+- Slower, all rounds: ddot/daxpy 2e4-1e5 at 4-8T (patch uses 1-2 threads:
+  axpy 2e4 8T 2 -> 4 us), ddot/daxpy 1e6-2e6 at 86T (16-19 -> 19-35 us),
+  getrf 20000x500 at 16T (21 -> 27 ms, the column cap is wrong for tall
+  matrices), dsymv 4000 at 43T (117 -> 145 us) and 300 at 4-8T (4 -> 5 us).
+
+scikit-learn end to end (`scripts/run_sklearn_e2e.sh xeon-s1 8,43,64,86`,
+conda-forge numpy/scipy/sklearn 1.9.1 with the build swapped in by
+LD_PRELOAD, checked with LD_DEBUG=bindings; `sklearn_e2e.csv`, best of 3):
+Lasso 20000x100 (tol=0, 20 epochs) 69 -> 15 ms at 64T, 37 -> 16 ms at 86T
+but 9 -> 15 ms at 8T; Lasso 100000x100 85 -> 46 ms at 64T;
+scipy.linalg.solve 1000 62 -> 11 ms at 64T; solve 4000 461 -> 284 ms at
+86T; numpy eigh 2000 361 -> 277 ms at 86T. ElasticNet tracks Lasso.
+Lasso 1000000x20 is slower at 43-64T (72 -> 92 ms).
+
+Probes (`probe_pool.sh`, `probe_pool.csv`, and inline runs):
+- The 86T level-1 results come from the hardware: from 82 busy threads on,
+  every level-1 call gets 2-2.5x cheaper (ddot 1e5: 32 us at 81T, 14 us at
+  82T; dsymv 1000: 66 -> 53 us), pinned or not, whatever the pool size.
+  Socket 1 has Efficiency Latency Control on (elc_high_threshold_enable=1,
+  elc_high_threshold_percent=95): the uncore runs at full speed only when
+  more than 95% of the cores are busy, and 82/86 = 95.3%. A 40-thread call
+  with 43 spinning processes on the other cores gets the same gain (ddot
+  1e6 16.5 -> 9.2 us, dsymv 1000 41 -> 30 us, getrf 2000 32 -> 25 ms), 38
+  spinners don't. So "all cores busy" is faster on this machine, and
+  results at 82-86T compare against a faster uncore.
+- Lasso 1000000x20 with develop: 72-76 ms with 43 threads, 70 ms with 24,
+  92 ms with exactly 40 (both rounds), on the same 43 cores. A cache-cold
+  ddot+daxpy loop over 20 vector pairs of 1e6 is flat at 4.2 ms per cycle
+  from 16 to 43 threads, 40 included. Not understood yet.

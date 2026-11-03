@@ -28,4 +28,4 @@ default = { features = ["pthreads"] }
 omp = { features = ["omp"] }
 
 [tasks]
-build = "mkdir -p build && cc -O2 -Wall -o build/gemmbench src/gemmbench.c -ldl -lpthread"
+build = "mkdir -p build && cc -O2 -Wall -o build/gemmbench src/gemmbench.c -ldl -lpthread -lm"
