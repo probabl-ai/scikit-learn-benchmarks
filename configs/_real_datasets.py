@@ -51,7 +51,11 @@ if cpu_count() > 64:
     _KMEANS_ENV["OMP_NUM_THREADS"] = "64"
     _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "64"
 KMEANS_BENCH = {"env": _KMEANS_ENV}
-_KMEANS_PARAMS = {"tol": 1e-9, "max_iter": 100}
+# Note that cuML uses a slightly different init method compared to scikit-learn:
+# its default is `init="scalable-kmeans++"` instead of `init="kmeans++"`. This
+# can lead to non-trivial inertia discrepancies for particular data
+# distributions.
+_KMEANS_PARAMS = {"tol": 1e-9, "max_iter": 100, init="kmeans++"}
 
 # Forests run with n_jobs=-1, as most users would: one thread per logical CPU.
 N_THREADS = cpu_count()
