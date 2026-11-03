@@ -55,7 +55,7 @@ KMEANS_BENCH = {"env": _KMEANS_ENV}
 # its default is `init="scalable-kmeans++"` instead of `init="kmeans++"`. This
 # can lead to non-trivial inertia discrepancies for particular data
 # distributions.
-_KMEANS_PARAMS = {"tol": 1e-9, "max_iter": 100, init="kmeans++"}
+_KMEANS_PARAMS = {"tol": 1e-9, "max_iter": 100, "init": "k-means++"}
 
 # Forests run with n_jobs=-1, as most users would: one thread per logical CPU.
 N_THREADS = cpu_count()
