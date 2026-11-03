@@ -31,8 +31,29 @@
   often costs 400-600 us. Merging regions pays off when it removes the
   serial code between them (Exp 8). When spinning, all of this is 1-4 us.
 
-## Pending
+## Merging parallel regions (LOG Exp 9-10)
 
-- Exp 10 A/B of the fused variants and absolute guards on gamer, laptop and
-  xeon (one socket, active and passive).
-- Tune the `abs` thresholds if they turn out to matter.
+- fuse3 (2 regions and 1 barrier per split instead of 7 regions) is faster
+  than the PR on every profile: geomean 0.76-0.90 over the 15
+  hgb_scalability cases, up to 3x on msd, and never clearly slower on a
+  multi-threaded case. It also fixes the msd regression everywhere except
+  gamer libomp (7.3 s vs main's 5.7 s).
+- It helps even with active wait on one Xeon socket (0.76 geomean), where
+  the microbenchmarks predicted only 1-2 us saved per region. Fewer Python
+  round trips between regions probably matter there too.
+- The 3-region version (fuse) gets about half of fuse3's gain.
+- Once split finding lives in the histogram region, the only serial guard
+  left is split_indices'. It still matters (none+fuse3 is the worst fused
+  variant on msd), and the PR's per-thread rule is the safer one: the
+  absolute 20K-sample rule helps a bit on 16-24 threads but hurts at 86.
+- Energy follows time: an msd fit on gamer uses ~505 J with abs+fuse3 vs
+  ~770 J with the PR (turbostat, Exp 11).
+
+## Open
+
+- One process of 3 fits per case and variant: repeat the multi-threaded
+  cases to get the noise level.
+- Why fused variants lose to abs alone on msd with libomp.
+- A split_indices guard that works from 16 to 86 threads.
+- Turn fuse3 into a reviewable change (no env vars) on top of #34935, or as
+  a follow-up PR.
