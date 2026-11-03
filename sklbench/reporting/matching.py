@@ -9,6 +9,7 @@ import re
 from statistics import mean, median, stdev
 from typing import Any, Sequence
 
+from .provenance import summarize_sources
 from .utils import stable_json, without_keys
 
 
@@ -124,6 +125,7 @@ class BenchmarkRecord:
     record_path: Path | None = None
     profile_path: Path | None = None
     failed_case: dict | None = None
+    ci_run_url: str | None = None
 
     @property
     def implementation(self) -> Implementation:
@@ -371,6 +373,7 @@ def read_benchmark_records(path=None) -> list[BenchmarkRecord]:
                 record_path=result_path,
                 profile_path=profile_path,
                 failed_case=result_file.get("failed_case"),
+                ci_run_url=result_file.get("ci_run_url"),
             )
         )
 
@@ -813,9 +816,23 @@ def find_matches(
     return matches
 
 
-def date_range(results: list[MethodResult]) -> dict:
+def date_range(results: list[MethodResult] | list[BenchmarkRecord]) -> dict:
     if not results:
         return {"empty": True}
     start = min(result.timestamp_recorded for result in results)
     end = max(result.timestamp_recorded for result in results)
-    return {"count": len(results), "start": start.isoformat(), "end": end.isoformat()}
+    records = {
+        id(record): record
+        for record in (
+            result.record if isinstance(result, MethodResult) else result
+            for result in results
+        )
+        if record is not None
+    }
+    sources = summarize_sources(records.values())
+    return {
+        "count": len(results),
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "sources": sources,
+    }

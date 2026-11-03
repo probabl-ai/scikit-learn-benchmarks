@@ -11,9 +11,12 @@ filtering by hand.
     python scripts/what_to_rerun.py --config configs/hgb_scalability.py
 
 `--hardware` (a `HARDWARE_NAMES` display name or hash) narrows the printed
-envs to those actually installable there, per `sklbench.reporting.envs.
-env_platforms()` and `dashboards.HARDWARE_PLATFORMS` - e.g. `skl-mps`/`intel`
-never get suggested for hardware that can't run them.
+envs to those whose Pixi platform is compatible with the machine's supported
+platform set, per `sklbench.reporting.envs.env_platforms()` and
+`dashboards.HARDWARE_PLATFORMS` - e.g. `skl-mps` is never suggested for Linux
+machines, and `skl-nvidia` is kept for a CUDA-capable machine. This filters
+by installability only; it does not model runtime requirements such as an
+actual Intel GPU.
 
 A module may also declare `SOURCE_CONFIG_OVERRIDES` (see
 `dashboards/gen_hgb_scalability_breakdown.py` for an example) to restrict one
@@ -55,9 +58,13 @@ def _dashboards_by_label(label: str):
 def _envs_for_hardware(source_envs: list[str], hardware_hash: str | None) -> list[str]:
     if hardware_hash is None:
         return list(source_envs)
-    platform = HARDWARE_PLATFORMS[hardware_hash]
+    host_platforms = HARDWARE_PLATFORMS[hardware_hash]
     platforms = env_platforms()
-    return [env for env in source_envs if platform in platforms.get(env, frozenset())]
+    return [
+        env
+        for env in source_envs
+        if host_platforms & platforms.get(env, frozenset())
+    ]
 
 
 def _config_envs_and_note(

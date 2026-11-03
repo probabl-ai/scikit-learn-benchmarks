@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import math
+import os
 import re
 import shlex
 import sys
@@ -197,6 +198,15 @@ def save_environment_sidecars(
             pass
 
 
+def _github_actions_run_url() -> str | None:
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return None
+    return (
+        f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}"
+        f"/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+    )
+
+
 def save_benchmark_record(
     record_path: Path,
     bench_case: Case,
@@ -214,6 +224,9 @@ def save_benchmark_record(
         "results": rows,
         "failed_case": failed_case,
     }
+    ci_run_url = _github_actions_run_url()
+    if ci_run_url is not None:
+        record["ci_run_url"] = ci_run_url
     if system_telemetry:
         # Only the samples that fell within this case's own wall-clock
         # window (see `SystemMonitor.samples_between`) - omitted entirely

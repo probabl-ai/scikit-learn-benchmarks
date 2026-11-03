@@ -2,12 +2,12 @@
 # Installs scripts/benchlock as ~/.local/bin/benchlock on this machine and on
 # the remote benchmark machines. Rerun it after changing scripts/benchlock.
 #
-# Usage: scripts/install_benchlock.sh [HOST ...]   (default: local intel-gnr intel-laptop)
+# Usage: scripts/install_benchlock.sh [HOST ...]   (default: local intel-xeon intel-laptop)
 set -euo pipefail
 
 src="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/benchlock"
 hosts=("$@")
-[ ${#hosts[@]} -gt 0 ] || hosts=(local intel-gnr intel-laptop)
+[ ${#hosts[@]} -gt 0 ] || hosts=(local intel-xeon intel-laptop)
 
 for h in "${hosts[@]}"; do
     if [ "$h" = local ]; then

@@ -145,7 +145,6 @@ def _with_thread_count(case: dict, thread_count: int) -> dict:
             # But OMP_PROC_BIND=true is also very beneficial on a big box like the GNR
             # when you use all the available cores (and maybe even a bit on hybrid cores)
         },
-        "py_spy_profiling": False,
     }
 
     if not has_hybrid_cores() and sys.platform != "darwin":

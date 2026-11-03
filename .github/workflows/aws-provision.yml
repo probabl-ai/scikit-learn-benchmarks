@@ -1,0 +1,54 @@
+name: AWS Provision
+
+# Reusable AWS provisioning for run-benchmarks.yml. Keeps AWS credentials
+# out of the caller and the benchmark body.
+#
+# One-time setup:
+# - repository variables AWS_GPU_INSTANCE_ID, AWS_GPU_ROLE_ARN, AWS_REGION;
+# - the AWS host registered as a persistent runner in `aws-gpu-runners`;
+# - an `aws-gpu` environment (no required reviewers) for the OIDC `sub` claim;
+# - a role trusting `aud=sts.amazonaws.com` and that environment, allowed to
+#   describe and start the instance.
+on: workflow_call
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  provision:
+    # Starts the EC2 instance and waits for `runner-ready` to be picked up.
+    # This is the only job that can assume the AWS role.
+    runs-on: ubuntu-latest
+    # The environment supplies the OIDC `sub` claim.
+    environment: aws-gpu
+    # 20-minute job timeout leaves 5 minutes after the 15-minute readiness
+    # deadline.
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          # The role trusts the GitHub OIDC provider for this environment.
+          role-to-assume: ${{ vars.AWS_GPU_ROLE_ARN }}
+          role-session-name: benchmark-${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: ${{ vars.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Provision the AWS runner
+        env:
+          # Persistent host that the runner service is registered on. The
+          # script starts it when it is stopped.
+          INSTANCE_ID: ${{ vars.AWS_GPU_INSTANCE_ID }}
+          REGION: ${{ vars.AWS_REGION }}
+          GH_TOKEN: ${{ github.token }}
+          # Used to tell whether the runner is busy with another job.
+          AWS_RUNNER_NAME: ${{ vars.AWS_GPU_RUNNER_NAME || 'aws-nvidia-l4-1' }}
+          AWS_RUNNER_GROUP: ${{ vars.AWS_GPU_RUNNER_GROUP || 'aws-gpu-runners' }}
+        run: bash scripts/ci/aws-provision.sh

@@ -33,9 +33,25 @@ from sklbench.reporting.html import (
 BASE_IMPLEMENTATION = "sklearn"
 ABOUT_HTML = """<section class="panel">
   <p>This dashboard compares <dfn>builds</dfn> of plain scikit-learn. The code is the
-  same, only the <dfn>BLAS/OpenMP runtime</dfn> changes (for example <dfn>conda-forge</dfn>'s <dfn>MKL</dfn>,
-  or its <dfn>libgomp</dfn> and <dfn>libomp</dfn> <dfn>OpenBLAS</dfn> builds). The <dfn>PyPI wheel</dfn> is the <dfn>baseline</dfn>.
+  same, only the <dfn>BLAS/OpenMP runtime</dfn> changes. The <dfn>PyPI wheel</dfn> is the <dfn>baseline</dfn>.
+  The <dfn>conda-forge</dfn> build names encode two choices:
   </p>
+  <ul>
+    <li><code>libgomp</code> or <code>libomp</code>: the <dfn>OpenMP</dfn> runtime of scikit-learn's own
+    loops (<dfn>libgomp</dfn> or <dfn>libomp</dfn>).</li>
+    <li><code>openblas</code> or <code>openblas-omp</code>: how <dfn>OpenBLAS</dfn> runs its threads,
+    with pthreads (the conda-forge default) or with OpenMP. In <code>libomp-openblas-omp</code>,
+    OpenBLAS and scikit-learn share the same libomp threads. <code>mkl</code> is <dfn>MKL</dfn>,
+    on libomp too.</li>
+  </ul>
+  <p><code>sklearn-cf-default</code> installs conda-forge's scikit-learn without pinning
+  either, which gives the same libraries as <code>sklearn-cf-libgomp-openblas</code>.</p>
+  <p>The "Threadpools" and "OpenMP" lines of each environment tab show what
+  was loaded at run time. <code>sklearn-pypi</code> lists two <code>libscipy_openblas</code>:
+  the NumPy and SciPy wheels each ship their own copy of OpenBLAS, and both get
+  loaded, often in different versions. NumPy's matrix products run on NumPy's
+  copy, SciPy's linear algebra (used by some solvers) on SciPy's. On
+  conda-forge, NumPy and SciPy share a single OpenBLAS.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>Read each cell like in
