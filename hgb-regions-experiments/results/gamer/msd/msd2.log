@@ -1,0 +1,30 @@
+sklearn-src=313be4c8c8 FIX Pass the detected wait policy to subprocesses via os.environ
+POOL openmp openmp /home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev/lib/libgomp.so.1.0.0 24
+POOL blas openblas /home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev/lib/libopenblasp-r0.3.34.so 24
+POOL blas openblas /home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libopenblasp-r0.3.34.so 24
+POOL openmp openmp /home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libomp.so 24
+{"env": "sklearn-dev", "label": "pr_default", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [17.15, 16.43, 17.49], "hist_time": 13.62, "find_split_time": 1.98, "apply_split_time": 1.04, "grower_init_time": 0.26}
+{"env": "sklearn-dev", "label": "pr_policy_active", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [4.63, 4.26, 5.08], "hist_time": 2.46, "find_split_time": 1.05, "apply_split_time": 0.73, "grower_init_time": 0.21}
+{"env": "sklearn-dev", "label": "pr_policy_passive", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [16.27, 15.06, 16.94], "hist_time": 12.97, "find_split_time": 1.96, "apply_split_time": 1.0, "grower_init_time": 0.25}
+{"env": "sklearn-dev", "label": "pr_n18", "omp": 24, "n": "18", "rc": 0, "tree_n_threads": 18, "fit": [4.96, 5.35, 5.38], "hist_time": 2.99, "find_split_time": 1.41, "apply_split_time": 0.57, "grower_init_time": 0.21}
+{"env": "sklearn-dev-libomp", "label": "pr_default", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [16.17, 17.0, 16.48], "hist_time": 12.89, "find_split_time": 1.99, "apply_split_time": 1.02, "grower_init_time": 0.25}
+{"env": "sklearn-dev-libomp", "label": "pr_policy_active", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [4.68, 4.68, 4.52], "hist_time": 2.43, "find_split_time": 1.06, "apply_split_time": 0.73, "grower_init_time": 0.21}
+{"env": "sklearn-dev-libomp", "label": "pr_policy_passive", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [16.73, 16.68, 16.59], "hist_time": 13.18, "find_split_time": 1.99, "apply_split_time": 1.05, "grower_init_time": 0.25}
+{"env": "sklearn-dev-libomp", "label": "pr_n18", "omp": 24, "n": "18", "rc": 0, "tree_n_threads": 18, "fit": [7.29, 5.48, 6.64], "hist_time": 3.66, "find_split_time": 1.88, "apply_split_time": 0.69, "grower_init_time": 0.23}
+{"env": "sklearn-dev", "label": "pr_default", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [16.07, 15.62, 17.56], "hist_time": 12.44, "find_split_time": 2.03, "apply_split_time": 1.06, "grower_init_time": 0.25}
+{"env": "sklearn-dev", "label": "pr_policy_active", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [5.87, 4.84, 5.08], "hist_time": 2.64, "find_split_time": 1.22, "apply_split_time": 0.83, "grower_init_time": 0.21}
+{"env": "sklearn-dev", "label": "pr_policy_passive", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [16.52, 16.11, 17.5], "hist_time": 12.98, "find_split_time": 2.03, "apply_split_time": 1.04, "grower_init_time": 0.25}
+{"env": "sklearn-dev", "label": "pr_n18", "omp": 24, "n": "18", "rc": 0, "tree_n_threads": 18, "fit": [7.59, 6.19, 4.74], "hist_time": 3.38, "find_split_time": 1.73, "apply_split_time": 0.67, "grower_init_time": 0.23}
+{"env": "sklearn-dev-libomp", "label": "pr_default", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [17.11, 17.63, 16.47], "hist_time": 13.51, "find_split_time": 2.02, "apply_split_time": 1.07, "grower_init_time": 0.27}
+{"env": "sklearn-dev-libomp", "label": "pr_policy_active", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [5.21, 4.85, 4.45], "hist_time": 2.52, "find_split_time": 1.13, "apply_split_time": 0.78, "grower_init_time": 0.22}
+{"env": "sklearn-dev-libomp", "label": "pr_policy_passive", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [17.26, 15.46, 16.24], "hist_time": 12.77, "find_split_time": 1.98, "apply_split_time": 1.0, "grower_init_time": 0.25}
+{"env": "sklearn-dev-libomp", "label": "pr_n18", "omp": 24, "n": "18", "rc": 0, "tree_n_threads": 18, "fit": [6.55, 5.67, 5.64], "hist_time": 3.1, "find_split_time": 1.5, "apply_split_time": 0.68, "grower_init_time": 0.24}
+{"env": "sklearn-dev", "label": "pr_default", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [17.48, 15.79, 17.54], "hist_time": 13.88, "find_split_time": 2.0, "apply_split_time": 1.09, "grower_init_time": 0.26}
+{"env": "sklearn-dev", "label": "pr_policy_active", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [4.55, 5.42, 5.33], "hist_time": 2.7, "find_split_time": 1.27, "apply_split_time": 0.86, "grower_init_time": 0.21}
+{"env": "sklearn-dev", "label": "pr_policy_passive", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [17.42, 16.7, 16.93], "hist_time": 13.37, "find_split_time": 1.98, "apply_split_time": 1.06, "grower_init_time": 0.26}
+{"env": "sklearn-dev", "label": "pr_n18", "omp": 24, "n": "18", "rc": 0, "tree_n_threads": 18, "fit": [5.82, 4.68, 4.52], "hist_time": 2.6, "find_split_time": 1.16, "apply_split_time": 0.55, "grower_init_time": 0.21}
+{"env": "sklearn-dev-libomp", "label": "pr_default", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [14.46, 15.44, 16.78], "hist_time": 11.91, "find_split_time": 1.98, "apply_split_time": 1.02, "grower_init_time": 0.25}
+{"env": "sklearn-dev-libomp", "label": "pr_policy_active", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [5.08, 4.97, 4.88], "hist_time": 2.58, "find_split_time": 1.17, "apply_split_time": 0.79, "grower_init_time": 0.21}
+{"env": "sklearn-dev-libomp", "label": "pr_policy_passive", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [16.63, 17.9, 17.07], "hist_time": 13.55, "find_split_time": 1.99, "apply_split_time": 1.03, "grower_init_time": 0.26}
+{"env": "sklearn-dev-libomp", "label": "pr_n18", "omp": 24, "n": "18", "rc": 0, "tree_n_threads": 18, "fit": [4.0, 5.23, 6.36], "hist_time": 2.83, "find_split_time": 1.31, "apply_split_time": 0.67, "grower_init_time": 0.24}
+== msd2 done 2026-11-03T16:37:05+00:00

@@ -1,0 +1,42 @@
+### rep=1 states=c1only disable=0 0 1 1
+== wake2 passive 23T
+T=23 item_kb=32 passes=4 per_thread_kb=128
+ gap_us region_med region_p90 wake_max_med   busy_med_thr   busy_max_thr  migrated% C3_per_iter
+      0       22.8       61.3         12.2            3.7            3.8        0.2         0.0
+    160       26.4       34.3         11.7            3.8            8.2        0.1         0.0
+    500       46.9       53.9         20.8           11.6           17.1        0.1         0.0
+   2000       50.8       53.7         21.2           11.9           20.8        0.0         0.0
+policy=default C1=8184575 C2=0 C3=0 wall=15.36 user=88.45 sys=9.91 vol_cs=7015154 invol_cs=344 fits=[4.2, 4.1, 4.2]
+policy=active C1=14640379 C2=0 C3=0 wall=12.61 user=93.88 sys=17.41 vol_cs=12942136 invol_cs=610 fits=[3.3, 3.3, 3.3]
+### rep=1 states=all disable=0 0 0 0
+== wake2 passive 23T
+T=23 item_kb=32 passes=4 per_thread_kb=128
+ gap_us region_med region_p90 wake_max_med   busy_med_thr   busy_max_thr  migrated% C3_per_iter
+      0       54.5      407.0         29.3            9.1           11.7        0.0        11.7
+    160      221.5      283.2        203.7            5.7           11.6        0.0        36.5
+    500      183.6      229.1        157.9            6.7           13.0        0.0        39.5
+   2000      199.9      363.0        153.8           11.6           12.4        0.1        42.8
+policy=default C1=3887806 C2=1129377 C3=3582597 wall=54.20 user=117.70 sys=15.41 vol_cs=7404713 invol_cs=576 fits=[16.6, 16.3, 18.4]
+policy=active C1=12177405 C2=212731 C3=467000 wall=18.13 user=99.30 sys=17.31 vol_cs=12904410 invol_cs=449 fits=[4.7, 5.0, 5.4]
+### rep=2 states=c1only disable=0 0 1 1
+== wake2 passive 23T
+T=23 item_kb=32 passes=4 per_thread_kb=128
+ gap_us region_med region_p90 wake_max_med   busy_med_thr   busy_max_thr  migrated% C3_per_iter
+      0       22.9       59.5         12.2            3.7            3.8        0.0         0.0
+    160       23.6       34.8         11.8            3.7            4.6        0.1         0.0
+    500       46.2       51.6         20.3           11.7           17.2        0.0         0.0
+   2000       50.4       53.4         21.1           12.1           20.8        0.0         0.0
+policy=default C1=8053339 C2=0 C3=0 wall=15.16 user=89.68 sys=10.19 vol_cs=6953150 invol_cs=491 fits=[4.2, 4.1, 4.2]
+policy=active C1=14546317 C2=0 C3=0 wall=12.71 user=95.08 sys=17.65 vol_cs=12838984 invol_cs=400 fits=[3.3, 3.4, 3.4]
+### rep=2 states=all disable=0 0 0 0
+== wake2 passive 23T
+T=23 item_kb=32 passes=4 per_thread_kb=128
+ gap_us region_med region_p90 wake_max_med   busy_med_thr   busy_max_thr  migrated% C3_per_iter
+      0       38.3      373.2         15.6            9.4            9.6        0.0         9.4
+    160      207.5      269.5        187.3            6.4           11.6        0.1        34.3
+    500      183.1      234.2        157.9            8.8           12.6        0.1        41.3
+   2000      342.2      444.5        213.3           12.7           31.6        0.1        47.1
+policy=default C1=3775564 C2=1170028 C3=3594958 wall=53.15 user=117.81 sys=15.09 vol_cs=7331645 invol_cs=424 fits=[16.6, 16.5, 17.1]
+policy=active C1=13331099 C2=222948 C3=459762 wall=18.21 user=98.78 sys=17.74 vol_cs=12971019 invol_cs=317 fits=[5.2, 4.7, 5.3]
+== done 2026-11-03T20:10:43+00:00
+restored: 0 0 0 1

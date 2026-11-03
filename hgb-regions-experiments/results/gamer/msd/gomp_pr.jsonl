@@ -1,0 +1,16 @@
+{"label": "omp24_n24", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [19.85, 20.93, 21.38], "hist_time": 17.42, "find_split_time": 1.91, "apply_split_time": 1.1, "grower_init_time": 0.3}
+{"label": "omp24_n23", "omp": 24, "n": "23", "rc": 0, "tree_n_threads": 23, "fit": [19.72, 20.91, 20.84], "hist_time": 17.35, "find_split_time": 1.87, "apply_split_time": 1.07, "grower_init_time": 0.3}
+{"label": "omp23_nA", "omp": 23, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [20.84, 20.21, 20.96], "hist_time": 17.26, "find_split_time": 1.93, "apply_split_time": 1.1, "grower_init_time": 0.3}
+{"label": "omp24_n22", "omp": 24, "n": "22", "rc": 0, "tree_n_threads": 22, "fit": [19.3, 17.34, 18.66], "hist_time": 15.23, "find_split_time": 1.89, "apply_split_time": 1.08, "grower_init_time": 0.29}
+{"label": "omp24_n20", "omp": 24, "n": "20", "rc": 0, "tree_n_threads": 20, "fit": [15.69, 13.25, 14.04], "hist_time": 10.72, "find_split_time": 1.8, "apply_split_time": 1.0, "grower_init_time": 0.25}
+{"label": "omp24_n16", "omp": 24, "n": "16", "rc": 0, "tree_n_threads": 16, "fit": [4.26, 5.0, 4.87], "hist_time": 2.72, "find_split_time": 1.11, "apply_split_time": 0.64, "grower_init_time": 0.24}
+{"label": "omp16_nA", "omp": 16, "n": "", "rc": 0, "tree_n_threads": 15, "fit": [5.06, 5.33, 4.86], "hist_time": 2.77, "find_split_time": 1.14, "apply_split_time": 0.68, "grower_init_time": 0.24}
+{"label": "omp24_n23_spin", "omp": 24, "n": "23", "rc": 0, "tree_n_threads": 23, "fit": [1.87, 2.82, 1.72], "hist_time": 1.03, "find_split_time": 0.21, "apply_split_time": 0.21, "grower_init_time": 0.15}
+{"label": "omp24_n24", "omp": 24, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [21.45, 20.02, 20.71], "hist_time": 17.29, "find_split_time": 1.82, "apply_split_time": 1.1, "grower_init_time": 0.3}
+{"label": "omp24_n23", "omp": 24, "n": "23", "rc": 0, "tree_n_threads": 23, "fit": [21.37, 20.85, 20.81], "hist_time": 17.43, "find_split_time": 1.92, "apply_split_time": 1.09, "grower_init_time": 0.3}
+{"label": "omp23_nA", "omp": 23, "n": "", "rc": 0, "tree_n_threads": 23, "fit": [20.93, 20.85, 20.82], "hist_time": 17.35, "find_split_time": 1.93, "apply_split_time": 1.09, "grower_init_time": 0.29}
+{"label": "omp24_n22", "omp": 24, "n": "22", "rc": 0, "tree_n_threads": 22, "fit": [20.13, 18.48, 19.05], "hist_time": 15.62, "find_split_time": 1.86, "apply_split_time": 1.08, "grower_init_time": 0.3}
+{"label": "omp24_n20", "omp": 24, "n": "20", "rc": 0, "tree_n_threads": 20, "fit": [14.64, 17.16, 14.4], "hist_time": 11.49, "find_split_time": 1.68, "apply_split_time": 0.99, "grower_init_time": 0.26}
+{"label": "omp24_n16", "omp": 24, "n": "16", "rc": 0, "tree_n_threads": 16, "fit": [4.42, 4.22, 4.6], "hist_time": 2.55, "find_split_time": 0.87, "apply_split_time": 0.6, "grower_init_time": 0.23}
+{"label": "omp16_nA", "omp": 16, "n": "", "rc": 0, "tree_n_threads": 15, "fit": [4.37, 4.81, 4.49], "hist_time": 2.6, "find_split_time": 0.96, "apply_split_time": 0.58, "grower_init_time": 0.23}
+{"label": "omp24_n23_spin", "omp": 24, "n": "23", "rc": 0, "tree_n_threads": 23, "fit": [1.85, 1.97, 2.52], "hist_time": 1.07, "find_split_time": 0.21, "apply_split_time": 0.19, "grower_init_time": 0.14}

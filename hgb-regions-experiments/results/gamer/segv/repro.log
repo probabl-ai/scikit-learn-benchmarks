@@ -1,0 +1,8 @@
+sklearn-src at b8de23fabf FIX Fix HGB binning on features with only missing values (#35216)
+T=8 done (50 runs), failures so far: 0
+T=2 done (15 runs), failures so far: 0
+T=4 done (15 runs), failures so far: 0
+T=16 done (15 runs), failures so far: 0
+T=24 run 11 rc=124 2026-11-03T15:54:17+00:00
+T=24 done (15 runs), failures so far: 1
+== repro done fails=1 2026-11-03T15:54:33+00:00

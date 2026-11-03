@@ -1,0 +1,40 @@
+From https://github.com/scikit-learn/scikit-learn
+ * branch                  main       -> FETCH_HEAD
+   b8de23fabf..1420ffd397  main       -> origin/main
+Previous HEAD position was b8de23fabf FIX Fix HGB binning on features with only missing values (#35216)
+HEAD is now at 1420ffd397 MNT Remove deprecated parameters in Displays for 1.10 (#35276)
+Obtaining file:///home/alacote/scikit-learn-benchmarks/sklearn-src
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: numpy>=1.26.0 in ./.pixi/envs/sklearn-dev/lib/python3.14/site-packages (from scikit-learn==1.10.dev0) (2.5.3)
+Requirement already satisfied: scipy>=1.11.4 in ./.pixi/envs/sklearn-dev/lib/python3.14/site-packages (from scikit-learn==1.10.dev0) (1.18.1)
+Requirement already satisfied: joblib>=1.4.0 in ./.pixi/envs/sklearn-dev/lib/python3.14/site-packages (from scikit-learn==1.10.dev0) (1.6.0)
+Requirement already satisfied: narwhals>=2.0.1 in ./.pixi/envs/sklearn-dev/lib/python3.14/site-packages (from scikit-learn==1.10.dev0) (2.26.0)
+Requirement already satisfied: threadpoolctl>=3.5.0 in ./.pixi/envs/sklearn-dev/lib/python3.14/site-packages (from scikit-learn==1.10.dev0) (3.7.0)
+Requirement already satisfied: cloudpickle>=3.0 in ./.pixi/envs/sklearn-dev/lib/python3.14/site-packages (from joblib>=1.4.0->scikit-learn==1.10.dev0) (3.1.2)
+Building wheels for collected packages: scikit-learn
+  Building editable for scikit-learn (pyproject.toml): started
+  Building editable for scikit-learn (pyproject.toml): finished with status 'done'
+  Created wheel for scikit-learn: filename=scikit_learn-1.10.dev0-cp314-cp314-linux_x86_64.whl size=9758 sha256=769b8df681f019db4ab37427c3ae12addf16090605e9315f1f27ea0d152216d0
+  Stored in directory: /tmp/pip-ephem-wheel-cache-2hze1nwi/wheels/05/39/d5/13aaf9ffd3d0ee06753944111137ad845a47be87812eca3647
+Successfully built scikit-learn
+Installing collected packages: scikit-learn
+  Attempting uninstall: scikit-learn
+    Found existing installation: scikit-learn 1.10.dev0
+    Uninstalling scikit-learn-1.10.dev0:
+      Successfully uninstalled scikit-learn-1.10.dev0
+Successfully installed scikit-learn-1.10.dev0
+imported sklearn 1.10.dev0 from /home/alacote/scikit-learn-benchmarks/sklearn-src/sklearn/__init__.py
+
+scikit-learn setup complete
+  remote:   https://github.com/scikit-learn/scikit-learn.git
+  ref:      main
+  commit:   1420ffd397400cd7cfa2899aca2327e45a657c68
+  checkout: sklearn-src
+  pixi env: sklearn-dev
+
+Run benchmarks with:
+
+  pixi run -e 'sklearn-dev' python -m sklbench --config configs/smoke_check_test.py

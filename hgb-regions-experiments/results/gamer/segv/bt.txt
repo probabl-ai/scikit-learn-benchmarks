@@ -1,0 +1,2 @@
+"/home/alacote/work/gamer-run/segv/core.592580" is not a core dump: file format not recognized
+No threads.
