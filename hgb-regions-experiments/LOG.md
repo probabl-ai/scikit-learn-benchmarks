@@ -178,7 +178,19 @@ Variants: `main`, `pr`, `abs`, `pr+fuse`, `pr+fuse3`, `abs+fuse3`,
 `none+fuse3`. `abs` thresholds untuned: 20K samples for split_indices, 4000
 bins (~16 features) for find_node_split.
 
-Results: pending.
+First launch at 20:55 on f8698ca7, stopped at 21:05: the fused methods
+added ~15 us of Python overhead per split (feature-slot arrays allocated per
+call, `np.asarray` copies, long argument lists), which doubled the time of
+the 1-thread cases (XS 0.109 vs 0.054 s on gamer). Partial results kept as
+`results/<host>/ab/*_v1.jsonl`.
+
+9ade78bf: no fused paths when the team has 1 thread (nothing to merge),
+slot arrays allocated once per Splitter, memoryviews returned as in the
+original methods. Identity check: all 55 variant fits identical. The HGB
+tests mostly fit on 1 thread, so they no longer exercise the fused code;
+the identity check at 8 threads does.
+
+Relaunched at 21:08 on 9ade78bf. Results: pending.
 
 ## Side: segfault reproduction (2026-11-03 ~15:00)
 

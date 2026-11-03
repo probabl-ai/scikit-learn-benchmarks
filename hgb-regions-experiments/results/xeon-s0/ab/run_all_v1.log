@@ -1,0 +1,77 @@
+setup ok: exp=f8698ca71 main=d1278c270
+
+exp /home/alacote/work/hgb-regions/venv-exp/lib/python3.12/site-packages/sklearn/__init__.py True
+
+main /home/alacote/work/hgb-regions/venv-main/lib/python3.12/site-packages/sklearn/__init__.py False
+### xeon-s0-default 2026-11-03T20:55:12+00:00
+[('openmp', 'sklearn-dev/lib/libgomp.so.1.0.0')]
+active_wait detected: True
+# 15 cases x ['main', 'pr', 'pr+fuse', 'pr+fuse3'] profile=xeon-s0-default T=86 env={}
+xeon-s0-default rep=0 XS                       pr+fuse    rc=0 fit_med=0.157
+xeon-s0-default rep=0 XS                       main       rc=0 fit_med=0.714
+xeon-s0-default rep=0 XS                       pr         rc=0 fit_med=0.091
+xeon-s0-default rep=0 XS                       pr+fuse3   rc=0 fit_med=0.177
+xeon-s0-default rep=0 S-thin                   main       rc=0 fit_med=0.718
+xeon-s0-default rep=0 S-thin                   pr         rc=0 fit_med=0.219
+xeon-s0-default rep=0 S-thin                   pr+fuse3   rc=0 fit_med=0.267
+xeon-s0-default rep=0 S-thin                   pr+fuse    rc=0 fit_med=0.311
+xeon-s0-default rep=0 S                        main       rc=0 fit_med=0.918
+xeon-s0-default rep=0 S                        pr+fuse    rc=0 fit_med=0.608
+xeon-s0-default rep=0 S                        pr         rc=0 fit_med=0.654
+xeon-s0-default rep=0 S                        pr+fuse3   rc=0 fit_med=0.527
+xeon-s0-default rep=0 M                        pr         rc=0 fit_med=0.718
+xeon-s0-default rep=0 M                        main       rc=0 fit_med=0.930
+xeon-s0-default rep=0 M                        pr+fuse3   rc=0 fit_med=0.565
+xeon-s0-default rep=0 M                        pr+fuse    rc=0 fit_med=0.643
+xeon-s0-default rep=0 M-very-thin              pr+fuse    rc=0 fit_med=0.332
+xeon-s0-default rep=0 M-very-thin              main       rc=0 fit_med=0.793
+xeon-s0-default rep=0 M-very-thin              pr+fuse3   rc=0 fit_med=0.372
+xeon-s0-default rep=0 M-very-thin              pr         rc=0 fit_med=0.317
+xeon-s0-default rep=0 L-thin                   pr+fuse3   rc=0 fit_med=1.068
+xeon-s0-default rep=0 L-thin                   pr         rc=0 fit_med=1.254
+xeon-s0-default rep=0 L-thin                   pr+fuse    rc=0 fit_med=1.329
+xeon-s0-default rep=0 L-thin                   main       rc=0 fit_med=1.188
+xeon-s0-default rep=0 L                        pr+fuse    rc=0 fit_med=1.091
+xeon-s0-default rep=0 L                        main       rc=0 fit_med=1.147
+xeon-s0-default rep=0 L                        pr+fuse3   rc=0 fit_med=1.066
+xeon-s0-default rep=0 L                        pr         rc=0 fit_med=1.215
+xeon-s0-default rep=0 L-stumps                 pr+fuse3   rc=0 fit_med=0.896
+xeon-s0-default rep=0 L-stumps                 pr         rc=0 fit_med=0.905
+xeon-s0-default rep=0 L-stumps                 pr+fuse    rc=0 fit_med=0.892
+xeon-s0-default rep=0 L-stumps                 main       rc=0 fit_med=0.959
+xeon-s0-default rep=0 L-leaf255                pr         rc=0 fit_med=1.435
+xeon-s0-default rep=0 L-leaf255                main       rc=0 fit_med=1.579
+xeon-s0-default rep=0 L-leaf255                pr+fuse    rc=0 fit_med=1.341
+xeon-s0-default rep=0 L-leaf255                pr+fuse3   rc=0 fit_med=1.118
+xeon-s0-default rep=0 ames_housing             main       rc=0 fit_med=0.826
+xeon-s0-default rep=0 ames_housing             pr+fuse3   rc=0 fit_med=0.378
+xeon-s0-default rep=0 ames_housing             pr         rc=0 fit_med=0.488
+xeon-s0-default rep=0 ames_housing             pr+fuse    rc=0 fit_med=0.430
+xeon-s0-default rep=0 kddcup09_churn           main       rc=0 fit_med=1.131
+xeon-s0-default rep=0 kddcup09_churn           pr+fuse3   rc=0 fit_med=1.024
+xeon-s0-default rep=0 kddcup09_churn           pr+fuse    rc=0 fit_med=1.103
+xeon-s0-default rep=0 kddcup09_churn           pr         rc=0 fit_med=1.130
+xeon-s0-default rep=0 amazon_employee_access   main       rc=0 fit_med=1.078
+xeon-s0-default rep=0 amazon_employee_access   pr         rc=0 fit_med=0.522
+xeon-s0-default rep=0 amazon_employee_access   pr+fuse    rc=0 fit_med=0.642
+xeon-s0-default rep=0 amazon_employee_access   pr+fuse3   rc=0 fit_med=0.617
+xeon-s0-default rep=0 covtype                  pr         rc=0 fit_med=13.427
+xeon-s0-default rep=0 covtype                  pr+fuse3   rc=0 fit_med=14.448
+xeon-s0-default rep=0 covtype                  pr+fuse    rc=0 fit_med=14.404
+xeon-s0-default rep=0 covtype                  main       rc=0 fit_med=16.784
+xeon-s0-default rep=0 susy                     pr+fuse3   rc=0 fit_med=6.847
+xeon-s0-default rep=0 susy                     pr         rc=0 fit_med=6.541
+xeon-s0-default rep=0 susy                     pr+fuse    rc=0 fit_med=6.947
+xeon-s0-default rep=0 susy                     main       rc=0 fit_med=7.497
+xeon-s0-default rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.691
+xeon-s0-default rep=0 year_prediction_msd      pr         rc=0 fit_med=4.202
+xeon-s0-default rep=0 year_prediction_msd      pr+fuse    rc=0 fit_med=3.978
+xeon-s0-default rep=0 year_prediction_msd      main       rc=0 fit_med=3.383
+# done
+### xeon-s0-passive 2026-11-03T21:07:04+00:00
+[('openmp', 'sklearn-dev/lib/libgomp.so.1.0.0')]
+active_wait detected: False
+# 15 cases x ['main', 'pr', 'abs', 'pr+fuse', 'pr+fuse3', 'abs+fuse3', 'none+fuse3'] profile=xeon-s0-passive T=86 env={'OMP_WAIT_POLICY': 'passive'}
+xeon-s0-passive rep=0 XS                       pr+fuse3   rc=0 fit_med=0.177
+xeon-s0-passive rep=0 XS                       abs        rc=0 fit_med=0.091
+xeon-s0-passive rep=0 XS                       pr         rc=0 fit_med=0.088

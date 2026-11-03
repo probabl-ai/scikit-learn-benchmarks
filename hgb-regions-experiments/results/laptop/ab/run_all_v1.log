@@ -1,0 +1,94 @@
+setup ok: exp=f8698ca71 main=d1278c270
+
+exp /home/arthur/work/hgb-regions/venv-exp/lib/python3.12/site-packages/sklearn/__init__.py True
+
+main /home/arthur/work/hgb-regions/venv-main/lib/python3.12/site-packages/sklearn/__init__.py False
+### laptop-gomp 2026-11-03T21:55:09+01:00
+[('openmp', 'sklearn-dev/lib/libgomp.so.1.0.0')]
+active_wait detected: False
+# 15 cases x ['main', 'pr', 'abs', 'pr+fuse', 'pr+fuse3', 'abs+fuse3', 'none+fuse3'] profile=laptop-gomp T=16 env={}
+laptop-gomp rep=0 XS                       pr+fuse3   rc=0 fit_med=0.131
+laptop-gomp rep=0 XS                       abs        rc=0 fit_med=0.067
+laptop-gomp rep=0 XS                       pr         rc=0 fit_med=0.067
+laptop-gomp rep=0 XS                       main       rc=0 fit_med=1.528
+laptop-gomp rep=0 XS                       abs+fuse3  rc=0 fit_med=0.133
+laptop-gomp rep=0 XS                       pr+fuse    rc=0 fit_med=0.118
+laptop-gomp rep=0 XS                       none+fuse3 rc=0 fit_med=0.132
+laptop-gomp rep=0 S-thin                   pr         rc=0 fit_med=0.096
+laptop-gomp rep=0 S-thin                   main       rc=0 fit_med=1.819
+laptop-gomp rep=0 S-thin                   pr+fuse3   rc=0 fit_med=0.176
+laptop-gomp rep=0 S-thin                   abs+fuse3  rc=0 fit_med=0.174
+laptop-gomp rep=0 S-thin                   none+fuse3 rc=0 fit_med=0.176
+laptop-gomp rep=0 S-thin                   abs        rc=0 fit_med=0.096
+laptop-gomp rep=0 S-thin                   pr+fuse    rc=0 fit_med=0.154
+laptop-gomp rep=0 S                        none+fuse3 rc=0 fit_med=0.468
+laptop-gomp rep=0 S                        pr+fuse    rc=0 fit_med=0.451
+laptop-gomp rep=0 S                        main       rc=0 fit_med=2.073
+laptop-gomp rep=0 S                        abs+fuse3  rc=0 fit_med=0.463
+laptop-gomp rep=0 S                        abs        rc=0 fit_med=0.395
+laptop-gomp rep=0 S                        pr         rc=0 fit_med=0.391
+laptop-gomp rep=0 S                        pr+fuse3   rc=0 fit_med=0.460
+laptop-gomp rep=0 M                        abs        rc=0 fit_med=0.454
+laptop-gomp rep=0 M                        main       rc=0 fit_med=2.476
+laptop-gomp rep=0 M                        pr+fuse    rc=0 fit_med=0.533
+laptop-gomp rep=0 M                        pr         rc=0 fit_med=0.454
+laptop-gomp rep=0 M                        none+fuse3 rc=0 fit_med=0.557
+laptop-gomp rep=0 M                        abs+fuse3  rc=0 fit_med=0.557
+laptop-gomp rep=0 M                        pr+fuse3   rc=0 fit_med=0.559
+laptop-gomp rep=0 M-very-thin              pr         rc=0 fit_med=0.177
+laptop-gomp rep=0 M-very-thin              none+fuse3 rc=0 fit_med=0.258
+laptop-gomp rep=0 M-very-thin              pr+fuse3   rc=0 fit_med=0.260
+laptop-gomp rep=0 M-very-thin              pr+fuse    rc=0 fit_med=0.238
+laptop-gomp rep=0 M-very-thin              abs        rc=0 fit_med=0.178
+laptop-gomp rep=0 M-very-thin              main       rc=0 fit_med=1.954
+laptop-gomp rep=0 M-very-thin              abs+fuse3  rc=0 fit_med=0.260
+laptop-gomp rep=0 L-thin                   main       rc=0 fit_med=2.794
+laptop-gomp rep=0 L-thin                   abs+fuse3  rc=0 fit_med=1.071
+laptop-gomp rep=0 L-thin                   pr+fuse3   rc=0 fit_med=1.017
+laptop-gomp rep=0 L-thin                   pr         rc=0 fit_med=1.078
+laptop-gomp rep=0 L-thin                   none+fuse3 rc=0 fit_med=1.105
+laptop-gomp rep=0 L-thin                   pr+fuse    rc=0 fit_med=1.144
+laptop-gomp rep=0 L-thin                   abs        rc=0 fit_med=1.035
+laptop-gomp rep=0 L                        pr         rc=0 fit_med=1.232
+laptop-gomp rep=0 L                        none+fuse3 rc=0 fit_med=1.295
+laptop-gomp rep=0 L                        abs+fuse3  rc=0 fit_med=1.336
+laptop-gomp rep=0 L                        main       rc=0 fit_med=3.109
+laptop-gomp rep=0 L                        abs        rc=0 fit_med=1.226
+laptop-gomp rep=0 L                        pr+fuse3   rc=0 fit_med=1.314
+laptop-gomp rep=0 L                        pr+fuse    rc=0 fit_med=1.526
+laptop-gomp rep=0 L-stumps                 pr+fuse3   rc=0 fit_med=1.726
+laptop-gomp rep=0 L-stumps                 pr         rc=0 fit_med=1.841
+laptop-gomp rep=0 L-stumps                 abs        rc=0 fit_med=1.765
+laptop-gomp rep=0 L-stumps                 none+fuse3 rc=0 fit_med=1.716
+laptop-gomp rep=0 L-stumps                 pr+fuse    rc=0 fit_med=1.992
+laptop-gomp rep=0 L-stumps                 abs+fuse3  rc=0 fit_med=1.644
+laptop-gomp rep=0 L-stumps                 main       rc=0 fit_med=1.916
+laptop-gomp rep=0 L-leaf255                pr+fuse3   rc=0 fit_med=1.125
+laptop-gomp rep=0 L-leaf255                main       rc=0 fit_med=4.463
+laptop-gomp rep=0 L-leaf255                pr+fuse    rc=0 fit_med=1.202
+laptop-gomp rep=0 L-leaf255                abs+fuse3  rc=0 fit_med=1.077
+laptop-gomp rep=0 L-leaf255                pr         rc=0 fit_med=1.240
+laptop-gomp rep=0 L-leaf255                abs        rc=0 fit_med=1.337
+laptop-gomp rep=0 L-leaf255                none+fuse3 rc=0 fit_med=1.139
+laptop-gomp rep=0 ames_housing             abs        rc=0 fit_med=0.255
+laptop-gomp rep=0 ames_housing             pr+fuse    rc=0 fit_med=0.291
+laptop-gomp rep=0 ames_housing             main       rc=0 fit_med=1.803
+laptop-gomp rep=0 ames_housing             abs+fuse3  rc=0 fit_med=0.312
+laptop-gomp rep=0 ames_housing             none+fuse3 rc=0 fit_med=0.310
+laptop-gomp rep=0 ames_housing             pr+fuse3   rc=0 fit_med=0.310
+laptop-gomp rep=0 ames_housing             pr         rc=0 fit_med=0.241
+laptop-gomp rep=0 kddcup09_churn           pr+fuse3   rc=0 fit_med=2.108
+laptop-gomp rep=0 kddcup09_churn           pr         rc=0 fit_med=2.247
+laptop-gomp rep=0 kddcup09_churn           abs+fuse3  rc=0 fit_med=2.123
+laptop-gomp rep=0 kddcup09_churn           pr+fuse    rc=0 fit_med=2.181
+laptop-gomp rep=0 kddcup09_churn           abs        rc=0 fit_med=2.265
+laptop-gomp rep=0 kddcup09_churn           none+fuse3 rc=0 fit_med=2.115
+laptop-gomp rep=0 kddcup09_churn           main       rc=0 fit_med=3.639
+laptop-gomp rep=0 amazon_employee_access   pr         rc=0 fit_med=0.403
+laptop-gomp rep=0 amazon_employee_access   none+fuse3 rc=0 fit_med=0.535
+laptop-gomp rep=0 amazon_employee_access   pr+fuse    rc=0 fit_med=0.501
+laptop-gomp rep=0 amazon_employee_access   abs+fuse3  rc=0 fit_med=0.538
+laptop-gomp rep=0 amazon_employee_access   main       rc=0 fit_med=3.158
+laptop-gomp rep=0 amazon_employee_access   abs        rc=0 fit_med=0.401
+laptop-gomp rep=0 amazon_employee_access   pr+fuse3   rc=0 fit_med=0.541
+laptop-gomp rep=0 covtype                  pr+fuse    rc=0 fit_med=12.002

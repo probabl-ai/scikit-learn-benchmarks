@@ -24,6 +24,7 @@ environment variables, so all of them run from one build:
 - `LOG.md`: chronological experiment log, one entry per run with its
   purpose, command and outcome. Times are UTC.
 - `FINDINGS.md`: the conclusions so far.
+- `notes/prior_work.md`: what was already known from earlier GitHub threads.
 - `src/`: C OpenMP microbenchmarks (`wake.c`, `wake2.c`: wake-up cost after
   an idle gap; `team.c`: changing the team size; `barrier.c`: two regions vs
   one region with a barrier).

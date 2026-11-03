@@ -1,0 +1,94 @@
+setup ok: exp=f8698ca71 main=d1278c270
+
+exp /home/alacote/work/hgb-regions/venv-exp/lib/python3.14/site-packages/sklearn/__init__.py True
+
+main /home/alacote/work/hgb-regions/venv-main/lib/python3.14/site-packages/sklearn/__init__.py False
+### gamer-gomp 2026-11-03T20:55:05+00:00
+[('openmp', 'sklearn-dev/lib/libgomp.so.1.0.0')]
+active_wait detected: False
+# 15 cases x ['main', 'pr', 'abs', 'pr+fuse', 'pr+fuse3', 'abs+fuse3', 'none+fuse3'] profile=gamer-gomp T=24 env={}
+gamer-gomp rep=0 XS                       pr+fuse3   rc=0 fit_med=0.109
+gamer-gomp rep=0 XS                       abs        rc=0 fit_med=0.055
+gamer-gomp rep=0 XS                       pr         rc=0 fit_med=0.053
+gamer-gomp rep=0 XS                       main       rc=0 fit_med=0.597
+gamer-gomp rep=0 XS                       abs+fuse3  rc=0 fit_med=0.111
+gamer-gomp rep=0 XS                       pr+fuse    rc=0 fit_med=0.098
+gamer-gomp rep=0 XS                       none+fuse3 rc=0 fit_med=0.110
+gamer-gomp rep=0 S-thin                   pr         rc=0 fit_med=0.076
+gamer-gomp rep=0 S-thin                   main       rc=0 fit_med=0.791
+gamer-gomp rep=0 S-thin                   pr+fuse3   rc=0 fit_med=0.156
+gamer-gomp rep=0 S-thin                   abs+fuse3  rc=0 fit_med=0.144
+gamer-gomp rep=0 S-thin                   none+fuse3 rc=0 fit_med=0.157
+gamer-gomp rep=0 S-thin                   abs        rc=0 fit_med=0.078
+gamer-gomp rep=0 S-thin                   pr+fuse    rc=0 fit_med=0.132
+gamer-gomp rep=0 S                        none+fuse3 rc=0 fit_med=0.349
+gamer-gomp rep=0 S                        pr+fuse    rc=0 fit_med=0.338
+gamer-gomp rep=0 S                        main       rc=0 fit_med=0.640
+gamer-gomp rep=0 S                        abs+fuse3  rc=0 fit_med=0.361
+gamer-gomp rep=0 S                        abs        rc=0 fit_med=0.296
+gamer-gomp rep=0 S                        pr         rc=0 fit_med=0.287
+gamer-gomp rep=0 S                        pr+fuse3   rc=0 fit_med=0.356
+gamer-gomp rep=0 M                        abs        rc=0 fit_med=0.369
+gamer-gomp rep=0 M                        main       rc=0 fit_med=1.399
+gamer-gomp rep=0 M                        pr+fuse    rc=0 fit_med=0.438
+gamer-gomp rep=0 M                        pr         rc=0 fit_med=0.369
+gamer-gomp rep=0 M                        none+fuse3 rc=0 fit_med=0.451
+gamer-gomp rep=0 M                        abs+fuse3  rc=0 fit_med=0.454
+gamer-gomp rep=0 M                        pr+fuse3   rc=0 fit_med=0.451
+gamer-gomp rep=0 M-very-thin              pr         rc=0 fit_med=0.147
+gamer-gomp rep=0 M-very-thin              none+fuse3 rc=0 fit_med=0.223
+gamer-gomp rep=0 M-very-thin              pr+fuse3   rc=0 fit_med=0.219
+gamer-gomp rep=0 M-very-thin              pr+fuse    rc=0 fit_med=0.200
+gamer-gomp rep=0 M-very-thin              abs        rc=0 fit_med=0.149
+gamer-gomp rep=0 M-very-thin              main       rc=0 fit_med=4.132
+gamer-gomp rep=0 M-very-thin              abs+fuse3  rc=0 fit_med=0.218
+gamer-gomp rep=0 L-thin                   main       rc=0 fit_med=9.759
+gamer-gomp rep=0 L-thin                   abs+fuse3  rc=0 fit_med=0.783
+gamer-gomp rep=0 L-thin                   pr+fuse3   rc=0 fit_med=0.844
+gamer-gomp rep=0 L-thin                   pr         rc=0 fit_med=0.780
+gamer-gomp rep=0 L-thin                   none+fuse3 rc=0 fit_med=0.830
+gamer-gomp rep=0 L-thin                   pr+fuse    rc=0 fit_med=0.801
+gamer-gomp rep=0 L-thin                   abs        rc=0 fit_med=0.795
+gamer-gomp rep=0 L                        pr         rc=0 fit_med=0.931
+gamer-gomp rep=0 L                        none+fuse3 rc=0 fit_med=1.021
+gamer-gomp rep=0 L                        abs+fuse3  rc=0 fit_med=0.914
+gamer-gomp rep=0 L                        main       rc=0 fit_med=7.473
+gamer-gomp rep=0 L                        abs        rc=0 fit_med=0.964
+gamer-gomp rep=0 L                        pr+fuse3   rc=0 fit_med=1.039
+gamer-gomp rep=0 L                        pr+fuse    rc=0 fit_med=1.031
+gamer-gomp rep=0 L-stumps                 pr+fuse3   rc=0 fit_med=1.092
+gamer-gomp rep=0 L-stumps                 pr         rc=0 fit_med=1.122
+gamer-gomp rep=0 L-stumps                 abs        rc=0 fit_med=1.149
+gamer-gomp rep=0 L-stumps                 none+fuse3 rc=0 fit_med=1.148
+gamer-gomp rep=0 L-stumps                 pr+fuse    rc=0 fit_med=1.043
+gamer-gomp rep=0 L-stumps                 abs+fuse3  rc=0 fit_med=1.162
+gamer-gomp rep=0 L-stumps                 main       rc=0 fit_med=1.224
+gamer-gomp rep=0 L-leaf255                pr+fuse3   rc=0 fit_med=0.904
+gamer-gomp rep=0 L-leaf255                main       rc=0 fit_med=6.617
+gamer-gomp rep=0 L-leaf255                pr+fuse    rc=0 fit_med=0.946
+gamer-gomp rep=0 L-leaf255                abs+fuse3  rc=0 fit_med=0.890
+gamer-gomp rep=0 L-leaf255                pr         rc=0 fit_med=0.820
+gamer-gomp rep=0 L-leaf255                abs        rc=0 fit_med=0.827
+gamer-gomp rep=0 L-leaf255                none+fuse3 rc=0 fit_med=0.894
+gamer-gomp rep=0 ames_housing             abs        rc=0 fit_med=0.185
+gamer-gomp rep=0 ames_housing             pr+fuse    rc=0 fit_med=0.229
+gamer-gomp rep=0 ames_housing             main       rc=0 fit_med=0.600
+gamer-gomp rep=0 ames_housing             abs+fuse3  rc=0 fit_med=0.241
+gamer-gomp rep=0 ames_housing             none+fuse3 rc=0 fit_med=0.243
+gamer-gomp rep=0 ames_housing             pr+fuse3   rc=0 fit_med=0.242
+gamer-gomp rep=0 ames_housing             pr         rc=0 fit_med=0.178
+gamer-gomp rep=0 kddcup09_churn           pr+fuse3   rc=0 fit_med=2.064
+gamer-gomp rep=0 kddcup09_churn           pr         rc=0 fit_med=1.947
+gamer-gomp rep=0 kddcup09_churn           abs+fuse3  rc=0 fit_med=2.069
+gamer-gomp rep=0 kddcup09_churn           pr+fuse    rc=0 fit_med=2.149
+gamer-gomp rep=0 kddcup09_churn           abs        rc=0 fit_med=1.936
+gamer-gomp rep=0 kddcup09_churn           none+fuse3 rc=0 fit_med=1.971
+gamer-gomp rep=0 kddcup09_churn           main       rc=0 fit_med=4.990
+gamer-gomp rep=0 amazon_employee_access   pr         rc=0 fit_med=0.325
+gamer-gomp rep=0 amazon_employee_access   none+fuse3 rc=0 fit_med=0.442
+gamer-gomp rep=0 amazon_employee_access   pr+fuse    rc=0 fit_med=0.417
+gamer-gomp rep=0 amazon_employee_access   abs+fuse3  rc=0 fit_med=0.440
+gamer-gomp rep=0 amazon_employee_access   main       rc=0 fit_med=2.510
+gamer-gomp rep=0 amazon_employee_access   abs        rc=0 fit_med=0.324
+gamer-gomp rep=0 amazon_employee_access   pr+fuse3   rc=0 fit_med=0.441
+gamer-gomp rep=0 covtype                  pr+fuse    rc=0 fit_med=9.458
