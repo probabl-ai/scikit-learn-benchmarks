@@ -212,10 +212,14 @@ def result_matches(
         # with exact splits: pair each with its counterpart.
         if _max_bins(base_res) != _max_bins(candidate):
             return False, warnings
+    # Against cuML, `append_cuml_rf_bins_warning` covers the binning
+    # difference instead.
     elif candidate.is_sklearnex_tree:
-        append_max_bins_warning(base_res, candidate, warnings)
+        if base_res.implementation.library == "sklearn":
+            append_max_bins_warning(base_res, candidate, warnings)
     elif base_res.is_sklearnex_tree and not base_res.is_sklearnex_fallback:
-        append_max_bins_warning(candidate, base_res, warnings)
+        if candidate.implementation.library == "sklearn":
+            append_max_bins_warning(candidate, base_res, warnings)
     append_cuml_rf_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
     append_solver_warning(base_res, candidate, warnings)
