@@ -283,3 +283,25 @@ sklearnex RF crash on the same host was also inside CPython
 (`_PyOpcode_num_pushed`). Likely hardware instability (CPU at 92-99 C under
 load); a memtest was suggested. `repro.sh` called the env python directly,
 so it ran libgomp, not libomp.
+
+## Exp 11: hardware C-state residency with turbostat (2026-11-03 ~22:50)
+
+`scripts/gamer-msd/turbo.sh`: `turbostat -q -S` around one msd fit (one
+process, data loading included in the interval), `pr` vs `abs+fuse3`
+(9ade78bf), interleaved twice, all idle states enabled. Averages over the
+24 CPUs:
+
+| | fit | Busy% | Bzy_MHz | requested C1 / C2 / C3 (% time) | hardware CPU%c1 / c6 / c7 | Pkg%pc* | PkgWatt |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| pr | 19.7-19.9 s | 11.8 | 3410-3476 | 20 / 12.5 / 56 | 63 / 6.4-6.9 / 17-18 | 0 | 36-37 |
+| abs+fuse3 | 8.1-8.2 s | 18.5 | 4101-4166 | 19 / 13 / 50 | 56 / 8.4-8.6 / 16 | 0 | 52-53 |
+
+- The cores do reach core C6 and C7 (~24% of the time), so the states are
+  real hardware states. But most of the time the OS spent requesting C3
+  (MWAIT 0x60) ended in hardware C1 or C6: the hardware demotes requests.
+  MWAIT 0x60 asks for core C7 and allows package C10; the package never left
+  C0 (one core is always busy), so no package C-state.
+- The busy frequency is ~20% lower with the PR's serial phases (3.4 vs
+  4.1 GHz): woken cores run slower for a while, which matches the longer
+  busy times after long gaps in `wake2`.
+- Energy over the interval: ~770 J (pr) vs ~505 J (abs+fuse3).
