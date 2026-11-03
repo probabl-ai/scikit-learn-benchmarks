@@ -587,3 +587,16 @@ Outcome:
   shortest cycle (32x2000 <-> 160x2000, 0.37 ms per cycle: waking 10 threads
   after a 1-thread call adds 0.03-0.1 ms), still 2.4x faster than develop.
 - PR #3 description rewritten with these numbers.
+
+## Exp 19 (cont.): PR #3 v4 on intel-gamer-gpu
+
+`setup_syrk_v4_remote.sh gamer 2,4,8,12,16,24 PIN=compact ROUNDS=3` (Core
+Ultra 9 285, 8P + 16E, DYNAMIC_ARCH Haswell, switch_ratio 8; compact pinning
+fills P cores first). `results/gamer/syrk_v4.csv`, checks 442 OK.
+
+Outcome: every cell where v4 threads instead of develop's single thread is a
+gain, 1.26-5.08x (f64 160x20000 24T 59 -> 299, f32 160x5000 24T 122 -> 520,
+f64 64x20000 12T 48 -> 111), including reduced counts that land on E cores.
+Where v4 keeps one thread: 0.955-1.0x+. Cells running develop's code path:
+0.76-1.12x, median 0.99 (24-thread noise on this machine, see exp 6).
+PR #3 table updated with gamer rows.
