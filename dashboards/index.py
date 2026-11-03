@@ -62,6 +62,13 @@ ABOUT_HTML = """<section class="panel">
     except <b>random forests</b> and alike. But it helps a lot for multiple parallelized fits, typically
     for hyper-parameter tuning workloads.
     </li>
+    <li>
+    cuML <b>LogisticRegression</b> always runs the quasi-Newton <dfn>solver</dfn>
+    <code>qn</code> (L-BFGS or OWL-QN). A point may still be labeled
+    <code>lbfgs</code>, <code>newton-cg</code>, or <code>newton-cholesky</code>:
+    the wrapper maps every one of those names onto <code>qn</code>, so those
+    cuML cases time the same algorithm.
+    </li>
   </ul>
 </section>"""
 

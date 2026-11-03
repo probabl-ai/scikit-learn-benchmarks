@@ -118,6 +118,12 @@ ABOUT_HTML = """<section class="panel">
           scikit-learn with NumPy.</li>
         </ul>
       </li>
+      <li>cuML <b>LogisticRegression</b> always runs the quasi-Newton <dfn>solver</dfn>
+      <code>qn</code> (L-BFGS or OWL-QN). The point label can still say
+      <code>lbfgs</code>, <code>newton-cg</code>, or <code>newton-cholesky</code>:
+      the wrapper maps every one of those names onto <code>qn</code>. On the
+      cuML side, the three synthetic solver cases time the same algorithm.
+      scikit-learn runs the named solver.</li>
     </ul>
   </details>
 </section>"""
@@ -206,10 +212,14 @@ def result_matches(
         # with exact splits: pair each with its counterpart.
         if _max_bins(base_res) != _max_bins(candidate):
             return False, warnings
+    # Against cuML, `append_cuml_rf_bins_warning` covers the binning
+    # difference instead.
     elif candidate.is_sklearnex_tree:
-        append_max_bins_warning(base_res, candidate, warnings)
+        if base_res.implementation.library == "sklearn":
+            append_max_bins_warning(base_res, candidate, warnings)
     elif base_res.is_sklearnex_tree and not base_res.is_sklearnex_fallback:
-        append_max_bins_warning(candidate, base_res, warnings)
+        if candidate.implementation.library == "sklearn":
+            append_max_bins_warning(candidate, base_res, warnings)
     append_cuml_rf_bins_warning(base_res, candidate, warnings)
     append_iterations_warning(base_res, candidate, warnings)
     append_solver_warning(base_res, candidate, warnings)
