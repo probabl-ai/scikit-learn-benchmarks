@@ -984,3 +984,26 @@ threshold, so the later matrices come from the heap instead of fresh mmaps.
 `scripts/gamer_splitk_malloc.sh` checks the slow shapes alone in their
 process (`sk3_alone.csv`) and the grid with the threshold fixed at 128 KiB
 (`sk3_mmapfix.csv`).
+
+Result: it's the power limit, not split-K.
+- Alone in their process (`sk3_alone.csv`), the slow shapes are the same on
+  both builds: 2000^3 24T f64 17-18.6 ms, f32 9 ms.
+- With glibc's mmap threshold fixed (`sk3_mmapfix.csv`) the grid gap stays,
+  so not malloc state.
+- One split shape before 2000^3 in the process (`sk3_prefix_*.csv`, 4
+  prefixes) leaves it at 17-18 ms on both builds.
+- The effective long-term limit is 65 W averaged over ~32 s
+  (`intel-rapl-mmio`), bursts 182-200 W. After ~40 s of all-core work
+  (1000x1000x100000 x 60, `power_budget.csv`), develop's 2000^3 goes from
+  17.7 to 24.5 ms, and 26-27 ms in the next round: the same as v3's "slow"
+  grid values.
+
+In the grid, each process times ~80 shapes. With split-K, the small shapes
+run on all cores at full speed instead of mostly one thread, so the budget
+is spent by the time the big shapes come; develop reaches them with budget
+left. Nothing at 4-8T, where the draw stays under 65 W. Same thing as the
+laptop's slowdown after ~3 rounds. The `sk3_layout.csv` gap "vanishing" was
+the reverse: there develop also ran after enough all-core shapes.
+
+So the gamer has no split-K slowdown. The grid's develop-path ratios there
+are not usable; a clean grid would need a cool-down between shapes.
