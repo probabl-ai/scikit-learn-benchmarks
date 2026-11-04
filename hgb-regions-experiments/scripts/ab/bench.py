@@ -7,7 +7,7 @@ subprocess with --n-runs fits; variants are shuffled per case.
 import argparse, json, os, random, socket, statistics, subprocess, sys, tempfile, time
 from pathlib import Path
 
-B = Path.home() / "scikit-learn-benchmarks"
+B = Path(os.environ.get("SKLBENCH_REPO", Path.home() / "scikit-learn-benchmarks"))
 W = Path.home() / "work/hgb-regions"
 DEFAULT_VARIANTS = "main,pr,abs,pr+fuse,pr+fuse3,abs+fuse3,none+fuse3"
 

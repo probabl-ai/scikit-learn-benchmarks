@@ -1,0 +1,11 @@
+✔ The default environment has been installed.
+2.5.4 1.18.1 /home/arthur/work/hgb-regions/venv-c325pr/lib/python3.13/site-packages/sklearn/__init__.py 0.15.1
+# 2 cases x ['c325main:main', 'c325pr:pr', 'c325clean:pr'] profile=smoke T=4 env={}
+smoke rep=0 XS                       c325main:main rc=0 fit_med=0.183
+smoke rep=0 XS                       c325clean:pr rc=0 fit_med=0.118
+smoke rep=0 XS                       c325pr:pr  rc=0 fit_med=0.126
+smoke rep=0 ames_housing             c325clean:pr rc=0 fit_med=0.278
+smoke rep=0 ames_housing             c325pr:pr  rc=0 fit_med=0.305
+smoke rep=0 ames_housing             c325main:main rc=0 fit_med=0.331
+# done
+### smoke done

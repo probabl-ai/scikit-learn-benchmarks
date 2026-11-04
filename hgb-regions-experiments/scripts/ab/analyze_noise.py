@@ -14,7 +14,7 @@ args = sys.argv[1:]
 REF = "pr"
 if args[0] == "--ref":
     REF, args = args[1], args[2:]
-ORDER = ["c325pr:pr", "c325clean:pr", "pr", "pr+fuse3", "abs+fuse3", "clean:pr"]
+ORDER = ["c325main:main", "c325pr:pr", "c325clean:pr", "pr", "pr+fuse3", "abs+fuse3", "clean:pr"]
 rng = random.Random(0)
 for path in args:
     fits = defaultdict(list)

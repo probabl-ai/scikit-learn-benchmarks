@@ -799,3 +799,54 @@ msd, median fit in seconds:
   which #34935 sends to 1 thread with a passive runtime. Active wait fixed the test.
 - No clear cost for the extra barrier on 3.2.5: on msd, the 3.3 gain of the PR (4-18%)
   isn't consistently bigger than main's (7-19%), which has none to remove.
+
+## Exp 21: mac-m2 and aws-l4-1, main vs #34935 vs merge-regions (2026-11-04)
+
+`scripts/ab/port/` (private pixi env, `build_port.sh`, `run_exp21.sh`), `analyze_exp21.py`.
+All on Cython 3.2.5, 3 builds interleaved on the 15 cases, 5 processes of 1 fit. Results in
+`results/{mac-m2,aws-l4-1}/exp21/`. No failed run in 1125.
+
+mac-m2: conda-forge clang and llvm-openmp, 8 threads, under `caffeinate`, since one import
+took 584 s without it (I think the Mac slept). The largest gap between wall and fit time in
+these runs is 14 s (`L-stumps`, data generation), so no such stall here. aws-l4-1: EPYC 7R13
+VM, 2 cores with hyperthreads, GCC 16.2, libgomp, 2 threads is the default there.
+
+The Mac is passive by default: libomp reports `KMP_BLOCKTIME=0` and
+`OMP_WAIT_POLICY=PASSIVE` with no variable set, and `_openmp_uses_active_wait` says False.
+aws-l4-1 detects active wait by default.
+
+Identity: 12 of 12 on both. HGB tests on `c325clean`: 395 passed, 105 skipped on both.
+
+| profile | #34935/main | #42/main | #42/#34935 (5-95%) | msd main | #34935 | #42 |
+| --- | --- | --- | --- | --- | --- | --- |
+| mac-m2, default (passive) | 0.34 | 0.30 | 0.87 (0.86-0.88) | 13.0 s | 11.6 s | 7.73 s |
+| mac-m2, active forced | 0.95 | 0.88 | 0.92 (0.87-0.96) | 9.76 s | 9.69 s | 9.59 s |
+| aws-l4-1, 2 threads (default) | 0.99 | 0.94 | 0.95 (0.93-0.97) | 15.3 s | 15.3 s | 15.3 s |
+| aws-l4-1, 4 threads | 0.98 | 0.91 | 0.93 (0.83-0.96) | 11.7 s | 11.7 s | 11.4 s |
+| aws-l4-1, 2 threads, passive | 0.62 | 0.55 | 0.89 (0.88-0.91) | 18.4 s | 17.8 s | 16.1 s |
+
+- #42 is faster than #34935 on all 5, and #34935 has no msd regression against main here.
+- The biggest gain over main is on the Mac by default: 3.3x with #42, up to 18x on `XS`, where
+  #34935 gets the same gain. main has the passive cost, and its active-wait numbers are close.
+- Worst median of #42 vs #34935: `L-stumps` 1.07x and `L-leaf255` 1.06x on the Mac with
+  active wait forced, with overlapping process ranges. `L-stumps` is 0.99-1.03x on the other
+  9 profiles of Exp 20-21, so I don't read a pattern.
+- Worst median of #42 vs main: `L-thin` 1.16x (1.01-1.33x) on the Mac with active wait
+  forced. #34935 is 1.21x on this case, and main's spread is 34%.
+- The Mac with active wait forced and aws-l4-1 at 4 threads are noisy, with single fits up to
+  5x (`kddcup09_churn`, aws-l4-1, #34935). So their geomean intervals are wide.
+
+## Note: answer from the Cython session on 3.3's gain (2026-11-04)
+
+It reproduced the gain on main with 3.2.4 vs 3.3.1, about 7-17% on msd, spread over
+histograms, split finding and applying splits. It doesn't know the cause either. In the
+parallel functions of `histogram.c` and `splitting.c`, it found `nowait`, a different
+`num_threads` expression and a different setup of Python calls. It didn't diff utility code
+or disassembly. Details in `cython-prange-barrier/LOG.md` Exp 8 on the branch
+`cython-prange-barrier`.
+
+## Decisions (2026-11-04)
+
+- Manual chunks (`nb`): dropped, on Arthur's call.
+- `hgb/merge-regions` goes up as a follow-up to #34935, after Arthur's review.
+- Next: retune the heuristics in #34935, before the follow-up.

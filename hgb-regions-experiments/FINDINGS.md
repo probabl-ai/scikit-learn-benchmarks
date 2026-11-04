@@ -113,9 +113,25 @@ Exp 8-19 used Cython 3.3.x, not the `<3.2.6` that `pyproject.toml` pins. On 3.2.
 
 The other findings on this page were not repeated on 3.2.5.
 
+## mac-m2 and aws-l4-1 (LOG Exp 21)
+
+- `hgb/merge-regions` is 0.87x of #34935 on mac-m2 by default, 0.92x with active wait
+  forced. On aws-l4-1, it's 0.95x at 2 threads (the default), 0.93x at 4 threads and 0.89x
+  at 2 threads in passive mode. Trees are identical and the HGB tests pass.
+- mac-m2 is passive by default, like the hybrid Intel machines, so #34935's gain over main
+  is largest there (0.34x geomean, up to 18x on `XS`).
+- #34935 has no msd regression on these two. msd is 7.7 s vs main's 13.0 s on the Mac and
+  15.3 s for all three on aws-l4-1 at 2 threads.
+
+## Decisions
+
+- Manual chunks (`nb`) are dropped.
+- `hgb/merge-regions` goes up as a follow-up to #34935, after review.
+- Next: retune the heuristics in #34935.
+
 ## Open
 
 - Why P and E cores differ with deep idle states, and why libomp and libgomp differ
   on P cores.
-- Whether to use manual chunks (`nb`) or a dynamic schedule in a follow-up.
+- Whether a dynamic schedule on the merged feature loop is worth a follow-up.
 - Fixing the prange barrier in Cython.
