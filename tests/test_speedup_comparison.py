@@ -120,7 +120,9 @@ class Results:
             "failed_case": failed_case,
         }))
 
-    def _case(self, variant, estimator, params, data, config="configs/all_models.py", **extra):
+    def _case(self, variant, estimator, params, data, config="configs/all_models.py", env=None, **extra):
+        if env:
+            extra["bench"] = {"env": env}
         return {
             "metadata": {"source_config": config},
             "algorithm": {"estimator": estimator, "estimator_params": params or {}},
@@ -142,6 +144,7 @@ class Results:
         preprocessing=None,
         metrics=None,
         attributes=None,
+        env=None,
         age=0,
     ):
         """`fit`, `predict` and `preprocessing` are times in ms, one per repeat."""
@@ -158,7 +161,7 @@ class Results:
                 "metrics": metrics or {},
                 "attributes": attributes or {},
             })
-        case = self._case(variant, estimator, params, data)
+        case = self._case(variant, estimator, params, data, env=env)
         self._write(hardware, variant["software"], case, runs, age)
 
     def add_failed(self, hardware, variant, *, estimator="Ridge", params=None, data=SYNTHETIC, age=0):
@@ -367,6 +370,30 @@ def test_stale_runs_are_dropped_across_machines(results):
 
 
 # --- Across machines ---
+
+
+def test_thread_caps_of_many_core_machines_dont_split_cases_across_machines(results):
+    capped = {"OMP_NUM_THREADS": "64", "OPENBLAS_NUM_THREADS": "64"}
+    results.add(LAPTOP, SKLEARN, fit=[100], estimator="KMeans")
+    results.add(XEON, SKLEARN, fit=[900], estimator="KMeans", env={"OMP_NUM_THREADS": "128"}, age=100)
+    results.add(XEON, SKLEARN, fit=[50], estimator="KMeans", env=capped)
+
+    rendered = view("hardware", tab="sklearn-pypi")
+    assert only(points(rendered, "clustering")).speedup == pytest.approx(2)
+
+
+def test_other_env_vars_still_split_cases_across_machines(results):
+    results.add(LAPTOP, SKLEARN, env={"GOMP_SPINCOUNT": "0"})
+    results.add(XEON, SKLEARN, env={"GOMP_SPINCOUNT": "300000"})
+
+    assert points(view("hardware", tab="sklearn-pypi")) == []
+
+
+def test_thread_caps_still_split_cases_on_one_machine(results):
+    results.add(XEON, SKLEARN, estimator="KMeans")
+    results.add(XEON, SKLEARNEX, estimator="KMeans", env={"OMP_NUM_THREADS": "64"})
+
+    assert points(view("software", tab=XEON_NAME), "clustering") == []
 
 
 def test_forest_times_are_rescaled_to_the_same_size(results):

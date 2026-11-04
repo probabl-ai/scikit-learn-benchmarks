@@ -64,7 +64,9 @@ ABOUT_HTML = """<section class="panel">
     the same.</p>
     <p><b>Random forests</b> and <b>extra trees</b> often have a different forest
     size on each machine: their times are rescaled to the same size and their
-    metrics aren't compared. The last row compares the time per fit in
+    metrics aren't compared. <b>KMeans</b> is capped at 64 threads on machines with
+    more than 64 CPUs, to avoid an <a href="https://github.com/OpenMathLib/OpenBLAS/issues/5958">OpenBLAS
+    crash</a>. The last row compares the time per fit in
     hyper-parameter searches, where many fits run in parallel.</p>
   </details>
   <details class="about-section">
@@ -167,6 +169,11 @@ _MATCH_EXCLUDED_NAMES = {
     "implementation", "max_bins", "n_jobs", "n_estimators", "source_config",
 }
 
+# Also machine-dependent: many-core hosts cap KMeans's threads (`KMEANS_BENCH` in
+# `_real_datasets.py`). On a single machine these stay part of a case, since builds
+# are only compared under the same env.
+_THREAD_CAPS = {"OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
+
 # Same normalization/target as gen_models_scalability.py's
 # `NORMALIZED_N_ESTIMATORS`: RF/ET fit and predict time both scale ~linearly
 # with forest size, which differs between machines (see above).
@@ -188,14 +195,19 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
     return replace(result, times=[t * scale for t in result.times])
 
 
+def _cross_machine_case(result: MethodResult | BenchmarkRecord) -> dict:
+    case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES | _THREAD_CAPS)
+    if not case.get("env"):
+        case.pop("env", None)
+    return case
+
+
 def match_key(result: MethodResult) -> str:
-    case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES)
-    case["method"] = result.method
-    return stable_json(case)
+    return stable_json({**_cross_machine_case(result), "method": result.method})
 
 
 def comparison_key(result: MethodResult | BenchmarkRecord) -> str:
-    return stable_json(without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES))
+    return stable_json(_cross_machine_case(result))
 
 
 # `configs/hptuning.py` sweeps the outer `n_jobs` with one CV split per worker,
