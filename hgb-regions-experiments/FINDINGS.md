@@ -33,27 +33,64 @@
 
 ## Merging parallel regions (LOG Exp 9-10)
 
-- fuse3 (2 regions and 1 barrier per split instead of 7 regions) is faster
-  than the PR on every profile: geomean 0.76-0.90 over the 15
-  hgb_scalability cases, up to 3x on msd, and never clearly slower on a
-  multi-threaded case. It also fixes the msd regression everywhere except
-  gamer libomp (7.3 s vs main's 5.7 s).
+- fuse3 (2 regions and 3 barriers per split, instead of 7 regions and 7 barriers)
+  is faster than the PR on every profile: geomean 0.76-0.90 over the 15
+  hgb_scalability cases, up to 3x on msd. It also fixes the msd regression
+  everywhere except gamer libomp (7.3 s vs main's 5.7 s).
 - It helps even with active wait on one Xeon socket (0.76 geomean), where
   the microbenchmarks predicted only 1-2 us saved per region. Fewer Python
   round trips between regions probably matter there too.
 - The 3-region version (fuse) gets about half of fuse3's gain.
-- Once split finding lives in the histogram region, the only serial guard
-  left is split_indices'. It still matters (none+fuse3 is the worst fused
-  variant on msd), and the PR's per-thread rule is the safer one: the
-  absolute 20K-sample rule helps a bit on 16-24 threads but hurts at 86.
 - Energy follows time: an msd fit on gamer uses ~505 J with abs+fuse3 vs
   ~770 J with the PR (turbostat, Exp 11).
 
+## The barrier at the start of prange (LOG Exp 13)
+
+- On GCC, every Cython `prange` starts with a barrier, a side effect of marking
+  its variables both firstprivate and lastprivate. All the threads must be awake
+  before any of them starts. There is no barrier at the end of a `prange`.
+- Manual chunks in a `parallel` block avoid it: `nb:pr+fuse3` takes 0.27-0.53x of
+  `pr` on one Xeon socket in passive mode, against 0.38-0.63x for `pr+fuse3`, and
+  0.60-0.96x against 0.64-0.97x with active wait.
+- Removing it isn't always a gain: on gamer P cores with deep idle states, `nb` is
+  the slowest variant (7.0 s vs 5.15 s for `abs+fuse3`, libomp).
+- The fix in Cython itself is the topic of `cython_prange_barrier_prompt.md`.
+
+## Why merging loses on msd with libomp (LOG Exp 12, 14, 15, 17)
+
+- It comes from deep idle states: with only C1 allowed, `abs+fuse3` beats `abs` on
+  every profile (24 threads 2.16 vs 3.45 s, 8 P cores 3.18 vs 3.97 s) and both
+  runtimes give the same times.
+- With all idle states, merging replaces many short waits by fewer long ones, and
+  deep entries go up (24 threads, libomp: 0.33 M for `abs`, 0.69 M for `abs+fuse3`),
+  although the number of waits goes down. libomp then loses its advantage over
+  libgomp: `abs` 6.0 vs 11.95 s, `abs+fuse3` 8.17 vs 8.67 s.
+- It depends on the cores. On 16 E cores merging wins with few deep entries. On 8 P
+  cores it loses with libomp (5.15 vs 4.30 s), and not with libgomp (4.06 vs
+  4.32 s). I don't know why P and E cores differ, or why libomp and libgomp differ
+  on P cores. Possibly a P core loses more in a deep state, since it has its own L2
+  while E cores share theirs by cluster, but I didn't test that.
+- A dynamic schedule on the merged feature loop reduces the loss with deep states
+  (24 threads, Exp 15: 5.82 vs 8.60 s with libomp, 5.78 vs 8.51 s with libgomp), but
+  it is slower with only C1 (2.53 vs 2.16 s). So it isn't a free fix.
+- Passive is what both runtimes report by default on the hybrid CPU here (only
+  libgomp checked on the laptop), with no OpenMP variable set.
+
+## The split_indices guard (LOG Exp 16)
+
+- Once split finding lives in the histogram region, the only serial guard left is
+  split_indices'. Always threaded is up to 2.2x slower on one Xeon socket, always
+  serial up to 1.5x slower on susy on gamer.
+- I found no simple rule that clearly beats the PR's 5000 samples per thread. It is
+  within ~15% of the best threshold on most cases. A threshold of 10K-30K loses at
+  32 and 86 threads on the xeon (msd 21-26 s vs ~18 s). The best threshold looks
+  like a property of the machine (~100K or less on gamer, ~300K on the xeon at both
+  32 and 86 threads), not of the thread count.
+
 ## Open
 
-- One process of 3 fits per case and variant: repeat the multi-threaded
-  cases to get the noise level.
-- Why fused variants lose to abs alone on msd with libomp.
-- A split_indices guard that works from 16 to 86 threads.
-- Turn fuse3 into a reviewable change (no env vars) on top of #34935, or as
-  a follow-up PR.
+- The noise level of the A/B (Exp 18).
+- Why P and E cores differ with deep idle states, and why libomp and libgomp differ
+  on P cores.
+- Whether to use manual chunks (`nb`) or a dynamic schedule in a follow-up.
+- Fixing the prange barrier in Cython.

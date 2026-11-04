@@ -17,13 +17,14 @@ environment variables, so all of them run from one build:
 | variable | values |
 | --- | --- |
 | `SKLEARN_HGB_GUARD` | `pr` (default, the PR's per-thread work guards), `abs` (absolute work guards, thresholds in `SKLEARN_HGB_ABS_SAMPLES`/`SKLEARN_HGB_ABS_BINS`), `none` (always threaded, like main) |
-| `SKLEARN_HGB_EXP` | `fuse` (3 regions per split), `fuse2` (2 regions, 2 barriers), `fuse3` (2 regions, 1 barrier) |
+| `SKLEARN_HGB_EXP` | `fuse` (3 regions per split), `fuse2` (2 regions), `fuse3` (2 regions, gather moved into split_indices) |
 
 ## Layout
 
 - `LOG.md`: chronological experiment log, one entry per run with its
   purpose, command and outcome. Times are UTC.
-- `FINDINGS.md`: the conclusions so far.
+- `FINDINGS.md`: the conclusions so far. The barrier counts in LOG Exp 8-11 miss
+  the start barrier of `prange`, see LOG Exp 13.
 - `notes/prior_work.md`: what was already known from earlier GitHub threads.
 - `src/`: C OpenMP microbenchmarks (`wake.c`, `wake2.c`: wake-up cost after
   an idle gap; `team.c`: changing the team size; `barrier.c`: two regions vs

@@ -1,9 +1,9 @@
 # Experiment log
 
 All runs on `intel-gamer-gpu` (Core Ultra 9 285: 8 P cores = CPUs 0-7, 16 E
-cores = CPUs 8-23, 64 GB) unless stated, under `benchlock`, times UTC. The
-host env makes OpenMP passive (`OMP_WAIT_POLICY=PASSIVE`, `GOMP_SPINCOUNT=1`,
-`KMP_BLOCKTIME=0`). Idle states (`intel_idle`, `menu` governor): POLL, C1
+cores = CPUs 8-23, 64 GB) unless stated, under `benchlock`, times UTC. OpenMP is
+passive there with no variable set: the runtimes report `GOMP_SPINCOUNT=1` and
+`KMP_BLOCKTIME=0` by themselves (Exp 12). Idle states (`intel_idle`, `menu` governor): POLL, C1
 (exit 1 us), C2 (exit 127 us, target residency 381 us), C3 (exit 1048 us,
 target 3144 us).
 
@@ -379,3 +379,169 @@ process, data loading included in the interval), `pr` vs `abs+fuse3`
   4.1 GHz): woken cores run slower for a while, which matches the longer
   busy times after long gaps in `wake2`.
 - Energy over the interval: ~770 J (pr) vs ~505 J (abs+fuse3).
+
+## Exp 12: phase times of msd, and where passive comes from (2026-11-04 06:50-07:05)
+
+`bench.py --phases` runs `scripts/ab/phase_runner.py`, which sums the grower's
+phase times over the fits. `results/gamer/exp12/`, 3 processes of 1 fit, median (s):
+
+| libomp | fit | hist | find | apply |
+| --- | --- | --- | --- | --- |
+| main | 5.54 | 2.64 | 1.22 | 1.28 |
+| abs | 5.89 | 2.99 | 1.48 | 0.93 |
+| abs+fuse | 8.20 | 4.07 | 2.20 | 1.44 |
+| abs+fuse3 | 7.74 | 5.05 (with find) | 0.06 | 2.13 |
+| pr | 16.87 | 13.23 | 2.04 | 1.06 |
+
+So merging makes both the parallel work and split_indices slower with libomp,
+although the busy work is the same.
+
+Correction of earlier notes: no OpenMP variable is set on gamer or the laptop.
+With an empty environment, `OMP_DISPLAY_ENV` reports `GOMP_SPINCOUNT=1` on both
+(libomp's `KMP_SETTINGS` reports `KMP_BLOCKTIME=0ms` on gamer), and
+`GOMP_SPINCOUNT=300000` on the xeon, with the same pixi env. It looks like the
+runtimes' default on hybrid CPUs. I didn't read their source.
+
+## Exp 13: the barrier at the start of every prange (07:00-08:05)
+
+`objdump` of the extensions: `GOMP_barrier` is the first call of every `_omp_fn`
+generated for a `prange`. Cython emits, for the loop variable and every other
+non-Python private of the loop:
+
+    #pragma omp for nowait firstprivate(i) lastprivate(i) schedule(static)
+
+GCC 15.3 adds a barrier at the start of the loop for the combination of the two
+clauses, and not for either one alone (small C test). `Nodes.py` in Cython 3.3.0:
+"The target iteration variable is firstprivate to shut up compiler warnings caused
+by lastprivate", and in the GIL code "Any firstprivate creates a barrier at least
+on GCC". Consequences:
+
+- The counts of this log were wrong: the PR has 7 regions and 7 barriers per split
+  (the threads must all be awake before any of them works), fuse3 has 2 regions
+  and 3 barriers, not 1. Exp 8's `barrier.c` has none of these start barriers.
+- A `prange` has no barrier at its end (`nowait`). The fused code of Exp 9 only
+  worked thanks to the start barrier of the next `prange`, which is a side effect
+  of a compiler. A clean version needs an explicit barrier.
+
+`cakedev0/scikit-learn@hgb/fewer-regions-nb` (10b5afac14, build `nb`) replaces the
+`prange` of the HGB fit by `parallel` blocks with manual static chunks, plus one
+explicit barrier in the fused split_indices. `check_identical.py` passes within
+that build. One xeon socket, 86 threads, 3 processes of 1 fit, ratio to `pr`
+(`results/xeon-s0/exp13/`):
+
+| case | passive pr (s) | passive nb:pr | passive pr+fuse3 | passive nb:pr+fuse3 | active pr (s) | active nb:pr | active pr+fuse3 | active nb:pr+fuse3 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| year_prediction_msd | 48.07 | 0.76 | 0.38 | 0.27 | 4.28 | 0.88 | 0.64 | 0.61 |
+| susy | 41.25 | 0.71 | 0.50 | 0.39 | 6.70 | 1.00 | 0.97 | 0.96 |
+| L | 7.01 | 0.91 | 0.55 | 0.45 | 1.28 | 0.89 | 0.73 | 0.70 |
+| L-leaf255 | 6.31 | 0.91 | 0.63 | 0.53 | 1.51 | 0.87 | 0.64 | 0.60 |
+| kddcup09_churn | 7.36 | 0.83 | 0.54 | 0.50 | 1.24 | 0.85 | 0.79 | 0.74 |
+
+## Exp 14: msd on E cores only (07:05-07:20)
+
+`results/gamer/exp14/`. `phase_runner.py` also records idle state entries of the
+whole machine (shallow = POLL + C1, deep = C2 + C3). 3 processes of 1 fit:
+
+| | abs | abs+fuse3 | pr+fuse3 | nb:abs | nb:abs+fuse3 | nb:pr+fuse3 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 24 threads, libomp | 5.17 | 8.29 | 7.33 | 8.76 | 5.45 | 4.83 |
+| 24 threads, libgomp | 11.01 | 8.49 | 8.02 | 9.61 | 7.01 | 6.04 |
+| 16 E cores, libomp | 4.23 | 3.19 | 3.40 | 3.45 | 2.93 | 3.14 |
+| 16 E cores, libgomp | 3.95 | 3.15 | 3.22 | 3.56 | 3.01 | 3.08 |
+
+On E cores merging wins with both runtimes, and 16 E cores beat the 24 cores by 2x
+or more. Spinning (`KMP_BLOCKTIME=200ms`) is about 2-3x faster than passive, with
+bimodal fits (`abs` 1.86-3.29 s), so no conclusion from its order.
+
+## Exp 15: dynamic schedule of the merged feature loop (07:20-07:35)
+
+`cakedev0/scikit-learn@hgb/fewer-regions-dyn` (27c1e978dc, build `dyn`):
+`schedule='dynamic', chunksize=1` on the fused feature loop.
+`results/gamer/exp15/`, 3 processes of 1 fit:
+
+| | abs | abs+fuse3 | dyn:abs+fuse3 | pr+fuse3 | dyn:pr+fuse3 | nb:pr+fuse3 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 24 threads, libomp | 6.05 | 8.60 | 5.82 | 7.15 | 6.01 | 5.45 |
+| 24 threads, libgomp | 10.92 | 8.51 | 5.78 | 8.33 | 7.11 | 6.02 |
+| 8 P cores, libomp | 4.44 | 5.59 | 4.75 | 6.36 | 5.11 | 7.13 |
+
+So the loss of the merged variants also shows on identical P cores: the P/E
+imbalance is not the whole cause. nb is the slowest variant there.
+
+## Exp 16: split_indices threshold sweep with fuse3 (07:20-08:05)
+
+`scripts/ab/run_exp16.sh`, `analyze_sweep.py`, `results/{gamer,xeon-s0}/exp16/`.
+Variants `abs+fuse3@X` (threaded when n_samples >= X), `none+fuse3`, `pr+fuse3`.
+Median of 2 fits, seconds.
+
+
+### exp16-gamer-gomp.jsonl 
+
+| case | always threaded | 10K | 30K | 100K | 300K | 1M | always serial | PR rule |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L | 0.89 | 0.85 | 0.89 | 0.94 | 0.99 | 0.88 | 0.95 | 0.87 |
+| L-leaf255 | 0.77 | 0.69 | 0.73 | 0.74 | 0.74 | 0.75 | 0.76 | 0.71 |
+| kddcup09_churn | 1.95 | 1.93 | 1.96 | 2.00 | 1.99 | 2.06 | 2.05 | 1.90 |
+| covtype | 6.75 | 6.31 | 6.87 | 7.09 | 7.59 | 8.52 | 8.20 | 6.74 |
+| susy | 13.24 | 12.79 | 12.35 | 13.66 | 14.38 | 15.83 | 18.77 | 12.91 |
+| year_prediction_msd | 8.97 | 7.69 | 9.13 | 8.28 | 8.39 | 8.20 | 8.19 | 8.20 |
+
+### exp16-gamer-omp.jsonl 
+
+| case | always threaded | 10K | 30K | 100K | 300K | 1M | always serial | PR rule |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L | 0.94 | 0.91 | 0.95 | 0.90 | 0.97 | 1.05 | 0.99 | 0.99 |
+| L-leaf255 | 0.86 | 0.73 | 0.75 | 0.80 | 0.81 | 0.84 | 0.76 | 0.78 |
+| kddcup09_churn | 1.80 | 1.85 | 2.05 | 2.14 | 2.05 | 2.03 | 2.03 | 1.88 |
+| covtype | 7.95 | 6.93 | 7.23 | 7.27 | 7.95 | 8.29 | 8.71 | 7.06 |
+| susy | 13.10 | 13.74 | 13.12 | 13.61 | 15.22 | 16.30 | 20.47 | 13.80 |
+| year_prediction_msd | 6.49 | 7.28 | 7.96 | 7.30 | 8.24 | 7.85 | 7.68 | 7.56 |
+
+### exp16-xeon32.jsonl 
+
+| case | always threaded | 10K | 30K | 100K | 300K | 1M | always serial | PR rule |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L | 4.86 | 3.85 | 3.54 | 3.18 | 3.17 | 3.21 | 3.21 | 3.67 |
+| L-leaf255 | 4.66 | 3.68 | 3.57 | 3.59 | 3.55 | 3.35 | 3.64 | 3.82 |
+| kddcup09_churn | 4.94 | 4.35 | 3.90 | 3.91 | 3.77 | 3.71 | 3.89 | 4.08 |
+| susy | 25.78 | 25.65 | 24.86 | 21.71 | 18.83 | 19.22 | 23.14 | 21.87 |
+| year_prediction_msd | 35.87 | 25.38 | 21.08 | 18.72 | 17.40 | 17.11 | 17.32 | 17.85 |
+
+### exp16-xeon86.jsonl 
+
+| case | always threaded | 10K | 30K | 100K | 300K | 1M | always serial | PR rule |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L | 5.14 | 3.97 | 3.74 | 3.36 | 3.34 | 3.41 | 3.39 | 3.74 |
+| L-leaf255 | 5.58 | 3.96 | 3.84 | 3.93 | 3.74 | 3.96 | 3.99 | 4.02 |
+| kddcup09_churn | 5.03 | 4.49 | 3.84 | 3.76 | 3.71 | 3.73 | 3.68 | 4.08 |
+| susy | 24.16 | 24.36 | 23.92 | 20.54 | 18.07 | 18.95 | 22.68 | 21.23 |
+| year_prediction_msd | 40.03 | 26.32 | 22.42 | 18.12 | 18.92 | 19.76 | 18.57 | 18.79 |
+
+The PR's rule is 5000 samples per thread: ~115K on gamer (23-24 threads), 160K and
+430K on the xeon (32 and 86 threads). Best thresholds: flat up to ~100K on gamer,
+~300K on the xeon at both 32 and 86 threads. So the best value here depends on
+the machine more than on the thread count. The PR's rule is within ~15% of the
+best on most cases (xeon 32 threads: L 3.67 vs 3.17 s, susy 21.87 vs 18.83 s).
+Always threaded is up to 2.2x slower on the xeon, always serial up to 1.5x slower
+on susy on gamer. The laptop part of the sweep waited behind another agent's lock.
+
+## Exp 17: only C1 allowed (07:50-08:05)
+
+`scripts/ab/run_exp17.sh`: same variants with all idle states, then holding a 2 us
+latency limit on `/dev/cpu_dma_latency` (through sudo, released when the holder
+exits, no holder left after the run). Deep entries were 0.00 M with the limit.
+`results/gamer/exp17/`, 3 processes of 1 fit, median (s):
+
+| | abs | abs+fuse3 | pr+fuse3 | dyn:abs+fuse3 | nb:abs+fuse3 |
+| --- | --- | --- | --- | --- | --- |
+| 8 P cores, libomp, all states | 4.30 | 5.15 | 5.66 | 4.69 | 7.00 |
+| 8 P cores, libomp, only C1 | 3.97 | 3.18 | 3.09 | 3.65 | 3.11 |
+| 8 P cores, libgomp, all states | 4.32 | 4.06 | 5.01 | 4.16 | 5.18 |
+| 8 P cores, libgomp, only C1 | 3.56 | 3.18 | 3.11 | 3.61 | 3.03 |
+| 24 threads, libomp, all states | 6.00 | 8.17 | 7.88 | 6.37 | 5.55 |
+| 24 threads, libomp, only C1 | 3.45 | 2.16 | 2.32 | 2.53 | 1.94 |
+| 24 threads, libgomp, all states | 11.95 | 8.67 | 8.17 | 5.84 | 7.22 |
+| 24 threads, libgomp, only C1 | 3.61 | 2.09 | 2.32 | 2.52 | 1.92 |
+
+With only C1, merging wins everywhere, the two runtimes give the same times, and
+the dynamic schedule is slower than the static one.

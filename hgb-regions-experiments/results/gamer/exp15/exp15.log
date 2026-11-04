@@ -1,0 +1,92 @@
+
+dyn /home/alacote/work/hgb-regions/venv-dyn/lib/python3.14/site-packages/sklearn/__init__.py
+dyn built at 27c1e978d
+# 1 cases x ['abs', 'pr+fuse3', 'abs+fuse3', 'dyn:pr+fuse3', 'dyn:abs+fuse3', 'nb:pr+fuse3'] profile=exp15-omp T=24 env={'LD_PRELOAD': '/home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libomp.so'}
+exp15-omp rep=0 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=5.824
+exp15-omp rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=7.887
+exp15-omp rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=7.154
+exp15-omp rep=0 year_prediction_msd      abs        rc=0 fit_med=6.318
+exp15-omp rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=5.972
+exp15-omp rep=0 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=6.010
+exp15-omp rep=1 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=6.453
+exp15-omp rep=1 year_prediction_msd      abs        rc=0 fit_med=5.491
+exp15-omp rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=7.121
+exp15-omp rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=4.781
+exp15-omp rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.848
+exp15-omp rep=1 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=6.018
+exp15-omp rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=5.449
+exp15-omp rep=2 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=5.827
+exp15-omp rep=2 year_prediction_msd      abs        rc=0 fit_med=6.048
+exp15-omp rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.600
+exp15-omp rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=7.958
+exp15-omp rep=2 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=5.799
+# done
+# 1 cases x ['abs', 'pr+fuse3', 'abs+fuse3', 'dyn:pr+fuse3', 'dyn:abs+fuse3', 'nb:pr+fuse3'] profile=exp15-gomp T=24 env={}
+exp15-gomp rep=0 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=5.903
+exp15-gomp rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=7.965
+exp15-gomp rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=8.679
+exp15-gomp rep=0 year_prediction_msd      abs        rc=0 fit_med=10.916
+exp15-gomp rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=6.011
+exp15-gomp rep=0 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=7.110
+exp15-gomp rep=1 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=5.663
+exp15-gomp rep=1 year_prediction_msd      abs        rc=0 fit_med=10.456
+exp15-gomp rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=8.180
+exp15-gomp rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=6.426
+exp15-gomp rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.599
+exp15-gomp rep=1 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=6.561
+exp15-gomp rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=6.024
+exp15-gomp rep=2 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=7.196
+exp15-gomp rep=2 year_prediction_msd      abs        rc=0 fit_med=11.635
+exp15-gomp rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.506
+exp15-gomp rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=8.332
+exp15-gomp rep=2 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=5.784
+# done
+# 1 cases x ['abs', 'pr+fuse3', 'abs+fuse3', 'dyn:pr+fuse3', 'dyn:abs+fuse3', 'nb:pr+fuse3'] profile=exp15-omp-Pcores T=8 env={'LD_PRELOAD': '/home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libomp.so'}
+exp15-omp-Pcores rep=0 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=4.752
+exp15-omp-Pcores rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=5.715
+exp15-omp-Pcores rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=6.864
+exp15-omp-Pcores rep=0 year_prediction_msd      abs        rc=0 fit_med=4.440
+exp15-omp-Pcores rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=7.234
+exp15-omp-Pcores rep=0 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=5.111
+exp15-omp-Pcores rep=1 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=4.551
+exp15-omp-Pcores rep=1 year_prediction_msd      abs        rc=0 fit_med=4.245
+exp15-omp-Pcores rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=6.357
+exp15-omp-Pcores rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=7.119
+exp15-omp-Pcores rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=5.364
+exp15-omp-Pcores rep=1 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=5.087
+exp15-omp-Pcores rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=7.134
+exp15-omp-Pcores rep=2 year_prediction_msd      dyn:pr+fuse3 rc=0 fit_med=5.128
+exp15-omp-Pcores rep=2 year_prediction_msd      abs        rc=0 fit_med=4.446
+exp15-omp-Pcores rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=5.593
+exp15-omp-Pcores rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=6.053
+exp15-omp-Pcores rep=2 year_prediction_msd      dyn:abs+fuse3 rc=0 fit_med=5.014
+# done
+# 6 cases x ['pr+fuse3', 'none+fuse3', 'abs+fuse3@10000', 'abs+fuse3@30000', 'abs+fuse3@100000', 'abs+fuse3@300000', 'abs+fuse3@1000000', 'abs+fuse3@2000000000'] profile=exp16-gamer-gomp T=24 env={}
+exp16-gamer-gomp rep=0 L                        abs+fuse3@100000 rc=0 fit_med=0.905
+exp16-gamer-gomp rep=0 L                        none+fuse3 rc=0 fit_med=0.884
+exp16-gamer-gomp rep=0 L                        abs+fuse3@300000 rc=0 fit_med=0.960
+exp16-gamer-gomp rep=0 L                        abs+fuse3@10000 rc=0 fit_med=0.869
+exp16-gamer-gomp rep=0 L                        pr+fuse3   rc=0 fit_med=0.870
+exp16-gamer-gomp rep=0 L                        abs+fuse3@30000 rc=0 fit_med=0.897
+exp16-gamer-gomp rep=0 L                        abs+fuse3@2000000000 rc=0 fit_med=0.981
+exp16-gamer-gomp rep=0 L                        abs+fuse3@1000000 rc=0 fit_med=0.852
+exp16-gamer-gomp rep=0 L-leaf255                none+fuse3 rc=0 fit_med=0.760
+exp16-gamer-gomp rep=0 L-leaf255                pr+fuse3   rc=0 fit_med=0.701
+exp16-gamer-gomp rep=0 L-leaf255                abs+fuse3@100000 rc=0 fit_med=0.736
+exp16-gamer-gomp rep=0 L-leaf255                abs+fuse3@300000 rc=0 fit_med=0.707
+exp16-gamer-gomp rep=0 L-leaf255                abs+fuse3@30000 rc=0 fit_med=0.737
+exp16-gamer-gomp rep=0 L-leaf255                abs+fuse3@10000 rc=0 fit_med=0.681
+exp16-gamer-gomp rep=0 L-leaf255                abs+fuse3@2000000000 rc=0 fit_med=0.757
+exp16-gamer-gomp rep=0 L-leaf255                abs+fuse3@1000000 rc=0 fit_med=0.745
+exp16-gamer-gomp rep=0 kddcup09_churn           abs+fuse3@300000 rc=0 fit_med=2.004
+exp16-gamer-gomp rep=0 kddcup09_churn           abs+fuse3@100000 rc=0 fit_med=1.968
+exp16-gamer-gomp rep=0 kddcup09_churn           abs+fuse3@30000 rc=0 fit_med=1.998
+exp16-gamer-gomp rep=0 kddcup09_churn           abs+fuse3@1000000 rc=0 fit_med=2.144
+exp16-gamer-gomp rep=0 kddcup09_churn           pr+fuse3   rc=0 fit_med=1.884
+exp16-gamer-gomp rep=0 kddcup09_churn           none+fuse3 rc=0 fit_med=1.956
+exp16-gamer-gomp rep=0 kddcup09_churn           abs+fuse3@2000000000 rc=0 fit_med=2.015
+exp16-gamer-gomp rep=0 kddcup09_churn           abs+fuse3@10000 rc=0 fit_med=1.952
+exp16-gamer-gomp rep=0 covtype                  abs+fuse3@30000 rc=0 fit_med=6.969
+exp16-gamer-gomp rep=0 covtype                  abs+fuse3@2000000000 rc=0 fit_med=8.643
+exp16-gamer-gomp rep=0 covtype                  none+fuse3 rc=0 fit_med=6.839
+exp16-gamer-gomp rep=0 covtype                  abs+fuse3@10000 rc=0 fit_med=6.336

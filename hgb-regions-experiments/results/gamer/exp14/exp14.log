@@ -1,0 +1,133 @@
+
+nb /home/alacote/work/hgb-regions/venv-nb/lib/python3.14/site-packages/sklearn/__init__.py
+nb built at 10b5afac1
+# 1 cases x ['main', 'abs', 'abs+fuse', 'abs+fuse3', 'pr+fuse3', 'nb:abs', 'nb:abs+fuse3', 'nb:pr+fuse3'] profile=exp14-omp T=24 env={'LD_PRELOAD': '/home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libomp.so'}
+exp14-omp rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=7.333
+exp14-omp rep=0 year_prediction_msd      abs        rc=0 fit_med=5.171
+exp14-omp rep=0 year_prediction_msd      nb:abs     rc=0 fit_med=8.806
+exp14-omp rep=0 year_prediction_msd      abs+fuse   rc=0 fit_med=6.571
+exp14-omp rep=0 year_prediction_msd      main       rc=0 fit_med=5.366
+exp14-omp rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.292
+exp14-omp rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=4.820
+exp14-omp rep=0 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=5.329
+exp14-omp rep=1 year_prediction_msd      abs        rc=0 fit_med=5.541
+exp14-omp rep=1 year_prediction_msd      main       rc=0 fit_med=5.080
+exp14-omp rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=7.084
+exp14-omp rep=1 year_prediction_msd      nb:abs     rc=0 fit_med=7.551
+exp14-omp rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=7.196
+exp14-omp rep=1 year_prediction_msd      abs+fuse   rc=0 fit_med=7.641
+exp14-omp rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=4.832
+exp14-omp rep=1 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=5.696
+exp14-omp rep=2 year_prediction_msd      nb:abs     rc=0 fit_med=8.758
+exp14-omp rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=9.519
+exp14-omp rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.528
+exp14-omp rep=2 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=5.452
+exp14-omp rep=2 year_prediction_msd      main       rc=0 fit_med=5.792
+exp14-omp rep=2 year_prediction_msd      abs        rc=0 fit_med=5.002
+exp14-omp rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=6.473
+exp14-omp rep=2 year_prediction_msd      abs+fuse   rc=0 fit_med=8.408
+# done
+# 1 cases x ['main', 'abs', 'abs+fuse', 'abs+fuse3', 'pr+fuse3', 'nb:abs', 'nb:abs+fuse3', 'nb:pr+fuse3'] profile=exp14-gomp T=24 env={}
+exp14-gomp rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=8.016
+exp14-gomp rep=0 year_prediction_msd      abs        rc=0 fit_med=11.010
+exp14-gomp rep=0 year_prediction_msd      nb:abs     rc=0 fit_med=9.613
+exp14-gomp rep=0 year_prediction_msd      abs+fuse   rc=0 fit_med=8.568
+exp14-gomp rep=0 year_prediction_msd      main       rc=0 fit_med=11.221
+exp14-gomp rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.490
+exp14-gomp rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=5.910
+exp14-gomp rep=0 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=7.011
+exp14-gomp rep=1 year_prediction_msd      abs        rc=0 fit_med=12.605
+exp14-gomp rep=1 year_prediction_msd      main       rc=0 fit_med=14.265
+exp14-gomp rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=7.931
+exp14-gomp rep=1 year_prediction_msd      nb:abs     rc=0 fit_med=8.669
+exp14-gomp rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.119
+exp14-gomp rep=1 year_prediction_msd      abs+fuse   rc=0 fit_med=9.616
+exp14-gomp rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=6.152
+exp14-gomp rep=1 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=6.869
+exp14-gomp rep=2 year_prediction_msd      nb:abs     rc=0 fit_med=11.053
+exp14-gomp rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=8.246
+exp14-gomp rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=8.949
+exp14-gomp rep=2 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=7.186
+exp14-gomp rep=2 year_prediction_msd      main       rc=0 fit_med=14.206
+exp14-gomp rep=2 year_prediction_msd      abs        rc=0 fit_med=10.963
+exp14-gomp rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=6.043
+exp14-gomp rep=2 year_prediction_msd      abs+fuse   rc=0 fit_med=7.206
+# done
+# 1 cases x ['main', 'abs', 'abs+fuse', 'abs+fuse3', 'pr+fuse3', 'nb:abs', 'nb:abs+fuse3', 'nb:pr+fuse3'] profile=exp14-omp-spin T=24 env={'LD_PRELOAD': '/home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libomp.so', 'KMP_BLOCKTIME': '200ms', 'SKLEARN_OMP_WAIT_POLICY': 'passive'}
+exp14-omp-spin rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=2.654
+exp14-omp-spin rep=0 year_prediction_msd      abs        rc=0 fit_med=2.967
+exp14-omp-spin rep=0 year_prediction_msd      nb:abs     rc=0 fit_med=1.747
+exp14-omp-spin rep=0 year_prediction_msd      abs+fuse   rc=0 fit_med=1.788
+exp14-omp-spin rep=0 year_prediction_msd      main       rc=0 fit_med=1.742
+exp14-omp-spin rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.326
+exp14-omp-spin rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=1.972
+exp14-omp-spin rep=0 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=2.215
+exp14-omp-spin rep=1 year_prediction_msd      abs        rc=0 fit_med=3.286
+exp14-omp-spin rep=1 year_prediction_msd      main       rc=0 fit_med=2.961
+exp14-omp-spin rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=2.835
+exp14-omp-spin rep=1 year_prediction_msd      nb:abs     rc=0 fit_med=2.447
+exp14-omp-spin rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=2.392
+exp14-omp-spin rep=1 year_prediction_msd      abs+fuse   rc=0 fit_med=2.807
+exp14-omp-spin rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=1.978
+exp14-omp-spin rep=1 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=1.639
+exp14-omp-spin rep=2 year_prediction_msd      nb:abs     rc=0 fit_med=2.579
+exp14-omp-spin rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=1.961
+exp14-omp-spin rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=1.762
+exp14-omp-spin rep=2 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=2.037
+exp14-omp-spin rep=2 year_prediction_msd      main       rc=0 fit_med=1.723
+exp14-omp-spin rep=2 year_prediction_msd      abs        rc=0 fit_med=1.862
+exp14-omp-spin rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=1.944
+exp14-omp-spin rep=2 year_prediction_msd      abs+fuse   rc=0 fit_med=1.830
+# done
+# 1 cases x ['main', 'abs', 'abs+fuse', 'abs+fuse3', 'pr+fuse3', 'nb:abs', 'nb:abs+fuse3', 'nb:pr+fuse3'] profile=exp14-omp-Ecores T=16 env={'LD_PRELOAD': '/home/alacote/scikit-learn-benchmarks/.pixi/envs/sklearn-dev-libomp/lib/libomp.so'}
+exp14-omp-Ecores rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.315
+exp14-omp-Ecores rep=0 year_prediction_msd      abs        rc=0 fit_med=4.226
+exp14-omp-Ecores rep=0 year_prediction_msd      nb:abs     rc=0 fit_med=3.511
+exp14-omp-Ecores rep=0 year_prediction_msd      abs+fuse   rc=0 fit_med=3.755
+exp14-omp-Ecores rep=0 year_prediction_msd      main       rc=0 fit_med=4.500
+exp14-omp-Ecores rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.190
+exp14-omp-Ecores rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=3.237
+exp14-omp-Ecores rep=0 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=3.015
+exp14-omp-Ecores rep=1 year_prediction_msd      abs        rc=0 fit_med=4.229
+exp14-omp-Ecores rep=1 year_prediction_msd      main       rc=0 fit_med=4.415
+exp14-omp-Ecores rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.404
+exp14-omp-Ecores rep=1 year_prediction_msd      nb:abs     rc=0 fit_med=3.451
+exp14-omp-Ecores rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.018
+exp14-omp-Ecores rep=1 year_prediction_msd      abs+fuse   rc=0 fit_med=3.573
+exp14-omp-Ecores rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=3.132
+exp14-omp-Ecores rep=1 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=2.935
+exp14-omp-Ecores rep=2 year_prediction_msd      nb:abs     rc=0 fit_med=3.338
+exp14-omp-Ecores rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.397
+exp14-omp-Ecores rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.233
+exp14-omp-Ecores rep=2 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=2.916
+exp14-omp-Ecores rep=2 year_prediction_msd      main       rc=0 fit_med=4.331
+exp14-omp-Ecores rep=2 year_prediction_msd      abs        rc=0 fit_med=4.060
+exp14-omp-Ecores rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=3.143
+exp14-omp-Ecores rep=2 year_prediction_msd      abs+fuse   rc=0 fit_med=3.644
+# done
+# 1 cases x ['main', 'abs', 'abs+fuse', 'abs+fuse3', 'pr+fuse3', 'nb:abs', 'nb:abs+fuse3', 'nb:pr+fuse3'] profile=exp14-gomp-Ecores T=16 env={}
+exp14-gomp-Ecores rep=0 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.223
+exp14-gomp-Ecores rep=0 year_prediction_msd      abs        rc=0 fit_med=3.926
+exp14-gomp-Ecores rep=0 year_prediction_msd      nb:abs     rc=0 fit_med=3.596
+exp14-gomp-Ecores rep=0 year_prediction_msd      abs+fuse   rc=0 fit_med=3.405
+exp14-gomp-Ecores rep=0 year_prediction_msd      main       rc=0 fit_med=4.096
+exp14-gomp-Ecores rep=0 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.143
+exp14-gomp-Ecores rep=0 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=3.040
+exp14-gomp-Ecores rep=0 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=3.017
+exp14-gomp-Ecores rep=1 year_prediction_msd      abs        rc=0 fit_med=3.949
+exp14-gomp-Ecores rep=1 year_prediction_msd      main       rc=0 fit_med=4.137
+exp14-gomp-Ecores rep=1 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.295
+exp14-gomp-Ecores rep=1 year_prediction_msd      nb:abs     rc=0 fit_med=3.560
+exp14-gomp-Ecores rep=1 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.243
+exp14-gomp-Ecores rep=1 year_prediction_msd      abs+fuse   rc=0 fit_med=3.397
+exp14-gomp-Ecores rep=1 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=3.081
+exp14-gomp-Ecores rep=1 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=3.010
+exp14-gomp-Ecores rep=2 year_prediction_msd      nb:abs     rc=0 fit_med=3.459
+exp14-gomp-Ecores rep=2 year_prediction_msd      pr+fuse3   rc=0 fit_med=3.183
+exp14-gomp-Ecores rep=2 year_prediction_msd      abs+fuse3  rc=0 fit_med=3.147
+exp14-gomp-Ecores rep=2 year_prediction_msd      nb:abs+fuse3 rc=0 fit_med=2.902
+exp14-gomp-Ecores rep=2 year_prediction_msd      main       rc=0 fit_med=4.181
+exp14-gomp-Ecores rep=2 year_prediction_msd      abs        rc=0 fit_med=3.996
+exp14-gomp-Ecores rep=2 year_prediction_msd      nb:pr+fuse3 rc=0 fit_med=3.386
+exp14-gomp-Ecores rep=2 year_prediction_msd      abs+fuse   rc=0 fit_med=3.471
+# done

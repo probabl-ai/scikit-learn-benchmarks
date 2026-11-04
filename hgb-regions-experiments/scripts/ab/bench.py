@@ -9,24 +9,35 @@ from pathlib import Path
 
 B = Path.home() / "scikit-learn-benchmarks"
 W = Path.home() / "work/hgb-regions"
-VARIANTS = {
-    "main": ("main", {}),
-    "pr": ("exp", {"SKLEARN_HGB_GUARD": "pr"}),
-    "abs": ("exp", {"SKLEARN_HGB_GUARD": "abs"}),
-    "pr+fuse": ("exp", {"SKLEARN_HGB_GUARD": "pr", "SKLEARN_HGB_EXP": "fuse"}),
-    "pr+fuse3": ("exp", {"SKLEARN_HGB_GUARD": "pr", "SKLEARN_HGB_EXP": "fuse3"}),
-    "abs+fuse3": ("exp", {"SKLEARN_HGB_GUARD": "abs", "SKLEARN_HGB_EXP": "fuse3"}),
-    "none+fuse3": ("exp", {"SKLEARN_HGB_GUARD": "none", "SKLEARN_HGB_EXP": "fuse3"}),
-}
+DEFAULT_VARIANTS = "main,pr,abs,pr+fuse,pr+fuse3,abs+fuse3,none+fuse3"
+
+
+def parse_variant(name):
+    """`main`, or `[BUILD:]GUARD[+FUSE][@ABS_SAMPLES]`, e.g. `abs+fuse3@50000`, `nb:pr+fuse3`."""
+    if name == "main":
+        return "main", {}
+    build, _, rest = name.rpartition(":")
+    rest, _, samples = rest.partition("@")
+    guard, _, fuse = rest.partition("+")
+    env = {"SKLEARN_HGB_GUARD": guard}
+    if fuse:
+        env["SKLEARN_HGB_EXP"] = fuse
+    if samples:
+        env["SKLEARN_HGB_ABS_SAMPLES"] = samples
+    return build or "exp", env
+
+
 
 p = argparse.ArgumentParser()
 p.add_argument("--profile", required=True)
 p.add_argument("--threads", type=int, required=True)
-p.add_argument("--variants", default=",".join(VARIANTS))
+p.add_argument("--variants", default=DEFAULT_VARIANTS)
 p.add_argument("--cases", default="", help="comma separated case names, default all")
 p.add_argument("--env", action="append", default=[], help="KEY=VAL for every run")
 p.add_argument("--n-runs", type=int, default=3)
 p.add_argument("--reps", type=int, default=1)
+p.add_argument("--phases", action="store_true", help="also record the grower phase times")
+p.add_argument("--cpus", default="", help="taskset CPU list, replaces the case's cpu_affinity")
 p.add_argument("--out", required=True)
 args = p.parse_args()
 
@@ -49,19 +60,27 @@ for rep in range(args.reps):
         order = variants[:]
         rng.shuffle(order)
         for v in order:
-            build, venv_env = VARIANTS[v]
+            build, venv_env = parse_variant(v)
             case_file, res = tmp / "case.json", tmp / "res.jsonl"
             case_file.write_text(json.dumps(case))
             res.unlink(missing_ok=True)
             env = {**os.environ, **{k: str(x) for k, x in case["bench"]["env"].items()},
                    **venv_env, **extra_env, "PYTHONPATH": str(B)}
-            for k in ("SKLEARN_HGB_GUARD", "SKLEARN_HGB_EXP"):
+            for k in ("SKLEARN_HGB_GUARD", "SKLEARN_HGB_EXP", "SKLEARN_HGB_ABS_SAMPLES"):
                 if k not in venv_env:
                     env.pop(k, None)
-            cmd = [str(W / f"venv-{build}/bin/python"), "-m", "sklbench.runners.estimator",
+            phase_file = tmp / "phases.json"
+            phase_file.unlink(missing_ok=True)
+            runner = ["-m", "sklbench.runners.estimator"]
+            if args.phases:
+                env["HGB_PHASE_OUT"] = str(phase_file)
+                runner = [str(W / "phase_runner.py")]
+            cmd = [str(W / f"venv-{build}/bin/python"), *runner,
                    "--case-file", str(case_file), "--n-runs", str(args.n_runs), "--output-jsonl", str(res)]
             aff = case["bench"].get("cpu_affinity")
-            if aff:
+            if args.cpus:
+                cmd = ["taskset", "-c", args.cpus] + cmd
+            elif aff:
                 cmd = ["taskset", "-c", ",".join(map(str, aff))] + cmd
             t0 = time.time()
             try:
@@ -76,6 +95,8 @@ for rep in range(args.reps):
                    "rows": rows, "wall_s": time.time() - t0}
             if rc != 0:
                 rec["stderr"] = err
+            if phase_file.exists():
+                rec["phases"] = json.loads(phase_file.read_text())
             out.write(json.dumps(rec, default=str) + "\n")
             out.flush()
             med = f"{statistics.median(fits):.3f}" if fits else "NA"
