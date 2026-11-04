@@ -249,6 +249,10 @@ TERMS = {
         "Pinning threads to given CPU cores, so the operating system doesn't "
         "move them around.",
     ),
+    "cpu affinity": Term(
+        "The set of logical CPUs a process may run on. joblib only counts those "
+        "for n_jobs=-1.",
+    ),
     "omp_num_threads": Term("Environment variable setting how many threads OpenMP code uses."),
     "active wait": Term(
         "Idle OpenMP threads spin on the CPU for a while before sleeping, so "

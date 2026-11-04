@@ -17,6 +17,7 @@ from dashboards import (
     gen_hardware_comparisons,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
+    gen_hptuning_taskset,
     gen_models_scalability,
     gen_softwares_comparison,
 )
@@ -83,6 +84,7 @@ DASHBOARDS = [
         (gen_cross_comparison, gen_cross_comparison.ENTRY_PAGE),
         (gen_models_scalability, "models_scalability.html"),
         (gen_hptuning_scalability, "hptuning_scalability.html"),
+        (gen_hptuning_taskset, "hptuning_taskset.html"),
         (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
     ]
 ]
@@ -94,6 +96,7 @@ DASHBOARD_DESCRIPTIONS = {
     gen_cross_comparison.ENTRY_PAGE: "Any software on any machine against one software on every machine, or every software on one machine.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
+    "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use, and if one worker per <dfn>physical core</dfn> is faster.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
 }
 
