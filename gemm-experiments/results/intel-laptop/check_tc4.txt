@@ -1,0 +1,60 @@
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 4
+# affinity: threads=4 bound_to_one_core=0 voluntary_switches=65 involuntary_switches=220 migrations=12 openmp=none
+sr-base,check,d,300,300,1,getrf,threads=4,vs1thread=2.19e-14,OK
+sr-base,check,d,500,500,1,getrf,threads=4,vs1thread=4.27e-14,OK
+sr-base,check,d,1000,1000,1,getrf,threads=4,vs1thread=1.04e-13,OK
+sr-base,check,d,2000,2000,1,getrf,threads=4,vs1thread=3.5e-13,OK
+sr-base,check,d,4000,4000,1,getrf,threads=4,vs1thread=1.19e-12,OK
+sr-base,check,d,8000,8000,1,getrf,threads=4,vs1thread=2.22e-12,OK
+sr-base,check,d,100000,20,1,getrf,threads=4,vs1thread=3.75e-16,OK
+sr-base,check,d,1000000,20,1,getrf,threads=4,vs1thread=3.95e-16,OK
+sr-base,check,d,20000,500,1,getrf,threads=4,vs1thread=1.39e-14,OK
+sr-base,check,d,500,500,1,gesv,threads=4,vs1thread=2.27e-16,OK
+sr-base,check,d,2000,2000,1,gesv,threads=4,vs1thread=4.55e-16,OK
+sr-base,check,d,4000,4000,100,gesv,threads=4,vs1thread=4.31e-16,OK
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 16
+# affinity: threads=16 bound_to_one_core=0 voluntary_switches=175 involuntary_switches=1979 migrations=40 openmp=none
+sr-base,check,d,300,300,1,getrf,threads=16,vs1thread=2.22e-14,OK
+sr-base,check,d,500,500,1,getrf,threads=16,vs1thread=3.72e-14,OK
+sr-base,check,d,1000,1000,1,getrf,threads=16,vs1thread=1.01e-13,OK
+sr-base,check,d,2000,2000,1,getrf,threads=16,vs1thread=2.76e-13,OK
+sr-base,check,d,4000,4000,1,getrf,threads=16,vs1thread=9.09e-13,OK
+sr-base,check,d,8000,8000,1,getrf,threads=16,vs1thread=2.49e-12,OK
+sr-base,check,d,100000,20,1,getrf,threads=16,vs1thread=3.75e-16,OK
+sr-base,check,d,1000000,20,1,getrf,threads=16,vs1thread=3.95e-16,OK
+sr-base,check,d,20000,500,1,getrf,threads=16,vs1thread=1.21e-14,OK
+sr-base,check,d,500,500,1,gesv,threads=16,vs1thread=4.54e-16,OK
+sr-base,check,d,2000,2000,1,gesv,threads=16,vs1thread=7.96e-16,OK
+sr-base,check,d,4000,4000,100,gesv,threads=16,vs1thread=1.08e-15,OK
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 4
+# affinity: threads=4 bound_to_one_core=0 voluntary_switches=66 involuntary_switches=223 migrations=10 openmp=none
+tc4,check,d,300,300,1,getrf,threads=4,vs1thread=2.19e-14,OK
+tc4,check,d,500,500,1,getrf,threads=4,vs1thread=4.27e-14,OK
+tc4,check,d,1000,1000,1,getrf,threads=4,vs1thread=1.04e-13,OK
+tc4,check,d,2000,2000,1,getrf,threads=4,vs1thread=3.5e-13,OK
+tc4,check,d,4000,4000,1,getrf,threads=4,vs1thread=1.19e-12,OK
+tc4,check,d,8000,8000,1,getrf,threads=4,vs1thread=2.22e-12,OK
+tc4,check,d,100000,20,1,getrf,threads=4,vs1thread=3.75e-16,OK
+tc4,check,d,1000000,20,1,getrf,threads=4,vs1thread=3.95e-16,OK
+tc4,check,d,20000,500,1,getrf,threads=4,vs1thread=1.39e-14,OK
+tc4,check,d,500,500,1,gesv,threads=4,vs1thread=2.27e-16,OK
+tc4,check,d,2000,2000,1,gesv,threads=4,vs1thread=4.55e-16,OK
+tc4,check,d,4000,4000,100,gesv,threads=4,vs1thread=4.31e-16,OK
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 16
+# affinity: threads=16 bound_to_one_core=0 voluntary_switches=178 involuntary_switches=761 migrations=27 openmp=none
+tc4,check,d,300,300,1,getrf,threads=16,vs1thread=2.22e-14,OK
+tc4,check,d,500,500,1,getrf,threads=16,vs1thread=3.72e-14,OK
+tc4,check,d,1000,1000,1,getrf,threads=16,vs1thread=1.01e-13,OK
+tc4,check,d,2000,2000,1,getrf,threads=16,vs1thread=2.76e-13,OK
+tc4,check,d,4000,4000,1,getrf,threads=16,vs1thread=9.09e-13,OK
+tc4,check,d,8000,8000,1,getrf,threads=16,vs1thread=2.49e-12,OK
+tc4,check,d,100000,20,1,getrf,threads=16,vs1thread=3.75e-16,OK
+tc4,check,d,1000000,20,1,getrf,threads=16,vs1thread=3.95e-16,OK
+tc4,check,d,20000,500,1,getrf,threads=16,vs1thread=1.21e-14,OK
+tc4,check,d,500,500,1,gesv,threads=16,vs1thread=4.54e-16,OK
+tc4,check,d,2000,2000,1,gesv,threads=16,vs1thread=7.96e-16,OK
+tc4,check,d,4000,4000,100,gesv,threads=16,vs1thread=1.08e-15,OK
