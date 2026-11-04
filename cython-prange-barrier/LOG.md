@@ -143,8 +143,9 @@ adding one on clang. New test `test_prange_end_barrier` in
 A first `runtests.py` run selected no tests (`--no-file` excludes them) and printed
 "ALL DONE": check the "Ran N tests" line.
 
-Draft issue on the fork, not upstream. References to upstream are plain `GH-N`
-text on purpose, to leave no cross-reference on the upstream threads.
+Draft issue on the fork, not upstream. I wrote references to upstream as plain `GH-N` to leave
+no cross-reference on the upstream threads, and that was wrong: GitHub links them from a fork too.
+The upstream timelines of GH-6562 and GH-7178 show cakedev0/cython#1, #2, #3 and #4.
 
 ## Exp 5: Fix B, and a hang on clang (2026-11-04)
 
