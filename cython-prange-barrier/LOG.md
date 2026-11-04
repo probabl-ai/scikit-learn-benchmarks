@@ -231,6 +231,16 @@ old ones. The compiler code of Fix B is identical to the benchmarked `fixB2` (em
 a `prange` ending a `parallel` block. Fix A alone hangs on `parallel_with_gil` with clang, as
 master does (cakedev0/cython#2).
 
+Audit of scikit-learn main for #1: `scripts/audit_parallel_blocks.py`, summary in `FINDINGS.md`.
+
+TSan on intel-laptop, `scripts/tsan/`, results in `results/tsan/`. Mistakes on the way: a first run
+on gamer had 5 failed builds (Tempita imports Cython, missing from the env), and its "0 reports"
+meant nothing. The first control (`fctl`, `fuse3` with `nowait` everywhere) crashed with
+`DEADLYSIGNAL` and hung until the 1500 s timeout, so it reported nothing. `probe.sh` is the control
+that reports, run on thinkpad since the other machines were busy. The check in `checks.sh` for
+`_argkmin` matched 2 files; `nm -D` on `_argkmin` alone shows 15 `__tsan_` symbols, so the C++
+extensions are instrumented.
+
 Sources for the passive default: `libgomp/config/linux/x86/spincount.h` sets the spin count to 1
 if CPUID reports a hybrid CPU, unless `OMP_WAIT_POLICY` or `GOMP_SPINCOUNT` is set. `kmp.h`:
 `KMP_DEFAULT_BLOCKTIME (__kmp_is_hybrid_cpu() ? (0) : (200000))`. `env -i` on gamer still reports

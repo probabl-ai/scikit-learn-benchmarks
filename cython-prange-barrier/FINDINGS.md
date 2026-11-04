@@ -35,6 +35,16 @@ Both are on the fork only for now.
   the GIL hangs with clang on GIL builds. `runtests.py` doesn't enable OpenMP on clang, which is
   probably why nobody saw it.
 
+Impact on scikit-learn main (d5a61d1149cb), from reading the code with
+`scripts/audit_parallel_blocks.py`, not from TSan. Its pin (`cython<3.2.6`) keeps wheels away from
+both bugs for now.
+
+- #1: I found no wrong results in the 31 loops in `parallel` blocks. What follows them is `free()`
+  of per-thread buffers, a reduction of per-thread buffers under a lock (KMeans), an empty hook, or
+  a second loop. The second loop reads the first one's writes only in `_radius_neighbors` and
+  `_radius_neighbors_classmode`, at the same index with `schedule='static'` over the same range.
+- #2: not affected. None of the 17 generated files with a `prange` use the GIL-holding path.
+
 ## The fix
 
 PRs on the fork, on upstream master 7b3aab363.
@@ -50,6 +60,22 @@ Tests: Cython's parallel tests pass in C and C++ with GCC 15, and by hand with c
 `test_pure_mode` failures from my harness (same on master). scikit-learn's tests of the modules
 using `prange` give the same counts as the baseline: 2984 passed, 1061 skipped, 3 xfailed. HGB
 with `fuse3`: 365 passed, 105 skipped. Results of the A/B cases agree across builds (below 2e-15).
+
+TSan with Archer finds no race in the fixes, with clang 23.1 and libomp 23.1, 4 threads
+(`scripts/tsan/`, `results/tsan/`, method from the HGB session):
+
+| Cython | scikit-learn workload, 17 cases | small race probe |
+| --- | --- | --- |
+| 3.3.1 | 0 reports | 0 reports |
+| Fix A | 0 reports | 0 reports |
+| Fix B | 0 reports | 0 reports |
+| Fix B on `fuse3` | 0 reports | |
+| unsafe control: `nowait` on every `prange` | crashes on `fuse3` | 4 reports, wrong values |
+
+The control shows that this setup catches the bug. The 17 values are identical across builds. It's
+one run on small data, so it shows these paths are clean, not that no race can exist. TSan doesn't
+cover GCC builds, where 3.3 has the race. With Fix B both compilers get the same barriers from
+`private`, but I didn't run TSan on GCC.
 
 ## Timings
 
@@ -93,7 +119,5 @@ thread-local buffers. But Cython can't know that.
 ## Not done
 
 - Nothing was run on Windows, and no scikit-learn build was made with clang.
-- I didn't audit scikit-learn's 31 loops in `parallel` blocks for reads after the loop. It only
-  matters for builds using 3.3 (the pixi `sklearn-dev` env), since Fix A restores the barrier.
 - The third barrier call site of `with_parallel_two` in `results/local/barriers_generated.txt`
   isn't explained.

@@ -1,0 +1,23 @@
+      2 #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+      1 #pragma omp for nowait firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+after_loop [0, 0, 0, 0, 0]
+between_loops [0, 0, 0, 0, 0]
+331 exit=0 reports=0
+      2 #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+      1 #pragma omp for nowait firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+after_loop [0, 0, 0, 0, 0]
+between_loops [0, 0, 0, 0, 0]
+fixA exit=0 reports=0
+      1 #pragma omp for nowait private(__pyx_v_j) schedule(static)
+      2 #pragma omp for private(__pyx_v_i) schedule(static)
+after_loop [0, 0, 0, 0, 0]
+between_loops [0, 0, 0, 0, 0]
+fixB2 exit=0 reports=0
+      2 #pragma omp for nowait private(__pyx_v_i) schedule(static)
+      1 #pragma omp for nowait private(__pyx_v_j) schedule(static)
+after_loop [3, 3, 1, 1, 2]
+between_loops [638, 964, 918, 906, 850]
+ctl exit=0 reports=4
+      2 data race race.c:2873:56 in __pyx_pf_4race_after_loop.omp_outlined_debug__
+      1 data race race.c:3412:56 in __pyx_pf_4race_2between_loops.omp_outlined_debug__
+      1 data race race.c:2950:33 in __pyx_pf_4race_after_loop.omp_outlined_debug__

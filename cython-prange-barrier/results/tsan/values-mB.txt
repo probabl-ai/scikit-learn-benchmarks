@@ -1,0 +1,17 @@
+hgb_plain: 0.4039975528
+hgb_categorical: 0.3570143779
+hgb_monotonic: 0.2900732218
+hgb_interaction: 0.4039975528
+hgb_classifier: 0.68935
+kmeans_lloyd: 192525.8244
+kmeans_elkan: 192525.8244
+kmeans_minibatch: 192648.84
+argkmin: 8587.216219
+argkmin_cdist: 487087
+radius: 4208.171508
+argkmin_classmode: 1000
+radius_classmode: 1000
+tsne: 1.797693135e+308
+loss_binomial: 0.85485
+loss_multinomial: 0.71525
+loss_poisson: 0.0002836848338

@@ -1,0 +1,108 @@
+11090:        nowait = True
+/home/arthur/work/cython-prange/tsan/.pixi/envs/default/include/python3.13
+m331 skl=d5a61d114 Cython version 3.3.1 omp-for=399 nowait=399 firstprivate=399
+mA skl=d5a61d114 Cython version 3.4.0a0 omp-for=399 nowait=331 firstprivate=399
+mB skl=d5a61d114 Cython version 3.4.0a0 omp-for=399 nowait=331 firstprivate=1
+fB skl=9ade78bf1 Cython version 3.4.0a0 omp-for=404 nowait=333 firstprivate=1
+fctl skl=9ade78bf1 Cython version 3.4.0a0 omp-for=404 nowait=404 firstprivate=1
+m331 exit=0
+/home/arthur/work/cython-prange/tsan/venv-m331/lib/python3.13/site-packages/sklearn/linear_model/_lo
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_binomial: 0.85485
+/home/arthur/work/cython-prange/tsan/venv-m331/lib/python3.13/site-packages/sklearn/linear_model/_lo
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_multinomial: 0.71525
+loss_poisson: 0.0002836848338
+done
+m331: 0 TSan reports
+mA exit=0
+/home/arthur/work/cython-prange/tsan/venv-mA/lib/python3.13/site-packages/sklearn/linear_model/_logi
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_binomial: 0.85485
+/home/arthur/work/cython-prange/tsan/venv-mA/lib/python3.13/site-packages/sklearn/linear_model/_logi
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_multinomial: 0.71525
+loss_poisson: 0.0002836848338
+done
+mA: 0 TSan reports
+mB exit=0
+/home/arthur/work/cython-prange/tsan/venv-mB/lib/python3.13/site-packages/sklearn/linear_model/_logi
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_binomial: 0.85485
+/home/arthur/work/cython-prange/tsan/venv-mB/lib/python3.13/site-packages/sklearn/linear_model/_logi
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_multinomial: 0.71525
+loss_poisson: 0.0002836848338
+done
+mB: 0 TSan reports
+fB exit=0
+/home/arthur/work/cython-prange/tsan/venv-fB/lib/python3.13/site-packages/sklearn/linear_model/_logi
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_binomial: 0.85485
+/home/arthur/work/cython-prange/tsan/venv-fB/lib/python3.13/site-packages/sklearn/linear_model/_logi
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=5).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+loss_multinomial: 0.71525
+loss_poisson: 0.0002836848338
+done
+fB: 0 TSan reports
+fctl exit=124
+Archer detected OpenMP application with TSan, supplying OpenMP synchronization semantics
+ThreadSanitizer:DEADLYSIGNAL
+fctl: 0 TSan reports
+# all done
