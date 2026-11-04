@@ -679,3 +679,70 @@ Probes (`probe_pool.sh`, `probe_pool.csv`, and inline runs):
   92 ms with exactly 40 (both rounds), on the same 43 cores. A cache-cold
   ddot+daxpy loop over 20 vector pairs of 1e6 is flat at 4.2 ms per cycle
   from 16 to 43 threads, 40 included. Not understood yet.
+
+## Exp 23: thread-count patch v2 (xeon-s1, intel-laptop)
+
+The "40 threads" Lasso 1000000x20 slowdown of exp22 is a benchmark
+artifact: with tol=0 and independent features, coordinate descent reaches
+an exact floating-point fixed point within a few epochs and stops early,
+at an epoch that depends on the ddot summation order, so on the thread
+count. One epoch plus the fit overhead is ~70 ms, 20 epochs ~90-100 ms
+(`probe_lasso_phases.py`). The coordinate-descent BLAS calls alone (ctypes
+loop, `probe_cd_loop.py`) take 20 ms for 20 epochs, flat from 38 to 43
+threads. `sklearn_e2e.py` now uses correlated features (all 20 epochs run,
+`n_iter` column) and adds a Lasso 100000x1000 case (800 MB, more than the
+L3 of every machine; X centered upfront, `check_input=False`).
+
+Patch v2 (`patches/thread_counts_v2.diff`, fork clone branch
+`thread-counts`):
+- ddot/daxpy: min(T, max(8, n/25000)) threads (axpy: n*sizeof/200000), and
+  all T once that count is a third of T. So nothing changes on machines with
+  24 cores or fewer, and 86T keeps every core busy for ELC.
+- dsymv: min(T, max(4, n/64)); getrf: at most max(8, sqrt(m*n)/200) (tall
+  matrices); gesv unchanged from v1 (max(8, n/200)).
+v3 (`thread_counts_v3.diff`) compared n/25000 itself with T/3, so it also
+capped T = 9-24: Lasso 100000x100 at 16T on intel-laptop went 43 -> 47 ms
+and the 800 MB Lasso at 16T on xeon-s1 99 -> 107 ms (8 threads can't stream
+from memory as fast as 16). Back to v2. v2 and v3 are identical from 25T up.
+
+Checks vs one thread: all OK but syevr 1000 eigenvectors at 1.07e-10 vs the
+1e-10 threshold (develop 1-2e-11, v1 7e-11); dsymv itself is bitwise equal
+to one thread, so this is rounding elsewhere in dsyevr amplified by close
+eigenvalues.
+
+Results (`tc2.csv`, `tc3.csv` 4 rounds, `sklearn_e2e_tc3.csv` best of 4,
+xeon-s1; `tc3.csv`, `sklearn_e2e_tc2.csv` on intel-laptop):
+- xeon-s1, 43-86T end to end, develop -> v2: Lasso 20000x100 56-94 -> 13-19
+  ms, Lasso 100000x100 68-104 -> 46-49 ms, Lasso 100000x1000 (out of cache)
+  183-268 -> 113-119 ms, solve 1000 22-47 -> 9-10 ms, solve 2000 71-117 ->
+  51-56 ms, solve 4000 327-425 -> 303-320 ms, eigh 1000 76-96 -> 59-79 ms,
+  eigh 2000 343-425 -> 277-397 ms. ElasticNet tracks Lasso. 8-24T: equal.
+- xeon-s1 microbenchmarks: same gains as v1 (getrf 1000 64T 44 -> 7 ms,
+  gesv 2000 86T 77 -> 15 ms, dsymv 1000 86T 78 -> 22 us, ddot 1e5 64T 26 ->
+  4 us), and the v1 regressions are gone (ddot/daxpy at 4-8T, getrf
+  20000x500 16T, dsymv 300 and 4000). Left: ddot 1e6 at 86T 16 -> 37 us and
+  syevd 200 at 86T 2.6 -> 3.9 ms, both measured right after a shape where
+  v2 uses ~20 threads; probably ELC lag (uncore down while 66 cores sleep),
+  probe pending. End to end at 86T everything is faster.
+- intel-laptop (16 cores, so level 1 unchanged): median of rounds 2-4,
+  within +-3% everywhere, solve 1000 and eigh 1000 1.13x faster at 16T.
+
+Measurement problems found on the way:
+- Scheduler stalls: with T spinning threads pinned to exactly T CPUs, Linux
+  (7.0) sometimes leaves two threads on one CPU for seconds when the mask
+  covers part of a sub-NUMA node (T = 24: node 4's 22 cores + 2 of node 5).
+  Every threaded call then waits ~3 ms: getrf 8000 at 24T 10x slower, eigh
+  2000 40x. Develop too (1 in 4 runs of `probe_stall_seq.sh`, v2 2 in 4).
+  A mask of all 86 cores avoids it but spreads threads over nodes (getrf
+  2000 20-30% slower); adding the hyperthread siblings
+  (`--pin compact-smt`) avoids the 10x stalls but not 2x slowdowns. Kept
+  compact pinning and take the best of 4 rounds.
+- LD_PRELOAD of a build into a conda env loads two OpenBLAS: numpy/scipy's
+  RPATH still opens the env's libblas.so.3 (a second copy with its own
+  thread pool, 47 threads at T=24), even though symbols bind to the
+  preloaded one. `run_sklearn_e2e.sh` now makes a hard-linked env copy per
+  build with the OpenBLAS file replaced.
+- intel-laptop: whichever variant runs first after an idle period is
+  ~15-25% faster (getrf 8000 at 4T 1.53 vs 2.06 s, identical code).
+  `sweep.py` and `run_sklearn_e2e.sh` alternate the variant order per round,
+  and `e2e_table.py --median --skip-first` drops round 1.
