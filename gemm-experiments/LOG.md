@@ -1007,3 +1007,17 @@ the reverse: there develop also ran after enough all-core shapes.
 
 So the gamer has no split-K slowdown. The grid's develop-path ratios there
 are not usable; a clean grid would need a cool-down between shapes.
+
+v3 vs develop, 5 rounds (`sk3.csv`, threads not pinned). Checks: the two f64
+threshold artifacts only. Split cells, median ratio develop/v3: 2T 1.01-2.0x,
+4T 1.04-2.9x, 8T 1.05-3.5x, 6T 0.74-4.9x. All the split losses are at 6T,
+syrk with 64-128 columns and k = 5e3-5e4, 6 chunks: d 64 columns 0.74-0.85x
+(e.g. 64x50000 2.99 vs 2.23 ms in most rounds; both builds have a second
+mode), f32 64-128 columns 0.82-0.91x. At k >= 2e5 the same shapes gain
+(64x1000000 1.3-1.5x). 6 threads is 4 P + 2 E cores: equal chunks run at
+the pace of the E cores. gemm with the same C doesn't lose. The one-chunk
+cells under 0.95x (0.83-0.94, 512-1100 square at 6-8T) run develop's code;
+likely the same power/thermal ordering effect as on the gamer.
+
+The xeon-s1 recheck (`sk3_recheck.csv`) gave up after 3600 s: an
+hptuning_taskset run holds both sockets. Not retried.
