@@ -128,7 +128,9 @@ def main():
         w.writeheader()
         for r in range(args.rounds):
             for t in threads:
-                for name, path, extra in variants:
+                # Alternate the order: on a laptop, whichever variant runs
+                # second can find the turbo power budget already spent.
+                for name, path, extra in variants[:: 1 if r % 2 == 0 else -1]:
                     env = dict(os.environ)
                     env.update({k: v.replace("{T}", str(t)) for k, v in extra.items()})
                     for dtype in args.dtype.split(","):

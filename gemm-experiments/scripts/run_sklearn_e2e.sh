@@ -20,7 +20,8 @@ ENV=(pixi exec -s python=3.12 -s numpy -s scipy -s scikit-learn -s "libblas=*=*o
 for r in $(seq ${ROUNDS:-3}); do
   for t in ${2//,/ }; do
     list=$(IFS=,; echo "${CPUS[*]:0:$t}")
-    for b in ${BASE:-sr-base} ${BUILD:-tc}; do
+    order="${BASE:-sr-base} ${BUILD:-tc}"; [ $((r % 2)) = 0 ] && order="${BUILD:-tc} ${BASE:-sr-base}"
+    for b in $order; do
       LD_PRELOAD=$PWD/builds/$b/lib/libopenblas.so.0 OPENBLAS_NUM_THREADS=$t taskset -c $list \
         "${ENV[@]}" python scripts/sklearn_e2e.py --label $b | sed "s/^/$r,/" >> $OUT
     done
