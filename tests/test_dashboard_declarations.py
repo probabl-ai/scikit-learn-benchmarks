@@ -4,16 +4,10 @@ that can't run."""
 from pathlib import Path
 import tomllib
 
-import pytest
-
 from dashboards import GPU_NAMES, HARDWARE_NAMES, HARDWARE_PLATFORMS
 from dashboards.index import DASHBOARDS
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="configs/all_models_cuml_only.py is added by #142, which must remove this xfail",
-)
 def test_declared_configs_exist():
     missing = {
         config

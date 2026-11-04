@@ -6,6 +6,7 @@ from _real_datasets import generate_cases as generate_real_cases
 
 from sklbench.config.utils import (
     filter_unsupported_cases,
+    filter_cuml_supported_cases_if_needed,
     filter_gpu_cases_if_unavailable,
 )
 
@@ -23,6 +24,7 @@ def generate_cases() -> list[dict]:
         case['bench'] = {'time_limit': 300, **case.get('bench', {}), 'n_runs': 5}
 
     cases = list(filter_gpu_cases_if_unavailable(cases))
+    cases = list(filter_cuml_supported_cases_if_needed(cases))
     cases = list(filter_unsupported_cases(cases))
 
     return cases
