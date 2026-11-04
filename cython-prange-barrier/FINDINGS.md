@@ -145,17 +145,21 @@ its gaps of up to ~11% on gamer are noise. I didn't compare the utility code or 
   same libomp (`llvm-openmp` 23.1.2), Fix B is 35% faster on the same case, and on one socket of the
   Xeon 22% faster. On gamer it also gains on `pr` and `fuse3` (table above). It stops losing when
   threads don't sleep (`KMP_BLOCKTIME=200`: 2.94 s vs 2.54 s) or only E-cores are used (4.34 s vs
-  3.43 s). I think deep idle states cause it, but that isn't settled:
+  3.43 s). Deep idle states explain it. Without the barrier, threads sleep half as often but go deep
+  more often, and a timer thread on each CPU (no root) brings C3 entries down and the penalty with them:
 
   | timer thread on each CPU | C3 entries per fit, 3.3.1 / Fix B | 3.3.1 | Fix B |
   | --- | --- | --- | --- |
-  | none | 131k / 359k | 5.15 | 7.09 |
-  | 5 ms | 5k / 5k | 4.04 | 3.16 |
-  | 200 us | 0 / 0 | 4.01 | 2.79 |
+  | none | 161k / 367k | 5.59 | 6.94 |
+  | 200 ms | 93k / 153k | 4.81 | 4.63 |
+  | 50 ms | 34k / 39k | 4.30 | 3.40 |
+  | 20 ms | 6k / 6k | 4.05 | 3.04 |
+  | 5 ms | 5k / 5k | 4.03 | 3.07 |
 
-  The laptop has the same idle table, but Fix B doesn't raise its C3 entries (60k to 62k), and
-  removing C3 gains nothing there, which fits. I don't know why the two machines differ. There's
-  also no neutral control yet, since the 5 ms timer already removes C3. Details in `LOG.md`, Exp 9.
+  Both builds follow ~10 us of fit per C3 entry, from ~4.0 s on 3.3.1 and ~3.0 s on Fix B. C2 moves
+  with C3, and I didn't disable states directly since that needs root. The laptop has the same idle
+  table, but Fix B doesn't raise its C3 entries (60k to 62k), and removing C3 gains nothing there,
+  which fits. I don't know why the two machines differ. Details in `LOG.md`, Exp 9.
 - `kddcup09_churn` on gamer: 4-16% slower with the fix, in the 4 configurations. On the Xeon it
   gains. Probably idle states on mixed P and E cores, but I haven't checked.
 - The laptop is noisy: its first round showed HGB predict 27% faster and KMeans lloyd 11% slower,

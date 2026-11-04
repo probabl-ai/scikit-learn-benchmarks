@@ -374,6 +374,30 @@ deep on one machine and not the other with the same table. The fit is ~3x slower
 the mix of sleep lengths may differ. The 200 us timer costs ~10% here, while it didn't cost anything
 visible on gamer.
 
-**Still open.** `scripts/keepawake_dose.sh` (periods of 20, 50, 200 ms, looking for a neutral helper)
-is queued behind other runs. The Xeon has a different table (C6 at 170 us) and I didn't read its
-counters. I didn't use root, so `/dev/cpu_dma_latency` and disabling states through sysfs are untested.
+**Longer timer periods.** `scripts/keepawake_dose.sh`, gamer, looking for a helper that leaves deep
+states on. The ssh connection dropped but the run finished on gamer, so there's no `run.log`, and the
+fit times are in the `jsonl` files. P-cores and E-cores summed, models identical across builds:
+
+| timer | C3 entries, 3.3.1 / Fix B | C2 entries, 3.3.1 / Fix B | fit | Fix B vs 3.3.1 |
+| --- | --- | --- | --- | --- |
+| none | 161k / 367k | 68k / 137k | 5.59 / 6.94 | +24% |
+| 200 ms | 93k / 153k | 42k / 69k | 4.81 / 4.63 | -4% |
+| 50 ms | 34k / 39k | 34k / 40k | 4.30 / 3.40 | -21% |
+| 20 ms | 6k / 6k | 28k / 30k | 4.05 / 3.04 | -25% |
+| 5 ms | 5k / 5k | 17k / 23k | 4.03 / 3.07 | -24% |
+
+No period is fully neutral: even 200 ms halves C3 on Fix B. But the penalty returns gradually as C3
+returns, and 5 wake-ups per second on each CPU can't do much directly, so I read this as an effect on
+idle states. A least squares line over these 5 points gives 3.3.1 = 4.0 s + 9.8 us per C3 entry and
+Fix B = 3.0 s + 10.8 us per C3 entry. So Fix B saves ~1 s and loses ~2 s to ~200k more C3 entries.
+The zero-C3 estimates match the 200 us arm (4.01 s and 2.79 s).
+
+The slope isn't a measured exit latency: a region's wake is the maximum over its threads, entries of
+the same region overlap, and the snapshots include process start and data loading. C2 moves with C3,
+so I can't separate them.
+
+**Conclusion.** Deep idle states explain Fix B's slowdown on gamer with libomp: well supported, without
+a direct test. Disabling states through sysfs or holding `/dev/cpu_dma_latency` would be one, and both
+need root. Still unknown: why `menu` goes deep with Fix B on gamer and not on the laptop with the same
+table, why 8 threads on P-cores lose only under the shim, and whether `kddcup09_churn` has the same
+cause. The Xeon has a different table (C6 at 170 us) and I didn't read its counters.
