@@ -927,3 +927,22 @@ k = 5000-50000). Checks `check_sk3.txt`: same two f64 threshold artifacts only.
   (0.23-0.56 ms). 10-round recheck queued (`sk3_recheck.csv`).
 
 Fork `splitk` fast-forwarded to v3 (1cfb856e); draft PR cakedev0/OpenBLAS#10.
+
+## Exp 28: split-K v2 on intel-gamer-gpu, develop's path slower
+
+`sk2.csv` (4-24T, full grid). Checks: the two f64 threshold artifacts only.
+Gains where it splits, 24T: syrk 32-100 columns 8-12x, gemm 64x64 to 200x200
+C 1.5-2.3x; 128x128x5000 at 16T 0.87-0.96 (9 chunks, the laptop case, fixed
+in v3).
+
+But one-chunk cells (develop's code) are 5-35% slower at 12-24T, the same in
+every round with the order alternating: 2000^3 24T 18.2 vs 27.8 ms (f32 9.1
+vs 14.8), 1000x1000x100000 24T 0.79x, 512-1100 square 0.85-0.95x. None at
+4-8T. Same base commit, gcc 15.3.0-7 and flags for both builds (sr-base built
+the day before). `dgemm_`'s frame is 0xc8 vs 0xb0 bytes: `gemm_splitk` is
+not inlined and returns before using its arrays. Not seen on xeon-s1 or the
+laptop. `perf` is not allowed there (perf_event_paranoid 4).
+
+Queued `scripts/gamer_splitk_layout.sh`: develop, v2, v3 and v3 with the
+split-K calls unreachable (`sk3off`, same code), 6 rounds on the slow shapes
+(`sk3_layout.csv`). sk3off slow = code layout; sk3off fast = the call costs.
