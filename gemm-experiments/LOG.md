@@ -722,8 +722,11 @@ xeon-s1; `tc3.csv`, `sklearn_e2e_tc2.csv` on intel-laptop):
   4 us), and the v1 regressions are gone (ddot/daxpy at 4-8T, getrf
   20000x500 16T, dsymv 300 and 4000). Left: ddot 1e6 at 86T 16 -> 37 us and
   syevd 200 at 86T 2.6 -> 3.9 ms, both measured right after a shape where
-  v2 uses ~20 threads; probably ELC lag (uncore down while 66 cores sleep),
-  probe pending. End to end at 86T everything is faster.
+  v2 uses ~20 threads. ELC lag (`probe_stall.sh`): alone, both builds take
+  16.5 us and 2.6 ms; after daxpy 5e5 (20 threads) or gesv 4000x100 (20
+  threads), v2 takes 36 us and 3.9 ms when measured for 0.2 s, and 16.5 us
+  again when measured for 2 s. The uncore takes a few hundred ms to come
+  back up after most cores slept. End to end at 86T everything is faster.
 - intel-laptop (16 cores, so level 1 unchanged): median of rounds 2-4,
   within +-3% everywhere, solve 1000 and eigh 1000 1.13x faster at 16T.
 
