@@ -13,6 +13,8 @@
   const HEADER_FILTER = {clearable: true, sort: "asc", valuesLookup: true};
   const FAILED_MARKER_GAP = 0.4;
   const OFFSET_STEP = 0.14;
+  // Keeps every column of an estimator closer to its tick than to the next one.
+  const MAX_COLUMNS_SPAN = 0.84;
   const FALLBACK_COLOR = "#9e9e9e";
   const REFERENCE_LINE_COLOR = "#48566b";
 
@@ -386,9 +388,8 @@
     const positions = new Map(estimators.map((estimator, index) => [estimator, index]));
     const columns = sortVariants(unique(allItems.map((item) => item.column)));
     const center = (columns.length - 1) / 2;
-    const offsets = new Map(
-      columns.map((column, index) => [column, columns.length > 1 ? (index - center) * OFFSET_STEP : 0])
-    );
+    const step = columns.length > 1 ? Math.min(OFFSET_STEP, MAX_COLUMNS_SPAN / (columns.length - 1)) : 0;
+    const offsets = new Map(columns.map((column, index) => [column, (index - center) * step]));
 
     const columnMin = new Map();
     items.forEach((item) => {
