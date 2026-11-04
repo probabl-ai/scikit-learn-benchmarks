@@ -804,3 +804,46 @@ on 8 cores. Every v6 cell is develop's code path or a v2-v5 capped cell.
   gamer run did not reproduce (develop was slower in that run, 38-44 ms).
 - mac-m2 (`tc6.csv`): checks OK; identical code to develop, ratios 0.97-1.03
   except single cells at 0.85-1.20 (noise on this machine).
+
+## Exp 24: split-K as a PR (xeon-s1)
+
+Fork branch `splitk` (22737c10, on develop b8d14a66): `apply_splitk_gemm.py`
+and `apply_splitk_syrk.py` without the `OPENBLAS_*_SPLITK` env vars and the
+v1 trigger, built as `builds/sk` (`scripts/xeon_s1_chain11.sh`). Checks
+(`check_splitk.txt`): all OK but the k = 200000 f64 cases at relerr
+1.0e-12 (gemm) and 2.4e-13 (syrk), the same values as with split-K off and
+in `check_all2.txt` (threshold artifact), at 3, 8, 43 and 86 threads.
+
+## Exp 25: can PR #4 keep its gains without its losses? (xeon-s1)
+
+Thread scan of develop (`sr-base`), PR #4 (`sr-fix`) and split-K (`sk`),
+f64, 8-86T, 2 rounds (`switch_ratio_scan.csv`). GF/s, best round's median:
+
+| shape | T | develop | PR #4 | split-K |
+| --- | ---: | ---: | ---: | ---: |
+| 200x200x50000:TN | 43 | 751 | 891 | 1918 |
+| | 86 | 658 | 890 | 3425 |
+| syrk 990x463810 | 86 | 82 | 951 | 82 (PR #3: ~900) |
+| syrk 500x100000 | 64 | 72 | 73 | 1408 |
+| 256x100000x50:TN | 86 | 1897 | 2058 | (develop's path) |
+| 1000^3 | 48 | 1824 | 2037 | (develop's path) |
+| 512^3 | 24 | 1088 | 1237 | |
+| 512^3 | 64 | 1302 | 551 | |
+| 512^3 | 86 | 852 | 392 | |
+| 256^3 | 32 | 528 | 187 | |
+
+- The big PR #4 gains are syrk (PR #3 does it, for more shapes) and long-k
+  gemm with a small C (split-K does 3.8x better than PR #4).
+- What only PR #4 gives: 1.07-1.14x on a few cells (1000^3 and 1024^3 at
+  43-48T, 512^3 at 22-24T, 256x100000x50 at 86T).
+- Its losses come from the M x N partition in `level3_thread.c`: with
+  switch_ratio 8, 512^3 at 64T gets an 8x8 grid of 64x64 blocks on 64
+  threads (switch_ratio 16: 32 threads), at 43/86T a 43 x 1 or 43 x 2 grid
+  of 12-row strips. No single work-per-thread floor fits both: 256^3 is best
+  with ~1M multiply-adds per thread, 512^3 with ~4M.
+- So no simple fix. PR #3 + split-K cover the large gains with develop's
+  partition for squares; the partition itself is the "mid-size squares" gap.
+- syrk 500x100000 at 86T stays at 72 with split-K: the 64 MiB cap allows
+  33 chunks, under half of 86 threads, so it falls back to develop's syrk
+  (PR #3 fixes that path). Also 24T: 588 vs 1199 at 22T, the 24-thread mask
+  stall of exp 23.
