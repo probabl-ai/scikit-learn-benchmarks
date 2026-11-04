@@ -14,7 +14,6 @@ from .plot import (
     phase_variant_speedup_plot_html,
     scaling_line_plot_html,
     speedup_plot_html,
-    split_kind_x_variant,
     variant_color_map,
 )
 from .table import (
@@ -55,7 +54,6 @@ __all__ = [
     "render_software_tabs",
     "scaling_line_plot_html",
     "speedup_plot_html",
-    "split_kind_x_variant",
     "detailed_results_table_html",
     "variant_color_map",
 ]

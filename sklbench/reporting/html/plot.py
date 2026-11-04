@@ -8,12 +8,7 @@ from statistics import median
 
 from plotly import graph_objects as go
 
-from ..matching import (
-    BenchmarkRecord,
-    Match,
-    sklearnex_tree_is_binned,
-    warning_marks_binned_splits,
-)
+from ..matching import BenchmarkRecord, Match, warning_marks_binned_splits
 from .table import data_dtype_label, data_layout_label, default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
@@ -849,16 +844,6 @@ def _x_variant(match: Match, variant: str) -> str:
         else "0-max_bins_eq_n_samples"
     )
     return f"{variant} / {max_bins_label}"
-
-
-def split_kind_x_variant(match: Match, variant: str) -> str:
-    """`_x_variant` also splitting comparisons where neither side warns because
-    both bin the same way, like sklearnex against itself on another machine."""
-    result = match.matched_result
-    if result.category != "tree-based":
-        return variant
-    binned = _has_binned_splits_warning(match) or sklearnex_tree_is_binned(result)
-    return f"{variant} / {'1-binned' if binned else '0-exact'}"
 
 
 def speedup_plot_html(

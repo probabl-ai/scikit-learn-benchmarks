@@ -2,33 +2,30 @@ from pathlib import Path
 
 from dashboards import HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS
 from sklbench.reporting.comparison import (
-    BASELINE_SWITCH_SCRIPT,
+    CONTENT_HTML,
     PREPROCESSING_TOGGLE_HTML,
     baseline_pick_html,
-    baseline_switch_html,
-    baseline_view_html,
-    render_preprocessing_views,
-    render_speedup_grid,
+    expanded_note,
+    page_rows,
     tree_binning_note,
+    write_data_files,
 )
-from sklbench.reporting.matching import (
-    read_all_results, read_failed_records, date_range, BenchmarkRecord,
-    MethodResult, matches_source_configs,
-)
-
 from sklbench.reporting.envs import (
     is_vanilla_sklearn, read_env, software_build_name, summarize_software_env,
     summarize_hardware_env,
 )
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
-    DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
     SOFTWARE_TEMPLATE,
-    render_software_tabs,
-    render_hardware_tabs,
     variant_color_map,
 )
+from sklbench.reporting.html.blocks import _slug_id
+from sklbench.reporting.matching import (
+    read_all_results, read_failed_records, BenchmarkRecord, MethodResult,
+    matches_source_configs,
+)
+from sklbench.reporting.utils import stable_json, without_keys
 
 
 BASE_IMPLEMENTATION = "sklearn"
@@ -126,6 +123,7 @@ ABOUT_HTML = """<section class="panel">
   </details>
 </section>"""
 TREE_BINNING_NOTE = tree_binning_note("implementation")
+DATA_DIR = "per_hardware_data"
 
 
 def is_alt_sklearn_build(result: MethodResult | BenchmarkRecord) -> bool:
@@ -171,99 +169,22 @@ def sorted_variant_labels(results: list[MethodResult]) -> list[str]:
     ]
 
 
-def _render_speedup_grid(
-    results: list[MethodResult],
-    failed_records: list[BenchmarkRecord],
-    *,
-    baseline_label: str,
-    variant_colors: dict[str, str],
-) -> str:
-    def is_baseline(result: MethodResult | BenchmarkRecord) -> bool:
-        return variant_label(result) == baseline_label
-
-    return render_speedup_grid(
-        [res for res in results if is_plotted(res) or is_baseline(res)],
-        [record for record in failed_records if is_plotted(record) or is_baseline(record)],
-        is_baseline=is_baseline,
-        baseline_label=baseline_label,
-        variant_label=variant_label,
-        variant_colors=variant_colors,
-        empty_scope="this hardware",
-        notes_by_row={"tree-based": TREE_BINNING_NOTE},
+def _case_key(result: MethodResult | BenchmarkRecord) -> str:
+    """Same hardware on both sides, so `n_jobs` and forest sizes are part of a case."""
+    return stable_json(
+        without_keys(result.case, excluded_names={"implementation", "max_bins", "source_config"})
     )
 
 
-def render_hardware_page(
-    results: list[MethodResult],
-    failed_records: list[BenchmarkRecord],
-    hardware_hash: str,
-    *,
-    variant_colors: dict[str, str],
-) -> str | None:
-    results = [res for res in results if res.hardware_hash == hardware_hash]
-    results = [res for res in results if is_shown(res)]
-    failed_records = [
-        record for record in failed_records
-        if record.hardware_hash == hardware_hash and is_shown(record)
-    ]
-    if not results:
-        return None
-    hardwares_set = {res.hardware_hash for res in results}
-    if len(hardwares_set) > 1:
-        raise ValueError(f"Results are dirty: several hardware hashes match {hardware_hash!r}")
+def _variant_key(result: MethodResult | BenchmarkRecord) -> str:
+    return f"{result.hardware_hash}__{variant_label(result)}"
 
-    labels = sorted_variant_labels(results)
-    if len(sorted_variant_labels([res for res in results if is_plotted(res)])) < 2:
-        return None
-    default_baseline = labels[0]
 
-    speedup_views_html = "".join(
-        baseline_view_html(
-            baseline_label,
-            active=baseline_label == default_baseline,
-            html=render_preprocessing_views(
-                lambda res, records: _render_speedup_grid(
-                    res, records, baseline_label=baseline_label, variant_colors=variant_colors,
-                ),
-                results,
-                failed_records,
-            ),
-        )
-        for baseline_label in labels
-    )
-
-    hardware_hash, = hardwares_set
-    hardware_env = read_env("hardware", hardware_hash)
-
-    tab_colors = {
-        **variant_colors,
-        **{label: BASELINE_ONLY_TAB_COLOR for label in BASELINE_ONLY_BUILDS},
-    }
-    first_result_by_label = {}
-    for res in results:
-        first_result_by_label.setdefault(variant_label(res), res)
-    softwares = []
-    for label in labels:
-        res = first_result_by_label[label]
-        summary = summarize_software_env(
-            read_env("software", res.software_hash),
-            res.implementation,
-            software_hash=res.software_hash,
-        )
-        summary["name"] = label
-        summary["actions_html"] = baseline_pick_html(label, tab_colors[label])
-        softwares.append(summary)
-
-    rows = [
-        DATE_RANGE_TEMPLATE.render(date_range(results)),
-        HARDWARE_TEMPLATE.render(summarize_hardware_env(hardware_env)),
-        render_software_tabs([
-            SOFTWARE_TEMPLATE.render(**summary)
-            for summary in softwares
-        ], variant_colors=tab_colors, labels=labels),
-        speedup_views_html,
-    ]
-    return baseline_switch_html(rows)
+def _group_by_variant(results) -> dict[str, list]:
+    grouped: dict[str, list] = {}
+    for result in results:
+        grouped.setdefault(_variant_key(result), []).append(result)
+    return grouped
 
 
 # Page header and index page label.
@@ -276,32 +197,87 @@ def generate(output_dir: Path) -> None:
     results = [
         res for res in read_all_results()
         if matches_source_configs(res.case, SOURCE_CONFIGS)
+        and res.hardware_hash in HARDWARE_NAMES
     ]
     failed_records = [
         record for record in read_failed_records()
         if matches_source_configs(record.case, SOURCE_CONFIGS)
+        and record.hardware_hash in HARDWARE_NAMES
+        and is_shown(record)
     ]
-    hardware_hashes_with_results = {res.hardware_hash for res in results}
     # Computed over every machine so a variant keeps its color across tabs.
     variant_colors = variant_color_map(
         sorted_variant_labels([res for res in results if is_plotted(res)])
     )
-    hardware_pages = [
-        (
-            hardware_name,
-            render_hardware_page(
-                results, failed_records, hardware_hash, variant_colors=variant_colors
-            ),
-        )
-        for hardware_hash, hardware_name in HARDWARE_NAMES.items()
-        if hardware_hash in hardware_hashes_with_results
-    ]
+    tab_colors = {
+        **variant_colors,
+        **{label: BASELINE_ONLY_TAB_COLOR for label in BASELINE_ONLY_BUILDS},
+    }
+    results = [res for res in results if is_shown(res)]
 
+    def env_html(_variant_key: str, result: MethodResult) -> str:
+        label = variant_label(result)
+        summary = summarize_software_env(
+            read_env("software", result.software_hash),
+            result.implementation,
+            software_hash=result.software_hash,
+        )
+        summary["name"] = label
+        summary["actions_html"] = baseline_pick_html(label, tab_colors[label])
+        return SOFTWARE_TEMPLATE.render(**summary)
+
+    outer_tabs = []
+    shown_variants: dict[str, list[MethodResult]] = {}
+    grouped = _group_by_variant(results)
+    for hardware_hash, hardware_name in HARDWARE_NAMES.items():
+        machine_results = [res for res in results if res.hardware_hash == hardware_hash]
+        labels = sorted_variant_labels(machine_results)
+        if len(sorted_variant_labels([res for res in machine_results if is_plotted(res)])) < 2:
+            continue
+        plotted = {variant_label(res) for res in machine_results if is_plotted(res)}
+        variants = [
+            {
+                "key": f"{hardware_hash}__{label}",
+                "label": label,
+                "plotted": label in plotted,
+                "tabColor": tab_colors[label],
+            }
+            for label in labels
+        ]
+        shown_variants |= {variant["key"]: grouped[variant["key"]] for variant in variants}
+        outer_tabs.append({
+            "label": hardware_name,
+            "slug": _slug_id(hardware_name),
+            "emptyScope": "this hardware",
+            "topHtml": HARDWARE_TEMPLATE.render(
+                summarize_hardware_env(read_env("hardware", hardware_hash))
+            ),
+            "variants": variants,
+        })
+
+    write_data_files(
+        output_dir,
+        DATA_DIR,
+        shown_variants,
+        failed_by_variant=_group_by_variant(failed_records),
+        case_key=_case_key,
+        env_html=env_html,
+    )
+    config = {
+        "page": "baseline-tabs",
+        "dataDir": DATA_DIR,
+        "outerTabs": outer_tabs,
+        "colors": variant_colors,
+        "columnTitle": "Variant name",
+        "treeNote": expanded_note(TREE_BINNING_NOTE),
+        "splitsFromParams": False,
+        "searchNote": "",
+    }
     html = BASE_TEMPLATE.render(title=TITLE, rows=[
         ABOUT_HTML,
         PREPROCESSING_TOGGLE_HTML,
-        render_hardware_tabs(hardware_pages),
-        BASELINE_SWITCH_SCRIPT,
+        CONTENT_HTML,
+        *page_rows(config),
     ])
 
     output = output_dir / "per_hardware.html"

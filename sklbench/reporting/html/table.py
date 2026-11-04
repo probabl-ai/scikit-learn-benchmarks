@@ -638,7 +638,7 @@ def _new_failed_row(
 
 
 def _export_row(row: dict) -> dict:
-    """A row of `gen_cross_comparison`'s data files: unset fields dropped, column
+    """A row of the comparison data files: unset fields dropped, column
     group values formatted (the page picks the columns that vary)."""
     for group in COLUMNS:
         if isinstance(group, ColumnGroupSpec):
@@ -658,7 +658,7 @@ def export_failed_row(record: BenchmarkRecord, comparison_key: int) -> dict:
 
 
 def export_columns() -> list[dict]:
-    """`COLUMNS` for `cross_comparison.js`, which decides what to show from the
+    """`COLUMNS` for `speedup_comparison.js`, which decides what to show from the
     rows of the view, like `detailed_results_table_html`."""
     columns = []
     for spec in COLUMNS:

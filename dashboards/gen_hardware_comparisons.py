@@ -5,7 +5,7 @@ pairing results across machines takes to `gen_cross_comparison`.
 A software label (`software_label`) is hardware-agnostic, so that e.g. PyTorch
 on Intel's "xpu" and on Apple's "mps" share a tab, but keeps CPU and GPU apart.
 """
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from statistics import median
@@ -15,28 +15,21 @@ from dashboards import (
 )
 from dashboards import gen_hptuning_scalability as hptuning
 from sklbench.reporting.comparison import (
-    BASELINE_SWITCH_SCRIPT,
+    CONTENT_HTML,
     PREPROCESSING_TOGGLE_HTML,
     baseline_pick_html,
-    baseline_switch_html,
-    baseline_view_html,
-    render_preprocessing_views,
-    render_speedup_grid,
+    expanded_note,
+    page_rows,
     tree_binning_note,
+    write_data_files,
 )
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
-    DATE_RANGE_TEMPLATE,
     HARDWARE_TEMPLATE,
     SERIES_COLORS,
     SOFTWARE_TEMPLATE,
-    assemble_plots_in_grid,
-    detailed_results_table_html,
-    render_hardware_tabs,
-    render_software_tabs,
-    speedup_plot_html,
-    split_kind_x_variant,
 )
+from sklbench.reporting.html.blocks import _slug_id
 from sklbench.reporting.envs import (
     read_env,
     software_build_name,
@@ -44,13 +37,10 @@ from sklbench.reporting.envs import (
     summarize_software_env,
 )
 from sklbench.reporting.matching import (
-    find_matches,
     read_all_results,
     read_failed_records,
-    date_range,
     matches_source_configs,
     BenchmarkRecord,
-    Match,
     MethodResult,
 )
 from sklbench.reporting.utils import stable_json, without_keys
@@ -107,6 +97,8 @@ BASE_IMPLEMENTATION = "sklearn"
 # "None"/"default" and the plain "cpu" tag all mean "ran on the CPU".
 CPU_DEVICES = {None, "default", "cpu"}
 TREE_BINNING_NOTE = tree_binning_note("machine")
+# Also read by the cross comparison page.
+DATA_DIR = "across_machines_data"
 
 
 def is_gpu_result(result: MethodResult | BenchmarkRecord) -> bool:
@@ -196,18 +188,6 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
     return replace(result, times=[t * scale for t in result.times])
 
 
-def plot_match(match: Match) -> Match:
-    """A bigger forest scores differently, so its metrics are dropped from the
-    plot (the detailed table keeps them for its score columns)."""
-    if _n_estimators(match.base_result) == _n_estimators(match.matched_result):
-        return match
-    return replace(
-        match,
-        base_result=replace(match.base_result, metrics={}),
-        matched_result=replace(match.matched_result, metrics={}),
-    )
-
-
 def match_key(result: MethodResult) -> str:
     case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES)
     case["method"] = result.method
@@ -218,12 +198,6 @@ def comparison_key(result: MethodResult | BenchmarkRecord) -> str:
     return stable_json(without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES))
 
 
-def scores_comparable(base: MethodResult, result: MethodResult) -> bool:
-    """Bigger forests on bigger machines score better."""
-    return _n_estimators(base) == _n_estimators(result)
-
-
-SEARCH_ROW = "hyper-parameter search"
 # `configs/hptuning.py` sweeps the outer `n_jobs` with one CV split per worker,
 # so neither is part of a search's identity: each fit is the same.
 _SEARCH_MATCH_EXCLUDED_NAMES = {"implementation", "max_bins", "n_jobs", "n_splits", "source_config"}
@@ -294,159 +268,6 @@ SEARCH_NOTE = (
     "<code>n_jobs</code> <dfn>CV splits</dfn>, so every fit is the same on both machines and "
     "every worker has 8 fits to do."
 )
-
-
-def search_grid(
-    base_results: list[MethodResult],
-    candidate_results: list[MethodResult],
-    *,
-    baseline_label: str,
-    variant_label,
-    variant_colors: dict[str, str],
-    variant_sort_key,
-    variant_column_title: str,
-) -> str:
-    matches = find_matches(
-        base_results,
-        candidate_results,
-        lambda base, candidate: True,
-        match_key=search_match_key,
-    )
-    if not matches:
-        return ""
-    plot = {
-        "category": SEARCH_ROW,
-        "method": "fit",
-        "case_count": len({search_match_key(match.base_result) for match in matches}),
-        "plot": speedup_plot_html(
-            matches,
-            baseline_label=baseline_label,
-            variant_colors=variant_colors,
-            trace_variant=lambda match: variant_label(match.matched_result),
-            x_variant=lambda match: variant_label(match.matched_result),
-            variant_sort_key=variant_sort_key,
-            comparison_key=search_match_key,
-        ),
-    }
-    return assemble_plots_in_grid(
-        [plot],
-        rows={"category": [SEARCH_ROW]},
-        columns={"method": ["fit"]},
-        notes_by_row={SEARCH_ROW: SEARCH_NOTE},
-        details_by_row={
-            SEARCH_ROW: detailed_results_table_html(
-                SEARCH_ROW,
-                {"fit": matches},
-                baseline_label=baseline_label,
-                variant_label=variant_label,
-                variant_column_title=variant_column_title,
-                comparison_key=search_match_key,
-            )
-        },
-    )
-
-
-def _render_speedup_grid(
-    results: list[MethodResult],
-    failed_records: list[BenchmarkRecord],
-    *,
-    software: str,
-    baseline_label: str,
-    variant_colors: dict[str, str],
-) -> str:
-    return render_speedup_grid(
-        results,
-        failed_records,
-        is_baseline=lambda result: hardware_label(result) == baseline_label,
-        baseline_label=baseline_label,
-        variant_label=hardware_label,
-        variant_colors=variant_colors,
-        empty_scope=software,
-        match_key=match_key,
-        comparison_key=comparison_key,
-        plot_match=plot_match,
-        plot_kwargs={
-            "x_variant": lambda match: split_kind_x_variant(
-                match, hardware_label(match.matched_result)
-            ),
-            "variant_sort_key": hardware_sort_key,
-        },
-        table_kwargs={
-            "variant_column_title": "Hardware",
-            "scores_comparable": scores_comparable,
-        },
-        notes_by_row={"tree-based": TREE_BINNING_NOTE},
-    )
-
-
-def render_software_page(
-    software: str,
-    results: list[MethodResult],
-    failed_records: list[BenchmarkRecord],
-    search_results: list[MethodResult],
-    *,
-    variant_colors: dict[str, str],
-) -> str | None:
-    results = [res for res in results if software_label(res) == software]
-    labels = sorted({hardware_label(res) for res in results}, key=hardware_sort_key)
-    if len(labels) < 2:
-        return None
-    failed_records = [record for record in failed_records if software_label(record) == software]
-    search_results = [res for res in search_results if software_label(res) == software]
-
-    baseline_views = []
-    for baseline_label in labels:
-        search_html = search_grid(
-            [res for res in search_results if hardware_label(res) == baseline_label],
-            [res for res in search_results if hardware_label(res) != baseline_label],
-            baseline_label=baseline_label,
-            variant_label=hardware_label,
-            variant_colors=variant_colors,
-            variant_sort_key=hardware_sort_key,
-            variant_column_title="Hardware",
-        )
-        views_html = render_preprocessing_views(
-            lambda res, records: _render_speedup_grid(
-                res,
-                records,
-                software=software,
-                baseline_label=baseline_label,
-                variant_colors=variant_colors,
-            ),
-            results,
-            failed_records,
-        )
-        baseline_views.append(
-            baseline_view_html(
-                baseline_label,
-                active=baseline_label == labels[0],
-                html=f'{views_html}<div class="page-row">{search_html}</div>',
-            )
-        )
-
-    first_result_by_label = {}
-    for res in results:
-        first_result_by_label.setdefault(hardware_label(res), res)
-    machine_tabs = []
-    for label in labels:
-        res = first_result_by_label[label]
-        summary = summarize_software_env(
-            read_env("software", res.software_hash),
-            res.implementation,
-            software_hash=res.software_hash,
-        )
-        summary["name"] = software
-        machine_tabs.append(
-            baseline_pick_html(label, variant_colors[label])
-            + HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", res.hardware_hash)))
-            + SOFTWARE_TEMPLATE.render(**summary)
-        )
-
-    return baseline_switch_html([
-        DATE_RANGE_TEMPLATE.render(date_range(results)),
-        render_software_tabs(machine_tabs, variant_colors=variant_colors, labels=labels),
-        "".join(baseline_views),
-    ])
 
 
 # Page header and index page label.
@@ -527,26 +348,109 @@ def read_kept_search_results() -> list[MethodResult]:
     ]
 
 
-def generate(output_dir: Path) -> None:
-    results, failed_records = read_results()
-    search_results = read_kept_search_results()
-    variant_colors = hardware_colors(results)
-    softwares = sorted({software_label(res) for res in results}, key=software_sort_key)
-    software_pages = [
-        (
-            software,
-            render_software_page(
-                software, results, failed_records, search_results, variant_colors=variant_colors
-            ),
-        )
-        for software in softwares
-    ]
+@dataclass(frozen=True)
+class Variant:
+    software: str
+    hardware_hash: str
 
+    @property
+    def key(self) -> str:
+        return f"{self.software}__{self.hardware_hash}"
+
+
+def variant_of(result: MethodResult | BenchmarkRecord) -> Variant:
+    return Variant(software_label(result), result.hardware_hash)
+
+
+def _group_by_variant(results) -> dict[Variant, list]:
+    grouped: dict[Variant, list] = {}
+    for result in results:
+        grouped.setdefault(variant_of(result), []).append(result)
+    return grouped
+
+
+def _env_html(_variant_key: str, result: MethodResult) -> str:
+    summary = summarize_software_env(
+        read_env("software", result.software_hash),
+        result.implementation,
+        software_hash=result.software_hash,
+    )
+    summary["name"] = software_label(result)
+    return (
+        HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", result.hardware_hash)))
+        + SOFTWARE_TEMPLATE.render(**summary)
+    )
+
+
+@lru_cache(maxsize=None)
+def write_variant_data(output_dir: Path) -> dict[Variant, list[MethodResult]]:
+    """Shared with the cross comparison page. Returns the results per variant."""
+    results, failed_records = read_results()
+    results_by_variant = _group_by_variant(results)
+    with_keys = lambda grouped: {variant.key: items for variant, items in grouped.items()}
+    write_data_files(
+        output_dir,
+        DATA_DIR,
+        with_keys(results_by_variant),
+        failed_by_variant=with_keys(_group_by_variant(failed_records)),
+        search_by_variant=with_keys(_group_by_variant(read_kept_search_results())),
+        case_key=comparison_key,
+        search_key=search_match_key,
+        env_html=_env_html,
+    )
+    return results_by_variant
+
+
+def generate(output_dir: Path) -> None:
+    results_by_variant = write_variant_data(output_dir)
+    results = [res for variant_results in results_by_variant.values() for res in variant_results]
+    colors = hardware_colors(results)
+    softwares = sorted({variant.software for variant in results_by_variant}, key=software_sort_key)
+
+    outer_tabs = []
+    for software in softwares:
+        variants = sorted(
+            (
+                (hardware_label(variant_results[0]), variant)
+                for variant, variant_results in results_by_variant.items()
+                if variant.software == software
+            ),
+            key=lambda item: hardware_sort_key(item[0]),
+        )
+        if len(variants) < 2:
+            continue
+        outer_tabs.append({
+            "label": software,
+            "slug": _slug_id(software),
+            "emptyScope": software,
+            "variants": [
+                {
+                    "key": variant.key,
+                    "label": label,
+                    "plotted": True,
+                    "tabColor": colors[label],
+                    "pickHtml": baseline_pick_html(label, colors[label]),
+                }
+                for label, variant in variants
+            ],
+        })
+
+    config = {
+        "page": "baseline-tabs",
+        "dataDir": DATA_DIR,
+        "outerTabs": outer_tabs,
+        "colors": colors,
+        "columnTitle": "Hardware",
+        "treeNote": expanded_note(TREE_BINNING_NOTE),
+        "splitsFromParams": True,
+        "labelOrder": HARDWARE_ORDER,
+        "searchNote": expanded_note(SEARCH_NOTE),
+    }
     html = BASE_TEMPLATE.render(title=TITLE, rows=[
         ABOUT_HTML,
         PREPROCESSING_TOGGLE_HTML,
-        render_hardware_tabs(software_pages),
-        BASELINE_SWITCH_SCRIPT,
+        CONTENT_HTML,
+        *page_rows(config),
     ])
 
     output = output_dir / "hardware_comparisons.html"

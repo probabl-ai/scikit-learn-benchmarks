@@ -237,21 +237,6 @@ body.predict-collapsed .predict-collapse-toggle {
   font-weight: 600;
   cursor: pointer;
 }
-.speedup-view-preprocessing {
-  display: none;
-}
-body.with-preprocessing .speedup-view-default {
-  display: none;
-}
-body.with-preprocessing .speedup-view-preprocessing {
-  display: block;
-}
-.baseline-view {
-  display: none;
-}
-.baseline-view.active {
-  display: block;
-}
 .baseline-pick {
   display: inline-flex;
   align-items: center;

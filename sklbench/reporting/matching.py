@@ -668,21 +668,6 @@ def is_cuml_random_forest(result: MethodResult) -> bool:
     )
 
 
-def append_cuml_rf_bins_warning(
-    base_res: MethodResult, candidate: MethodResult, warnings: list
-):
-    """Warn when one side is a cuML random forest and the other is not.
-
-    Both sides bin the same way when they are both cuML, so that pairing
-    gets no warning. Either side may be the dashboard baseline.
-    """
-    base_is_cuml_rf = is_cuml_random_forest(base_res)
-    candidate_is_cuml_rf = is_cuml_random_forest(candidate)
-    if base_is_cuml_rf == candidate_is_cuml_rf:
-        return
-    warnings.append(CUML_RF_BINS_WARNING)
-
-
 def append_iterations_warning(
     base_res: MethodResult, candidate: MethodResult, warnings: list
 ):

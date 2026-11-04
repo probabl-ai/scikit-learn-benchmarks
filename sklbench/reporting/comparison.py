@@ -1,27 +1,46 @@
-"""Speed-up grid and baseline switch shared by the software, hardware and cross
-comparison dashboards. They differ only in what a variant is and in how results
-of two variants are paired."""
+"""Data files and page shell of the software, hardware and cross comparison
+dashboards. Their pages hold no results: `html/speedup_comparison.js` loads one
+data file per variant on screen, then pairs results and draws plots and tables.
+"""
 
 from html import escape
+from importlib.resources import files
+import json
+from pathlib import Path
+import shutil
 from typing import Callable
 
-from .html import assemble_plots_in_grid, detailed_results_table_html, speedup_plot_html
-from .html.table import default_comparison_key
+from .html import (
+    PLOT_TEMPLATE,
+    SOURCE_CELL_TEMPLATE,
+    case_hover_html,
+    export_columns,
+    export_failed_row,
+    export_result_row,
+    failed_hover_html,
+    n_iter_median,
+)
+from .html.glossary import expand_terms
+from .html.plot import ESTIMATOR_LABEL_ABBREVIATIONS
+from .html.table import DATASET_KIND_FILTERS, SCORE_METRICS
 from .matching import (
+    BINNED_SPLIT_WARNING_KINDS,
+    CPU_FALLBACK_WARNING,
+    CUML_RF_BINS_WARNING,
+    METRIC_ABS_TOLERANCE_FLOOR,
+    METRIC_REL_TOLERANCE_FLOOR,
+    METRIC_STD_TOLERANCE_FACTOR,
+    SKLEARNEX_BINS_WARNING,
     BenchmarkRecord,
     Match,
-    MatchWarning,
     MethodResult,
-    add_preprocessing_time,
     append_cpu_fallback_warning,
-    append_cuml_rf_bins_warning,
-    append_iterations_warning,
-    append_max_bins_warning,
-    append_solver_warning,
-    find_matches,
+    fitted_solver,
+    is_cuml_random_forest,
     is_real_dataset,
+    sklearnex_tree_is_binned,
 )
-from .utils import groupby, partition_iterable
+from .provenance import summarize_sources
 
 
 PREPROCESSING_TOGGLE_HTML = (
@@ -32,6 +51,7 @@ PREPROCESSING_TOGGLE_HTML = (
     "</label>"
     "</section>"
 )
+CONTENT_HTML = '<div id="comparison-content"></div>'
 
 
 def tree_binning_note(variant_noun: str) -> str:
@@ -43,244 +63,6 @@ def tree_binning_note(variant_noun: str) -> str:
     )
 
 
-# The picked baseline is kept across outer tabs when that tab has it.
-BASELINE_SWITCH_SCRIPT = """<script>
-function sklbenchShowBaseline(baselineSwitch, baseline) {
-  baselineSwitch.querySelectorAll(".baseline-view").forEach((view) => {
-    view.classList.toggle("active", view.dataset.baseline === baseline);
-  });
-  baselineSwitch.querySelectorAll(".baseline-pick").forEach((button) => {
-    const picked = button.dataset.baseline === baseline;
-    button.disabled = picked;
-    button.textContent = picked ? "✓ Current baseline" : "Pick as baseline";
-    const panelId = button.closest(".tab-panel").id;
-    baselineSwitch
-      .querySelector(`.tab-button[data-tab-target="${panelId}"]`)
-      .classList.toggle("is-baseline", picked);
-  });
-}
-document.querySelectorAll(".baseline-switch").forEach((baselineSwitch) => {
-  sklbenchShowBaseline(
-    baselineSwitch, baselineSwitch.querySelector(".baseline-view.active").dataset.baseline
-  );
-});
-document.addEventListener("click", (event) => {
-  const pick = event.target.closest(".baseline-pick");
-  if (!pick) {
-    return;
-  }
-  const baseline = pick.dataset.baseline;
-  document.querySelectorAll(".baseline-switch").forEach((baselineSwitch) => {
-    const views = baselineSwitch.querySelectorAll(".baseline-view");
-    if (Array.from(views).some((view) => view.dataset.baseline === baseline)) {
-      sklbenchShowBaseline(baselineSwitch, baseline);
-    }
-  });
-  document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
-    if (chart.offsetParent !== null) {
-      Plotly.Plots.resize(chart);
-    }
-  });
-  sklbenchWirePlotClicks();
-});
-</script>"""
-
-
-def _max_bins(result: MethodResult) -> int | None:
-    return result.case.get("algorithm", {}).get("estimator_params", {}).get("max_bins")
-
-
-def result_matches(
-    base_res: MethodResult, candidate: MethodResult
-) -> tuple[bool, list[MatchWarning]]:
-    """`find_matches` match function. Either side can be sklearnex or run on a
-    GPU, depending on the picked baseline."""
-    warnings = []
-
-    if base_res.is_sklearnex_tree and candidate.is_sklearnex_tree:
-        # sklearnex tree cases are run both with the default max_bins and
-        # with exact splits: pair each with its counterpart.
-        if _max_bins(base_res) != _max_bins(candidate):
-            return False, warnings
-    # Against cuML, `append_cuml_rf_bins_warning` covers the binning
-    # difference instead.
-    elif candidate.is_sklearnex_tree:
-        if base_res.implementation.library == "sklearn":
-            append_max_bins_warning(base_res, candidate, warnings)
-    elif base_res.is_sklearnex_tree and not base_res.is_sklearnex_fallback:
-        if candidate.implementation.library == "sklearn":
-            append_max_bins_warning(candidate, base_res, warnings)
-    append_cuml_rf_bins_warning(base_res, candidate, warnings)
-    append_iterations_warning(base_res, candidate, warnings)
-    append_solver_warning(base_res, candidate, warnings)
-    append_cpu_fallback_warning(base_res, warnings)
-    append_cpu_fallback_warning(candidate, warnings)
-
-    return True, warnings
-
-
-def find_speedup_matches(
-    base_results: list[MethodResult],
-    other_results: list[MethodResult],
-    match_key: Callable[[MethodResult], str] | None = None,
-) -> list[Match]:
-    # A sklearnex baseline has one tree result per max_bins value for the same
-    # case. `find_matches` keeps a single baseline per case, so match each
-    # max_bins value separately.
-    base_by_max_bins: dict[int | None, list[MethodResult]] = {}
-    for base in base_results:
-        base_by_max_bins.setdefault(_max_bins(base), []).append(base)
-    return [
-        match
-        for max_bins_base_results in base_by_max_bins.values()
-        for match in find_matches(
-            max_bins_base_results, other_results, result_matches, match_key=match_key
-        )
-    ]
-
-
-def render_speedup_grid(
-    results: list[MethodResult],
-    failed_records: list[BenchmarkRecord],
-    *,
-    is_baseline: Callable[[MethodResult | BenchmarkRecord], bool],
-    baseline_label: str,
-    variant_label: Callable[[MethodResult | BenchmarkRecord], str],
-    variant_colors: dict[str, str],
-    empty_scope: str,
-    match_key: Callable[[MethodResult], str] | None = None,
-    comparison_key: Callable[[MethodResult | BenchmarkRecord], str] = default_comparison_key,
-    plot_match: Callable[[Match], Match] = lambda match: match,
-    plot_kwargs: dict | None = None,
-    table_kwargs: dict | None = None,
-    notes_by_row: dict[str, str] | None = None,
-) -> str:
-    """The category x fit/predict speed-up grid for one baseline, with a
-    detailed results table per category. Non-baseline `results` are the plotted
-    candidates. `match_key` defaults to `find_matches`'s, and `comparison_key`
-    is the case identity linking plot points to table rows."""
-    plot_kwargs = plot_kwargs or {}
-    table_kwargs = table_kwargs or {}
-    base_results, other_results = partition_iterable(results, predicate=is_baseline)
-    if not base_results:
-        return f'<section class="empty">No {baseline_label} baseline results for {empty_scope}.</section>'
-
-    grouped_results = groupby(
-        (res for res in base_results if res.method in ("fit", "predict")),
-        lambda res: (res.category, res.method),
-    )
-
-    # Non-baseline (candidate) failures: shown on the plots too, at the bottom
-    # of their model-variant column, since we don't know from a failed record
-    # whether fit or predict is what failed.
-    candidate_failed_records = [
-        record for record in failed_records if not is_baseline(record)
-    ]
-    candidate_failed_by_category = groupby(
-        candidate_failed_records, lambda record: record.category
-    )
-
-    plots = []
-    matches_by_category = {}
-    for (category, method), group_base_results in grouped_results.items():
-        matches = find_speedup_matches(group_base_results, other_results, match_key)
-        matches_by_category.setdefault(category, {})[method] = matches
-        plot_failed_records = candidate_failed_by_category.get(category, [])
-        plots.append({
-            "category": category,
-            "method": method,
-            "case_count": len(
-                {comparison_key(match.base_result) for match in matches}
-                | {comparison_key(record) for record in plot_failed_records}
-            ),
-            "plot": speedup_plot_html(
-                [plot_match(match) for match in matches],
-                baseline_label=baseline_label,
-                variant_colors=variant_colors,
-                trace_variant=lambda match: variant_label(match.matched_result),
-                comparison_key=comparison_key,
-                failed_records=plot_failed_records,
-                **plot_kwargs,
-            )
-        })
-    failed_by_category = groupby(failed_records, lambda record: record.category)
-
-    # A failed record means find_matches never sees a pair for that case, so the
-    # side that did succeed (the base when a candidate failed, or any candidate
-    # when the base itself failed) would silently vanish from the table too. Look
-    # those up by case identity so they still show up, with no speed-up.
-    base_by_case_key: dict[str, list[MethodResult]] = {}
-    for base in base_results:
-        base_by_case_key.setdefault(comparison_key(base), []).append(base)
-    other_by_case_key: dict[str, list[MethodResult]] = {}
-    for other in other_results:
-        other_by_case_key.setdefault(comparison_key(other), []).append(other)
-
-    unmatched_base_by_category: dict[str, list[MethodResult]] = {}
-    unmatched_candidate_by_category: dict[str, list[MethodResult]] = {}
-    for record in failed_records:
-        key = comparison_key(record)
-        if is_baseline(record):
-            for candidate in other_by_case_key.get(key, []):
-                unmatched_candidate_by_category.setdefault(candidate.category, []).append(candidate)
-        else:
-            for base in base_by_case_key.get(key, []):
-                unmatched_base_by_category.setdefault(base.category, []).append(base)
-
-    details_by_category = {
-        category: detailed_results_table_html(
-            category,
-            matches_by_category.get(category, {}),
-            baseline_label=baseline_label,
-            variant_label=variant_label,
-            comparison_key=comparison_key,
-            failed_records=[
-                (record, baseline_label if is_baseline(record) else variant_label(record))
-                for record in failed_by_category.get(category, [])
-            ],
-            unmatched_base_results=unmatched_base_by_category.get(category, []),
-            unmatched_candidate_results=unmatched_candidate_by_category.get(category, []),
-            **table_kwargs,
-        )
-        for category in (
-            set(matches_by_category) | set(failed_by_category)
-            | set(unmatched_base_by_category) | set(unmatched_candidate_by_category)
-        )
-    }
-
-    return assemble_plots_in_grid(
-        plots,
-        rows={"category": ["linear", "tree-based", "clustering"]},
-        columns={"method": ["fit", "predict"]},
-        details_by_row=details_by_category,
-        notes_by_row=notes_by_row,
-    )
-
-
-def render_preprocessing_views(render_grid: Callable[..., str], results, failed_records) -> str:
-    """Both views behind the preprocessing toggle. `render_grid(results,
-    failed_records)` renders one of them."""
-    default_html = render_grid(results, failed_records)
-    preprocessing_html = render_grid(
-        add_preprocessing_time([res for res in results if is_real_dataset(res)]),
-        [record for record in failed_records if is_real_dataset(record)],
-    )
-    return (
-        '<div class="speedup-view-switch">'
-        f'<div class="speedup-view speedup-view-default">{default_html}</div>'
-        f'<div class="speedup-view speedup-view-preprocessing">{preprocessing_html}</div>'
-        "</div>"
-    )
-
-
-def baseline_view_html(baseline_label: str, *, active: bool, html: str) -> str:
-    active_class = " active" if active else ""
-    return (
-        f'<div class="baseline-view{active_class}" data-baseline="{escape(baseline_label)}">'
-        f"{html}</div>"
-    )
-
-
 def baseline_pick_html(label: str, color: str) -> str:
     return (
         '<button type="button" class="baseline-pick" '
@@ -289,11 +71,207 @@ def baseline_pick_html(label: str, color: str) -> str:
     )
 
 
-def baseline_switch_html(rows: list[str]) -> str:
-    """One outer tab: its `rows` must hold the baseline-view and baseline-pick
-    elements of `BASELINE_SWITCH_SCRIPT`."""
-    return (
-        '<div class="baseline-switch">'
-        + "".join(f'<div class="page-row">{row}</div>' for row in rows)
-        + "</div>"
-    )
+def _compact_times(times: list[float]) -> list[float]:
+    return [float(f"{time:.5g}") for time in times]
+
+
+def _method_block(result: MethodResult) -> dict:
+    return {
+        "times": _compact_times(result.times),
+        "hover": case_hover_html(result.case, result.data_desc),
+        "binned": sklearnex_tree_is_binned(result),
+        "samples": result.data_desc.get("samples"),
+        "features": result.data_desc.get("features"),
+    }
+
+
+def _result_entries(results: list[MethodResult], variant_key: str, case_id) -> list[dict]:
+    """One entry per benchmark record, with what `speedup_comparison.js` needs to
+    pair it with another record and to display it."""
+    by_record: dict[int, list[MethodResult]] = {}
+    for result in results:
+        by_record.setdefault(id(result.record), []).append(result)
+
+    entries = []
+    for record_results in by_record.values():
+        by_method = {result.method: result for result in record_results}
+        first = by_method.get("fit") or next(iter(by_method.values()))
+        entry_id = case_id(first)
+        cpu_fallback = []
+        append_cpu_fallback_warning(first, cpu_fallback)
+        estimator_params = first.case.get("algorithm", {}).get("estimator_params", {})
+        entry = {
+            "id": entry_id,
+            "variant": variant_key,
+            "path": first.record.record_path.as_posix(),
+            "timestamp": first.timestamp_recorded.timestamp(),
+            "estimator": first.case.get("algorithm", {}).get("estimator", "unknown"),
+            "category": first.category,
+            "library": first.implementation.library,
+            "real": is_real_dataset(first),
+            "sklearnexTree": first.is_sklearnex_tree,
+            "cumlRf": is_cuml_random_forest(first),
+            "fallback": first.is_sklearnex_fallback,
+            "cpuFallback": bool(cpu_fallback),
+            "maxBins": estimator_params.get("max_bins"),
+            "nEstimators": estimator_params.get("n_estimators"),
+            "solver": fitted_solver(first.case, first.implementation.library, first.attributes),
+            "nIter": first.attributes.get("n_iter", []),
+            "nIterMedian": n_iter_median(first),
+            "metrics": Match.comparable_metrics(first.metrics),
+            "methods": {
+                method: _method_block(by_method[method])
+                for method in ("fit", "predict")
+                if method in by_method
+            },
+            "row": export_result_row(first, entry_id),
+        }
+        if "preprocessing" in by_method:
+            entry["preprocessingTimes"] = _compact_times(by_method["preprocessing"].times)
+        entries.append({name: value for name, value in entry.items() if value is not None})
+    return entries
+
+
+def _failed_entries(records: list[BenchmarkRecord], variant_key: str, case_id) -> list[dict]:
+    entries = []
+    for record in records:
+        entry_id = case_id(record)
+        entries.append({
+            "id": entry_id,
+            "variant": variant_key,
+            "path": record.record_path.as_posix(),
+            "estimator": record.case.get("algorithm", {}).get("estimator", "unknown"),
+            "category": record.category,
+            "real": is_real_dataset(record),
+            "binned": sklearnex_tree_is_binned(record),
+            "hover": failed_hover_html(record),
+            "row": export_failed_row(record, entry_id),
+        })
+    return entries
+
+
+def _search_entries(results: list[MethodResult], variant_key: str, case_id) -> list[dict]:
+    entries = []
+    for result in results:
+        entry_id = case_id(result)
+        entries.append({
+            "id": entry_id,
+            "variant": variant_key,
+            "path": result.record.record_path.as_posix(),
+            "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
+            "category": "hyper-parameter search",
+            "searchNJobs": result.case["hptuning"].get("n_jobs", 1),
+            "nIter": [],
+            "metrics": {},
+            "methods": {"fit": _method_block(result)},
+            "row": export_result_row(result, entry_id),
+        })
+    return entries
+
+
+def _source_rows(results: list[MethodResult]) -> list[dict]:
+    records = {id(result.record): result.record for result in results}
+    return [
+        {
+            "cell": SOURCE_CELL_TEMPLATE.render(source=row["source"]),
+            "hardware": row["hardware"],
+            "count": row["count"],
+            "start": row["start"].isoformat(),
+            "end": row["end"].isoformat(),
+            "envs": row["envs"],
+            "configs": row["configs"],
+        }
+        for row in summarize_sources(records.values())
+    ]
+
+
+def write_data_files(
+    output_dir: Path,
+    data_dir: str,
+    results_by_variant: dict[str, list[MethodResult]],
+    *,
+    failed_by_variant: dict[str, list[BenchmarkRecord]],
+    case_key: Callable[[MethodResult | BenchmarkRecord], str],
+    env_html: Callable[[str, MethodResult], str],
+    search_by_variant: dict[str, list[MethodResult]] | None = None,
+    search_key: Callable[[MethodResult], str] | None = None,
+) -> None:
+    """Writes one file per variant key. Equal `id`s across files mean the same
+    case, so `case_key` is what decides which results pair up."""
+    directory = output_dir / data_dir
+    # Variants can disappear from one run to the next.
+    shutil.rmtree(directory, ignore_errors=True)
+    directory.mkdir(parents=True)
+
+    ids: dict[str, int] = {}
+
+    def case_id(result) -> int:
+        return ids.setdefault(case_key(result), len(ids) + 1)
+
+    def search_id(result) -> int:
+        return ids.setdefault(f"search:{search_key(result)}", len(ids) + 1)
+
+    for variant_key, results in results_by_variant.items():
+        timestamps = [result.timestamp_recorded for result in results]
+        data = {
+            "envHtml": env_html(variant_key, results[0]),
+            "count": len(results),
+            "start": min(timestamps).isoformat(),
+            "end": max(timestamps).isoformat(),
+            "sources": _source_rows(results),
+            "results": _result_entries(results, variant_key, case_id),
+            "failed": _failed_entries(failed_by_variant.get(variant_key, []), variant_key, case_id),
+            "search": _search_entries(
+                (search_by_variant or {}).get(variant_key, []), variant_key, search_id
+            ),
+        }
+        payload = json.dumps(data, separators=(",", ":"), default=str)
+        (directory / f"{variant_key}.js").write_text(
+            f"window.sklbenchComparisonData[{json.dumps(variant_key)}]={payload};\n"
+        )
+
+
+def _warning_json(warning) -> dict:
+    return {
+        "icon": warning.icon,
+        "short_message": warning.short_message,
+        "message": warning.message,
+        "kind": warning.kind,
+    }
+
+
+def page_rows(page_config: dict) -> list[str]:
+    """Page rows to add last, after `CONTENT_HTML` and `PREPROCESSING_TOGGLE_HTML`.
+    `page_config` holds what is specific to the page."""
+    config = {
+        **page_config,
+        "warnings": {
+            "sklearnexBins": _warning_json(SKLEARNEX_BINS_WARNING),
+            "cumlRfBins": _warning_json(CUML_RF_BINS_WARNING),
+            "cpuFallback": _warning_json(CPU_FALLBACK_WARNING),
+        },
+        "binnedWarningKinds": sorted(BINNED_SPLIT_WARNING_KINDS),
+        "metricTolerance": {
+            "stdFactor": METRIC_STD_TOLERANCE_FACTOR,
+            "absFloor": METRIC_ABS_TOLERANCE_FLOOR,
+            "relFloor": METRIC_REL_TOLERANCE_FLOOR,
+        },
+        "scoreMetrics": SCORE_METRICS,
+        "datasetKindFilters": DATASET_KIND_FILTERS,
+        "columns": export_columns(),
+        "estimatorAbbreviations": list(ESTIMATOR_LABEL_ABBREVIATIONS.items()),
+        "plotTemplate": PLOT_TEMPLATE.to_plotly_json(),
+    }
+    script = files("sklbench.reporting.html").joinpath("speedup_comparison.js").read_text(encoding="utf-8")
+    return [
+        '<script type="application/json" id="comparison-config">'
+        + json.dumps(config, separators=(",", ":")).replace("</", "<\\/")
+        + "</script>",
+        f"<script>{script}</script>",
+    ]
+
+
+def expanded_note(html: str) -> str:
+    """Notes end up in the page's JSON config, where `BASE_TEMPLATE` can't expand
+    their terms."""
+    return expand_terms(html)
