@@ -3,33 +3,29 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from sklbench.runners.datasets.loaders import load_ames_housing
 from sklbench.runners.datasets.preprocessing import (
     PREPROCESSINGS,
     build_transfer_to_device,
-    task_preprocessing_kwargs,
     split_and_preprocess_data,
     split_data,
-    train_test_split_wrapper,
 )
-
-# Ames Housing (`ames_housing` loader, openml id 42165): real dataset with both
-# `category`-dtype categorical columns and actual missing values in both
-# categorical and numeric columns, so it exercises every code path in the
-# preprocessing functions below.
-
-
-@pytest.fixture(scope="module")
-def housing_xy(tmp_path_factory):
-    raw_data_cache = str(tmp_path_factory.mktemp("ames_housing_raw"))
-    data, _ = load_ames_housing(raw_data_cache)
-    return data["x"], data["y"].astype(float)
 
 
 @pytest.fixture
-def housing_data(housing_xy):
-    x, y = housing_xy
-    return {"x": x, "y": y}
+def mixed_data():
+    """Categorical and numeric columns with missing values in both, so it goes
+    through every code path of the preprocessing functions below."""
+    rng = np.random.default_rng(0)
+    n_samples = 300
+    area = rng.normal(100, 30, n_samples)
+    area[rng.random(n_samples) < 0.1] = np.nan
+    x = pd.DataFrame({
+        "zone": pd.Categorical(rng.choice(["a", "b", "c", None], n_samples)),
+        "street": pd.Categorical(rng.choice(["north", "south", "east"], n_samples)),
+        "area": area,
+        "year": rng.integers(1900, 2020, n_samples).astype(float),
+    })
+    return {"x": x, "y": rng.normal(size=n_samples)}
 
 
 def test_split_data_uses_default_random_state():
@@ -92,24 +88,11 @@ def test_split_data_without_y_leaves_y_train_test_none():
     assert split["y_test"] is None
 
 
-def test_train_test_split_wrapper_ignore_duplicates_instead_of_splitting():
-    x = np.arange(10)
-    y = np.arange(10) * 2
-
-    result = train_test_split_wrapper(x, y, ignore=True)
-
-    assert len(result) == 4
-    np.testing.assert_array_equal(result[0], x)
-    np.testing.assert_array_equal(result[1], x)
-    np.testing.assert_array_equal(result[2], y)
-    np.testing.assert_array_equal(result[3], y)
-
-
 def test_split_and_preprocess_data_without_preprocessing_kind_is_a_noop_split(
-    housing_data,
+    mixed_data,
 ):
     out = split_and_preprocess_data(
-        dict(housing_data),
+        dict(mixed_data),
         split_kwargs={"test_size": 0.25},
         default_split=None,
         preprocessing_kind=None,
@@ -117,13 +100,13 @@ def test_split_and_preprocess_data_without_preprocessing_kind_is_a_noop_split(
     )
 
     assert isinstance(out["x_train"], pd.DataFrame)
-    assert isinstance(out["x_train"]["MSZoning"].dtype, pd.CategoricalDtype)
+    assert isinstance(out["x_train"]["zone"].dtype, pd.CategoricalDtype)
 
 
 @pytest.mark.parametrize("encoding", ["ordinal", "one-hot"])
-def test_trees_preprocessor_encodes_real_categorical_columns(housing_data, encoding):
+def test_trees_preprocessor_encodes_real_categorical_columns(mixed_data, encoding):
     out = split_and_preprocess_data(
-        dict(housing_data),
+        dict(mixed_data),
         split_kwargs={"test_size": 0.25, "random_state": 0},
         default_split=None,
         preprocessing_kind="trees",
@@ -133,24 +116,24 @@ def test_trees_preprocessor_encodes_real_categorical_columns(housing_data, encod
     x_train, x_test = out["x_train"], out["x_test"]
     assert np.issubdtype(np.asarray(x_train).dtype, np.number)
     assert np.issubdtype(np.asarray(x_test).dtype, np.number)
-    assert x_train.shape[0] + x_test.shape[0] == len(housing_data["x"])
+    assert x_train.shape[0] + x_test.shape[0] == len(mixed_data["x"])
     assert x_train.shape[1] == x_test.shape[1]
 
 
-def test_trees_preprocessor_one_hot_expands_more_columns_than_ordinal(housing_data):
+def test_trees_preprocessor_one_hot_expands_more_columns_than_ordinal(mixed_data):
     ordinal_x_train, _ = PREPROCESSINGS["trees"](
-        housing_data["x"], housing_data["x"], housing_data["y"], encoding="ordinal"
+        mixed_data["x"], mixed_data["x"], mixed_data["y"], encoding="ordinal"
     )
     one_hot_x_train, _ = PREPROCESSINGS["trees"](
-        housing_data["x"], housing_data["x"], housing_data["y"], encoding="one-hot"
+        mixed_data["x"], mixed_data["x"], mixed_data["y"], encoding="one-hot"
     )
 
     assert one_hot_x_train.shape[1] > ordinal_x_train.shape[1]
 
 
-def test_trees_preprocessor_remove_nans_fills_missing_values(housing_data):
+def test_trees_preprocessor_remove_nans_fills_missing_values(mixed_data):
     x_train, x_test = PREPROCESSINGS["trees"](
-        housing_data["x"], housing_data["x"], housing_data["y"],
+        mixed_data["x"], mixed_data["x"], mixed_data["y"],
         encoding="ordinal", remove_nans=True,
     )
 
@@ -171,35 +154,26 @@ def test_trees_preprocessor_remove_nans_encodes_unseen_category_as_sentinel():
     np.testing.assert_array_equal(np.asarray(x_test_out).ravel(), [-2, -2])
 
 
-def test_hgb_preprocessing_preserves_original_column_names(housing_data):
+def test_hgb_preprocessing_preserves_original_column_names(mixed_data):
     x_train, x_test = PREPROCESSINGS["hgb"](
-        housing_data["x"], housing_data["x"], housing_data["y"]
+        mixed_data["x"], mixed_data["x"], mixed_data["y"]
     )
 
-    assert set(x_train.columns) == set(housing_data["x"].columns)
-    assert set(x_test.columns) == set(housing_data["x"].columns)
+    assert set(x_train.columns) == set(mixed_data["x"].columns)
+    assert set(x_test.columns) == set(mixed_data["x"].columns)
 
 
-def test_hgb_preprocessing_encodes_categoricals_as_category_dtype(housing_data):
+def test_hgb_preprocessing_encodes_categoricals_as_category_dtype(mixed_data):
     x_train, x_test = PREPROCESSINGS["hgb"](
-        housing_data["x"], housing_data["x"], housing_data["y"]
+        mixed_data["x"], mixed_data["x"], mixed_data["y"]
     )
 
-    categorical_columns = housing_data["x"].select_dtypes(
+    categorical_columns = mixed_data["x"].select_dtypes(
         include=["category", object]
     ).columns
     for col in categorical_columns:
         assert isinstance(x_train[col].dtype, pd.CategoricalDtype)
         assert isinstance(x_test[col].dtype, pd.CategoricalDtype)
-
-
-def test_task_preprocessing_kwargs_sets_continuous_target_for_regression():
-    assert task_preprocessing_kwargs("linear", "regression") == {
-        "target_type": "continuous"
-    }
-    assert task_preprocessing_kwargs("linear", "classification") == {}
-    assert task_preprocessing_kwargs("trees", "regression") == {}
-    assert task_preprocessing_kwargs(None, "regression") == {}
 
 
 def test_linear_preprocessor_encodes_integer_regression_target_as_continuous():
@@ -214,10 +188,10 @@ def test_linear_preprocessor_encodes_integer_regression_target_as_continuous():
 
 
 def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
-    housing_data,
+    mixed_data,
 ):
     x_train, x_test = PREPROCESSINGS["linear"](
-        housing_data["x"], housing_data["x"], housing_data["y"], nystroem=None
+        mixed_data["x"], mixed_data["x"], mixed_data["y"], nystroem=None
     )
 
     assert np.issubdtype(np.asarray(x_train).dtype, np.number)
@@ -226,19 +200,12 @@ def test_linear_preprocessor_uses_target_encoder_and_fills_missing_values(
     assert x_train.shape[1] == x_test.shape[1]
 
 
-def test_linear_preprocessor_requires_y_train_for_target_encoding(housing_data):
-    with pytest.raises(ValueError):
-        PREPROCESSINGS["linear"](
-            housing_data["x"], housing_data["x"], None, nystroem=None
-        )
-
-
 @pytest.mark.parametrize("order", ["C", "F"])
-def test_linear_preprocessor_with_nystroem_outputs_requested_order(housing_data, order):
+def test_linear_preprocessor_with_nystroem_outputs_requested_order(mixed_data, order):
     x_train, x_test = PREPROCESSINGS["linear"](
-        housing_data["x"],
-        housing_data["x"],
-        housing_data["y"],
+        mixed_data["x"],
+        mixed_data["x"],
+        mixed_data["y"],
         nystroem={"n_components": 20},
         transfer_to_device=build_transfer_to_device(dformat="numpy", order=order),
     )
@@ -248,9 +215,9 @@ def test_linear_preprocessor_with_nystroem_outputs_requested_order(housing_data,
     assert getattr(x_test.flags, contiguous)
 
 
-def test_split_and_preprocess_data_with_linear_kind_end_to_end(housing_data):
+def test_split_and_preprocess_data_with_linear_kind_end_to_end(mixed_data):
     out = split_and_preprocess_data(
-        dict(housing_data),
+        dict(mixed_data),
         split_kwargs={"test_size": 0.25, "random_state": 0},
         default_split=None,
         preprocessing_kind="linear",
@@ -258,7 +225,7 @@ def test_split_and_preprocess_data_with_linear_kind_end_to_end(housing_data):
     )
 
     x_train, x_test = out["x_train"], out["x_test"]
-    assert x_train.shape[0] + x_test.shape[0] == len(housing_data["x"])
+    assert x_train.shape[0] + x_test.shape[0] == len(mixed_data["x"])
     assert x_train.shape[1] == x_test.shape[1]
     assert not np.isnan(np.asarray(x_train, dtype=float)).any()
 

@@ -1,33 +1,12 @@
-"""Hardware A-vs-B comparison, picked interactively from two dropdowns.
+"""The same software on different machines: one outer tab per software, one inner
+tab per machine, any of which can be picked as the baseline. Also provides what
+pairing results across machines takes to `gen_cross_comparison`.
 
-Each "hardware variant" is one machine (`HARDWARE_NAMES`/`GPU_NAMES` in
-`dashboards/__init__.py`) restricted to either its CPU-device results or its
-GPU-device results (`HardwareVariant.devices`) - a machine with a GPU shows up
-as two separate options, since "high-end server CPU vs M4 GPU" isn't a
-meaningful comparison (different device kinds entirely), while "Intel laptop
-GPU vs M4 GPU" is.
-
-For every ordered pair of same-family variants, every build/implementation
-variant present on *both* sides (`variant_label`, hardware/device-agnostic -
-e.g. "sklearn-pypi", "sklearnex-cpu", "sklearn-torch") is compared against
-itself across the two machines, exactly as `variant_label` never mixes across
-build/implementation, so a single ratio never conflates a hardware
-difference with a software one. Pairs with zero overlapping variant/category/
-method matches aren't rendered at all and don't appear as selectable options
-- that's the "only propose pairs with matching software results" requirement.
-
-Rendering both directions of every pair (rather than one canonical order plus
-a client-side flip) keeps `Match.base_result`/`matched_result` - and so the
-speed-up sign and any warnings - correct no matter which side the user picks
-as "Baseline": swapping which MethodResult list is `base_results` in
-`find_matches` isn't just cosmetic, so it has to actually be recomputed, not
-inverted after the fact.
+A software label (`software_label`) is hardware-agnostic, so that e.g. PyTorch
+on Intel's "xpu" and on Apple's "mps" share a tab, but keeps CPU and GPU apart.
 """
 from dataclasses import dataclass, replace
 from functools import lru_cache
-from html import escape
-from itertools import permutations
-import json
 from pathlib import Path
 from statistics import median
 
@@ -35,15 +14,22 @@ from dashboards import (
     GPU_NAMES, HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS,
 )
 from dashboards import gen_hptuning_scalability as hptuning
+from sklbench.reporting.comparison import (
+    CONTENT_HTML,
+    PREPROCESSING_TOGGLE_HTML,
+    baseline_pick_html,
+    expanded_note,
+    page_rows,
+    tree_binning_note,
+    write_data_files,
+)
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
-    DATE_RANGE_TEMPLATE,
-    assemble_plots_in_grid,
-    detailed_results_table_html,
-    render_software_tabs,
-    speedup_plot_html,
-    variant_color_map,
+    HARDWARE_TEMPLATE,
+    SERIES_COLORS,
+    SOFTWARE_TEMPLATE,
 )
+from sklbench.reporting.html.blocks import _slug_id
 from sklbench.reporting.envs import (
     read_env,
     software_build_name,
@@ -51,39 +37,37 @@ from sklbench.reporting.envs import (
     summarize_software_env,
 )
 from sklbench.reporting.matching import (
-    append_cpu_fallback_warning,
-    append_iterations_warning,
-    append_solver_warning,
-    append_max_bins_warning,
-    find_matches,
     read_all_results,
-    date_range,
+    read_failed_records,
     matches_source_configs,
     BenchmarkRecord,
-    Match,
-    MatchWarning,
     MethodResult,
 )
 from sklbench.reporting.utils import stable_json, without_keys
 
 
 ABOUT_HTML = """<section class="panel">
-  <p>This dashboard compares machines running the same software. Every <dfn>build</dfn>
-  or <dfn>implementation</dfn> present on both machines is matched, so a <dfn>speed-up</dfn> comes
-  from the hardware.</p>
+  <p>This dashboard compares machines running the same software. Since the
+  software is fixed, a <dfn>speed-up</dfn> comes from the hardware.</p>
   <details class="about-section">
     <summary>How to read</summary>
-    <p>Pick a <dfn>baseline</dfn> and a comparison machine. The dropdowns only offer CPU
-    vs CPU or GPU vs GPU pairs that have comparable results. Each cell shows
-    the <dfn>fit</dfn> or <dfn>predict</dfn> speed-up (log scale) per estimator category, one line
-    per build or implementation. The last cell compares the time per fit in
+    <p>Pick a software tab. The CPU and GPU runs of a library are separate
+    tabs, like <code>sklearn-torch-cpu</code> and <code>sklearn-torch-gpu</code>.
+    Below it, each machine has a tab describing the machine and its
+    <dfn>software environment</dfn>, since versions can differ between machines.
+    To change the <dfn>baseline</dfn>, open another machine tab and click "Pick as
+    baseline".</p>
+    <p>The plots read like in
+    <a href="per_hardware.html">the software/implementations dashboard</a>,
+    with one color per machine: each point is one benchmark case, and points
+    above the dashed 1x line are faster than the baseline. Marker shapes mean
+    the same.</p>
+    <p><b>Random forests</b> and <b>extra trees</b> often have a different forest
+    size on each machine: their times are rescaled to the same size and their
+    metrics aren't compared. <b>KMeans</b> is capped at 64 threads on machines with
+    more than 64 CPUs, to avoid an <a href="https://github.com/OpenMathLib/OpenBLAS/issues/5958">OpenBLAS
+    crash</a>. The last row compares the time per fit in
     hyper-parameter searches, where many fits run in parallel.</p>
-    <p>Marker shapes read like in
-    <a href="per_hardware.html">the software/implementations dashboard</a>:
-    a square (■) flags a setup difference, an open diamond (◇) different
-    <dfn>metrics</dfn>. <b>Random forests</b> and <b>extra trees</b> often have a
-    different forest size on each machine: their times are rescaled to the
-    same size and their metrics aren't compared.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -93,7 +77,7 @@ ABOUT_HTML = """<section class="panel">
       trees</b>. With <b>scikit-learn</b>, their fit is ~2x to 4x faster than on the
       Intel Core Ultra laptop. Their predict is close to parity.</li>
       <li><b>scikit-learn-intelex</b> makes much better use of the server's 172
-      cores. With it, <b>random forests</b> and <b>extra trees</b> fit ~10x to 15x
+      cores. With it, <b>random forests</b> and <b>extra trees</b> fit ~10x to 12x
       faster on the server than on the laptop.</li>
       <li>For <b>linear models</b>, the server is often slower than the
       laptop. A single fit doesn't use many cores well, so the laptop's
@@ -104,7 +88,7 @@ ABOUT_HTML = """<section class="panel">
       <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
       and the <a href="hgb_scaling.html">HistGradientBoosting
       thread-scalability breakdown</a>.</li>
-      <li>On the <b><dfn>PyPI</dfn></b> build, the Apple M4 CPU is ~1.3x to 2x slower
+      <li>On the <b><dfn>PyPI</dfn></b> build, the Apple M4 CPU is ~1.5x to 2x slower
       than the Intel Core Ultra laptop.</li>
     </ul>
   </details>
@@ -112,106 +96,87 @@ ABOUT_HTML = """<section class="panel">
 
 
 BASE_IMPLEMENTATION = "sklearn"
-CATEGORIES = ["linear", "tree-based", "clustering"]
-METHODS = ["fit", "predict"]
-
-# A result's `implementation.device` is what separates a machine's CPU
-# results from its GPU ones - "None"/"default" and the plain "cpu" tag both
-# mean "ran on the CPU" (see e.g. Implementation.short_name), while
-# "gpu"/"xpu"/"mps"/"cuda" are the device tags this repo's configs use across
-# sklearnex GPU offload, dpnp/pytorch Array API on an Intel GPU, pytorch
-# Array API on Apple's MPS backend, and pytorch/cupy Array API on an NVIDIA
-# GPU, respectively.
+# "None"/"default" and the plain "cpu" tag all mean "ran on the CPU".
 CPU_DEVICES = {None, "default", "cpu"}
-GPU_DEVICES = {"gpu", "xpu", "mps", "cuda"}
-
-# Unlike CPU, where every build/implementation variant present on both sides
-# gets compared, GPU pairings are restricted to the one backend that's
-# actually portable across GPU vendors: the Array API pytorch backend
-# (data_library "torch"), which runs on Intel's "xpu", Apple's "mps" and
-# NVIDIA's "cuda" devices. sklearnex's native GPU offload (oneDAL) and the
-# dpnp Array API backend are Intel-only, and cupy is NVIDIA-only, so they're
-# excluded from GPU variant results outright rather than left to fall out of
-# an incidental label intersection (see `variant_results`).
-GPU_PORTABLE_DATA_LIBRARIES = {"torch"}
+TREE_BINNING_NOTE = tree_binning_note("machine")
+# Also read by the cross comparison page.
+DATA_DIR = "across_machines_data"
 
 
-@dataclass(frozen=True)
-class HardwareVariant:
-    key: str
-    label: str
-    hardware_hash: str
-    family: str  # "cpu" or "gpu" - a pairing only ever compares two variants
-    # of the same family (see module docstring).
-
-    @property
-    def devices(self) -> set[str | None]:
-        return CPU_DEVICES if self.family == "cpu" else GPU_DEVICES
+def is_gpu_result(result: MethodResult | BenchmarkRecord) -> bool:
+    return result.implementation.device not in CPU_DEVICES
 
 
-HARDWARE_VARIANTS: list[HardwareVariant] = [
-    HardwareVariant(f"{hardware_hash}-cpu", name, hardware_hash, "cpu")
-    for hardware_hash, name in HARDWARE_NAMES.items()
-] + [
-    HardwareVariant(f"{hardware_hash}-gpu", name, hardware_hash, "gpu")
-    for hardware_hash, name in GPU_NAMES.items()
-]
-FAMILY_LABELS = {"cpu": "CPU", "gpu": "GPU"}
-
-
-def variant_results(
-    results: list[MethodResult], variant: HardwareVariant
-) -> list[MethodResult]:
-    results = [
-        result
-        for result in results
-        if result.hardware_hash == variant.hardware_hash
-        and result.implementation.device in variant.devices
-    ]
-    if variant.family == "gpu":
-        results = [
-            result
-            for result in results
-            if result.implementation.data_library in GPU_PORTABLE_DATA_LIBRARIES
-        ]
-    return results
-
-
-def variant_label(result: MethodResult | BenchmarkRecord) -> str:
-    """The build/implementation identity to hold fixed while comparing
-    hardware - deliberately hardware/device-agnostic, since the whole point
-    is to pair up the *same* software across two machines whose device tag
-    for "the accelerator this ran on" otherwise differs (e.g. Intel GPU's
-    Array API pytorch backend is tagged "xpu", Apple's is tagged "mps" - see
-    `GPU_DEVICES` - so a raw `Implementation.short_name` would never match
-    across those two)."""
+def software_label(result: MethodResult | BenchmarkRecord) -> str:
     implementation = result.implementation
     if implementation.library == BASE_IMPLEMENTATION and implementation.data_library is None:
         return software_build_name(result.software_hash)
-    if implementation.data_library is not None:
-        return f"{implementation.library}-{implementation.data_library}"
-    return implementation.short_name
+    device = "gpu" if is_gpu_result(result) else "cpu"
+    if implementation.library == BASE_IMPLEMENTATION:
+        return f"{implementation.library}-{implementation.data_library}-{device}"
+    return f"{implementation.library}-{device}"
+
+
+def software_sort_key(label: str) -> tuple:
+    """CPU softwares first: stock scikit-learn, sklearnex, Array API backends."""
+    if label.startswith("sklearn-pypi"):
+        rank = 0
+    elif label.startswith("sklearn-cf-"):
+        rank = 1
+    elif label.startswith("sklearnex-"):
+        rank = 2
+    elif label.startswith("sklearn-"):
+        rank = 3
+    else:
+        rank = 4
+    return label.endswith("-gpu"), rank, label
+
+
+def hardware_label(result: MethodResult | BenchmarkRecord) -> str:
+    """A machine goes by its GPU's name for what ran on that GPU."""
+    if is_gpu_result(result) and result.hardware_hash in GPU_NAMES:
+        return GPU_NAMES[result.hardware_hash]
+    return HARDWARE_NAMES[result.hardware_hash]
+
+
+HARDWARE_ORDER = [*HARDWARE_NAMES.values(), *GPU_NAMES.values()]
+
+
+def hardware_sort_key(variant: str) -> tuple:
+    """Accepts `split_kind_x_variant` columns too."""
+    return HARDWARE_ORDER.index(variant.split(" / ")[0]), variant
+
+
+def hardware_colors(results: list[MethodResult]) -> dict[str, str]:
+    """A machine keeps its color across tabs, under its CPU and GPU names."""
+    hashes = {result.hardware_hash for result in results}
+    colors = {}
+    for index, hardware_hash in enumerate(h for h in HARDWARE_NAMES if h in hashes):
+        color = SERIES_COLORS[index % len(SERIES_COLORS)]
+        colors[HARDWARE_NAMES[hardware_hash]] = color
+        if hardware_hash in GPU_NAMES:
+            colors[GPU_NAMES[hardware_hash]] = color
+    return colors
 
 
 # `n_jobs` and RF/ET's `n_estimators` are both derived in `_real_datasets.py`
 # from `N_JOBS = floor(0.9 * cpu_count(...))` - the *local* machine's core
 # count at config-generation time - so they legitimately differ between two
-# machines' runs of what's otherwise the identical case. Excluded from the
-# match key for the same reason `n_jobs` already is: this comparison should
-# still pair these up rather than treat them as different workloads.
+# machines' runs of what's otherwise the identical case.
 # `source_config` is excluded for the same reason as in
 # `MethodResult.minimal_match_key`.
 _MATCH_EXCLUDED_NAMES = {
     "implementation", "max_bins", "n_jobs", "n_estimators", "source_config",
 }
 
+# Also machine-dependent: many-core hosts cap KMeans's threads (`KMEANS_BENCH` in
+# `_real_datasets.py`). On a single machine these stay part of a case, since builds
+# are only compared under the same env.
+_THREAD_CAPS = {"OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
+
 # Same normalization/target as gen_models_scalability.py's
-# `NORMALIZED_N_ESTIMATORS`: RF/ET fit and predict time both scale
-# ~linearly with forest size, and since that size differs between machines
-# here (see `_MATCH_EXCLUDED_NAMES` above), comparing raw times would
-# conflate "faster hardware" with "this pairing happened to fit/predict a
-# bigger forest". Rescaling every RF/ET result to a common forest size
-# divides that confound back out before speed-ups are computed.
+# `NORMALIZED_N_ESTIMATORS`: RF/ET fit and predict time both scale ~linearly
+# with forest size, which differs between machines (see above).
 NORMALIZED_N_ESTIMATORS = 100
 
 
@@ -223,87 +188,34 @@ def _n_estimators(result: MethodResult) -> int | None:
 
 def _normalize_tree_result(result: MethodResult) -> MethodResult:
     n_estimators = _n_estimators(result)
-    if not n_estimators:
+    # Preprocessing doesn't depend on the forest size.
+    if not n_estimators or result.method == "preprocessing":
         return result
     scale = NORMALIZED_N_ESTIMATORS / n_estimators
     return replace(result, times=[t * scale for t in result.times])
 
 
-# Dropping `has_onedal_estimator` (which drives `is_sklearnex_fallback`'s
-# "fell back to scikit-learn" marker) keeps that marker off these plots: both
-# sides run the same implementation, so a fallback isn't a difference between
-# the two machines.
-_DROPPED_ATTRIBUTES = {"has_onedal_estimator"}
+def _cross_machine_case(result: MethodResult | BenchmarkRecord) -> dict:
+    case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES | _THREAD_CAPS)
+    if not case.get("env"):
+        case.pop("env", None)
+    return case
 
 
-def _drop_reliability_signals(result: MethodResult) -> MethodResult:
-    attributes = {
-        name: value
-        for name, value in result.attributes.items()
-        if name not in _DROPPED_ATTRIBUTES
-    }
-    return replace(result, attributes=attributes)
+def match_key(result: MethodResult) -> str:
+    return stable_json({**_cross_machine_case(result), "method": result.method})
 
 
-def _plot_match(match: Match) -> Match:
-    """A bigger forest scores differently, so its metrics are dropped from the
-    plot (the detailed table keeps them for its score columns)."""
-    if _n_estimators(match.base_result) == _n_estimators(match.matched_result):
-        return match
-    return replace(
-        match,
-        base_result=replace(match.base_result, metrics={}),
-        matched_result=replace(match.matched_result, metrics={}),
-    )
+def comparison_key(result: MethodResult | BenchmarkRecord) -> str:
+    return stable_json(_cross_machine_case(result))
 
 
-def _match_key(result: MethodResult) -> str:
-    case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES)
-    case["method"] = result.method
-    return stable_json(case)
-
-
-def _table_comparison_key(result: MethodResult) -> str:
-    return stable_json(without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES))
-
-
-def result_matches(
-    base_res: MethodResult, candidate: MethodResult
-) -> tuple[bool, list[MatchWarning]]:
-    assert base_res.hardware_hash != candidate.hardware_hash
-    assert variant_label(base_res) == variant_label(candidate)
-
-    warnings = []
-    # `append_max_bins_warning` assumes a vanilla-sklearn base compared
-    # against a sklearnex candidate - true for e.g. the "sklearn-pypi"/
-    # "sklearn-cf-mkl" labels, but for "sklearnex-cpu" both sides are
-    # sklearnex (same variant, different hardware), so the warning doesn't
-    # apply there.
-    if base_res.implementation.library == BASE_IMPLEMENTATION and candidate.is_sklearnex_tree:
-        append_max_bins_warning(base_res, candidate, warnings)
-    append_iterations_warning(base_res, candidate, warnings)
-    append_solver_warning(base_res, candidate, warnings)
-    # Unlike the other dashboards' base/candidate pairing (always
-    # sklearn-vs-accelerated on the same machine), either side here can be
-    # the GPU one (e.g. comparing the same "sklearn-torch" variant's MPS
-    # results across two machines), so both need the check.
-    append_cpu_fallback_warning(base_res, warnings)
-    append_cpu_fallback_warning(candidate, warnings)
-
-    return _match_key(base_res) == _match_key(candidate), warnings
-
-
-def match_variant_label(match: Match) -> str:
-    return variant_label(match.matched_result)
-
-
-SEARCH_ROW = "hyper-parameter search"
 # `configs/hptuning.py` sweeps the outer `n_jobs` with one CV split per worker,
 # so neither is part of a search's identity: each fit is the same.
 _SEARCH_MATCH_EXCLUDED_NAMES = {"implementation", "max_bins", "n_jobs", "n_splits", "source_config"}
 
 
-def _search_match_key(result: MethodResult) -> str:
+def search_match_key(result: MethodResult) -> str:
     return stable_json(without_keys(result.case, excluded_names=_SEARCH_MATCH_EXCLUDED_NAMES))
 
 
@@ -354,299 +266,10 @@ def read_search_results() -> list[MethodResult]:
         result = _search_result(record)
         if result is None:
             continue
-        key = (result.hardware_hash, result.software_hash, _search_match_key(result))
+        key = (result.hardware_hash, result.software_hash, search_match_key(result))
         if key not in best or median(result.times) < median(best[key].times):
             best[key] = result
     return list(best.values())
-
-
-def _search_matches(
-    baseline_results: list[MethodResult],
-    candidate_results: list[MethodResult],
-    labels: list[str],
-) -> list[Match]:
-    return [
-        match
-        for label in labels
-        for match in find_matches(
-            [result for result in baseline_results if variant_label(result) == label],
-            [result for result in candidate_results if variant_label(result) == label],
-            lambda base, candidate: _search_match_key(base) == _search_match_key(candidate),
-            match_key=_search_match_key,
-        )
-    ]
-
-
-def _comparison_page(rows: list[str]) -> str:
-    return "".join(f'<div class="page-row">{row}</div>' for row in rows)
-
-
-def _vs_table(
-    baseline_variant: HardwareVariant,
-    candidate_variant: HardwareVariant,
-    rows: list[tuple[str, str, str]],
-    uncompared: frozenset[str] = frozenset(),
-) -> str:
-    """`rows` are `(name, baseline_html, candidate_html)`. A row whose two
-    sides are identical collapses into one merged cell so that the
-    highlighted, split rows are exactly the differences. `uncompared` rows
-    (e.g. per-side links) are always split and never highlighted."""
-    body = []
-    for name, baseline_html, candidate_html in rows:
-        if name in uncompared:
-            cells = f"<td>{baseline_html}</td><td>{candidate_html}</td>"
-        elif baseline_html == candidate_html:
-            cells = f'<td class="same" colspan="2">{baseline_html}</td>'
-        else:
-            cells = (
-                f'<td class="differs">{baseline_html}</td>'
-                f'<td class="differs">{candidate_html}</td>'
-            )
-        body.append(f"<tr><th scope=\"row\">{escape(name)}</th>{cells}</tr>")
-    return (
-        '<table class="vs-table"><thead><tr><th></th>'
-        f"<th>Baseline: {escape(baseline_variant.label)}</th>"
-        f"<th>Comparison: {escape(candidate_variant.label)}</th>"
-        f"</tr></thead><tbody>{''.join(body)}</tbody></table>"
-    )
-
-
-def _lines(items: list[str]) -> str:
-    return "<br>".join(escape(item) for item in items) or '<span class="muted">none</span>'
-
-
-def _hardware_rows(summary: dict) -> dict[str, str]:
-    price = summary["price_label"] or "unknown"
-    gpus = []
-    for gpu in summary["gpus"]:
-        detail = f"{gpu['memory_gb']} GB"
-        if gpu["integrated"]:
-            detail += ", integrated"
-        gpus.append(f"{gpu['name']} ({detail})")
-    return {
-        "CPU": escape(str(summary["cpu_name"])),
-        "Architecture": escape(str(summary["architecture"])),
-        "Cores": escape(
-            f"{summary['physical_cores']} physical, {summary['logical_cpus']} logical"
-        ),
-        "RAM": escape(f"{summary['ram_gb']} GB"),
-        "Price": escape(price),
-        "GPU(s)": _lines(gpus),
-    }
-
-
-def _hardware_panel(
-    baseline_variant: HardwareVariant, candidate_variant: HardwareVariant
-) -> str:
-    baseline, candidate = (
-        _hardware_rows(summarize_hardware_env(read_env("hardware", variant.hardware_hash)))
-        for variant in (baseline_variant, candidate_variant)
-    )
-    rows = [(name, baseline[name], candidate[name]) for name in baseline]
-    return (
-        '<section class="panel"><h2>Hardware</h2>'
-        + _vs_table(baseline_variant, candidate_variant, rows)
-        + "</section>"
-    )
-
-
-def _software_rows(summary: dict) -> dict[str, str]:
-    rows = {"Python": escape(summary["python_version"])}
-    for package in summary["packages"]:
-        cell = escape(str(package["version"]))
-        if package["kind"]:
-            cell += f' <span class="muted">({escape(package["kind"])})</span>'
-        rows[package["name"]] = cell
-    # threadpoolctl reports libraries in load order, which isn't stable
-    # across machines.
-    rows["Threadpools"] = _lines(sorted(summary["threadpools"]))
-    rows["OpenMP"] = _lines(summary["openmp"])
-    rows["Full environment"] = (
-        f'<a href="{escape(summary["software_env_json_url"])}">view pixi env JSON</a>'
-    )
-    return rows
-
-
-def _software_panel(
-    label: str,
-    baseline_variant: HardwareVariant,
-    candidate_variant: HardwareVariant,
-    baseline_results: list[MethodResult],
-    candidate_results: list[MethodResult],
-) -> str:
-    """Both sides are shown because the "same" label can still run a
-    different pinned env on each machine (e.g. the pytorch version backing
-    "sklearn-torch" on an Intel GPU vs on Apple's MPS backend)."""
-    sides = []
-    for side_results in (baseline_results, candidate_results):
-        source = next(r for r in side_results if variant_label(r) == label)
-        sides.append(
-            _software_rows(
-                summarize_software_env(
-                    read_env("software", source.software_hash),
-                    source.implementation,
-                    software_hash=source.software_hash,
-                )
-            )
-        )
-    baseline, candidate = sides
-    missing = '<span class="muted">not installed</span>'
-    names = list(baseline) + [name for name in candidate if name not in baseline]
-    rows = [
-        (name, baseline.get(name, missing), candidate.get(name, missing))
-        for name in names
-    ]
-    return _vs_table(
-        baseline_variant, candidate_variant, rows, uncompared=frozenset({"Full environment"})
-    )
-
-
-def render_comparison(
-    all_results: list[MethodResult],
-    search_results: list[MethodResult],
-    baseline_variant: HardwareVariant,
-    candidate_variant: HardwareVariant,
-) -> tuple[str, int]:
-    """Renders one directional pairing. Returns `(html, match_count)` -
-    `match_count == 0` means this pairing has no comparable results at all
-    and should neither be rendered nor offered as a dropdown option."""
-    baseline_results = [
-        _normalize_tree_result(result)
-        for result in variant_results(all_results, baseline_variant)
-    ]
-    candidate_results = [
-        _normalize_tree_result(result)
-        for result in variant_results(all_results, candidate_variant)
-    ]
-    empty = ('<section class="empty">No overlapping benchmark results for this pair.</section>', 0)
-    if not baseline_results or not candidate_results:
-        return empty
-
-    shared_labels = sorted(
-        {variant_label(result) for result in baseline_results}
-        & {variant_label(result) for result in candidate_results}
-    )
-    if not shared_labels:
-        return empty
-    trace_colors = variant_color_map(shared_labels)
-
-    plots = []
-    matches_by_category = {}
-    total_matches = 0
-    for category in CATEGORIES:
-        for method in METHODS:
-            # One `find_matches` call per label so a baseline result for one
-            # variant can never be paired against a candidate result for
-            # another - `_match_key` deliberately excludes `implementation`,
-            # so that cross-variant mismatch wouldn't otherwise be
-            # structurally impossible.
-            category_method_matches = [
-                match
-                for label in shared_labels
-                for match in find_matches(
-                    [
-                        result
-                        for result in baseline_results
-                        if result.category == category
-                        and result.method == method
-                        and variant_label(result) == label
-                    ],
-                    [
-                        result
-                        for result in candidate_results
-                        if result.category == category
-                        and result.method == method
-                        and variant_label(result) == label
-                    ],
-                    result_matches,
-                    match_key=_match_key,
-                )
-            ]
-            matches_by_category.setdefault(category, {})[method] = category_method_matches
-            total_matches += len(category_method_matches)
-            plots.append(
-                {
-                    "category": category,
-                    "method": method,
-                    "case_count": len(
-                        {
-                            _table_comparison_key(match.base_result)
-                            for match in category_method_matches
-                        }
-                    ),
-                    "plot": speedup_plot_html(
-                        [_plot_match(match) for match in category_method_matches],
-                        baseline_label=baseline_variant.label,
-                        y_title=f"{candidate_variant.label} speed-up",
-                        variant_colors=trace_colors,
-                        trace_variant=match_variant_label,
-                        x_variant=match_variant_label,
-                        variant_sort_key=shared_labels.index,
-                        comparison_key=_table_comparison_key,
-                    ),
-                }
-            )
-
-    search_matches = _search_matches(
-        variant_results(search_results, baseline_variant),
-        variant_results(search_results, candidate_variant),
-        shared_labels,
-    )
-    total_matches += len(search_matches)
-
-    if total_matches == 0:
-        return empty
-    hardware_labels = {
-        baseline_variant.hardware_hash: baseline_variant.label,
-        candidate_variant.hardware_hash: candidate_variant.label,
-    }
-
-    software_panels = [
-        _software_panel(
-            label, baseline_variant, candidate_variant, baseline_results, candidate_results
-        )
-        for label in shared_labels
-    ]
-
-    html = _comparison_page(
-        [
-            DATE_RANGE_TEMPLATE.render(date_range(baseline_results + candidate_results)),
-            _hardware_panel(baseline_variant, candidate_variant),
-            render_software_tabs(
-                software_panels, variant_colors=trace_colors, labels=shared_labels
-            ),
-            assemble_plots_in_grid(
-                plots,
-                rows={"category": CATEGORIES},
-                columns={"method": METHODS},
-                details_by_row={
-                    category: detailed_results_table_html(
-                        category,
-                        category_matches,
-                        baseline_label=variant_label,
-                        variant_label=variant_label,
-                        variant_column_title="Implementation",
-                        hardware_label=lambda result: hardware_labels[result.hardware_hash],
-                        comparison_key=_table_comparison_key,
-                        # Bigger forests on bigger machines score better.
-                        scores_comparable=lambda base, result: (
-                            _n_estimators(base) == _n_estimators(result)
-                        ),
-                    )
-                    for category, category_matches in matches_by_category.items()
-                },
-            ),
-            _search_grid(
-                search_matches,
-                baseline_variant,
-                candidate_variant,
-                trace_colors,
-                shared_labels,
-                hardware_labels,
-            ),
-        ]
-    )
-    return html, total_matches
 
 
 SEARCH_NOTE = (
@@ -657,205 +280,6 @@ SEARCH_NOTE = (
     "<code>n_jobs</code> <dfn>CV splits</dfn>, so every fit is the same on both machines and "
     "every worker has 8 fits to do."
 )
-
-
-def _search_grid(
-    matches: list[Match],
-    baseline_variant: HardwareVariant,
-    candidate_variant: HardwareVariant,
-    trace_colors: dict[str, str],
-    labels: list[str],
-    hardware_labels: dict[str, str],
-) -> str:
-    if not matches:
-        return ""
-    plot = {
-        "category": SEARCH_ROW,
-        "method": "fit",
-        "case_count": len({_search_match_key(match.base_result) for match in matches}),
-        "plot": speedup_plot_html(
-            matches,
-            baseline_label=baseline_variant.label,
-            y_title=f"{candidate_variant.label} speed-up",
-            variant_colors=trace_colors,
-            trace_variant=match_variant_label,
-            x_variant=match_variant_label,
-            variant_sort_key=labels.index,
-            comparison_key=_search_match_key,
-        ),
-    }
-    return assemble_plots_in_grid(
-        [plot],
-        rows={"category": [SEARCH_ROW]},
-        columns={"method": ["fit"]},
-        notes_by_row={SEARCH_ROW: SEARCH_NOTE},
-        details_by_row={
-            SEARCH_ROW: detailed_results_table_html(
-                SEARCH_ROW,
-                {"fit": matches},
-                baseline_label=variant_label,
-                variant_label=variant_label,
-                variant_column_title="Implementation",
-                hardware_label=lambda result: hardware_labels[result.hardware_hash],
-                comparison_key=_search_match_key,
-            )
-        },
-    )
-
-
-def _pair_key(baseline: HardwareVariant, candidate: HardwareVariant) -> str:
-    return f"{baseline.key}|{candidate.key}"
-
-
-def _panel_id(baseline: HardwareVariant, candidate: HardwareVariant) -> str:
-    return f"hw-cmp-{baseline.key}-{candidate.key}"
-
-
-def render_selector(
-    all_results: list[MethodResult], search_results: list[MethodResult]
-) -> str:
-    panels = []
-    pair_panels: dict[str, str] = {}
-    for baseline, candidate in permutations(HARDWARE_VARIANTS, 2):
-        if baseline.family != candidate.family:
-            continue
-        html, match_count = render_comparison(
-            all_results, search_results, baseline, candidate
-        )
-        if match_count == 0:
-            continue
-        panel_id = _panel_id(baseline, candidate)
-        panels.append({"id": panel_id, "html": html})
-        pair_panels[_pair_key(baseline, candidate)] = panel_id
-
-    if not pair_panels:
-        return '<section class="empty">No comparable results across any two hardwares yet.</section>'
-
-    variants_with_options = [
-        variant
-        for variant in HARDWARE_VARIANTS
-        if any(key.startswith(f"{variant.key}|") for key in pair_panels)
-    ]
-    default_baseline, default_candidate = next(
-        (
-            (baseline, candidate)
-            for baseline, candidate in permutations(HARDWARE_VARIANTS, 2)
-            if _pair_key(baseline, candidate) in pair_panels
-        )
-    )
-
-    panels_html = "".join(
-        f'<div id="{panel["id"]}" class="tab-panel">{panel["html"]}</div>' for panel in panels
-    )
-    variants_json = json.dumps(
-        [{"key": v.key, "label": v.label, "family": v.family} for v in variants_with_options]
-    )
-    pair_panels_json = json.dumps(pair_panels)
-    family_labels_json = json.dumps(FAMILY_LABELS)
-
-    return f"""
-    <section class="panel hw-compare-controls">
-      <div class="hw-compare-row">
-        <label>Baseline
-          <select id="hw-baseline-select"></select>
-        </label>
-        <span class="hw-compare-vs">vs</span>
-        <label>Compare
-          <select id="hw-candidate-select"></select>
-        </label>
-      </div>
-    </section>
-    <div class="hw-compare-panels">
-      {panels_html}
-      <div id="hw-compare-empty" class="tab-panel">
-        <section class="empty">No comparable benchmark results for this pair.</section>
-      </div>
-    </div>
-    <script>
-    (function() {{
-      const variants = {variants_json};
-      const pairPanels = {pair_panels_json};
-      const familyLabels = {family_labels_json};
-
-      const baselineSelect = document.getElementById("hw-baseline-select");
-      const candidateSelect = document.getElementById("hw-candidate-select");
-
-      function candidatesFor(baselineKey) {{
-        return variants.filter(
-          (v) => v.key !== baselineKey && pairPanels[`${{baselineKey}}|${{v.key}}`]
-        );
-      }}
-
-      function populate(select, items, selectedKey) {{
-        select.innerHTML = "";
-        const byFamily = {{}};
-        items.forEach((item) => {{
-          (byFamily[item.family] = byFamily[item.family] || []).push(item);
-        }});
-        Object.entries(byFamily).forEach(([family, familyItems]) => {{
-          const group = document.createElement("optgroup");
-          group.label = familyLabels[family] || family;
-          familyItems.forEach((item) => {{
-            const option = document.createElement("option");
-            option.value = item.key;
-            option.textContent = item.label;
-            if (item.key === selectedKey) {{
-              option.selected = true;
-            }}
-            group.appendChild(option);
-          }});
-          select.appendChild(group);
-        }});
-      }}
-
-      function showPanel(updateHash = true) {{
-        const baseline = baselineSelect.value;
-        const candidate = candidateSelect.value;
-        if (updateHash) {{
-          const params = new URLSearchParams({{baseline, compare: candidate}});
-          history.replaceState(null, "", `#${{params}}`);
-        }}
-        const panelId = pairPanels[`${{baseline}}|${{candidate}}`] || "hw-compare-empty";
-        document.querySelectorAll(".hw-compare-panels > .tab-panel").forEach((panel) => {{
-          panel.classList.toggle("active", panel.id === panelId);
-        }});
-        const activePanel = document.getElementById(panelId);
-        activePanel.querySelectorAll(".plotly-graph-div").forEach((chart) => {{
-          if (chart.offsetParent !== null) {{
-            Plotly.Plots.resize(chart);
-          }}
-        }});
-        if (typeof sklbenchWirePlotClicks === "function") {{
-          sklbenchWirePlotClicks();
-        }}
-      }}
-
-      baselineSelect.addEventListener("change", () => {{
-        const options = candidatesFor(baselineSelect.value);
-        const kept = options.find((o) => o.key === candidateSelect.value);
-        populate(candidateSelect, options, kept ? kept.key : options[0] && options[0].key);
-        showPanel();
-      }});
-      candidateSelect.addEventListener("change", () => showPanel());
-
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      let initialBaseline = "{default_baseline.key}";
-      let initialCandidate = "{default_candidate.key}";
-      if (pairPanels[`${{hashParams.get("baseline")}}|${{hashParams.get("compare")}}`]) {{
-        initialBaseline = hashParams.get("baseline");
-        initialCandidate = hashParams.get("compare");
-      }}
-      populate(
-        baselineSelect,
-        variants.filter((v) => candidatesFor(v.key).length > 0),
-        initialBaseline
-      );
-      populate(candidateSelect, candidatesFor(baselineSelect.value), initialCandidate);
-      // Don't rewrite the URL on load, so an unmodified default page keeps a clean URL.
-      showPanel(false);
-    }})();
-    </script>
-    """
 
 
 # Page header and index page label.
@@ -876,23 +300,170 @@ def _pixi_env_name(software_hash: str) -> str:
     return read_env("software", software_hash)["pixi_environment_name"]
 
 
-def _is_excluded_env(result: MethodResult) -> bool:
+def _is_excluded_env(result: MethodResult | BenchmarkRecord) -> bool:
     name = _pixi_env_name(result.software_hash)
     return name.startswith("sklearn-cf-") and name not in SOURCE_ENVS
 
 
-def generate(output_dir: Path) -> None:
-    all_results = [
-        _drop_reliability_signals(result)
-        for result in read_all_results()
-        if matches_source_configs(result.case, SOURCE_CONFIGS)
-        and not _is_excluded_env(result)
+def _latest_per_case(results: list[MethodResult]) -> list[MethodResult]:
+    """Old runs under a previous env can differ from the new ones by the
+    `n_jobs`/`n_estimators` that `match_key` ignores, which would plot a stale
+    point next to the fresh one."""
+    latest: dict[tuple, MethodResult] = {}
+    for result in results:
+        key = (
+            result.hardware_hash,
+            software_label(result),
+            match_key(result),
+            result.case.get("algorithm", {}).get("estimator_params", {}).get("max_bins"),
+        )
+        if key not in latest or result.timestamp_recorded > latest[key].timestamp_recorded:
+            latest[key] = result
+    return list(latest.values())
+
+
+def read_results() -> tuple[list[MethodResult], list[BenchmarkRecord]]:
+    """Results and failed records of the named machines, comparable across
+    machines. A failure already superseded by a successful run is dropped."""
+    def is_kept(result: MethodResult | BenchmarkRecord) -> bool:
+        return (
+            result.hardware_hash in HARDWARE_NAMES
+            and matches_source_configs(result.case, SOURCE_CONFIGS)
+            and not _is_excluded_env(result)
+        )
+
+    results = [
+        _normalize_tree_result(result)
+        for result in _latest_per_case(
+            [result for result in read_all_results() if is_kept(result)]
+        )
+    ]
+    latest_success = {}
+    for result in results:
+        key = (result.hardware_hash, software_label(result), comparison_key(result))
+        if key not in latest_success or result.timestamp_recorded > latest_success[key]:
+            latest_success[key] = result.timestamp_recorded
+    failed_records = []
+    for record in read_failed_records():
+        if not is_kept(record):
+            continue
+        key = (record.hardware_hash, software_label(record), comparison_key(record))
+        if key not in latest_success or record.timestamp_recorded > latest_success[key]:
+            failed_records.append(record)
+    return results, failed_records
+
+
+def read_kept_search_results() -> list[MethodResult]:
+    return [
+        result for result in read_search_results()
+        if result.hardware_hash in HARDWARE_NAMES and not _is_excluded_env(result)
     ]
 
-    html = BASE_TEMPLATE.render(
-        title=TITLE,
-        rows=[ABOUT_HTML, render_selector(all_results, read_search_results())],
+
+@dataclass(frozen=True)
+class Variant:
+    software: str
+    hardware_hash: str
+
+    @property
+    def key(self) -> str:
+        return f"{self.software}__{self.hardware_hash}"
+
+
+def variant_of(result: MethodResult | BenchmarkRecord) -> Variant:
+    return Variant(software_label(result), result.hardware_hash)
+
+
+def _group_by_variant(results) -> dict[Variant, list]:
+    grouped: dict[Variant, list] = {}
+    for result in results:
+        grouped.setdefault(variant_of(result), []).append(result)
+    return grouped
+
+
+def _env_html(_variant_key: str, result: MethodResult) -> str:
+    summary = summarize_software_env(
+        read_env("software", result.software_hash),
+        result.implementation,
+        software_hash=result.software_hash,
     )
+    summary["name"] = software_label(result)
+    return (
+        HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", result.hardware_hash)))
+        + SOFTWARE_TEMPLATE.render(**summary)
+    )
+
+
+@lru_cache(maxsize=None)
+def write_variant_data(output_dir: Path) -> dict[Variant, list[MethodResult]]:
+    """Shared with the cross comparison page. Returns the results per variant."""
+    results, failed_records = read_results()
+    results_by_variant = _group_by_variant(results)
+    with_keys = lambda grouped: {variant.key: items for variant, items in grouped.items()}
+    write_data_files(
+        output_dir,
+        DATA_DIR,
+        with_keys(results_by_variant),
+        failed_by_variant=with_keys(_group_by_variant(failed_records)),
+        search_by_variant=with_keys(_group_by_variant(read_kept_search_results())),
+        case_key=comparison_key,
+        search_key=search_match_key,
+        env_html=_env_html,
+    )
+    return results_by_variant
+
+
+def generate(output_dir: Path) -> None:
+    results_by_variant = write_variant_data(output_dir)
+    results = [res for variant_results in results_by_variant.values() for res in variant_results]
+    colors = hardware_colors(results)
+    softwares = sorted({variant.software for variant in results_by_variant}, key=software_sort_key)
+
+    outer_tabs = []
+    for software in softwares:
+        variants = sorted(
+            (
+                (hardware_label(variant_results[0]), variant)
+                for variant, variant_results in results_by_variant.items()
+                if variant.software == software
+            ),
+            key=lambda item: hardware_sort_key(item[0]),
+        )
+        if len(variants) < 2:
+            continue
+        outer_tabs.append({
+            "label": software,
+            "slug": _slug_id(software),
+            "emptyScope": software,
+            "variants": [
+                {
+                    "key": variant.key,
+                    "label": label,
+                    "plotted": True,
+                    "tabColor": colors[label],
+                    "pickHtml": baseline_pick_html(label, colors[label]),
+                }
+                for label, variant in variants
+            ],
+        })
+
+    config = {
+        "page": "baseline-tabs",
+        "dataDir": DATA_DIR,
+        "outerTabs": outer_tabs,
+        "colors": colors,
+        "columnTitle": "Hardware",
+        "treeNote": expanded_note(TREE_BINNING_NOTE),
+        "splitsFromParams": True,
+        "labelOrder": HARDWARE_ORDER,
+        "searchNote": expanded_note(SEARCH_NOTE),
+    }
+    html = BASE_TEMPLATE.render(title=TITLE, rows=[
+        ABOUT_HTML,
+        PREPROCESSING_TOGGLE_HTML,
+        CONTENT_HTML,
+        *page_rows(config),
+    ])
 
     output = output_dir / "hardware_comparisons.html"
     output.write_text(html)

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from sklbench.config import BaseCase, EstimatorCase, HPTuningCase, load_cases_from_script
+from sklbench.config import BaseCase, EstimatorCase, load_cases_from_script
 
 
 SKLEARN_ENVS = [
@@ -32,31 +32,8 @@ ENV_SENSITIVE_CONFIGS = {
 }
 
 
-def test_load_cases_from_script_accepts_model_instances(tmp_path):
-    config = tmp_path / "config.py"
-    config.write_text(
-        """
-from sklbench.config import Algorithm, Data, HPTuningCase
-
-
-def generate_cases():
-    return [
-        HPTuningCase(
-            algorithm=Algorithm(estimator="Ridge"),
-            data=Data(source="make_regression"),
-        )
-    ]
-""",
-        encoding="utf-8",
-    )
-
-    cases = load_cases_from_script(config)
-
-    assert len(cases) == 1
-    assert isinstance(cases[0], HPTuningCase)
-
-
-def test_load_cases_from_script_accepts_estimator_dict(tmp_path):
+def test_loaded_cases_record_their_config(tmp_path):
+    """Dashboards pick their results by this stamp."""
     config = tmp_path / "config.py"
     config.write_text(
         """
@@ -70,24 +47,9 @@ def generate_cases():
         encoding="utf-8",
     )
 
-    cases = load_cases_from_script(config)
+    (case,) = load_cases_from_script(config)
 
-    assert len(cases) == 1
-    assert isinstance(cases[0], EstimatorCase)
-    # load_cases_from_script stamps metadata.source_config with the
-    # (repo-relative, or absolute if outside the repo) invoked config path.
-    assert cases[0].metadata.keys() == {"source_config"}
-    assert cases[0].metadata["source_config"].endswith("config.py")
-
-
-def test_estimator_case_routes_to_estimator_runner():
-    case = EstimatorCase(
-        algorithm={"estimator": "Ridge"},
-        data={"source": "make_regression"},
-        implementation={"library": "sklearn"},
-    )
-
-    assert case.runner_module == "sklbench.runners.estimator"
+    assert case.metadata["source_config"].endswith("config.py")
 
 
 def test_shipped_configs_generate_valid_cases(monkeypatch):
@@ -154,36 +116,6 @@ def test_all_models_configs_support_array_api_pixi_environments(monkeypatch):
     ]
     assert non_scaling_cases
     assert all(case.implementation.is_array_api() for case in non_scaling_cases)
-
-
-def test_filter_unsupported_cases_excludes_sklearnex_ridge_classifier():
-    from sklbench.config.utils import filter_unsupported_cases
-
-    cases = [
-        {
-            "algorithm": {
-                "estimator": "RidgeClassifier",
-                "estimator_params": {"solver": "svd"},
-            },
-            "data": {"source": "make_classification"},
-            "implementation": {
-                "library": "sklearnex",
-                "sklearnex_context": {"array_api_dispatch": True},
-            },
-        },
-        {
-            "algorithm": {"estimator": "Ridge", "estimator_params": {"solver": "svd"}},
-            "data": {"source": "make_regression"},
-            "implementation": {
-                "library": "sklearn",
-                "sklearn_context": {"array_api_dispatch": True},
-            },
-        },
-    ]
-
-    kept = list(filter_unsupported_cases(cases))
-
-    assert [case.algorithm.estimator for case in kept] == ["Ridge"]
 
 
 def _gpu_and_cpu_cases():

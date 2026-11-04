@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  pull_request:
+    paths:
+      - "configs/**"
+      - "dashboards/**"
+      - "sklbench/**"
+      - "tests/**"
+      - "pixi.lock"
+      - "pixi.toml"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "configs/**"
+      - "dashboards/**"
+      - "sklbench/**"
+      - "tests/**"
+      - "pixi.lock"
+      - "pixi.toml"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          # The tests write their own small results, so no need for the LFS ones.
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
+        with:
+          pixi-version: v0.75.0
+          environments: reporting
+          # See the same options in dashboard-pages.yml.
+          locked: false
+          frozen: true
+          cache: true
+
+      # Node comes with the runner image. tests/test_speedup_comparison.py runs the
+      # dashboards' JS with it, and fails rather than skips without it when CI is set.
+      - name: Run tests
+        run: pixi run --frozen -e reporting python -m pytest tests sklbench/runners/datasets/tests -q

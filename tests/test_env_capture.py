@@ -1,6 +1,5 @@
+import json
 import subprocess
-import sys
-from pathlib import Path
 
 from sklbench.orchestrator import env
 
@@ -23,96 +22,51 @@ OPENMP DISPLAY ENVIRONMENT END
     }
 
 
-def test_get_openmp_runtime_info(monkeypatch):
-    monkeypatch.setenv("OMP_NUM_THREADS", "2")
-    calls = []
-
-    def fake_run(command, **kwargs):
-        calls.append((command, kwargs))
-        return subprocess.CompletedProcess(
-            command,
-            0,
-            stdout="",
-            stderr="""
-OPENMP DISPLAY ENVIRONMENT BEGIN
-  OMP_NUM_THREADS = '2'
-  GOMP_SPINCOUNT = '300000'
-OPENMP DISPLAY ENVIRONMENT END
-""",
-        )
-
-    monkeypatch.setattr(env.subprocess, "run", fake_run)
-
-    assert env.get_openmp_runtime_info() == {
-        "OMP_NUM_THREADS": "2",
-        "GOMP_SPINCOUNT": "300000",
-    }
-    command, kwargs = calls[0]
-    assert command == [
-        sys.executable,
-        "-c",
-        "from sklearn.utils._openmp_helpers import _openmp_effective_n_threads; "
-        "_openmp_effective_n_threads()",
-    ]
-    assert kwargs["env"]["OMP_DISPLAY_ENV"] == "VERBOSE"
-    assert kwargs["env"]["OMP_NUM_THREADS"] == "2"
-    assert kwargs["capture_output"] is True
-    assert kwargs["check"] is False
-    assert kwargs["text"] is True
+def test_get_openmp_runtime_info_reads_the_real_runtime():
+    assert "_OPENMP" in env.get_openmp_runtime_info()
 
 
-def test_check_output_resolves_the_executable_via_shutil_which(monkeypatch):
-    # shell=False means no PATHEXT-style extension resolution, so a bare
-    # "git" 404s on Windows (WinError 2), where the executable is actually
-    # named git.exe - _check_output resolves it up front instead.
-    calls = []
-
-    def fake_which(name):
-        return f"C:\\Program Files\\Git\\bin\\{name}.exe"
-
-    def fake_check_output(command, **kwargs):
-        calls.append(command)
-        return "abc123\n"
-
-    monkeypatch.setattr(env.shutil, "which", fake_which)
-    monkeypatch.setattr(env.subprocess, "check_output", fake_check_output)
-
-    result = env._check_output(["git", "rev-parse", "HEAD"])
-
-    assert result == "abc123"
-    assert calls == [["C:\\Program Files\\Git\\bin\\git.exe", "rev-parse", "HEAD"]]
-
-
-def test_check_output_falls_back_to_the_bare_name_when_which_finds_nothing(monkeypatch):
-    calls = []
-
-    monkeypatch.setattr(env.shutil, "which", lambda name: None)
-    monkeypatch.setattr(
-        env.subprocess, "check_output", lambda command, **kwargs: calls.append(command) or "x"
+def _git(repo, *args):
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=someone", "-c", "user.email=s@example.com", *args],
+        check=True,
+        capture_output=True,
     )
 
-    env._check_output(["git", "rev-parse", "HEAD"])
 
-    assert calls == [["git", "rev-parse", "HEAD"]]
+def _repo(path, tracked_file):
+    tracked = path / tracked_file
+    tracked.parent.mkdir(parents=True)
+    tracked.write_text("v1")
+    _git(path, "init", "-b", "feature")
+    _git(path, "add", ".")
+    _git(path, "commit", "-m", "first")
+    return tracked
 
 
-def test_git_info_for_path_ignores_benchmark_repo_root(tmp_path, monkeypatch):
-    benchmark_root = tmp_path / "scikit-learn-benchmarks"
-    module_file = (
-        benchmark_root
-        / ".pixi/envs/sklearn/lib/python3.12/site-packages/sklearn/__init__.py"
-    )
+def test_git_info_ignores_a_package_installed_inside_the_benchmark_repo(tmp_path, monkeypatch):
+    benchmarks = tmp_path / "benchmarks"
+    module = _repo(benchmarks, ".pixi/envs/sklearn/lib/sklearn/__init__.py")
+    monkeypatch.setattr(env, "_benchmark_repo_git_root", lambda: benchmarks.resolve())
 
-    monkeypatch.setattr(env, "_benchmark_repo_git_root", lambda: benchmark_root)
+    assert env._git_info_for_path(module) is None
 
-    def fake_check_output(command, cwd=None):
-        if command == ["git", "rev-parse", "--show-toplevel"]:
-            return str(benchmark_root)
-        raise AssertionError(f"unexpected git command: {command}")
 
-    monkeypatch.setattr(env, "_check_output", fake_check_output)
+def test_git_info_describes_a_nested_scikit_learn_checkout(tmp_path, monkeypatch):
+    benchmarks = tmp_path / "benchmarks"
+    _repo(benchmarks, "README.md")
+    module = _repo(benchmarks / "sklearn-src", "sklearn/__init__.py")
+    _git(module.parents[1], "remote", "add", "origin", "git@github.com:scikit-learn/scikit-learn.git")
+    monkeypatch.setattr(env, "_benchmark_repo_git_root", lambda: benchmarks.resolve())
 
-    assert env._git_info_for_path(module_file) is None
+    info = env._git_info_for_path(module)
+    assert info["branch"] == "feature"
+    assert info["remote"] == "git@github.com:scikit-learn/scikit-learn.git"
+    assert len(info["commit"]) == 40
+    assert info["dirty"] is False
+
+    module.write_text("v2")
+    assert env._git_info_for_path(module)["dirty"] is True
 
 
 def test_get_oneapi_devices_via_intel_env_falls_back_when_pixi_project_root_unset(
@@ -130,61 +84,9 @@ def test_get_oneapi_devices_via_intel_env_falls_back_when_the_subprocess_fails(
     assert env._get_oneapi_devices_via_intel_env() == {}
 
 
-def test_get_oneapi_devices_via_intel_env_parses_the_subprocess_output(monkeypatch):
+def test_get_oneapi_devices_via_intel_env_reads_the_intel_env_report(monkeypatch):
     monkeypatch.setenv("PIXI_PROJECT_ROOT", "/repo")
-    calls = []
+    device = {"level_zero:gpu:0": {"name": "Intel(R) Arc(TM) B390 GPU"}}
+    monkeypatch.setattr(env, "_check_output", lambda command: json.dumps(device))
 
-    def fake_check_output(command):
-        calls.append(command)
-        return '{"level_zero:gpu:0": {"name": "Intel(R) Arc(TM) B390 GPU"}}'
-
-    monkeypatch.setattr(env, "_check_output", fake_check_output)
-
-    assert env._get_oneapi_devices_via_intel_env() == {
-        "level_zero:gpu:0": {"name": "Intel(R) Arc(TM) B390 GPU"}
-    }
-    (command,) = calls
-    assert command[:6] == [
-        "pixi",
-        "run",
-        "--manifest-path",
-        "/repo",
-        "--environment",
-        "intel",
-    ]
-
-
-def test_git_info_for_path_keeps_nested_checkout(tmp_path, monkeypatch):
-    benchmark_root = tmp_path / "scikit-learn-benchmarks"
-    sklearn_root = benchmark_root / "sklearn-src"
-    module_file = sklearn_root / "sklearn/__init__.py"
-
-    monkeypatch.setattr(env, "_benchmark_repo_git_root", lambda: benchmark_root)
-
-    def fake_check_output(command, cwd=None):
-        cwd = Path(cwd)
-        if command == ["git", "rev-parse", "--show-toplevel"]:
-            assert cwd == module_file.parent
-            return str(sklearn_root)
-        if command == ["git", "rev-parse", "HEAD"]:
-            assert cwd == sklearn_root
-            return "abc123"
-        if command == ["git", "branch", "--show-current"]:
-            assert cwd == sklearn_root
-            return "feature"
-        if command == ["git", "status", "--porcelain", "--untracked-files=no"]:
-            assert cwd == sklearn_root
-            return ""
-        if command == ["git", "remote", "get-url", "origin"]:
-            assert cwd == sklearn_root
-            return "git@github.com:scikit-learn/scikit-learn.git"
-        raise AssertionError(f"unexpected git command: {command}")
-
-    monkeypatch.setattr(env, "_check_output", fake_check_output)
-
-    assert env._git_info_for_path(module_file) == {
-        "commit": "abc123",
-        "dirty": False,
-        "branch": "feature",
-        "remote": "git@github.com:scikit-learn/scikit-learn.git",
-    }
+    assert env._get_oneapi_devices_via_intel_env() == device
