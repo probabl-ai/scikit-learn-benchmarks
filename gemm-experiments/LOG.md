@@ -847,3 +847,32 @@ f64, 8-86T, 2 rounds (`switch_ratio_scan.csv`). GF/s, best round's median:
   33 chunks, under half of 86 threads, so it falls back to develop's syrk
   (PR #3 fixes that path). Also 24T: 588 vs 1199 at 22T, the 24-thread mask
   stall of exp 23.
+
+## Exp 24 (cont.): split-K v1 vs develop (xeon-s1)
+
+`scripts/run_splitk.sh xeon-s1 8,16,24,43,64,86` (`splitk.csv`, 3 rounds,
+f32/f64; gemm `m x m x k:NT` and syrk `m x k:N` for m = 32-1100, k =
+5000-1e6, plus a few others). develop / split-K time, min of rounds:
+- Gains wherever it splits and C is small: syrk with 32-300 features and
+  k >= 20000 8-60x from 16T up (100x1e6:T 86T 41x), gemm 32x32 to 128x128
+  with long k 5-40x, 200x200x50000:TN 5.2x (f32 7.9x), 10x200x1e6:NT 4.6x.
+- Unchanged where it doesn't split (800-1100 and 2000^3 within noise,
+  24T cells excepted: the 24T mask stall hits either build).
+- Slower: 512x512x20000:NT d at 24-64T 0.49-0.74x (f32 0.56-0.60x at
+  43-64T), 512x512x50000 d 86T 0.83x, f32 800x800x20000 syrk 43T 0.62x,
+  256x256x5000:NT d 16T 0.73x.
+
+Cause of the large-C slowdowns: every slow cell needs more than 32 MiB of
+partial products ((p - 1) * m * n * size), glibc's largest mmap threshold,
+so `malloc` maps fresh pages on every call and the workers fault them in
+again. 256x256x50000 d: 63 buffers (31 MiB) at 64T 4x faster, 85 (42 MiB) at
+86T 0.98x. With `MALLOC_MMAP_THRESHOLD_=2e8 MALLOC_TRIM_THRESHOLD_=4e8`
+(heap reuse), split-K 512x512x20000 43T goes 683 -> 1554 GF/s (develop
+1268) and 256x256x50000 86T 644 -> 2893 (develop 669).
+
+256x256x5000 at 16T is a different case: 9 chunks (k / 512) on 16 threads,
+while develop's 16-thread M x N split already gives each thread 64 x 64.
+
+v2 (fork `splitk` 7b5e80a7): partial products capped at 24 MiB, and with
+fewer chunks than threads, split only if M x N would give each thread less
+than 64 x 64 of C.
