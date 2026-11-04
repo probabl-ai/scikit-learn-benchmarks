@@ -1,0 +1,109 @@
+diff --git a/interface/axpy.c b/interface/axpy.c
+index 458285bc..1d4370f0 100644
+--- a/interface/axpy.c
++++ b/interface/axpy.c
+@@ -95,10 +95,15 @@ void CNAME(blasint n, FLOAT alpha, FLOAT *x, blasint incx, FLOAT *y, blasint inc
+   //
+   //Temporarily work-around the low performance issue with small input size &
+   //multithreads.
++  //Beyond 8 threads, each gets at least 200 kB of x, enough to pay for
++  //waking it, and all of them once that is a third of the cores (see ddot.c).
+   if (incx == 0 || incy == 0 || n <= MULTI_THREAD_MINIMAL)
+ 	  nthreads = 1;
+-  else
+-	  nthreads = num_cpu_avail(1);
++  else {
++	  int ncpu = num_cpu_avail(1);
++	  nthreads = MIN(ncpu, MAX(8, n * SIZE / 200000));
++	  if (3 * nthreads >= ncpu) nthreads = ncpu;
++  }
+ 
+   if (nthreads == 1) {
+ #endif
+diff --git a/interface/lapack/gesv.c b/interface/lapack/gesv.c
+index ae108f33..8e42e0c5 100644
+--- a/interface/lapack/gesv.c
++++ b/interface/lapack/gesv.c
+@@ -137,6 +137,8 @@ void NAME(blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA, blasint *ipiv,
+     else
+       args.nthreads = num_cpu_avail(4);
+ #endif
++  /* Same cap as in getrf. */
++  if (args.nthreads > 2 * MAX(8, args.m / 200)) args.nthreads = MAX(8, args.m / 200);
+ 
+   if (args.nthreads == 1) {
+ #endif
+diff --git a/interface/lapack/getrf.c b/interface/lapack/getrf.c
+index 1bd7f44e..d1eef2e0 100644
+--- a/interface/lapack/getrf.c
++++ b/interface/lapack/getrf.c
+@@ -37,6 +37,7 @@
+ /*********************************************************************/
+ 
+ #include <stdio.h>
++#include <math.h>
+ #include "common.h"
+ #ifdef FUNCTION_PROFILE
+ #include "functable.h"
+@@ -102,12 +103,19 @@ void NAME(blasint *M, blasint *N, FLOAT *a, blasint *ldA, blasint *ipiv, blasint
+ #else 
+   int nmax = 10000;
+ #endif
++  int tmax;
+   if (args.m*args.n <nmax) {
+     args.nthreads = 1;
+   } else {
+     args.nthreads = num_cpu_avail(4);
+     if ((args.m*args.n)/args.nthreads <nmax)
+ 	    args.nthreads = (args.m*args.n)/nmax;
++    /* The threads synchronize with each other after every panel, which costs
++       more than it brings beyond sqrt(m * n) / 200 threads. Only cap when it
++       at least halves the count: on hybrid CPUs, a count just above the
++       number of P cores is slower than all of them. */
++    tmax = MAX(8, (int)(sqrt((double)args.m * args.n) / 200));
++    if (args.nthreads > 2 * tmax) args.nthreads = tmax;
+   }
+ 
+   if (args.nthreads == 1) {
+diff --git a/interface/symv.c b/interface/symv.c
+index 75625262..94b4feca 100644
+--- a/interface/symv.c
++++ b/interface/symv.c
+@@ -187,10 +187,12 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, blasint n, FLOAT alpha,
+   }
+ 
+ #ifdef SMP
++  /* The threads' partial results are summed serially, so beyond 4 threads
++     each needs at least 64 rows. */
+   if (n <200)
+ 	  nthreads=1;
+   else
+-  nthreads = num_cpu_avail(2);
++  nthreads = MIN(num_cpu_avail(2), MAX(4, n / 64));
+ 
+   if (nthreads == 1) {
+ #endif
+diff --git a/kernel/x86_64/ddot.c b/kernel/x86_64/ddot.c
+index 569ed241..2a19394b 100644
+--- a/kernel/x86_64/ddot.c
++++ b/kernel/x86_64/ddot.c
+@@ -171,10 +171,17 @@ FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x, FLOAT *y, BLASLONG inc_y)
+ 	FLOAT dot = 0.0;
+ 
+ #if defined(SMP)
++	// Waking each thread costs about as much as 25000 elements, so beyond
++	// 8 threads give each at least that. Once that is a third of the cores,
++	// use all of them as before: on Xeon 6, busying every core raises the
++	// uncore frequency (ELC), which pays for the extra threads.
+ 	if (inc_x == 0 || inc_y == 0 || n <= 10000)
+ 		nthreads = 1;
+-	else
+-		nthreads = num_cpu_avail(1);
++	else {
++		int ncpu = num_cpu_avail(1);
++		nthreads = MIN(ncpu, MAX(8, n / 25000));
++		if (3 * nthreads >= ncpu) nthreads = ncpu;
++	}
+ 
+ 	if (nthreads == 1) {
+ 		dot = dot_compute(n, x, inc_x, y, inc_y);

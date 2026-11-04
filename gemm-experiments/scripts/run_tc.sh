@@ -1,6 +1,6 @@
 #!/bin/bash
 # Experiments 22-23: thread-count patch (dot, axpy, symv, getrf, gesv) vs develop.
-# usage: [BASE=sr-base] [BUILD=tc] [OUT=tc] [ROUNDS=3] [PIN=compact]
+# usage: [BASE=sr-base] [BUILD=tc] [OUT=tc] [ROUNDS=3] [PIN=compact] [ONLY=regex]
 #        scripts/run_tc.sh MACHINE THREADS
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -11,6 +11,8 @@ for n in 200 300 500 1000 2000 4000 8000; do S+=(symv:$n); done
 for n in 300 500 1000 2000 4000 8000; do S+=(getrf:${n}x$n); done
 S+=(getrf:100000x20 getrf:1000000x20 getrf:20000x500 gesv:500x1 gesv:2000x1 gesv:4000x100
     syevd:200 syevd:1000 syevd:4000 syevr:1000 syevr:4000)
+# ONLY=regex keeps a subset of the shapes, e.g. ONLY="getrf|gesv".
+[ -n "${ONLY:-}" ] && S=($(printf '%s\n' "${S[@]}" | grep -E "$ONLY"))
 for b in ${BASE:-sr-base} ${BUILD:-tc}; do
   [ -n "${CHECK:-}" ] && for t in ${CHECK}; do
     OPENBLAS_NUM_THREADS=$t ./build/gemmbench --lib builds/$b/lib/$SO --check 1 "${S[@]}" | sed "s/^/$b,/"

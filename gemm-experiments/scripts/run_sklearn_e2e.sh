@@ -5,7 +5,7 @@
 # Each build gets a hard-linked copy of the env with the OpenBLAS file
 # replaced: with LD_PRELOAD instead, numpy and scipy still load the env's own
 # OpenBLAS through libblas.so.3 (RPATH wins), and its thread pool too.
-# usage: [BASE=sr-base] [BUILD=tc] [ROUNDS=3] [OUT=sklearn_e2e]
+# usage: [BASE=sr-base] [BUILD=tc] [ROUNDS=3] [OUT=sklearn_e2e] [ONLY=substring]
 #        scripts/run_sklearn_e2e.sh MACHINE THREADS
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -33,7 +33,7 @@ for r in $(seq ${ROUNDS:-3}); do
     order="${BASE:-sr-base} ${BUILD:-tc}"; [ $((r % 2)) = 0 ] && order="${BUILD:-tc} ${BASE:-sr-base}"
     for b in $order; do
       OPENBLAS_NUM_THREADS=$t taskset -c $list \
-        envs/e2e-$b/bin/python scripts/sklearn_e2e.py --label $b | sed "s/^/$r,/" >> $OUT
+        envs/e2e-$b/bin/python scripts/sklearn_e2e.py --label $b --only "${ONLY:-}" | sed "s/^/$r,/" >> $OUT
     done
   done
 done
