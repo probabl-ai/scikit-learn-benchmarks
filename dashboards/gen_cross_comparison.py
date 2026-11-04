@@ -36,8 +36,11 @@ ABOUT_HTML = """<section class="panel">
     than the baseline. Marker shapes mean the same.</p>
     <p><b>Random forests</b> and <b>extra trees</b> often have a different forest
     size on each machine: their times are rescaled to the same size, and their
-    metrics aren't compared when the sizes differ. The last row compares the time
-    per fit in hyper-parameter searches, where many fits run in parallel.</p>
+    metrics aren't compared when the sizes differ. <b>KMeans</b> is capped at 64
+    threads on machines with more than 64 CPUs, to avoid an
+    <a href="https://github.com/OpenMathLib/OpenBLAS/issues/5958">OpenBLAS crash</a>.
+    The last row compares the time per fit in hyper-parameter searches, where many
+    fits run in parallel.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
