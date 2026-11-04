@@ -38,6 +38,7 @@ from .matching import (
     fitted_solver,
     is_cuml_random_forest,
     is_real_dataset,
+    is_sklearnex_tree,
     uses_binned_splits,
 )
 from .provenance import summarize_sources
@@ -62,6 +63,12 @@ def tree_binning_note(variant_noun: str) -> str:
         "(<dfn>histogram-based splits</dfn> or <dfn>quantile-based splits</dfn>) "
         "on the right."
     )
+
+
+# cuML random forests always bin.
+CUML_TREE_NOTE = (
+    " cuML random forests are only paired with the binned scikit-learn-intelex cases."
+)
 
 
 def baseline_pick_html(label: str, color: str) -> str:
@@ -152,6 +159,8 @@ def _failed_entries(records: list[BenchmarkRecord], variant_key: str, case_id) -
             "category": record.category,
             "real": is_real_dataset(record),
             "binned": uses_binned_splits(record),
+            "sklearnexTree": is_sklearnex_tree(record),
+            "cumlRf": is_cuml_random_forest(record),
             "hover": failed_hover_html(record),
             "row": export_failed_row(record, entry_id),
         })

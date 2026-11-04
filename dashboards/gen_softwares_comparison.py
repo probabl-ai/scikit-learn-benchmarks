@@ -3,6 +3,7 @@ from pathlib import Path
 from dashboards import HARDWARE_NAMES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS
 from sklbench.reporting.comparison import (
     CONTENT_HTML,
+    CUML_TREE_NOTE,
     PREPROCESSING_TOGGLE_HTML,
     baseline_pick_html,
     expanded_note,
@@ -122,7 +123,7 @@ ABOUT_HTML = """<section class="panel">
     </ul>
   </details>
 </section>"""
-TREE_BINNING_NOTE = tree_binning_note("implementation")
+TREE_BINNING_NOTE = tree_binning_note("implementation") + CUML_TREE_NOTE
 DATA_DIR = "per_hardware_data"
 
 

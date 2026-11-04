@@ -633,11 +633,15 @@ def append_cpu_fallback_warning(result: MethodResult, warnings: list):
         warnings.append(CPU_FALLBACK_WARNING)
 
 
+def is_sklearnex_tree(result: "MethodResult | BenchmarkRecord") -> bool:
+    return result.implementation.library == "sklearnex" and result.category == "tree-based"
+
+
 def sklearnex_tree_is_binned(result: MethodResult | BenchmarkRecord) -> bool:
     """Whether this is a sklearnex tree-based result using histogram-based
     splits. A failed record has no `data_desc`, so a real dataset's n_samples
     is unknown there: it counts as not binned."""
-    if result.implementation.library != "sklearnex" or result.category != "tree-based":
+    if not is_sklearnex_tree(result):
         return False
     max_bins = result.case.get("algorithm", {}).get("estimator_params", {}).get("max_bins", 255)
     n_samples = result.case.get("data", {}).get("generation_kwargs", {}).get("n_samples")

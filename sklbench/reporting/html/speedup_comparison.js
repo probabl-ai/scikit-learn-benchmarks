@@ -129,6 +129,11 @@
         return null;
       }
     } else {
+      // cuML always bins, so sklearnex's exact-split cases aren't comparable to it.
+      const exactSklearnex = (side) => side.entry.sklearnexTree && !side.binned && !side.entry.fallback;
+      if ((base.entry.cumlRf && exactSklearnex(candidate)) || (candidate.entry.cumlRf && exactSklearnex(base))) {
+        return null;
+      }
       // Only a difference if exactly one side bins. A fallback runs scikit-learn.
       const baseBinned = base.binned && !base.entry.fallback;
       const candidateBinned = candidate.binned && !candidate.entry.fallback;
@@ -373,7 +378,7 @@
     const failedItems = failed.map((entry) => ({
       entry,
       variant: view.labelOf(entry),
-      column: columnOf(view.labelOf(entry), entry.category, entry.binned, []),
+      column: columnOf(view.labelOf(entry), entry.category, entry.binned, [], entry.cumlRf),
       estimator: entry.estimator,
     }));
     const allItems = [...items, ...failedItems];
@@ -691,7 +696,10 @@
     }
     const baseByMethod = Object.fromEntries(METHODS.map((m) => [m, methodResults(baseEntries, m, preprocessing)]));
     const candidateByMethod = Object.fromEntries(METHODS.map((m) => [m, methodResults(candidateEntries, m, preprocessing)]));
-    const failedCandidates = failed.filter((entry) => !view.isBaseline(entry));
+    const baseIsCuml = baseEntries.some((entry) => entry.cumlRf);
+    const failedCandidates = failed.filter(
+      (entry) => !view.isBaseline(entry) && !(baseIsCuml && entry.sklearnexTree && !entry.binned)
+    );
 
     const cells = [];
     CATEGORIES.forEach((category) => {
