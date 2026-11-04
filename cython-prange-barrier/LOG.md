@@ -223,6 +223,13 @@ Results in `results/{gamer,laptop,xeon-s1}/*2.jsonl`, summary in `FINDINGS.md`. 
 rule closes the gap with the manual chunks. Round 1 on the laptop didn't hold: HGB predict 27%
 faster became 4%, KMeans lloyd 11% slower became 3% faster.
 
+Afterwards the last-statement rule moved into Fix A and the branches were rewritten, then opened
+as cakedev0/cython#3 (Fix A) and #4 (Fix B). The commit hashes given above for the fixes are the
+old ones. The compiler code of Fix B is identical to the benchmarked `fixB2` (empty
+`git diff -- Cython`). The `mA` timings are from the Fix A before the move, which only differs for
+a `prange` ending a `parallel` block. Fix A alone hangs on `parallel_with_gil` with clang, as
+master does (cakedev0/cython#2).
+
 Sources for the passive default: `libgomp/config/linux/x86/spincount.h` sets the spin count to 1
 if CPUID reports a hybrid CPU, unless `OMP_WAIT_POLICY` or `GOMP_SPINCOUNT` is set. `kmp.h`:
 `KMP_DEFAULT_BLOCKTIME (__kmp_is_hybrid_cpu() ? (0) : (200000))`. `env -i` on gamer still reports

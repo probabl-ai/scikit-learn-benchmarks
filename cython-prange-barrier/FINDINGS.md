@@ -37,12 +37,14 @@ Both are on the fork only for now.
 
 ## The fix
 
-Local Cython branches, on upstream master 7b3aab363.
+PRs on the fork, on upstream master 7b3aab363.
 
-- Fix A, `prange-fix-end-barrier`: `nowait` only when a barrier isn't needed. Fixes #1.
-- Fix B, `prange-no-start-barrier`, on top of A: `private(x)` when flow control shows that nothing
-  can observe the difference, so 398 of the 399 `omp for` of scikit-learn. And `nowait` on the
-  last statement of a `parallel` block, since only the end of the region follows it.
+- Fix A, [cakedev0/cython#3](https://github.com/cakedev0/cython/pull/3): `nowait` only when a
+  barrier isn't needed: with the GIL held, on a standalone `prange`, and on the last statement of
+  a `parallel` block, since only the end of the region follows it. Fixes #1.
+- Fix B, [cakedev0/cython#4](https://github.com/cakedev0/cython/pull/4), on top of A: `private(x)`
+  when flow control shows that nothing can observe the difference, so 398 of the 399 `omp for` of
+  scikit-learn.
 
 Tests: Cython's parallel tests pass in C and C++ with GCC 15, and by hand with clang 21 except 2
 `test_pure_mode` failures from my harness (same on master). scikit-learn's tests of the modules
