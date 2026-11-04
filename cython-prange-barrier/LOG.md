@@ -159,8 +159,10 @@ reference, so two loops reusing `i` don't block each other.
 nested target become `private`. Target or local read after, conditional assignment, read
 before write, `&x`, `else` clause, `break`, read in the `parallel` block, read in the next
 iteration of an outer loop, `locals()`, nested read, closure, module-level target keep the
-clauses. GCC 15 through `runtests.py`: all pass (parallel, parallel_with_gil,
-sequential_parallel, parallel_swap, pure_parallel, e_cython_parallel, cpp_locals_parallel).
+clauses. GCC 15 through `runtests.py`, all pass: in C parallel, parallel_with_gil,
+sequential_parallel, parallel_swap, pure_parallel, e_cython_parallel,
+parallel_private_clauses. In C++ (`--no-c`) parallel, parallel_with_gil, sequential_parallel,
+parallel_swap, parallel_private_clauses, cpp_locals_parallel.
 
 `runtests.py` doesn't enable OpenMP on clang ("not gcc - FIXME"), its runs report
 `skipped`. So `scripts/doctests_clang.sh` builds the test modules by hand. clang 21, Fix B:
