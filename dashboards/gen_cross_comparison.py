@@ -50,11 +50,11 @@ ABOUT_HTML = """<section class="panel">
       faster with <b>scikit-learn-intelex</b> on the Intel Xeon server than with
       <b>scikit-learn</b> on the Intel Core Ultra laptop, while the software alone
       gives ~2x to 3x and the server alone ~3x.</li>
-      <li><b>cuML</b> on the NVIDIA L4 fits <b>LogisticRegression</b> ~4x and
+      <li><b>cuML</b> on the NVIDIA L4 fits <b>LogisticRegression</b> ~3.5x and
       <b>RandomForestClassifier</b> ~2.5x faster than <b>scikit-learn</b> on the laptop.
       <b>RandomForestRegressor</b> and <b>Ridge</b> are often slower.</li>
       <li>A big CPU server can beat that GPU: <b>scikit-learn-intelex</b> on the
-      Intel Xeon server fits <b>random forests</b> ~20x to 30x faster than <b>cuML</b>
+      Intel Xeon server fits <b>random forests</b> ~20x to 35x faster than <b>cuML</b>
       on the L4, and ~1.7x to 2.5x faster on the Intel Core Ultra laptop, with 256
       bins on both sides.</li>
       <li><b><dfn>Array API</dfn></b> on a GPU is mostly a <b>LogisticRegression</b> story:
