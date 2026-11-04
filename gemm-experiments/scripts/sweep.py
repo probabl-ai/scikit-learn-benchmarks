@@ -80,6 +80,23 @@ def compact_cpus(t):
     return (first + second)[:t]
 
 
+def compact_cpus_smt(t):
+    """compact_cpus(t) plus the hyperthread siblings of those cores.
+
+    With exactly t CPUs for t spinning threads, Linux sometimes leaves two
+    threads on one CPU for seconds when the mask covers part of a NUMA (SNC)
+    node; the siblings give it a free CPU on the same core to fix that.
+    """
+    cpus = set(compact_cpus(t))
+    for c in list(cpus):
+        sib = Path(f"/sys/devices/system/cpu/cpu{c}/topology/thread_siblings_list")
+        if sib.exists():
+            for part in sib.read_text().strip().split(","):
+                a, _, b = part.partition("-")
+                cpus.update(range(int(a), int(b or a) + 1))
+    return sorted(cpus)
+
+
 def run_cmd(cmd):
     try:
         return subprocess.run(cmd, capture_output=True, text=True, shell=True).stdout
@@ -98,7 +115,7 @@ def main():
     p.add_argument("--min-time", default="0.3")
     p.add_argument("--init", default="serial")
     p.add_argument("--prefix-cmd", default="", help="e.g. 'numactl --interleave=all'")
-    p.add_argument("--pin", choices=["none", "compact"], default="none",
+    p.add_argument("--pin", choices=["none", "compact", "compact-smt"], default="none",
                    help="compact: restrict each run to its first T physical cores")
     p.add_argument("--harness-args", default="", help="extra gemmbench options, e.g. '--cycle 1'")
     p.add_argument("--note", default="")
@@ -135,8 +152,8 @@ def main():
                     env.update({k: v.replace("{T}", str(t)) for k, v in extra.items()})
                     for dtype in args.dtype.split(","):
                         pin = []
-                        if args.pin == "compact":
-                            cpus = compact_cpus(t)
+                        if args.pin in ("compact", "compact-smt"):
+                            cpus = (compact_cpus if args.pin == "compact" else compact_cpus_smt)(t)
                             pin = ["taskset", "-c", ",".join(map(str, cpus))]
                         cmd = pin + args.prefix_cmd.split() + [
                             str(BIN), "--lib", path, "--label", name, "--dtype", dtype,
