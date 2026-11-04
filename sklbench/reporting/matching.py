@@ -587,7 +587,7 @@ CUML_RF_BINS_WARNING = MatchWarning(
     short_message="quantile-based splits",
     message=(
         "cuML Random Forest uses quantile-based split candidates "
-        "(n_bins=128 by default), while scikit-learn searches exact "
+        "(n_bins=256 in these benchmarks), while scikit-learn searches exact "
         "split thresholds"
     ),
     kind="quantile-splits",
