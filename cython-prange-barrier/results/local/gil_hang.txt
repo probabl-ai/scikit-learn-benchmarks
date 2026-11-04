@@ -1,0 +1,24 @@
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+3.3.1-gcc target_read_after rc 0 (999, 1000) 
+3.3.1-gcc target_unused rc 0 1000 
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+3.3.1-clang target_read_after HANG (killed after 20 s)
+3.3.1-clang target_unused HANG (killed after 20 s)
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+fixA-gcc target_read_after rc 0 (999, 1000) 
+fixA-gcc target_unused rc 0 1000 
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+fixA-clang target_read_after HANG (killed after 20 s)
+fixA-clang target_unused HANG (killed after 20 s)
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+#pragma omp for nowait private(__pyx_v_i)
+fixB-gcc target_read_after rc 0 (999, 1000) 
+fixB-gcc target_unused rc 0 1000 
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+#pragma omp for nowait private(__pyx_v_i)
+fixB-clang target_read_after HANG (killed after 20 s)
+fixB-clang target_unused rc 0 1000 
