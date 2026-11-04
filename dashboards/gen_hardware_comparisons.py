@@ -17,6 +17,7 @@ from dashboards import gen_hptuning_scalability as hptuning
 from sklbench.reporting.comparison import (
     CONTENT_HTML,
     PREPROCESSING_TOGGLE_HTML,
+    THREAD_CAPS,
     baseline_pick_html,
     expanded_note,
     page_rows,
@@ -169,11 +170,6 @@ _MATCH_EXCLUDED_NAMES = {
     "implementation", "max_bins", "n_jobs", "n_estimators", "source_config",
 }
 
-# Also machine-dependent: many-core hosts cap KMeans's threads (`KMEANS_BENCH` in
-# `_real_datasets.py`). On a single machine these stay part of a case, since builds
-# are only compared under the same env.
-_THREAD_CAPS = {"OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
-
 # Same normalization/target as gen_models_scalability.py's
 # `NORMALIZED_N_ESTIMATORS`: RF/ET fit and predict time both scale ~linearly
 # with forest size, which differs between machines (see above).
@@ -196,7 +192,7 @@ def _normalize_tree_result(result: MethodResult) -> MethodResult:
 
 
 def _cross_machine_case(result: MethodResult | BenchmarkRecord) -> dict:
-    case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES | _THREAD_CAPS)
+    case = without_keys(result.case, excluded_names=_MATCH_EXCLUDED_NAMES | THREAD_CAPS)
     if not case.get("env"):
         case.pop("env", None)
     return case

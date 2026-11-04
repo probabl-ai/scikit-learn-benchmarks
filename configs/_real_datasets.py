@@ -32,22 +32,20 @@ n_samples/n_clusters, not per-model hyperparameter tuning.
 """
 from typing import Callable, Iterable
 
+from _utils.implementations import pixi_env_runs_sklearn_on_openblas
 from joblib import cpu_count
 
 from sklbench.config.utils import select_logistic_regression_solver
 
 BENCH = {"n_runs": 5}
 
-# KMeans crashes (segfault / heap corruption / OpenBLAS "too many memory
-# regions") on many-core machines with the PyPI wheel's OpenBLAS: it is
-# precompiled with NUM_THREADS=64, i.e. a fixed pool of 128 memory buffers,
-# and KMeans calls gemm concurrently from every OpenMP thread, so 128 OpenMP
-# threads exhaust the pool - see
-# https://github.com/OpenMathLib/OpenBLAS/issues/5958. The cap applies to
-# every env, not just sklearn-pypi, because `bench.env` is part of the case
-# match key: builds are only compared when they ran with the same env.
+# scikit-learn's KMeans crashes (segfault / heap corruption / "too many memory
+# regions") on many-core machines with every OpenBLAS build: it calls gemm
+# concurrently from every OpenMP thread, which exhausts OpenBLAS's fixed pool of
+# memory buffers, see https://github.com/OpenMathLib/OpenBLAS/issues/5958.
+# MKL and sklearnex don't need the cap.
 _KMEANS_ENV = {}
-if cpu_count() > 64:
+if cpu_count() > 64 and pixi_env_runs_sklearn_on_openblas():
     _KMEANS_ENV["OMP_NUM_THREADS"] = "64"
     _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "64"
 KMEANS_BENCH = {"env": _KMEANS_ENV}

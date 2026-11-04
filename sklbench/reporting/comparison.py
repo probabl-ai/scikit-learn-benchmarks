@@ -80,11 +80,21 @@ def baseline_pick_html(label: str, color: str) -> str:
     )
 
 
+# What many-core machines cap KMeans's threads with, in the scikit-learn environments
+# on OpenBLAS only (`KMEANS_BENCH` in `_real_datasets.py`). Not part of a case on the
+# comparison pages, whose configs don't sweep threads.
+THREAD_CAPS = {"OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
+
+
 def same_machine_case_key(result: MethodResult | BenchmarkRecord) -> str:
     """With the same hardware on both sides, `n_jobs` and forest sizes are part of a case."""
-    return stable_json(
-        without_keys(result.case, excluded_names={"implementation", "max_bins", "source_config"})
+    case = without_keys(
+        result.case,
+        excluded_names={"implementation", "max_bins", "source_config"} | THREAD_CAPS,
     )
+    if not case.get("env"):
+        case.pop("env", None)
+    return stable_json(case)
 
 
 def _compact_times(times: list[float]) -> list[float]:
@@ -203,6 +213,27 @@ def _source_rows(results: list[MethodResult]) -> list[dict]:
     ]
 
 
+def _without_older_thread_caps(
+    results: list[MethodResult], case_key: Callable[[MethodResult], str]
+) -> list[MethodResult]:
+    """Thread caps aren't part of a case, so an old run under another cap would
+    plot a stale point next to the latest one."""
+
+    def key(result: MethodResult) -> tuple:
+        max_bins = result.case.get("algorithm", {}).get("estimator_params", {}).get("max_bins")
+        return case_key(result), result.method, max_bins
+
+    latest: dict[tuple, MethodResult] = {}
+    for result in results:
+        current = latest.get(key(result))
+        if current is None or result.timestamp_recorded > current.timestamp_recorded:
+            latest[key(result)] = result
+    return [
+        result for result in results
+        if result.case.get("env") == latest[key(result)].case.get("env")
+    ]
+
+
 def write_data_files(
     output_dir: Path,
     data_dir: str,
@@ -230,6 +261,7 @@ def write_data_files(
         return ids.setdefault(f"search:{search_key(result)}", len(ids) + 1)
 
     for variant_key, results in results_by_variant.items():
+        results = _without_older_thread_caps(results, case_key)
         timestamps = [result.timestamp_recorded for result in results]
         data = {
             "envHtml": env_html(variant_key, results[0]),

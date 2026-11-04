@@ -118,6 +118,16 @@ PIXI_TO_IMPLEMENTATIONS = {
 }
 
 
+def pixi_env_runs_sklearn_on_openblas() -> bool:
+    pixi_env = os.environ.get("PIXI_ENVIRONMENT_NAME", "")
+    implementations = PIXI_TO_IMPLEMENTATIONS.get(pixi_env, [])
+    return (
+        bool(implementations)
+        and "mkl" not in pixi_env
+        and all(implem["library"] == "sklearn" for implem in implementations)
+    )
+
+
 def implementations_for_pixi_env() -> list[dict]:
     pixi_env = os.environ.get("PIXI_ENVIRONMENT_NAME")
     if pixi_env is None:

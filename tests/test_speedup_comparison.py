@@ -387,9 +387,19 @@ def test_other_env_vars_still_split_cases_across_machines(results):
     assert points(view("hardware", tab="sklearn-pypi")) == []
 
 
-def test_thread_caps_still_split_cases_on_one_machine(results):
+def test_thread_caps_dont_split_cases_on_one_machine(results):
+    capped = {"OMP_NUM_THREADS": "64", "OPENBLAS_NUM_THREADS": "64"}
+    results.add(XEON, SKLEARN, fit=[100], estimator="KMeans", env=capped)
+    results.add(XEON, SKLEARNEX, fit=[900], estimator="KMeans", env=capped, age=100)
+    results.add(XEON, SKLEARNEX, fit=[50], estimator="KMeans")
+
+    rendered = view("software", tab=XEON_NAME)
+    assert only(points(rendered, "clustering")).speedup == pytest.approx(2)
+
+
+def test_other_env_vars_still_split_cases_on_one_machine(results):
     results.add(XEON, SKLEARN, estimator="KMeans")
-    results.add(XEON, SKLEARNEX, estimator="KMeans", env={"OMP_NUM_THREADS": "64"})
+    results.add(XEON, SKLEARNEX, estimator="KMeans", env={"GOMP_SPINCOUNT": "0"})
 
     assert points(view("software", tab=XEON_NAME), "clustering") == []
 

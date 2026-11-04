@@ -54,7 +54,8 @@ A few configs inspect the machine to size or filter their matrix:
   with one CV split per outer worker. Each fit stays the same on every
   machine.
 - `_real_datasets.py` caps KMeans' `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
-  machines with very many cores (to avoid an OpenBLAS bug in the PyPI wheel),
+  machines with very many cores, in the scikit-learn environments on OpenBLAS
+  only (to avoid an OpenBLAS crash),
   and sizes `N_JOBS` from the physical core count.
 - `sklbench/config/utils.py` probes for GPU backends lazily (`dpctl` for
   oneAPI/xpu/gpu, `pynvml` for CUDA, `torch.backends.mps` for MPS).
