@@ -358,8 +358,22 @@ Why a 5 ms timer removes nearly all C3 entries isn't clear. My guess is that `me
 prediction per bucket of next timer distance, so short real sleeps then teach it a short prediction.
 I haven't checked that.
 
-**Still open.** The idle table on the laptop (Ultra X7 358H, same driver, governor and C1 to C3
-latencies) is identical to gamer's, yet Fix B wins there, so the table alone isn't the explanation.
-The Xeon has a different one (C6 at 170 us). `scripts/keepawake_dose.sh` (periods of 20, 50, 200 ms,
-looking for a neutral helper) and `scripts/keepawake_laptop.sh` are queued behind another run. I didn't
-use root, so `/dev/cpu_dma_latency` and disabling states through sysfs are untested.
+**Laptop.** Its idle table (Ultra X7 358H, same driver, governor and C1 to C3 latencies) is identical
+to gamer's, yet Fix B wins there, so it could have refuted the hypothesis.
+`scripts/keepawake_laptop.sh`, 16 threads, libomp, P-cores are 0 to 3:
+
+| timer | C3 entries, 3.3.1 / Fix B | C1 entries, 3.3.1 / Fix B | fit |
+| --- | --- | --- | --- |
+| none | 60k / 62k | 3491k / 1705k | 15.27 / 10.47 |
+| 5 ms | 5k / 5k | 3572k / 1771k | 15.46 / 10.86 |
+| 200 us | 0 / 0 | 4395k / 2508k | 16.81 / 12.14 |
+
+Fix B halves the sleeps here too, but C3 doesn't rise, and removing C3 gains nothing. That's what the
+hypothesis predicts, since gamer reaches 359k C3 entries with Fix B. I don't know why the governor goes
+deep on one machine and not the other with the same table. The fit is ~3x slower on the laptop, so
+the mix of sleep lengths may differ. The 200 us timer costs ~10% here, while it didn't cost anything
+visible on gamer.
+
+**Still open.** `scripts/keepawake_dose.sh` (periods of 20, 50, 200 ms, looking for a neutral helper)
+is queued behind other runs. The Xeon has a different table (C6 at 170 us) and I didn't read its
+counters. I didn't use root, so `/dev/cpu_dma_latency` and disabling states through sysfs are untested.

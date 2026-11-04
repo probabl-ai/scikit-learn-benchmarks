@@ -1,0 +1,42 @@
+benchlock: waiting for xps-ultra-x7 all, held by: arthur@xps-ultra-x7 pid=1594043 since=2026-11-04T19:11:20+0100 slot=all tag=hptuning_taskset: full run, sklearn-pypi cf-mkl intel cmd=bash /home/arthur/work/hptuning_taskset_run.sh
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=14.927
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=11.134
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=16.878
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=11.935
+# keepawake period_us=200 seconds=37.7 wakes_per_cpu_per_s=4024
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.568
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.356
+# keepawake period_us=5000 seconds=31.4 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.272
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.724
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=16.814
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=12.215
+# keepawake period_us=200 seconds=38.2 wakes_per_cpu_per_s=4019
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.208
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.857
+# keepawake period_us=5000 seconds=31.5 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=14.867
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=8.892
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=16.624
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=12.144
+# keepawake period_us=200 seconds=38.5 wakes_per_cpu_per_s=4037
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.463
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.239
+# keepawake period_us=5000 seconds=31.3 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.771
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.302
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=16.634
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=11.930
+# keepawake period_us=200 seconds=38.5 wakes_per_cpu_per_s=4041
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.657
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=11.032
+# keepawake period_us=5000 seconds=32.2 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.473
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.467
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=17.205
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=12.139
+# keepawake period_us=200 seconds=39.5 wakes_per_cpu_per_s=4046
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=15.315
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=10.869
+# keepawake period_us=5000 seconds=31.7 wakes_per_cpu_per_s=200
+# done 20:18

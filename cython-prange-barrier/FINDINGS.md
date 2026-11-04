@@ -153,8 +153,9 @@ its gaps of up to ~11% on gamer are noise. I didn't compare the utility code or 
   | 5 ms | 5k / 5k | 4.04 | 3.16 |
   | 200 us | 0 / 0 | 4.01 | 2.79 |
 
-  Two gaps remain: no neutral control yet, since the 5 ms timer already removes C3, and the laptop
-  has the same idle table as gamer without the slowdown. Details in `LOG.md`, Exp 9.
+  The laptop has the same idle table, but Fix B doesn't raise its C3 entries (60k to 62k), and
+  removing C3 gains nothing there, which fits. I don't know why the two machines differ. There's
+  also no neutral control yet, since the 5 ms timer already removes C3. Details in `LOG.md`, Exp 9.
 - `kddcup09_churn` on gamer: 4-16% slower with the fix, in the 4 configurations. On the Xeon it
   gains. Probably idle states on mixed P and E cores, but I haven't checked.
 - The laptop is noisy: its first round showed HGB predict 27% faster and KMeans lloyd 11% slower,
