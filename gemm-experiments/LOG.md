@@ -749,3 +749,35 @@ Measurement problems found on the way:
   ~15-25% faster (getrf 8000 at 4T 1.53 vs 2.06 s, identical code).
   `sweep.py` and `run_sklearn_e2e.sh` alternate the variant order per round,
   and `e2e_table.py --median --skip-first` drops round 1.
+
+## Exp 23 (cont.): v2 on intel-gamer-gpu, v4 and v5
+
+intel-gamer-gpu (Core Ultra 9 285, 8 P + 16 E cores), v2 vs develop, 4
+rounds (`tc2.csv`, `sklearn_e2e_tc2.csv`): checks OK; level 1 unchanged (24
+cores); dsymv n <= 500 1.2-2.3x faster at 12-24T; end to end eigh 1000/2000
+1.1-1.2x and solve 1000 1.08-1.19x faster at 16-24T, nothing slower. But
+getrf 2000 at 16T 0.82x (10 threads vs 16) and getrf 20000x500 at 24T 0.74x
+(15 threads): on a hybrid CPU an even split over a few more threads than P
+cores waits for the E-core threads (8 threads 13.5 ms, 10 17.5 ms, 24 16 ms).
+
+v4 (`thread_counts_v4.diff`): getrf/gesv cap only when it at least halves
+the count. Fixed 16T on the gamer, but getrf/gesv 2000 at 24T still 0.90x
+(10 of 24 threads, 4 rounds consistent). intel-laptop: getrf/gesv within
+noise, solve within +-2%.
+
+v5 (`thread_counts_v5.diff`, second commit of cakedev0/OpenBLAS#8): cap
+only below a third of the threads, the same rule as dot/axpy. On <= 24
+cores only dsymv changes. Every v5 cell is develop's code path or a capped
+cell measured with v4. xeon-s1 (`tc5.csv`, `sklearn_e2e_tc5.csv`): checks
+OK, getrf 1000 2.9-5.3x and gesv 2000 1.5-4.8x faster from 32T, solve 1000
+2.3-5.4x and solve 4000 1.3x at 43-86T, 16-24T equal. Given up vs v4: getrf
+4000 at 43T, getrf 8000 at 86T (434 vs 290 ms), small n at exactly 24T.
+
+Scheduler stalls again: in the v4 run, gesv 4000x100 right after gesv 2000
+stalled in all 4 rounds at 24T and 32T with v4 (2.0-2.2 s instead of 62-74
+ms), and in 1/4 and 2/4 rounds with develop. `probe_stall_gesv.sh` (12 runs
+of that pair per build at 24T, compact mask; and at 32T with v5): one stall
+per build at 24T (develop in gesv 2000, v4 in gesv 4000 with
+OPENBLAS_THREAD_TIMEOUT=30), none at 32T. So random, both builds, not tied
+to workers sleeping. Hyperthread siblings in the mask cost 30% on gesv 4000
+(535 vs 740 GF/s), so not a fix either.
