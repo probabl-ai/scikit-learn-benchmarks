@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=results/$1/${OUT:-sklearn_e2e}.csv
-echo "round,label,threads,case,best_s,median_s" > $OUT
+echo "round,label,threads,case,best_s,median_s,n_iter" > $OUT
 CPUS=($(pixi run python -c "
 import os
 from pathlib import Path

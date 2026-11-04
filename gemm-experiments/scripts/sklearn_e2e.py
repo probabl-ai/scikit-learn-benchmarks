@@ -5,7 +5,7 @@ Run once per BLAS variant (OpenBLAS swapped with LD_PRELOAD), e.g.
     LD_PRELOAD=builds/tc/lib/libopenblas.so.0 OPENBLAS_NUM_THREADS=86 \
         python scripts/sklearn_e2e.py --label tc
 
-Prints one CSV row per case: label,threads,case,best_s,median_s.
+Prints one CSV row per case: label,threads,case,best_s,median_s,n_iter.
 """
 
 import argparse
@@ -36,9 +36,12 @@ def timeit(f, min_time=1.0, min_reps=3):
 def cases():
     rng = np.random.default_rng(0)
     for n, d in [(20000, 100), (100000, 100), (1000000, 20)]:
-        X = np.asfortranarray(rng.standard_normal((n, d)))
+        # Correlated features: with independent ones, coordinate descent
+        # reaches an exact fixed point within a few epochs and stops early even
+        # with tol=0, at an epoch that depends on the dot summation order.
+        X = rng.standard_normal((n, d)) + 3 * rng.standard_normal((n, 1))
+        X = np.asfortranarray(X)
         y = X[:, :10].sum(axis=1) + rng.standard_normal(n)
-        # tol=0 and a fixed max_iter so both variants do the same epochs.
         yield f"Lasso {n}x{d}", lambda X=X, y=y: Lasso(alpha=0.01, tol=0, max_iter=20).fit(X, y)
         yield f"ElasticNet {n}x{d}", lambda X=X, y=y: ElasticNet(
             alpha=0.01, l1_ratio=0.5, tol=0, max_iter=20).fit(X, y)
@@ -60,7 +63,8 @@ def main():
         if args.only and args.only not in name:
             continue
         best, med = timeit(f)
-        print(f"{args.label},{threads},{name},{best:.6g},{med:.6g}", flush=True)
+        n_iter = getattr(f(), "n_iter_", "")
+        print(f"{args.label},{threads},{name},{best:.6g},{med:.6g},{n_iter}", flush=True)
 
 
 if __name__ == "__main__":

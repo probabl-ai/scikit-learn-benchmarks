@@ -1,5 +1,5 @@
 #!/bin/bash
-# Experiment 22: thread-count patch (dot, axpy, symv, getrf, gesv) vs develop.
+# Experiments 22-23: thread-count patch (dot, axpy, symv, getrf, gesv) vs develop.
 # usage: [BASE=sr-base] [BUILD=tc] [OUT=tc] [ROUNDS=3] [PIN=compact]
 #        scripts/run_tc.sh MACHINE THREADS
 set -euo pipefail
