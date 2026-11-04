@@ -1,0 +1,19 @@
+== vc_v19_latest_x64 exit 0
+  firstonly: _vcomp_fork
+  firstonly$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end
+  both: _vcomp_fork
+  both$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end
+  lastonly: _vcomp_fork
+  lastonly$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end
+  neither: _vcomp_fork
+  neither$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end
+--- control, same code without nowait
+== vc_v19_latest_x64 exit 0
+  firstonly: _vcomp_fork
+  firstonly$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end _vcomp_barrier
+  both: _vcomp_fork
+  both$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end _vcomp_barrier
+  lastonly: _vcomp_fork
+  lastonly$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end _vcomp_barrier
+  neither: _vcomp_fork
+  neither$omp$1: _vcomp_for_static_simple_init work _vcomp_for_static_end _vcomp_barrier

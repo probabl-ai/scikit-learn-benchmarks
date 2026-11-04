@@ -1,0 +1,36 @@
+2566:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3087:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3217:                        #pragma omp for firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+barrier-call sites in .so: 11
+3.1.2-gcc after_loop  (threads that saw unwritten items, of 3 early ones): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.1.2-gcc between_loops (items found unwritten): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2566:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3087:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3217:                        #pragma omp for firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+barrier-call sites in .so: 8
+3.1.2-clang after_loop  (threads that saw unwritten items, of 3 early ones): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.1.2-clang between_loops (items found unwritten): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2592:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3103:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3225:                        #pragma omp for firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+barrier-call sites in .so: 11
+3.2.4-gcc after_loop  (threads that saw unwritten items, of 3 early ones): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.2.4-gcc between_loops (items found unwritten): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2592:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3103:                        #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3225:                        #pragma omp for firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+barrier-call sites in .so: 8
+3.2.4-clang after_loop  (threads that saw unwritten items, of 3 early ones): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.2.4-clang between_loops (items found unwritten): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2817:                        #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3356:                        #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3482:                        #pragma omp for nowait firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+barrier-call sites in .so: 6
+3.3.1-gcc after_loop  (threads that saw unwritten items, of 3 early ones): [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+3.3.1-gcc between_loops (items found unwritten): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2817:                        #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3356:                        #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+3482:                        #pragma omp for nowait firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+barrier-call sites in .so: 8
+3.3.1-clang after_loop  (threads that saw unwritten items, of 3 early ones): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.3.1-clang between_loops (items found unwritten): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

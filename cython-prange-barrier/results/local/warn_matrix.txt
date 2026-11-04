@@ -1,0 +1,46 @@
+18041:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+18259:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+18502:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) firstprivate(__pyx_v_x) lastprivate(__pyx_v_x) schedule(static)
+18757:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) firstprivate(__pyx_v_x) lastprivate(__pyx_v_x) schedule(static)
+19023:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) firstprivate(__pyx_v_x) lastprivate(__pyx_v_x) schedule(static)
+19276:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+19525:                    #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) firstprivate(__pyx_v_x) lastprivate(__pyx_v_x) schedule(static)
+19831:                        #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+19866:                        #pragma omp for nowait firstprivate(__pyx_v_j) lastprivate(__pyx_v_j) schedule(static)
+20092:                        #pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+gcc_linux-64=8   warn           O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=8   warn           O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=8   warn_nofirst   O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=8   warn_nofirst   O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=8   warn_private   O2  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=8   warn_private   O3  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=11  warn           O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=11  warn           O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=11  warn_nofirst   O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=11  warn_nofirst   O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=11  warn_private   O2  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=11  warn_private   O3  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=13  warn           O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=13  warn           O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=13  warn_nofirst   O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=13  warn_nofirst   O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=13  warn_private   O2  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=13  warn_private   O3  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=15  warn           O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=15  warn           O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=15  warn_nofirst   O2  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=15  warn_nofirst   O3  errors=0 pyx_v_uninit=1 other_uninit=0  __pyx_v_tmp 
+gcc_linux-64=15  warn_private   O2  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+gcc_linux-64=15  warn_private   O3  errors=0 pyx_v_uninit=3 other_uninit=0  __pyx_v_i __pyx_v_tmp __pyx_v_x 
+clang=14         warn           O2  errors=1 pyx_v_uninit=0 other_uninit=0  
+clang=14         warn           O3  errors=1 pyx_v_uninit=0 other_uninit=0  
+clang=14         warn_nofirst   O2  errors=1 pyx_v_uninit=0 other_uninit=0  
+clang=14         warn_nofirst   O3  errors=1 pyx_v_uninit=0 other_uninit=0  
+clang=14         warn_private   O2  errors=1 pyx_v_uninit=0 other_uninit=0  
+clang=14         warn_private   O3  errors=1 pyx_v_uninit=0 other_uninit=0  
+clang=21         warn           O2  errors=0 pyx_v_uninit=1 other_uninit=1  __pyx_v_i 
+clang=21         warn           O3  errors=0 pyx_v_uninit=1 other_uninit=1  __pyx_v_i 
+clang=21         warn_nofirst   O2  errors=0 pyx_v_uninit=1 other_uninit=1  __pyx_v_i 
+clang=21         warn_nofirst   O3  errors=0 pyx_v_uninit=1 other_uninit=1  __pyx_v_i 
+clang=21         warn_private   O2  errors=0 pyx_v_uninit=1 other_uninit=1  __pyx_v_i 
+clang=21         warn_private   O3  errors=0 pyx_v_uninit=1 other_uninit=1  __pyx_v_i 

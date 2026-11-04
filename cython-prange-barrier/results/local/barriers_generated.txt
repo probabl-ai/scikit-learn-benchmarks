@@ -1,0 +1,6 @@
+gcc_linux-64   warn           1 conditional_private._omp_fn.0;1 private_read_after._omp_fn.0;1 read_before_write._omp_fn.0;1 reduction._omp_fn.0;1 target_read_after._omp_fn.0;1 target_unused._omp_fn.0;1 with_break._omp_fn.0;1 with_parallel_tmp._omp_fn.0;3 with_parallel_two._omp_fn.0;
+gcc_linux-64   warn_nofirst   
+gcc_linux-64   warn_private   
+clang          warn           2 conditional_private.omp_outlined;2 private_read_after.omp_outlined;2 read_before_write.omp_outlined;2 reduction.omp_outlined;2 target_read_after.omp_outlined;2 target_unused.omp_outlined;2 with_break.omp_outlined;2 with_parallel_tmp.omp_outlined;4 with_parallel_two.omp_outlined;
+clang          warn_nofirst   1 conditional_private.omp_outlined;1 private_read_after.omp_outlined;1 read_before_write.omp_outlined;1 reduction.omp_outlined;1 target_read_after.omp_outlined;1 target_unused.omp_outlined;1 with_break.omp_outlined;1 with_parallel_tmp.omp_outlined;2 with_parallel_two.omp_outlined;
+clang          warn_private   

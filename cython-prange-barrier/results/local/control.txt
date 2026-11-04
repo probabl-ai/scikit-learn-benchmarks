@@ -1,0 +1,21 @@
+== gcc_linux-64=7
+ In function 'private_read._omp_fn.2':
+22:22: warning: 'x' may be used uninitialized in this function [-Wmaybe-uninitialized]
+ In function 'plain_maybe':
+3:73: warning: 'x' may be used uninitialized in this function [-Wmaybe-uninitialized]
+== gcc_linux-64=8
+ In function 'private_read._omp_fn.2':
+22:22: warning: 'x' may be used uninitialized in this function [-Wmaybe-uninitialized]
+ In function 'plain_maybe':
+3:73: warning: 'x' may be used uninitialized in this function [-Wmaybe-uninitialized]
+== gcc_linux-64=11
+ In function 'private_read._omp_fn.0':
+22:22: warning: 'x' may be used uninitialized in this function [-Wmaybe-uninitialized]
+ In function 'plain_maybe':
+3:73: warning: 'x' may be used uninitialized in this function [-Wmaybe-uninitialized]
+== gcc_linux-64=15
+ In function 'private_read._omp_fn.0':
+22:22: warning: 'x' may be used uninitialized [-Wmaybe-uninitialized]
+ In function 'plain_maybe':
+3:73: warning: 'x' may be used uninitialized [-Wmaybe-uninitialized]
+== clang=21
