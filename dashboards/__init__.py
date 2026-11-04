@@ -44,11 +44,11 @@ HARDWARE_PLATFORMS = {
     "d189c4": {"linux-64", "linux-64-cuda-12-9"},
 }
 
-# `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the three general-comparison
-# dashboards (gen_softwares_comparison, gen_builds_comparison,
-# gen_hardware_comparisons), which all draw on the same broad
+# `SOURCE_CONFIGS`/`SOURCE_ENVS` shared by the general-comparison dashboards
+# (gen_softwares_comparison, gen_builds_comparison, gen_hardware_comparisons,
+# gen_cross_comparison), which all draw on the same broad
 # configs/all_models.py matrix across every Pixi env it sweeps - kept here
-# once rather than tripled across those modules. configs/all_models_16gb.py is
+# once rather than repeated across those modules. configs/all_models_16gb.py is
 # a strict subset of it (same cases), run on machines with 16GB of RAM.
 # configs/all_models_cuml_only.py is the same kind of subset, limited to the
 # estimators with a native cuML wrapper.

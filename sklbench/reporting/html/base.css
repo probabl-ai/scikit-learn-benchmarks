@@ -167,34 +167,6 @@ code {
     width: auto;
   }
 }
-.vs-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-.vs-table th,
-.vs-table td {
-  border: 1px solid var(--line-soft);
-  padding: 6px 10px;
-  text-align: left;
-  vertical-align: top;
-}
-.vs-table thead th {
-  background: var(--surface);
-}
-.vs-table tbody th {
-  width: 1%;
-  white-space: nowrap;
-  color: var(--muted);
-  font-weight: 600;
-}
-.vs-table td.same {
-  text-align: center;
-  color: var(--muted);
-}
-.vs-table td.differs {
-  width: 45%;
-  background: var(--sk-orange-tint-9);
-}
 .plot-grid {
   display: grid;
   gap: 18px;
@@ -265,21 +237,6 @@ body.predict-collapsed .predict-collapse-toggle {
   font-weight: 600;
   cursor: pointer;
 }
-.speedup-view-preprocessing {
-  display: none;
-}
-body.with-preprocessing .speedup-view-default {
-  display: none;
-}
-body.with-preprocessing .speedup-view-preprocessing {
-  display: block;
-}
-.baseline-view {
-  display: none;
-}
-.baseline-view.active {
-  display: block;
-}
 .baseline-pick {
   display: inline-flex;
   align-items: center;
@@ -328,13 +285,13 @@ body.with-preprocessing .speedup-view-preprocessing {
   text-transform: uppercase;
   vertical-align: 1px;
 }
-.hw-compare-row {
+.comparison-selector {
   display: flex;
   align-items: flex-end;
   gap: 14px;
   flex-wrap: wrap;
 }
-.hw-compare-row label {
+.comparison-selector label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -342,7 +299,7 @@ body.with-preprocessing .speedup-view-preprocessing {
   color: var(--muted);
   font-size: 13px;
 }
-.hw-compare-row select {
+.comparison-selector select {
   font: inherit;
   padding: 6px 8px;
   border: 1px solid var(--line);
@@ -351,7 +308,7 @@ body.with-preprocessing .speedup-view-preprocessing {
   color: var(--text);
   min-width: 220px;
 }
-.hw-compare-vs {
+.comparison-selector-sep {
   color: var(--muted);
   font-weight: 600;
   padding-bottom: 7px;
