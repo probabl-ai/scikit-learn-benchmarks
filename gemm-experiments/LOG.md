@@ -876,3 +876,32 @@ while develop's 16-thread M x N split already gives each thread 64 x 64.
 v2 (fork `splitk` 7b5e80a7): partial products capped at 24 MiB, and with
 fewer chunks than threads, split only if M x N would give each thread less
 than 64 x 64 of C.
+
+## Exp 26: split-K v2 vs develop (xeon-s1, intel-laptop)
+
+Same grid as exp 24 (`sk2.csv`, `check_sk2.txt`; `scripts/xeon_s1_chain12.sh`,
+`SK=sk2 scripts/setup_splitk_remote.sh`). Checks: all OK but the f64 threshold
+artifacts (100x100x200000:NT, syrk 200x60000:T), which fail the same with
+split-K off. The checks' `splitk=0/7` rows run the automatic rule: the
+`OPENBLAS_*_SPLITK` env vars only exist in the exp 17 prototype.
+
+xeon-s1 (8-86T): every v1 slowdown is gone (512x512x20000 d 0.98-1.00, f32
+syrk 800 43T 0.97) and the gains are kept (same table as v1 within noise).
+The 10 cells under 0.95 (0.85-0.94, mostly 64-86T, k = 5000) all have one
+chunk, i.e. develop's code path; v1 had the same cells on the other side.
+Missed gains: at 86T, 32-128 x 20000 falls back to develop (k / 86 < 512 gives
+39 chunks, under half the threads) while 64T gets 4-20x.
+
+intel-laptop (2-16T; 4 P + 8 E + 4 LP-E cores, no SMT): gains 1.1-7x on small
+C (syrk 64-100 features 5-7x at 12-16T, gemm 32x32 2-3.6x). One real loss:
+128x128x5000:NT at 12-16T, d 0.77-0.78x, f32 0.81-0.91x: 9 chunks (k / 512)
+on 12-16 threads. A static equal split runs at the pace of the slowest core
+(an E core here), which gets 1/9 of the work instead of develop's 1/12: 0.75x
+predicted. Other cells under 0.95 have one chunk (noise; the laptop's first
+round is often faster, and 2000^3 16T 0.65x on both dtypes is one-chunk too).
+
+v3 (fork `splitk-v3` 1cfb856e): when C is tiny (M x N would give each thread
+less than 64 x 64), accept chunks down to 256 so there is one chunk per
+thread. A/B of develop, v2 and v3 on the shapes where the chunk count
+changes: `scripts/xeon_s1_chain13.sh`, laptop `SK=sk3 BRANCH=splitk-v3
+setup_splitk_remote.sh` (`sk3.csv`).
