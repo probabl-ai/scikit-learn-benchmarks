@@ -55,4 +55,4 @@ jobs:
       # Node comes with the runner image. tests/test_speedup_comparison.py runs the
       # dashboards' JS with it, and fails rather than skips without it when CI is set.
       - name: Run tests
-        run: pixi run --frozen -e reporting python -m pytest tests -q
+        run: pixi run --frozen -e reporting python -m pytest tests sklbench/runners/datasets/tests -q
