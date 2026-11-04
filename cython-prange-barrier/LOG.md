@@ -133,8 +133,10 @@ pixi `sklearn-dev` env has Cython 3.3.0. I have not yet audited its 31 loops in
 `results/local/issue_reproducer.txt`. Same outcome as Exp 3, also on master: 3
 threads in all 10 calls with GCC 15, 0 with clang 21.
 
-Fix A, `cakedev0/cython@prange-fix-end-barrier` (local for now): emit `nowait`
-only when `acquire_gil`. New test `test_prange_end_barrier` in
+Fix A, local Cython branch `prange-fix-end-barrier` (8791d5c54, on 7b3aab363): emit
+`nowait` only when `acquire_gil` or for a standalone `prange`. GCC already drops the
+end barrier of a standalone loop, clang doesn't, so keeping `nowait` there avoids
+adding one on clang. New test `test_prange_end_barrier` in
 `tests/run/parallel.pyx`: `Got: 3` without the patch, passes with it. `run.parallel`,
 `run.parallel_with_gil`, `run.sequential_parallel`, `run.parallel_swap`,
 `run.pure_parallel`, `errors.e_cython_parallel` pass in C mode with GCC 15.
@@ -143,3 +145,47 @@ A first `runtests.py` run selected no tests (`--no-file` excludes them) and prin
 
 Draft issue on the fork, not upstream. References to upstream are plain `GH-N`
 text on purpose, to leave no cross-reference on the upstream threads.
+
+## Exp 5: Fix B, and a hang on clang (2026-11-04)
+
+Fix B, local Cython branch `prange-no-start-barrier` (492a49592, on Fix A): `private(x)`
+instead of `firstprivate(x) lastprivate(x)` when the variable is a local number or pointer,
+not in a closure, without `&x`, all the reads in the body only see assignments of the
+body, and no read outside of the body sees one of them. Decided from `cf_state` of each
+reference, so two loops reusing `i` don't block each other.
+
+`tests/run/parallel_private_clauses.pyx` covers both directions with
+`test_assert_c_code_has`: unused target, reused target, overwritten target, body-only local,
+nested target become `private`. Target or local read after, conditional assignment, read
+before write, `&x`, `else` clause, `break`, read in the `parallel` block, read in the next
+iteration of an outer loop, `locals()`, nested read, closure, module-level target keep the
+clauses. GCC 15 through `runtests.py`: all pass (parallel, parallel_with_gil,
+sequential_parallel, parallel_swap, pure_parallel, e_cython_parallel, cpp_locals_parallel).
+
+`runtests.py` doesn't enable OpenMP on clang ("not gcc - FIXME"), its runs report
+`skipped`. So `scripts/doctests_clang.sh` builds the test modules by hand. clang 21, Fix B:
+parallel_with_gil 18/18, parallel_private_clauses 40/40, parallel 114/116. The 2 failures
+are `test_pure_mode` needing `import Cython`, same on master.
+
+parallel_with_gil **hangs on master with clang**. `probes/gil_hang.pyx`,
+`scripts/gil_hang.sh`, `results/local/gil_hang.txt`, Python 3.13 GIL build, prange holding
+the GIL, 20 s timeout:
+
+| Cython | GCC 15, target read after / unused | clang 21, target read after / unused |
+| --- | --- | --- |
+| 3.3.1 | ok / ok | hang / hang |
+| Fix A | ok / ok | hang / hang |
+| Fix B | ok / ok | hang / ok |
+
+I think this is clang's barrier at the end of a loop with `lastprivate` (Exp 1) running
+while the thread still holds the GIL, before the generated `PyEval_SaveThread`, with the
+other threads waiting for the GIL. That matches where it hangs and where it doesn't, but I
+didn't take a stack trace. Separate from the race. Not reported anywhere yet.
+
+## Exp 6: A/B of scikit-learn builds (queued 2026-11-04)
+
+`scripts/host_all.sh`. Builds: `m331`, `mA`, `mB` are scikit-learn main d5a61d1149cb with
+Cython 3.3.1, Fix A, Fix A+B. `f331`, `fB` are `hgb/fewer-regions` 9ade78bf1a25 with 3.3.1
+and Fix A+B. `nb331` is `hgb/fewer-regions-nb` 10b5afac1433 (manual chunks) with 3.3.1.
+`other_ab.py` runs KMeans, ArgKmin, RadiusNeighbors, t-SNE, HGB predict and records a
+`check` value per run, `bench_hgb.py` is the HGB fit A/B of `hgb-regions-experiments`.
