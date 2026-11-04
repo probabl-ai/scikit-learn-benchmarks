@@ -1,6 +1,7 @@
 """Data files and page shell of the software, builds, hardware and cross comparison
 dashboards. Their pages hold no results: `html/speedup_comparison.js` loads one
-data file per variant on screen, then pairs results and draws plots and tables.
+data file per variant on screen, then `html/speedup_core.js` pairs results and
+builds plots and tables.
 """
 
 from html import escape
@@ -279,11 +280,14 @@ def page_rows(page_config: dict) -> list[str]:
         "estimatorAbbreviations": list(ESTIMATOR_LABEL_ABBREVIATIONS.items()),
         "plotTemplate": PLOT_TEMPLATE.to_plotly_json(),
     }
-    script = files("sklbench.reporting.html").joinpath("speedup_comparison.js").read_text(encoding="utf-8")
+    assets = files("sklbench.reporting.html")
+    core = assets.joinpath("speedup_core.js").read_text(encoding="utf-8")
+    script = assets.joinpath("speedup_comparison.js").read_text(encoding="utf-8")
     return [
         '<script type="application/json" id="comparison-config">'
         + json.dumps(config, separators=(",", ":")).replace("</", "<\\/")
         + "</script>",
+        f"<script>{core}</script>",
         f"<script>{script}</script>",
     ]
 
