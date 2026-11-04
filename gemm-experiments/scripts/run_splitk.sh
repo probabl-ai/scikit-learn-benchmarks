@@ -5,7 +5,9 @@
 #        scripts/run_splitk.sh MACHINE THREADS
 set -euo pipefail
 cd "$(dirname "$0")/.."
-SO=libopenblas.so.0; [ "$(uname)" = Darwin ] && SO=libopenblas.0.dylib
+SO=libopenblas.so.0; PIN=${PIN:-compact}
+# macOS has no taskset or CPU affinity
+[ "$(uname)" = Darwin ] && SO=libopenblas.0.dylib && PIN=none
 MAXELEM=${MAXELEM:-100000000}  # max elements of one input (8e8 bytes in f64)
 S=()
 for m in 32 64 128 256 512 800 1100; do
@@ -20,5 +22,5 @@ S+=(10x200x1000000:NT 50x1000x100000:NT 200x200x50000:TN 100x100x1000000:TN
 V=()
 for b in ${BASE:-sr-base} ${BUILD:-sk}; do V+=(--variant "$b=builds/$b/lib/$SO,OPENBLAS_NUM_THREADS={T}"); done
 pixi run python scripts/sweep.py --out results/$1/${OUT:-splitk}.csv --threads "$2" "${V[@]}" \
-  --dtype d,s --rounds ${ROUNDS:-3} --min-time 0.2 --pin ${PIN:-compact} \
+  --dtype d,s --rounds ${ROUNDS:-3} --min-time 0.2 --pin $PIN \
   --note "exp24 split-K vs develop" --shapes "${S[@]}"
