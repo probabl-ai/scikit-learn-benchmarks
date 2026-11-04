@@ -1,0 +1,6 @@
+clang21-py313-cy331: clang version 21.1.8 (ht py=3.13.18 True cy=  124: 124: 124: 124: 124:
+clang14-py313-cy331: clang version 14.0.6 (ht py=3.13.18 True cy=  124: 124: 124: 124: 124:
+clang21-py313-master: clang version 21.1.8 (ht py=3.13.18 True cy=src  124: 124: 124: 124: 124:
+clang21-py313t-cy331: clang version 21.1.8 (ht py=3.13.18 False cy=src  0:1000 0:1000 0:1000 0:1000 0:1000
+clang21-py314-cy331: clang version 21.1.8 (ht py=3.14.10 True cy=src  124: 124: 124: 124: 124:
+gcc15-py313-cy331: gcc (conda-forge gcc 15. py=3.13.18 True cy=  0:1000 0:1000 0:1000 0:1000 0:1000

@@ -179,10 +179,14 @@ the GIL, 20 s timeout:
 | Fix A | ok / ok | hang / hang |
 | Fix B | ok / ok | hang / ok |
 
-I think this is clang's barrier at the end of a loop with `lastprivate` (Exp 1) running
-while the thread still holds the GIL, before the generated `PyEval_SaveThread`, with the
-other threads waiting for the GIL. That matches where it hangs and where it doesn't, but I
-didn't take a stack trace. Separate from the race. Not reported anywhere yet.
+Cause confirmed by `scripts/gil_hang_trace.sh` (`results/local/gil_hang_backtrace.txt`, gdb
+stopped by a `SIGALRM` once stuck): the main thread is in `__kmpc_barrier`, the 3 others in
+`take_gil` from the `PyEval_RestoreThread` of the loop body. Its return address is offset
+0x77a1 in the extension, right after the `__kmpc_barrier` call that follows
+`__kmpc_for_static_fini`, just before `PyEval_SaveThread`. So it's clang's end barrier from
+`lastprivate`, with the GIL held. `results/local/gil_hang_matrix.txt`, 5 runs each: hangs on
+clang 21 and 14, Python 3.13 and 3.14, Cython 3.3.1 and master. Returns 1000 on free-threaded
+3.13 with clang 21, and on GCC 15. Separate from the race.
 
 ## Exp 6: A/B of scikit-learn builds (queued 2026-11-04)
 

@@ -1,0 +1,70 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Thread 1 "python" received signal SIGALRM, Alarm clock.
+0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x555555c3ebe8) at ./nptl/futex-internal.c:57
+warning: 57	./nptl/futex-internal.c: No such file or directory
+
+Thread 4 (Thread 0x7ffff61eac40 (LWP 582547) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=21845, cancel=true, abstime=0x7ffff61e9f30, op=137, expected=0, futex_word=0x555555aa3c18 <_PyRuntime+96248>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=21845, abstime=0x7ffff61e9f30, clockid=32767, expected=0, futex_word=0x555555aa3c18 <_PyRuntime+96248>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x555555aa3c18 <_PyRuntime+96248>, expected=expected@entry=0, clockid=clockid@entry=1, abstime=abstime@entry=0x7ffff61e9f30, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9bd6e in __pthread_cond_wait_common (abstime=0x7ffff61e9f30, clockid=1, mutex=0x555555aa3c20 <_PyRuntime+96256>, cond=0x555555aa3bf0 <_PyRuntime+96208>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=cond@entry=0x555555aa3bf0 <_PyRuntime+96208>, mutex=mutex@entry=0x555555aa3c20 <_PyRuntime+96256>, abstime=abstime@entry=0x7ffff61e9f30) at ./nptl/pthread_cond_wait.c:652
+#5  0x00005555556f30b4 in PyCOND_TIMEDWAIT (cond=<optimized out>, mut=<optimized out>, us=<optimized out>) at /usr/local/src/conda/python-split-3.13.18/Python/condvar.h:74
+#6  take_gil (tstate=tstate@entry=0x7fffec000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:341
+#7  0x0000555555781a52 in _PyEval_AcquireLock (tstate=0x7fffec000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:597
+#8  _PyThreadState_Attach (tstate=0x7fffec000c90) at /usr/local/src/conda/python-split-3.13.18/Python/pystate.c:2100
+#9  PyEval_RestoreThread (tstate=tstate@entry=0x7fffec000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:663
+#10 0x00007ffff7e46883 in __pyx_pf_5repro_run.omp_outlined_debug__ (__pyx_t_3=<optimized out>, .global_tid.=<optimized out>, .bound_tid.=<optimized out>, __pyx_v_i=<optimized out>, __pyx_v_total=<optimized out>) at repro.c:2737
+#11 __pyx_pf_5repro_run.omp_outlined (.global_tid.=0x7ffff61ea060, .bound_tid.=<optimized out>, __pyx_v_i=@0x7fffffffd130: -136005008, __pyx_t_3=<optimized out>, __pyx_v_total=@0x7fffffffd120: 0) at repro.c:2723
+#12 0x00007ffff72bc279 in __kmp_invoke_microtask () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#13 0x00007ffff7231ed4 in __kmp_invoke_task_func () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+
+Thread 3 (Thread 0x7ffff69ecbc0 (LWP 582546) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=21845, cancel=true, abstime=0x7ffff69ebf30, op=137, expected=0, futex_word=0x555555aa3c18 <_PyRuntime+96248>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=21845, abstime=0x7ffff69ebf30, clockid=32767, expected=0, futex_word=0x555555aa3c18 <_PyRuntime+96248>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x555555aa3c18 <_PyRuntime+96248>, expected=expected@entry=0, clockid=clockid@entry=1, abstime=abstime@entry=0x7ffff69ebf30, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9bd6e in __pthread_cond_wait_common (abstime=0x7ffff69ebf30, clockid=1, mutex=0x555555aa3c20 <_PyRuntime+96256>, cond=0x555555aa3bf0 <_PyRuntime+96208>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=cond@entry=0x555555aa3bf0 <_PyRuntime+96208>, mutex=mutex@entry=0x555555aa3c20 <_PyRuntime+96256>, abstime=abstime@entry=0x7ffff69ebf30) at ./nptl/pthread_cond_wait.c:652
+#5  0x00005555556f30b4 in PyCOND_TIMEDWAIT (cond=<optimized out>, mut=<optimized out>, us=<optimized out>) at /usr/local/src/conda/python-split-3.13.18/Python/condvar.h:74
+#6  take_gil (tstate=tstate@entry=0x7fffe8000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:341
+#7  0x0000555555781a52 in _PyEval_AcquireLock (tstate=0x7fffe8000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:597
+#8  _PyThreadState_Attach (tstate=0x7fffe8000c90) at /usr/local/src/conda/python-split-3.13.18/Python/pystate.c:2100
+#9  PyEval_RestoreThread (tstate=tstate@entry=0x7fffe8000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:663
+#10 0x00007ffff7e46883 in __pyx_pf_5repro_run.omp_outlined_debug__ (__pyx_t_3=<optimized out>, .global_tid.=<optimized out>, .bound_tid.=<optimized out>, __pyx_v_i=<optimized out>, __pyx_v_total=<optimized out>) at repro.c:2737
+#11 __pyx_pf_5repro_run.omp_outlined (.global_tid.=0x7ffff69ec020, .bound_tid.=<optimized out>, __pyx_v_i=@0x7fffffffd130: -136005008, __pyx_t_3=<optimized out>, __pyx_v_total=@0x7fffffffd120: 0) at repro.c:2723
+#12 0x00007ffff72bc279 in __kmp_invoke_microtask () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#13 0x00007ffff7231ed4 in __kmp_invoke_task_func () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+
+Thread 2 (Thread 0x7ffff71eeb40 (LWP 582545) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=21845, cancel=true, abstime=0x7ffff71edeb0, op=137, expected=0, futex_word=0x555555aa3c18 <_PyRuntime+96248>) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=21845, abstime=0x7ffff71edeb0, clockid=32767, expected=0, futex_word=0x555555aa3c18 <_PyRuntime+96248>) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x555555aa3c18 <_PyRuntime+96248>, expected=expected@entry=0, clockid=clockid@entry=1, abstime=abstime@entry=0x7ffff71edeb0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9bd6e in __pthread_cond_wait_common (abstime=0x7ffff71edeb0, clockid=1, mutex=0x555555aa3c20 <_PyRuntime+96256>, cond=0x555555aa3bf0 <_PyRuntime+96208>) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_timedwait64 (cond=cond@entry=0x555555aa3bf0 <_PyRuntime+96208>, mutex=mutex@entry=0x555555aa3c20 <_PyRuntime+96256>, abstime=abstime@entry=0x7ffff71edeb0) at ./nptl/pthread_cond_wait.c:652
+#5  0x00005555556f30b4 in PyCOND_TIMEDWAIT (cond=<optimized out>, mut=<optimized out>, us=<optimized out>) at /usr/local/src/conda/python-split-3.13.18/Python/condvar.h:74
+#6  take_gil (tstate=tstate@entry=0x7ffff0000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:341
+#7  0x0000555555781a52 in _PyEval_AcquireLock (tstate=0x7ffff0000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:597
+#8  _PyThreadState_Attach (tstate=0x7ffff0000c90) at /usr/local/src/conda/python-split-3.13.18/Python/pystate.c:2100
+#9  PyEval_RestoreThread (tstate=tstate@entry=0x7ffff0000c90) at /usr/local/src/conda/python-split-3.13.18/Python/ceval_gil.c:663
+#10 0x00007ffff7e46883 in __pyx_pf_5repro_run.omp_outlined_debug__ (__pyx_t_3=<optimized out>, .global_tid.=<optimized out>, .bound_tid.=<optimized out>, __pyx_v_i=<optimized out>, __pyx_v_total=<optimized out>) at repro.c:2737
+#11 __pyx_pf_5repro_run.omp_outlined (.global_tid.=0x7ffff71edfe0, .bound_tid.=<optimized out>, __pyx_v_i=@0x7fffffffd130: -136005008, __pyx_t_3=<optimized out>, __pyx_v_total=@0x7fffffffd120: 0) at repro.c:2723
+#12 0x00007ffff72bc279 in __kmp_invoke_microtask () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#13 0x00007ffff7231ed4 in __kmp_invoke_task_func () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+
+Thread 1 (Thread 0x7ffff7eae740 (LWP 582542) "python"):
+#0  0x00007ffff7c98e51 in __futex_abstimed_wait_common64 (private=0, cancel=true, abstime=0x0, op=393, expected=0, futex_word=0x555555c3ebe8) at ./nptl/futex-internal.c:57
+#1  __futex_abstimed_wait_common (cancel=true, private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x555555c3ebe8) at ./nptl/futex-internal.c:87
+#2  __GI___futex_abstimed_wait_cancelable64 (futex_word=futex_word@entry=0x555555c3ebe8, expected=expected@entry=0, clockid=clockid@entry=0, abstime=abstime@entry=0x0, private=private@entry=0) at ./nptl/futex-internal.c:139
+#3  0x00007ffff7c9b8cd in __pthread_cond_wait_common (abstime=0x0, clockid=0, mutex=0x555555c3ec00, cond=0x555555c3ebc0) at ./nptl/pthread_cond_wait.c:503
+#4  ___pthread_cond_wait (cond=0x555555c3ebc0, mutex=0x555555c3ec00) at ./nptl/pthread_cond_wait.c:627
+#5  0x00007ffff729a9b7 in void __kmp_suspend_64<false, true>(int, kmp_flag_64<false, true>*) () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#6  0x00007ffff72610f6 in bool __kmp_wait_template<kmp_flag_64<false, true>, false, false, true>(kmp_info*, kmp_flag_64<false, true>*, void*) [clone .constprop.0] [clone .isra.0] () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#7  0x00007ffff7263155 in __kmp_hyper_barrier_gather(barrier_type, kmp_info*, int, int, void (*)(void*, void*), void*) () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#8  0x00007ffff7266b6d in int __kmp_barrier_template<false>(barrier_type, int, int, unsigned long, void*, void (*)(void*, void*)) [clone .isra.0] () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#9  0x00007ffff7227f43 in __kmpc_barrier () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#10 0x00007ffff7e467a1 in __pyx_pf_5repro_run.omp_outlined_debug__ (__pyx_t_3=<optimized out>, .global_tid.=<optimized out>, .bound_tid.=<optimized out>, __pyx_v_i=<optimized out>, __pyx_v_total=<optimized out>) at repro.c:2731
+#11 __pyx_pf_5repro_run.omp_outlined (.global_tid.=<optimized out>, .bound_tid.=<optimized out>, __pyx_v_i=@0x7fffffffd130: -136005008, __pyx_t_3=<optimized out>, __pyx_v_total=@0x7fffffffd120: 0) at repro.c:2723
+#12 0x00007ffff72bc279 in __kmp_invoke_microtask () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
+#13 0x00007ffff7231ed4 in __kmp_invoke_task_func () from /home/arthur/.cache/rattler/cache/cached-envs-v0/d4d07a8164ec745b/lib/libomp.so
