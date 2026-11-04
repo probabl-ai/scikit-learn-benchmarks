@@ -972,3 +972,15 @@ cells (d 1100x1100x5000 6T 0.81, d 512x512x5000 6T 0.91, s syrk 800x5000 8T
 0.91), which run develop's code, and d syrk 64x5000 and 64x20000 at 6T
 (6 chunks, 0.81-0.84; 1.03-1.48x at 2, 4 and 8T). v3 splits those the same
 way. Running v3 vs develop with 5 rounds (`sk3.csv`).
+
+Full grid, v3 vs develop, 4 rounds (`sk3.csv`, 20:08-20:40 UTC): the gap is
+back, the same in all 4 rounds. 2000^3 24T f64 18.2 vs 27.3 ms, f32 9.3 vs
+14.4 ms, 1000x1000x100000 24T 0.81-0.83x, 256x256x5000 24T 0.59x; none at
+4-8T. So `sk3_layout.csv` only hid it: there develop was slow too. One
+difference between the two runs: each gemmbench process times all its
+shapes in sequence, and in the grid many split shapes run before 2000^3.
+Suspect: split-K's freed buffers (up to 24 MiB) raise glibc's dynamic mmap
+threshold, so the later matrices come from the heap instead of fresh mmaps.
+`scripts/gamer_splitk_malloc.sh` checks the slow shapes alone in their
+process (`sk3_alone.csv`) and the grid with the threshold fixed at 128 KiB
+(`sk3_mmapfix.csv`).
