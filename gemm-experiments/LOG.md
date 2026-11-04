@@ -946,3 +946,17 @@ laptop. `perf` is not allowed there (perf_event_paranoid 4).
 Queued `scripts/gamer_splitk_layout.sh`: develop, v2, v3 and v3 with the
 split-K calls unreachable (`sk3off`, same code), 6 rounds on the slow shapes
 (`sk3_layout.csv`). sk3off slow = code layout; sk3off fast = the call costs.
+
+Result (`sk3_layout.csv`, 6 rounds, 2026-11-04 19:55-20:03 UTC): the gap is
+gone. On the four shapes at 8-24T, the medians over rounds of develop, v2,
+v3 and sk3off are within ~3% of each other, and the mins move both ways.
+develop itself is now as slow as the split-K builds were: 2000^3 24T f64
+24-29 ms per round (18 ms in `sk2.csv`), f32 13-15 ms (9 ms). So it's not
+the code layout or the call; the fast develop rounds of `sk2.csv` were a
+machine state I can't reproduce. Another agent runs idle-state and timer
+experiments on this host between my runs, which may be related. The one
+cell still lower, d 512x512x20000 24T (v2/v3 median 21.0 vs develop 18.9 ms,
+no split: the 24 MiB cap gives 13 chunks), is bimodal for develop and sk3off
+too (15-22 ms). Split cells gain as before (s 512x512x20000 24T 1.2-1.3x).
+
+Queued a full grid of v3 vs develop, 4 rounds at 4-24T (`sk3.csv`).
