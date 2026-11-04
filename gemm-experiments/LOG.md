@@ -802,3 +802,5 @@ on 8 cores. Every v6 cell is develop's code path or a v2-v5 capped cell.
   rounds: 32.0 vs 32.0 ms at 24T, 30.0 vs 31.4 ms at 16T (earlier runs at
   16T: 1.01x, 1.10x), so within +-5%. The 1.1-1.2x eigh gains of the first
   gamer run did not reproduce (develop was slower in that run, 38-44 ms).
+- mac-m2 (`tc6.csv`): checks OK; identical code to develop, ratios 0.97-1.03
+  except single cells at 0.85-1.20 (noise on this machine).

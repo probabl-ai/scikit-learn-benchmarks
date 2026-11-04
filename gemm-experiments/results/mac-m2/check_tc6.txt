@@ -1,0 +1,56 @@
+# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX
+# library threads: 4
+sr-base,check,d,200,200,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,300,300,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,500,500,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,1000,1000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,2000,2000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,4000,4000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,8000,8000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,200,200,1,syevd,threads=4,vs1thread=0,OK
+sr-base,check,d,1000,1000,1,syevd,threads=4,vs1thread=5.23e-13,OK
+sr-base,check,d,4000,4000,1,syevd,threads=4,vs1thread=3.17e-12,OK
+sr-base,check,d,1000,1000,1,syevr,threads=4,vs1thread=3.78e-12,OK
+sr-base,check,d,4000,4000,1,syevr,threads=4,vs1thread=3.17e-12,OK
+# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX
+# library threads: 8
+sr-base,check,d,200,200,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,300,300,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,500,500,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,1000,1000,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,2000,2000,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,4000,4000,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,8000,8000,1,symv,threads=8,vs1thread=0,OK
+sr-base,check,d,200,200,1,syevd,threads=8,vs1thread=0,OK
+sr-base,check,d,1000,1000,1,syevd,threads=8,vs1thread=5.21e-13,OK
+sr-base,check,d,4000,4000,1,syevd,threads=8,vs1thread=3.56e-12,OK
+sr-base,check,d,1000,1000,1,syevr,threads=8,vs1thread=4.5e-11,OK
+sr-base,check,d,4000,4000,1,syevr,threads=8,vs1thread=4.92e-12,OK
+# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX
+# library threads: 4
+tc6,check,d,200,200,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,300,300,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,500,500,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,1000,1000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,2000,2000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,4000,4000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,8000,8000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,200,200,1,syevd,threads=4,vs1thread=0,OK
+tc6,check,d,1000,1000,1,syevd,threads=4,vs1thread=5.23e-13,OK
+tc6,check,d,4000,4000,1,syevd,threads=4,vs1thread=3.17e-12,OK
+tc6,check,d,1000,1000,1,syevr,threads=4,vs1thread=3.78e-12,OK
+tc6,check,d,4000,4000,1,syevr,threads=4,vs1thread=3.17e-12,OK
+# openblas config: OpenBLAS 0.3.34.dev NO_AFFINITY VORTEX MAX_THREADS=128 core: VORTEX
+# library threads: 8
+tc6,check,d,200,200,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,300,300,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,500,500,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,1000,1000,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,2000,2000,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,4000,4000,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,8000,8000,1,symv,threads=8,vs1thread=0,OK
+tc6,check,d,200,200,1,syevd,threads=8,vs1thread=0,OK
+tc6,check,d,1000,1000,1,syevd,threads=8,vs1thread=5.21e-13,OK
+tc6,check,d,4000,4000,1,syevd,threads=8,vs1thread=3.56e-12,OK
+tc6,check,d,1000,1000,1,syevr,threads=8,vs1thread=4.5e-11,OK
+tc6,check,d,4000,4000,1,syevr,threads=8,vs1thread=4.92e-12,OK
