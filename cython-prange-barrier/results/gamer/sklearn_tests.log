@@ -1,0 +1,21 @@
+== mB2, main
+::test_tsne_pca_init_constant_data[X1-exact]
+  /home/alacote/work/cython-prange/venv-mB2/lib/python3.14/site-packages/sklearn/decomposition/_pca.py:614: RuntimeWarning: invalid value encountered in divide
+    explained_variance_ratio_ = explained_variance_ / total_var
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2984 passed, 1061 skipped, 3 xfailed, 16 warnings in 61.90s (0:01:01)
+== fB2, fuse3
+ssssssssssssssssssss.................................................... [ 45%]
+........................................................................ [ 61%]
+....................s.s.s.s.s........................................... [ 76%]
+........................................................................ [ 91%]
+......................................                                   [100%]
+365 passed, 105 skipped in 11.14s
+== m331, baseline
+::test_tsne_pca_init_constant_data[X1-exact]
+  /home/alacote/work/cython-prange/venv-m331/lib/python3.14/site-packages/sklearn/decomposition/_pca.py:614: RuntimeWarning: invalid value encountered in divide
+    explained_variance_ratio_ = explained_variance_ / total_var
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+2984 passed, 1061 skipped, 3 xfailed, 16 warnings in 73.13s (0:01:13)

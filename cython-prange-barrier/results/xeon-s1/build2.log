@@ -1,0 +1,14 @@
+
+m324 skl=d5a61d114 Cython version 3.2.4 GOMP_barrier-sites=0 omp-for=399 nowait=0 firstprivate=399 file=/home/alacote/work/cython-prange/venv-m324/lib/python3.12/site-packages/sklearn/__init__.py
+
+m331 skl=d5a61d114 Cython version 3.3.1 GOMP_barrier-sites=0 omp-for=399 nowait=399 firstprivate=399 file=/home/alacote/work/cython-prange/venv-m331/lib/python3.12/site-packages/sklearn/__init__.py
+
+mA skl=d5a61d114 Cython version 3.4.0a0 GOMP_barrier-sites=0 omp-for=399 nowait=320 firstprivate=399 file=/home/alacote/work/cython-prange/venv-mA/lib/python3.12/site-packages/sklearn/__init__.py
+
+mB2 skl=d5a61d114 Cython version 3.4.0a0 GOMP_barrier-sites=0 omp-for=399 nowait=331 firstprivate=1 file=/home/alacote/work/cython-prange/venv-mB2/lib/python3.12/site-packages/sklearn/__init__.py
+
+f331 skl=9ade78bf1 Cython version 3.3.1 GOMP_barrier-sites=0 omp-for=404 nowait=404 firstprivate=404 file=/home/alacote/work/cython-prange/venv-f331/lib/python3.12/site-packages/sklearn/__init__.py
+
+fB2 skl=9ade78bf1 Cython version 3.4.0a0 GOMP_barrier-sites=0 omp-for=404 nowait=333 firstprivate=1 file=/home/alacote/work/cython-prange/venv-fB2/lib/python3.12/site-packages/sklearn/__init__.py
+
+nb331 skl=10b5afac1 Cython version 3.3.1 GOMP_barrier-sites=0 omp-for=392 nowait=392 firstprivate=392 file=/home/alacote/work/cython-prange/venv-nb331/lib/python3.12/site-packages/sklearn/__init__.py

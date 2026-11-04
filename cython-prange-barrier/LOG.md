@@ -217,7 +217,16 @@ KMeans lloyd on the laptop 0.305 (3.3.1), 0.327 (Fix A), 0.340 s (Fix B). t-SNE 
 0.77, 0.87, 0.78 s. 168 of the 169 pragmas still using `firstprivate` were `double_pair`
 structs of `_loss`, excluded by the first version of Fix B.
 
-## Exp 7: second round (queued 2026-11-04)
+## Exp 7: second round (2026-11-04)
+
+Results in `results/{gamer,laptop,xeon-s1}/*2.jsonl`, summary in `FINDINGS.md`. The last-statement
+rule closes the gap with the manual chunks. Round 1 on the laptop didn't hold: HGB predict 27%
+faster became 4%, KMeans lloyd 11% slower became 3% faster.
+
+Sources for the passive default: `libgomp/config/linux/x86/spincount.h` sets the spin count to 1
+if CPUID reports a hybrid CPU, unless `OMP_WAIT_POLICY` or `GOMP_SPINCOUNT` is set. `kmp.h`:
+`KMP_DEFAULT_BLOCKTIME (__kmp_is_hybrid_cpu() ? (0) : (200000))`. `env -i` on gamer still reports
+`GOMP_SPINCOUNT = '1'`.
 
 Fix B changed (`prange-no-start-barrier`), tree `fixB2`: structs and unions are allowed in plain
 `private`, and the last statement of a `parallel` block keeps `nowait`, since only the
