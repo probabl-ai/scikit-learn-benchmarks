@@ -45,6 +45,17 @@ def cases():
         yield f"Lasso {n}x{d}", lambda X=X, y=y: Lasso(alpha=0.01, tol=0, max_iter=20).fit(X, y)
         yield f"ElasticNet {n}x{d}", lambda X=X, y=y: ElasticNet(
             alpha=0.01, l1_ratio=0.5, tol=0, max_iter=20).fit(X, y)
+    # X larger than the L3 of every machine here (800 MB), so the dot/axpy
+    # calls stream from memory; centered and Fortran-ordered upfront so the fit
+    # time is mostly coordinate descent.
+    n, d = 100000, 1000
+    X = rng.standard_normal((n, d)) + 3 * rng.standard_normal((n, 1))
+    X = np.asfortranarray(X - X.mean(axis=0))
+    y = X[:, :10].sum(axis=1) + rng.standard_normal(n)
+    y -= y.mean()
+    yield f"Lasso {n}x{d} no-copy", lambda X=X, y=y: Lasso(
+        alpha=0.01, tol=0, max_iter=5, fit_intercept=False, copy_X=False).fit(X, y, check_input=False)
+    del X
     for n in [1000, 2000, 4000]:
         A = rng.standard_normal((n, n))
         b = rng.standard_normal(n)
