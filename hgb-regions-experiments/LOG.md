@@ -744,3 +744,58 @@ every `prange` comes from GH-6562 in 3.3. Before that, a `prange` followed by co
 versions, and it covers more variables since 3.2 (GH-7178). Barrier counts and timings
 of Exp 8-19 may differ on the pinned versions. Not measured yet.
 
+
+## Exp 20: A/B with Cython 3.2.5, the version the pin allows (2026-11-04)
+
+`scripts/ab/run_exp20.sh`, `build_cython325.sh`. 4 builds interleaved on the 15 cases, 5
+processes of 1 fit: `c325pr` (#34935 at 313be4c8) and `c325clean` (`hgb/merge-regions` at
+cdc4301324) on 3.2.5, against the existing `pr` (`hgb/fewer-regions` with its switches set
+to match #34935) and `clean` (6ee427944, differs by one comment) on 3.3.0 (3.3.0a2.dev0 on
+the laptop). `main` and `c325main` on msd only, 3 processes of 1 fit. Results in
+`results/*/exp20/`, tables with `analyze_noise.py --ref c325pr:pr` and `analyze_exp20.py`.
+
+The C headers say 3.2.5. Trees and predictions: `identical 12 of 12` between `c325main`,
+`c325pr` and `c325clean` on the 3 machines. HGB tests on `c325clean`, gamer: 395 passed,
+105 skipped. No failed run in 1530.
+
+Geomean over the 15 cases of the PR vs #34935, same Cython:
+
+| profile | 3.2.5 (5-95% bootstrap) | 3.3 | PR 3.3/3.2.5 | #34935 3.3/3.2.5 |
+| --- | --- | --- | --- | --- |
+| xeon socket, active | 0.74 (0.73-0.75) | 0.75 | 0.96 | 0.94 |
+| xeon socket, passive | 0.77 (0.76-0.80) | 0.74 | 0.91 | 0.95 |
+| laptop | 0.86 (0.84-0.88) | 0.85 | 0.97 | 0.98 |
+| gamer libgomp | 0.89 (0.87-0.90) | 0.86 | 0.96 | 0.98 |
+| gamer libomp | 0.88 (0.87-0.91) | 0.87 | 0.98 | 0.99 |
+
+msd, median fit in seconds:
+
+| profile | main 3.2.5 | main 3.3 | #34935 3.2.5 | #34935 3.3 | PR 3.2.5 | PR 3.3 |
+| --- | --- | --- | --- | --- | --- | --- |
+| xeon socket, active | 3.89 | 3.42 | 4.82 | 4.33 | 2.81 | 2.70 |
+| xeon socket, passive | 178 | 145 | 63.8 | 52.9 | 23.9 | 19.6 |
+| laptop | 15.0 | 12.9 | 13.5 | 12.2 | 4.82 | 4.59 |
+| gamer libgomp | 12.8 | 11.9 | 24.3 | 20.6 | 9.94 | 8.12 |
+| gamer libomp | 6.48 | 5.44 | 17.7 | 17.1 | 8.81 | 7.92 |
+
+- The conclusion holds on 3.2.5: the gain is within 0.03 of 3.3's. It fixes msd against
+  main everywhere but gamer libomp (8.81 vs 6.48 s). The worst median over all cases and
+  profiles is `kddcup09_churn` on gamer libgomp at 1.05x, with processes from 0.93x to
+  1.21x, then `L-stumps` at 1.03x on gamer libomp and xeon active.
+- The 3.3 column reproduces Exp 18 (0.76, 0.73, 0.87, 0.87, 0.87) within 0.01 in a
+  separate run.
+- Same source, 3.3 is faster than 3.2.5: 2-9% on the PR, 1-6% on #34935, 7-19% on main's
+  msd. Same compiler (GCC 15.3) and options (release, -O3) on gamer's `main` and
+  `c325main`. I don't know why: `splitting.so` and `histogram.so` of `main` have the same
+  `GOMP_barrier` sites on both versions (3 and 4), so the `nowait` isn't an obvious cause.
+- Executed barriers, counted on the main thread with `count_barriers.c`, a `LD_PRELOAD`
+  wrapper around `GOMP_barrier` and `GOMP_parallel`, in a 4-thread active-wait fit on
+  gamer (`run_count_barriers.sh`). `split_indices` runs 4 per region on 3.2.5 (start of the
+  first `prange`, end of it, the explicit one, start of the second) and 3 on 3.3. The
+  histogram region runs 1 on both. So a split of `hgb/merge-regions` has 2 regions and 5
+  barriers on 3.2.5, 4 on 3.3. Exp 13's 3 was right for fuse3, which has no explicit
+  barrier, but I copied it to the PR. It was wrong there.
+- A first count showed no `split_indices` region at all. The fit had 200K x 10 = 2M cells,
+  which #34935 sends to 1 thread with a passive runtime. Active wait fixed the test.
+- No clear cost for the extra barrier on 3.2.5: on msd, the 3.3 gain of the PR (3-20%)
+  isn't consistently bigger than main's (7-19%), which has none to remove.

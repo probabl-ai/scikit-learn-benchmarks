@@ -33,8 +33,8 @@
 
 ## Merging parallel regions (LOG Exp 9-10)
 
-- fuse3 (2 regions and 3 barriers per split, instead of 7 regions and 7 barriers)
-  is faster than the PR on every profile: geomean 0.76-0.90 over the 15
+- fuse3 (2 regions and 3 barriers per split, instead of 7 regions and 7 barriers;
+  `hgb/merge-regions` adds an explicit barrier, see Exp 20) is faster than the PR on every profile: geomean 0.76-0.90 over the 15
   hgb_scalability cases, up to 3x on msd. It also fixes the msd regression
   everywhere except gamer libomp (7.3 s vs main's 5.7 s).
 - It helps even with active wait on one Xeon socket (0.76 geomean), where
@@ -48,7 +48,8 @@
 
 - On GCC, every Cython `prange` starts with a barrier, a side effect of marking
   its variables both firstprivate and lastprivate. All the threads must be awake
-  before any of them starts. There is no barrier at the end of a `prange`.
+  before any of them starts. From Cython 3.3, there is no barrier at the end of a
+  `prange`. Before that, there is one when code follows it in the `parallel` block.
 - Manual chunks in a `parallel` block avoid it: `nb:pr+fuse3` takes 0.27-0.53x of
   `pr` on one Xeon socket in passive mode, against 0.38-0.63x for `pr+fuse3`, and
   0.60-0.96x against 0.64-0.97x with active wait.
@@ -96,15 +97,23 @@
   both runtimes.
   Its trees and predictions are identical to the PR's, and to main's.
 
-## Cython version (LOG, last note)
+## Cython version (LOG Exp 20)
 
-All the results here come from builds with Cython 3.3.x, not the `<3.2.6` that
-`pyproject.toml` pins. "No barrier at the end of a `prange`" only holds from 3.3.
-The timings on the pinned versions are not measured yet.
+Exp 8-19 used Cython 3.3.x, not the `<3.2.6` that `pyproject.toml` pins. On 3.2.5:
+
+- `hgb/merge-regions` gives 0.74x of #34935 on one Xeon socket with active wait, 0.77x
+  in passive mode, 0.86x on the laptop, 0.89x on gamer with libgomp and 0.88x with
+  libomp. That's within 0.03 of 3.3. Trees are identical to main's and the HGB tests pass.
+- msd against main: 2.81 vs 3.89 s, 23.9 vs 178 s, 4.82 vs 15.0 s, 9.94 vs 12.8 s and,
+  still slower, 8.81 vs 6.48 s on gamer with libomp.
+- A split runs 5 barriers on 3.2.5, 4 on 3.3, with GCC. The explicit one is redundant on
+  3.2.5, with no clear cost.
+- The same source is faster on 3.3: 2-9% on this branch, 1-6% on #34935, 7-19% on main's
+  msd. I don't know why, it isn't explained by the barrier sites of `main`.
+
+The other findings on this page were not repeated on 3.2.5.
 
 ## Open
-
-- Repeat the A/B of `hgb/merge-regions` built with Cython 3.2.5.
 
 - Why P and E cores differ with deep idle states, and why libomp and libgomp differ
   on P cores.

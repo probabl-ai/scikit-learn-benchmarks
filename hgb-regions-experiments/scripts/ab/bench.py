@@ -17,6 +17,8 @@ def parse_variant(name):
     if name == "main":
         return "main", {}
     build, _, rest = name.rpartition(":")
+    if rest == "main":  # a build without the experiment switches
+        return build, {}
     rest, _, samples = rest.partition("@")
     guard, _, fuse = rest.partition("+")
     env = {"SKLEARN_HGB_GUARD": guard}
