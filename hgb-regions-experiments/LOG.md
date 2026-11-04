@@ -731,3 +731,16 @@ is what makes manual chunks correct. On `hgb/merge-regions`, clang's own `prange
 barriers would also hide a missing explicit barrier, so this run doesn't prove that the
 explicit one is needed there. It's what the OpenMP spec requires with `nowait`. I only
 ran TSan on these 5 fits, not on the test suite.
+
+## Note: Cython version of all the builds (2026-11-04 12:10)
+
+`pyproject.toml` pins `cython>=3.1.2,<3.2.6`, but `--no-build-isolation` ignored it. All
+the builds of this log used the Cython of the env: 3.3.0 on gamer and the xeon,
+3.3.0a2.dev0 on the laptop, 3.3.1 for Exp 19's clang and macOS builds. So `main`, the
+PR and every variant here were built with a version that a release of scikit-learn
+wouldn't use. From the Cython session (`cython-prange-barrier/FINDINGS.md`): `nowait` on
+every `prange` comes from GH-6562 in 3.3. Before that, a `prange` followed by code in a
+`parallel` block also has a barrier at its end. The start barrier is in all these
+versions, and it covers more variables since 3.2 (GH-7178). Barrier counts and timings
+of Exp 8-19 may differ on the pinned versions. Not measured yet.
+

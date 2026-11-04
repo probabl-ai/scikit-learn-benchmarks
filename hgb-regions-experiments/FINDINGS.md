@@ -96,7 +96,15 @@
   both runtimes.
   Its trees and predictions are identical to the PR's, and to main's.
 
+## Cython version (LOG, last note)
+
+All the results here come from builds with Cython 3.3.x, not the `<3.2.6` that
+`pyproject.toml` pins. "No barrier at the end of a `prange`" only holds from 3.3.
+The timings on the pinned versions are not measured yet.
+
 ## Open
+
+- Repeat the A/B of `hgb/merge-regions` built with Cython 3.2.5.
 
 - Why P and E cores differ with deep idle states, and why libomp and libgomp differ
   on P cores.
