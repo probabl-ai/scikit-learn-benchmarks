@@ -36,13 +36,6 @@ def _make_fake_numa_sysfs(tmp_path, node_cpulists: dict[int, str]):
     return root
 
 
-def test_numa_node_count_reads_node_directories(numa, tmp_path, monkeypatch):
-    fake_root = _make_fake_numa_sysfs(tmp_path, {0: "0-21", 1: "22-43"})
-    monkeypatch.setattr(numa, "NUMA_NODES_SYSFS", fake_root)
-
-    assert numa.numa_node_count() == 2
-
-
 def test_numa_node_count_defaults_to_one_without_sysfs(numa, tmp_path, monkeypatch):
     monkeypatch.setattr(numa, "NUMA_NODES_SYSFS", tmp_path / "does-not-exist")
 

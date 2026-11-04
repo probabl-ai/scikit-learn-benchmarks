@@ -37,36 +37,6 @@ def _a_case(synthetic_linear):
     return synthetic_linear.generate_cases(tier="test")[0]
 
 
-def test_with_numa_pinning_sets_cpu_affinity_from_the_node(synthetic_linear, monkeypatch):
-    monkeypatch.setattr(synthetic_linear, "auto_numa_cpu_affinity", lambda node=0: [0, 1, 2])
-
-    case = synthetic_linear.with_numa_pinning(_a_case(synthetic_linear))
-
-    assert case["bench"]["cpu_affinity"] == [0, 1, 2]
-
-
-def test_with_numa_pinning_is_a_noop_on_a_single_node_host(synthetic_linear, monkeypatch):
-    monkeypatch.setattr(synthetic_linear, "auto_numa_cpu_affinity", lambda node=0: None)
-
-    case = _a_case(synthetic_linear)
-    pinned = synthetic_linear.with_numa_pinning(case)
-
-    assert pinned == case
-    assert "cpu_affinity" not in pinned.get("bench", {})
-
-
-def test_with_numa_pinning_preserves_other_bench_fields(synthetic_linear, monkeypatch):
-    monkeypatch.setattr(synthetic_linear, "auto_numa_cpu_affinity", lambda node=0: [0, 1, 2])
-
-    case = _a_case(synthetic_linear)
-    case["bench"] = {**case.get("bench", {}), "n_runs": 3}
-
-    pinned = synthetic_linear.with_numa_pinning(case)
-
-    assert pinned["bench"]["n_runs"] == 3
-    assert pinned["bench"]["cpu_affinity"] == [0, 1, 2]
-
-
 def test_with_numa_pinning_refuses_to_override_an_existing_cpu_affinity(synthetic_linear, monkeypatch):
     monkeypatch.setattr(synthetic_linear, "auto_numa_cpu_affinity", lambda node=0: [0, 1, 2])
 

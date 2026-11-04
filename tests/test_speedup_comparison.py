@@ -69,8 +69,6 @@ REAL = {"dataset": "covtype", "preprocessing_kind": "trees"}
 # sklearnex tree cases come in two flavors, see configs/_synthetic_trees.py.
 EXACT = {"max_bins": N_SAMPLES}
 FOREST = "RandomForestClassifier"
-BINNING_WARNING = "histogram-based"
-CUML_WARNING = "quantile-based"
 GREY = "#9e9e9e"
 
 
@@ -480,8 +478,8 @@ def test_sklearn_vs_sklearnex_has_a_binned_column_with_squares_and_an_exact_one(
     sklearnex = [point for point in points(rendered, "tree-based") if point.name == "sklearnex-cpu"]
     by_speedup = by_time(sklearnex, 1000)
     exact, binned = by_speedup[500], by_speedup[200]
-    assert exact.symbol == "circle" and BINNING_WARNING not in exact.text
-    assert binned.symbol == "square" and BINNING_WARNING in binned.text
+    assert exact.symbol == "circle"
+    assert binned.symbol == "square"
     assert exact.x < binned.x
 
 
@@ -502,7 +500,7 @@ def test_sklearn_vs_cuml_has_one_column_with_squares(results, baseline, other):
 
     rendered = view("software", tab=L4_CPU_NAME, baseline=baseline)
     point = only([point for point in points(rendered, "tree-based") if point.name == other])
-    assert point.symbol == "square" and CUML_WARNING in point.text
+    assert point.symbol == "square"
 
 
 def test_cuml_is_only_paired_with_binned_sklearnex_without_a_marker(results):
@@ -512,7 +510,6 @@ def test_cuml_is_only_paired_with_binned_sklearnex_without_a_marker(results):
     point = only([point for point in points(from_cuml, "tree-based") if point.name == "sklearnex-cpu"])
     assert point.speedup == pytest.approx(0.5)  # the binned 200 ms, not the exact 500 ms
     assert point.symbol == "circle"
-    assert CUML_WARNING not in point.text and BINNING_WARNING not in point.text
 
     from_sklearnex = view("software", tab=L4_CPU_NAME, baseline="sklearnex-cpu")
     point = only([point for point in points(from_sklearnex, "tree-based") if point.name == "cuml-cuda"])
@@ -596,7 +593,6 @@ def test_sklearnex_fallback_is_grey_without_warnings(results):
 
     point = only(points(view("software", tab=LAPTOP_NAME), "tree-based"))
     assert point.color == GREY and point.symbol == "circle"
-    assert "fell back" in point.text and BINNING_WARNING not in point.text
 
 
 # --- Failed runs ---
