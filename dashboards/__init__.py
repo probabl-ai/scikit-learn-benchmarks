@@ -8,21 +8,22 @@ from pathlib import Path
 # dashboard so a rename doesn't have to be repeated file by file. Names give
 # the machine kind plus a recognizable product line (Xeon, Ultra, M4, L4),
 # not exact model numbers or vendor codenames.
+# Dashboards list machines in this order: laptops, desktops, then servers.
 HARDWARE_NAMES = {
     "3b5e61": "Intel Core Ultra laptop",
-    "534824": "High-end Intel Xeon server",
-    "be1055": "Low-end Intel laptop",
-    "5dcf30": "AMD Workstation",
-    "332097": "Intel Core Ultra desktop",
     "b281b2": "Apple M4 laptop",
+    "be1055": "Low-end Intel laptop",
+    "332097": "Intel Core Ultra desktop",
+    "5dcf30": "AMD Workstation",
+    "534824": "High-end Intel Xeon server",
     "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
 
 GPU_NAMES = {
     "3b5e61": "Intel Core Ultra laptop GPU",
     "b281b2": "Apple M4 laptop GPU",
-    "5dcf30": "NVIDIA RTX 2060",
     "332097": "Intel Arc B580",
+    "5dcf30": "NVIDIA RTX 2060",
     "d189c4": "NVIDIA L4 g6.2xlarge",
 }
 
