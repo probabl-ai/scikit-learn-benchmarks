@@ -781,3 +781,24 @@ per build at 24T (develop in gesv 2000, v4 in gesv 4000 with
 OPENBLAS_THREAD_TIMEOUT=30), none at 32T. So random, both builds, not tied
 to workers sleeping. Hyperthread siblings in the mask cost 30% on gesv 4000
 (535 vs 740 GF/s), so not a fix either.
+
+mac-m2 (M2, 4 P + 4 E cores), v4 vs develop, 4 rounds, unpinned (`tc4.csv`):
+only dsymv changes on 8 cores. dsymv 300 at 6-8T 4.2-4.6 -> 2.3 us, but
+dsymv 200 at 6-8T 2.8 -> 3.1 us and 500 at 8T 8.7 -> 9.3 us, all rounds.
+4 of 8 threads are slower than a 4-thread pool (1.25 us at n=200),
+presumably E cores.
+
+v6 (`thread_counts_v6.diff`, third commit of cakedev0/OpenBLAS#8): dsymv
+uses all threads once max(4, n/64) reaches half of them. Nothing changes
+on 8 cores. Every v6 cell is develop's code path or a v2-v5 capped cell.
+- xeon-s1 (`tc6.csv`, `sklearn_e2e_tc6.csv`): dsymv n <= 1000 2-5.7x faster
+  from 12-32T up, eigh 1000 1.19-1.33x at 43-86T, eigh 2000 1.14-1.30x at
+  64-86T, eigh 4000 within +-2% except 1.05x at 86T. dsymv 4000 at 86T
+  177-201 -> 220-226 us with develop's code path: it runs right after dsymv
+  2000 on 31 of 86 threads (ELC lag, as in exp23 above).
+- intel-laptop: dsymv n <= 500 1.4-3.2x faster at 12-16T, eigh within noise
+  (one 57 ms outlier round of 41).
+- intel-gamer-gpu: dsymv n <= 500 1.2-2.6x at 12-24T; eigh 1000 over 8
+  rounds: 32.0 vs 32.0 ms at 24T, 30.0 vs 31.4 ms at 16T (earlier runs at
+  16T: 1.01x, 1.10x), so within +-5%. The 1.1-1.2x eigh gains of the first
+  gamer run did not reproduce (develop was slower in that run, 38-44 ms).

@@ -1,0 +1,60 @@
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 4
+# affinity: threads=4 bound_to_one_core=0 voluntary_switches=61 involuntary_switches=440 migrations=14 openmp=none
+sr-base,check,d,200,200,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,300,300,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,500,500,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,1000,1000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,2000,2000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,4000,4000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,8000,8000,1,symv,threads=4,vs1thread=0,OK
+sr-base,check,d,200,200,1,syevd,threads=4,vs1thread=6.95e-16,OK
+sr-base,check,d,1000,1000,1,syevd,threads=4,vs1thread=5.81e-13,OK
+sr-base,check,d,4000,4000,1,syevd,threads=4,vs1thread=7.08e-12,OK
+sr-base,check,d,1000,1000,1,syevr,threads=4,vs1thread=5.03e-12,OK
+sr-base,check,d,4000,4000,1,syevr,threads=4,vs1thread=6.8e-12,OK
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 16
+# affinity: threads=16 bound_to_one_core=0 voluntary_switches=169 involuntary_switches=4154 migrations=53 openmp=none
+sr-base,check,d,200,200,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,300,300,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,500,500,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,1000,1000,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,2000,2000,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,4000,4000,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,8000,8000,1,symv,threads=16,vs1thread=0,OK
+sr-base,check,d,200,200,1,syevd,threads=16,vs1thread=6.95e-16,OK
+sr-base,check,d,1000,1000,1,syevd,threads=16,vs1thread=5.47e-13,OK
+sr-base,check,d,4000,4000,1,syevd,threads=16,vs1thread=5.19e-12,OK
+sr-base,check,d,1000,1000,1,syevr,threads=16,vs1thread=4.09e-11,OK
+sr-base,check,d,4000,4000,1,syevr,threads=16,vs1thread=1.22e-11,OK
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 4
+# affinity: threads=4 bound_to_one_core=0 voluntary_switches=60 involuntary_switches=424 migrations=7 openmp=none
+tc6,check,d,200,200,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,300,300,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,500,500,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,1000,1000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,2000,2000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,4000,4000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,8000,8000,1,symv,threads=4,vs1thread=0,OK
+tc6,check,d,200,200,1,syevd,threads=4,vs1thread=6.95e-16,OK
+tc6,check,d,1000,1000,1,syevd,threads=4,vs1thread=5.81e-13,OK
+tc6,check,d,4000,4000,1,syevd,threads=4,vs1thread=7.08e-12,OK
+tc6,check,d,1000,1000,1,syevr,threads=4,vs1thread=5.03e-12,OK
+tc6,check,d,4000,4000,1,syevr,threads=4,vs1thread=6.8e-12,OK
+# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell
+# library threads: 16
+# affinity: threads=16 bound_to_one_core=0 voluntary_switches=162 involuntary_switches=1657 migrations=34 openmp=none
+tc6,check,d,200,200,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,300,300,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,500,500,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,1000,1000,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,2000,2000,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,4000,4000,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,8000,8000,1,symv,threads=16,vs1thread=0,OK
+tc6,check,d,200,200,1,syevd,threads=16,vs1thread=6.95e-16,OK
+tc6,check,d,1000,1000,1,syevd,threads=16,vs1thread=5.37e-13,OK
+tc6,check,d,4000,4000,1,syevd,threads=16,vs1thread=5.19e-12,OK
+tc6,check,d,1000,1000,1,syevr,threads=16,vs1thread=2.73e-11,OK
+tc6,check,d,4000,4000,1,syevr,threads=16,vs1thread=1.23e-11,OK
