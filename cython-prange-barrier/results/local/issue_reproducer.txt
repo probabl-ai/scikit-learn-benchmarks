@@ -1,0 +1,18 @@
+3.2.4-gcc x86_64-conda-linux-gnu-gcc (conda-forge gcc 15.3.0
+#pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.2.4-clang clang version 21.1.8 (https://github.com/conda-for
+#pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+3.3.1-gcc x86_64-conda-linux-gnu-gcc (conda-forge gcc 15.3.0
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+[3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+3.3.1-clang clang version 21.1.8 (https://github.com/conda-for
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+master-gcc x86_64-conda-linux-gnu-gcc (conda-forge gcc 15.3.0
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+[3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+master-clang clang version 21.1.8 (https://github.com/conda-for
+#pragma omp for nowait firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

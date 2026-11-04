@@ -126,3 +126,20 @@ Census of scikit-learn (6e9d6678e7): 62 pranges, 31 standalone, 31 inside a
 `cython<3.2.6` in `pyproject.toml`, so its wheels have the end barrier. The
 pixi `sklearn-dev` env has Cython 3.3.0. I have not yet audited its 31 loops in
 `with parallel` for reads after the loop.
+
+## Exp 4: reproducer for the issue, Fix A (2026-11-04)
+
+`probes/issue_reproducer.pyx`, `scripts/issue_reproducer.sh`,
+`results/local/issue_reproducer.txt`. Same outcome as Exp 3, also on master: 3
+threads in all 10 calls with GCC 15, 0 with clang 21.
+
+Fix A, `cakedev0/cython@prange-fix-end-barrier` (local for now): emit `nowait`
+only when `acquire_gil`. New test `test_prange_end_barrier` in
+`tests/run/parallel.pyx`: `Got: 3` without the patch, passes with it. `run.parallel`,
+`run.parallel_with_gil`, `run.sequential_parallel`, `run.parallel_swap`,
+`run.pure_parallel`, `errors.e_cython_parallel` pass in C mode with GCC 15.
+A first `runtests.py` run selected no tests (`--no-file` excludes them) and printed
+"ALL DONE": check the "Ran N tests" line.
+
+Draft issue on the fork, not upstream. References to upstream are plain `GH-N`
+text on purpose, to leave no cross-reference on the upstream threads.
