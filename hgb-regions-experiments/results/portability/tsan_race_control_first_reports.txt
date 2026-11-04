@@ -1,0 +1,60 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=700399)
+  Write of size 4 at 0x7204000019dc by thread T3:
+    #0 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__ $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:8107:121 (splitting.cpython-313-x86_64-linux-gnu.so+0x282cc)
+    #1 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x282cc)
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xcc278)
+    #3 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x24d55)
+
+  Previous read of size 4 at 0x7204000019dc by main thread:
+    #0 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__ $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:8209:65 (splitting.cpython-313-x86_64-linux-gnu.so+0x28667)
+    #1 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x28667)
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xcc278)
+    #3 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x24d55)
+    #4 __pyx_pw_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_3split_indices $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:6568:13 (splitting.cpython-313-x86_64-linux-gnu.so+0x124c0)
+    #5 __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS $WORK/skl-nbrace/build/sklearn/_cyutility.c:27366:12 (_cyutility.cpython-313-x86_64-linux-gnu.so+0x1a813)
+    #6 _PyObject_VectorcallTstate /usr/local/src/conda/python-split-3.13.18/Include/internal/pycore_call.h:168:11 (python3.13+0x1b811d)
+    #7 PyObject_Vectorcall /usr/local/src/conda/python-split-3.13.18/Objects/call.c:327:12 (python3.13+0x1b811d)
+    #8 _PyObject_VectorcallTstate /usr/local/src/conda/python-split-3.13.18/Include/internal/pycore_call.h:168:11 (python3.13+0x1b811d)
+    #9 PyObject_Vectorcall /usr/local/src/conda/python-split-3.13.18/Objects/call.c:327:12 (python3.13+0x1b811d)
+
+  Location is heap block of size 16 at 0x7204000019d0 allocated by main thread:
+    #0 malloc /usr/local/src/conda/compiler-rt-packages-23.1.4/compiler-rt/lib/tsan/rtl/tsan_interceptors_posix.cpp:671:5 (libclang_rt.tsan-x86_64.so+0xd01d0)
+    #1 malloc /usr/local/src/conda/compiler-rt-packages-23.1.4/compiler-rt/lib/tsan/rtl/tsan_interceptors_posix.cpp:664:1 (libclang_rt.tsan-x86_64.so+0xd01d0)
+    #2 default_malloc alloc.c (_multiarray_umath.cpython-313-x86_64-linux-gnu.so+0x1762af)
+
+  Thread T3 (tid=700446, running) created by main thread at:
+    #0 pthread_create /usr/local/src/conda/compiler-rt-packages-23.1.4/compiler-rt/lib/tsan/rtl/tsan_interceptors_posix.cpp:1082:3 (libclang_rt.tsan-x86_64.so+0x82c8c)
+    #1 __kmp_create_worker <null> (libomp.so+0xa9301)
+    #2 __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS $WORK/skl-nbrace/build/sklearn/_cyutility.c:27366:12 (_cyutility.cpython-313-x86_64-linux-gnu.so+0x1a813)
+    #3 _PyObject_VectorcallTstate /usr/local/src/conda/python-split-3.13.18/Include/internal/pycore_call.h:168:11 (python3.13+0x1b811d)
+    #4 PyObject_Vectorcall /usr/local/src/conda/python-split-3.13.18/Objects/call.c:327:12 (python3.13+0x1b811d)
+    #5 _PyObject_VectorcallTstate /usr/local/src/conda/python-split-3.13.18/Include/internal/pycore_call.h:168:11 (python3.13+0x1b811d)
+    #6 PyObject_Vectorcall /usr/local/src/conda/python-split-3.13.18/Objects/call.c:327:12 (python3.13+0x1b811d)
+
+SUMMARY: ThreadSanitizer: data race $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:8107:121 in __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=700399)
+  Read of size 4 at 0x7204000019d0 by thread T3:
+    #0 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__ $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:8209:65 (splitting.cpython-313-x86_64-linux-gnu.so+0x28667)
+    #1 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x28667)
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xcc278)
+    #3 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x24d55)
+
+  Previous write of size 4 at 0x7204000019d0 by main thread:
+    #0 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__ $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:8107:121 (splitting.cpython-313-x86_64-linux-gnu.so+0x282cc)
+    #1 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x282cc)
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xcc278)
+    #3 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:7910:15 (splitting.cpython-313-x86_64-linux-gnu.so+0x24d55)
+    #4 __pyx_pw_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_3split_indices $WORK/skl-nbrace/build/sklearn/ensemble/_hist_gradient_boosting/splitting.cpython-313-x86_64-linux-gnu.so.p/splitting.c:6568:13 (splitting.cpython-313-x86_64-linux-gnu.so+0x124c0)
+    #5 __Pyx_CyFunction_Vectorcall_FASTCALL_KEYWORDS $WORK/skl-nbrace/build/sklearn/_cyutility.c:27366:12 (_cyutility.cpython-313-x86_64-linux-gnu.so+0x1a813)
+    #6 _PyObject_VectorcallTstate /usr/local/src/conda/python-split-3.13.18/Include/internal/pycore_call.h:168:11 (python3.13+0x1b811d)
+    #7 PyObject_Vectorcall /usr/local/src/conda/python-split-3.13.18/Objects/call.c:327:12 (python3.13+0x1b811d)
+    #8 _PyObject_VectorcallTstate /usr/local/src/conda/python-split-3.13.18/Include/internal/pycore_call.h:168:11 (python3.13+0x1b811d)
+    #9 PyObject_Vectorcall /usr/local/src/conda/python-split-3.13.18/Objects/call.c:327:12 (python3.13+0x1b811d)
+
+  Location is heap block of size 16 at 0x7204000019d0 allocated by main thread:
+    #0 malloc /usr/local/src/conda/compiler-rt-packages-23.1.4/compiler-rt/lib/tsan/rtl/tsan_interceptors_posix.cpp:671:5 (libclang_rt.tsan-x86_64.so+0xd01d0)
+    #1 malloc /usr/local/src/conda/compiler-rt-packages-23.1.4/compiler-rt/lib/tsan/rtl/tsan_interceptors_posix.cpp:664:1 (libclang_rt.tsan-x86_64.so+0xd01d0)
+    #2 default_malloc alloc.c (_multiarray_umath.cpython-313-x86_64-linux-gnu.so+0x1762af)

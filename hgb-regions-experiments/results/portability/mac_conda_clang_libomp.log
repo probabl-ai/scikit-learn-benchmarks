@@ -1,0 +1,19 @@
+✔ The default environment has been installed.
+== conda-clang at 6ee427944 PRF Merge the parallel regions of a split in HGB, CC=clang CFLAGS=-fopenmp -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/Mac
+clang version 23.1.4
+sklearn /Users/Arthur/work/hgb-port/venv-conda-clang/lib/python3.13/site-packages/sklearn/__init__.py
+openmp runtimes ['libomp.dylib'] effective threads 8
+................................................................ssssssss [ 14%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 28%]
+ssssssssssssssssssss.................................................... [ 43%]
+........................................................................ [ 57%]
+....................s.s.s.s.s........................................... [ 72%]
+........................................................................ [ 86%]
+....................................................................     [100%]
+395 passed, 105 skipped in 9.08s
+___kmpc_barrier
+___kmpc_end_serialized_parallel
+___kmpc_for_static_fini
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)
+	@rpath/libomp.dylib (compatibility version 5.0.0, current version 5.0.0)
+### mac3 done

@@ -1,0 +1,37 @@
+== conda-clang at 6ee427944 PRF Merge the parallel regions of a split in HGB, CC=clang CFLAGS=-fopenmp -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/Mac
+clang version 23.1.4
+      [133/254] Compiling C++ object sklearn/utils/_vector_sentinel.cpython-313-darwin.so.p/meson-generated__vector_sentinel.cpp.o
+      [134/254] Compiling C object sklearn/utils/_seq_dataset.cpython-313-darwin.so.p/meson-generated__seq_dataset.c.o
+      [135/254] Compiling C++ object sklearn/metrics/_pairwise_distances_reduction/_datasets_pair.cpython-313-darwin.so.p/meson-generated__datasets_pair.cpp.o
+      [136/254] Compiling C object sklearn/utils/sparsefuncs_fast.cpython-313-darwin.so.p/meson-generated_sparsefuncs_fast.c.o
+      [137/254] Compiling C object sklearn/metrics/_dist_metrics.cpython-313-darwin.so.p/meson-generated__dist_metrics.c.o
+      [138/254] Compiling C object sklearn/_loss/_loss.cpython-313-darwin.so.p/meson-generated__loss.c.o
+      ninja: build stopped: subcommand failed.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: metadata-generation-failed
+× Encountered error while generating package metadata.
+╰─> from file:///Users/Arthur/work/hgb-port/skl-conda-clang
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details.
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ModuleNotFoundError: No module named 'sklearn'
+ERROR: module or package not found: sklearn.ensemble._hist_gradient_boosting (missing __init__.py?)
+
+
+no tests ran in 0.00s
+== apple-noomp at 6ee427944 PRF Merge the parallel regions of a split in HGB, CC=/usr/bin/clang CFLAGS=-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/Mac
+Apple clang version 16.0.0 (clang-1600.0.26.3)
+sklearn /Users/Arthur/work/hgb-port/venv-apple-noomp/lib/python3.13/site-packages/sklearn/__init__.py
+openmp runtimes ['libomp.dylib'] effective threads 1
+................................................................ssssssss [ 14%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 28%]
+ssssssssssssssssssss.................................................... [ 43%]
+........................................................................ [ 57%]
+....................s.s.s.s.s........................................... [ 72%]
+........................................................................ [ 86%]
+....................................................................     [100%]
+395 passed, 105 skipped in 18.70s
+### mac done

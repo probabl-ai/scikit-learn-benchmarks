@@ -1,0 +1,38 @@
+built
+Archer detected OpenMP application with TSan, supplying OpenMP synchronization semantics
+ThreadSanitizer:DEADLYSIGNAL
+nbrace: 0 TSan reports
+built
+Archer detected OpenMP application with TSan, supplying OpenMP synchronization semantics
+HistGradientBoostingRegressor {'max_leaf_nodes': 31} score 0.4217
+HistGradientBoostingRegressor {'categorical_features': [0], 'max_features': 0.5, 'max_leaf_nodes': 31} score 0.3813
+HistGradientBoostingRegressor {'monotonic_cst': [0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'max_leaf_nodes': 31} score 0.311
+HistGradientBoostingRegressor {'interaction_cst': [[1, 2, 3], [4, 5, 6, 7]], 'max_leaf_nodes': 31} score 0.4217
+HistGradientBoostingClassifier {'max_depth': 4} score 0.7039
+nbok: 0 TSan reports
+### control done
+built
+Archer detected OpenMP application with TSan, supplying OpenMP synchronization semantics
+ThreadSanitizer:DEADLYSIGNAL
+ThreadSanitizerThreadSanitizer:DEADLYSIGNAL
+:DEADLYSIGNAL
+ThreadSanitizer:DEADLYSIGNAL
+nbrace: 14 TSan reports
+     24 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__
+      4 __pyx_f_7sklearn_8ensemble_23_hist_gradient_boosting_18_gradient_boosting__update_raw_predictions_helper.omp_o
+### control2 done
+WARNING: ThreadSanitizer: data race (pid=700399)
+  Write of size 4 at 0x7204000019dc by thread T3:
+    #0 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__ /tmp/claude-1000/-home
+    #1 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined /tmp/claude-1000/-home-arthur-
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xcc278)
+    #3 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices /tmp/claude-1000/-home-arthur-scikit-learn-
+
+  Previous read of size 4 at 0x7204000019dc by main thread:
+    #0 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined_debug__ /tmp/claude-1000/-home
+    #1 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices.omp_outlined /tmp/claude-1000/-home-arthur-
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xcc278)
+    #3 __pyx_pf_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_2split_indices /tmp/claude-1000/-home-arthur-scikit-learn-
+    #4 __pyx_pw_7sklearn_8ensemble_23_hist_gradient_boosting_9splitting_8Splitter_3split_indices /tmp/claude-1000/-home-arthur-scikit-learn-
+
+[exited with code 0]

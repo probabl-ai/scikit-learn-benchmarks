@@ -692,3 +692,42 @@ Libomp rerun (`run_exp18_omp.sh`, `threadpool_info` shows libomp loaded):
 | susy | 17.4 | 0.78 (0.76-0.83) | 0.75 (0.72-0.81) | 0.82 (0.74-0.87) | 17% |
 | year_prediction_msd | 16.8 | 0.44 (0.41-0.49) | 0.48 (0.43-0.48) | 0.42 (0.40-0.58) | 16% |
 | geomean / pr | 1 | 0.88 (0.87-0.90) | 0.89 (0.87-0.90) | 0.87 (0.85-0.89) | |
+
+## Exp 19: portability of hgb/merge-regions (2026-11-04 ~11:00-12:15, local time)
+
+`scripts/portability/`, `results/portability/`. Conda-forge clang 23.1.4 and libomp,
+Python 3.13, branch at 6ee427944, HGB tests on 4 threads (macOS: same):
+
+| build | result |
+| --- | --- |
+| Linux, GCC 15.3 (Exp 18) | 395 passed, 105 skipped |
+| Linux, clang + libomp | 395 passed, 105 skipped |
+| macOS 27 arm64, conda clang + libomp | 395 passed, 105 skipped |
+| macOS 27 arm64, Apple clang 16, no OpenMP (0 OpenMP symbols, 1 effective thread) | 395 passed, 105 skipped |
+| MSVC | not tested. `__pragma(omp barrier)` in a macro gives `__kmpc_barrier` with clang `-fms-extensions` (`ms.c`) |
+
+On the mac, the Command Line Tools' macOS 27 SDK can't be used with this Xcode 16
+linker, so the builds use Xcode's macOS 15 SDK. That's the machine's setup, not the
+branch.
+
+With clang, a `prange` has 2 barriers instead of GCC's 1: `find_node_split` 2,
+`compute_histograms_and_find_splits` 2, `split_indices` 5 (2 + explicit + 2).
+
+TSan with Archer (`libarcher` from conda's llvm-openmp, so that OpenMP
+synchronization is known to TSan), C extensions built with `-fsanitize=thread`, 5 fits
+on 4 threads with active wait forced so that the threaded `split_indices` runs
+from 2000 samples (`tsan_fit.py`: numerical, categorical + `max_features`, monotonic,
+interaction constraints, classifier with `max_depth`):
+
+| build | TSan reports |
+| --- | --- |
+| hgb/merge-regions | 0 |
+| hgb/fewer-regions-nb (manual chunks, no start barrier, explicit barrier) | 0 |
+| same, explicit barrier deleted, counts initialized to 0 | 14 (`split_indices`, then a crash) |
+| same, explicit barrier deleted, counts not initialized | crash |
+
+The last two show that the tool sees this kind of race, and that the explicit barrier
+is what makes manual chunks correct. On `hgb/merge-regions`, clang's own `prange`
+barriers would also hide a missing explicit barrier, so this run doesn't prove that the
+explicit one is needed there. It's what the OpenMP spec requires with `nowait`. I only
+ran TSan on these 5 fits, not on the test suite.
