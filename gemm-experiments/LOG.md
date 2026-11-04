@@ -960,3 +960,15 @@ no split: the 24 MiB cap gives 13 chunks), is bimodal for develop and sk3off
 too (15-22 ms). Split cells gain as before (s 512x512x20000 24T 1.2-1.3x).
 
 Queued a full grid of v3 vs develop, 4 rounds at 4-24T (`sk3.csv`).
+
+## Exp 29: split-K v2 on mac-m2
+
+`sk2.csv` (2-8T, full grid, 3 rounds; threads aren't pinned on macOS).
+Checks: the two f64 threshold artifacts only. Gains where it splits: 1.2-3x
+(32x32 C 1.2-3.2x, 100-256 columns 1.5-2.5x at 6-8T). 48 of 496 cells have
+a median under 0.95x, nearly all at 6T, where 4 P + 2 E cores run and
+develop's rounds are bimodal. Slower by both min and median: one-chunk
+cells (d 1100x1100x5000 6T 0.81, d 512x512x5000 6T 0.91, s syrk 800x5000 8T
+0.91), which run develop's code, and d syrk 64x5000 and 64x20000 at 6T
+(6 chunks, 0.81-0.84; 1.03-1.48x at 2, 4 and 8T). v3 splits those the same
+way. Running v3 vs develop with 5 rounds (`sk3.csv`).
