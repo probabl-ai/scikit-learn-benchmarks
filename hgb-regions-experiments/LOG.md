@@ -782,7 +782,7 @@ msd, median fit in seconds:
   main everywhere but gamer libomp (8.81 vs 6.48 s). The worst median over all cases and
   profiles is `kddcup09_churn` on gamer libgomp at 1.05x, with processes from 0.93x to
   1.21x, then `L-stumps` at 1.03x on gamer libomp and xeon active.
-- The 3.3 column reproduces Exp 18 (0.76, 0.73, 0.87, 0.87, 0.87) within 0.01 in a
+- The 3.3 column reproduces Exp 18 (0.76, 0.73, 0.87, 0.87, 0.87) within 0.02 in a
   separate run.
 - Same source, 3.3 is faster than 3.2.5: 2-9% on the PR, 1-6% on #34935, 7-19% on main's
   msd. Same compiler (GCC 15.3) and options (release, -O3) on gamer's `main` and
@@ -797,5 +797,5 @@ msd, median fit in seconds:
   barrier, but I copied it to the PR. It was wrong there.
 - A first count showed no `split_indices` region at all. The fit had 200K x 10 = 2M cells,
   which #34935 sends to 1 thread with a passive runtime. Active wait fixed the test.
-- No clear cost for the extra barrier on 3.2.5: on msd, the 3.3 gain of the PR (3-20%)
+- No clear cost for the extra barrier on 3.2.5: on msd, the 3.3 gain of the PR (4-18%)
   isn't consistently bigger than main's (7-19%), which has none to remove.
