@@ -905,3 +905,25 @@ less than 64 x 64), accept chunks down to 256 so there is one chunk per
 thread. A/B of develop, v2 and v3 on the shapes where the chunk count
 changes: `scripts/xeon_s1_chain13.sh`, laptop `SK=sk3 BRANCH=splitk-v3
 setup_splitk_remote.sh` (`sk3.csv`).
+
+## Exp 27: split-K v3 vs v2 vs develop (xeon-s1, intel-laptop)
+
+`sk3.csv` (4 rounds, gemm `m x m x k:NT` and syrk `m x k:N`, m = 32-512,
+k = 5000-50000). Checks `check_sk3.txt`: same two f64 threshold artifacts only.
+
+- intel-laptop: fixes 128x128x5000:NT at 12-16T (d 0.85-0.88x with v2,
+  1.02-1.14x with v3; f32 1.24-1.33x), per round v3 0.60-0.65 ms vs develop
+  0.66-0.73 vs v2 0.78-0.83. The 4T column at 0.77-0.89x for every shape,
+  512x512 included, is one fast develop round (11.7 ms vs ~14.2 in all other
+  rounds of all builds). 2000^3 recheck (`sk3_2000.csv`, 6 rounds, 8 and
+  16T): the three builds match round for round; the laptop slows ~1.5x after
+  3 rounds, which made v2's 2000^3 16T look like 0.65x.
+- xeon-s1: new gains where v2 fell back to develop: 32x32x5000 at 24-86T
+  6-34x, 128x128x5000 16T 1.31 -> 2.05x, 128x128x20000 64T 19 -> 24x (syrk).
+  Smaller gain on 32x32x20000 at 64-86T (64-86 chunks of 232-312 instead of
+  39 of 512): 9-11x instead of ~14x. Cells under 0.95x (s 64x64x5000 24-64T
+  0.56-0.86 for v2 and v3, d 64x64x20000 86T 0.92, s syrk 32x20000 86T 0.90)
+  take develop's path in both builds; s 64x64x5000 varies 2x within a build
+  (0.23-0.56 ms). 10-round recheck queued (`sk3_recheck.csv`).
+
+Fork `splitk` fast-forwarded to v3 (1cfb856e); draft PR cakedev0/OpenBLAS#10.

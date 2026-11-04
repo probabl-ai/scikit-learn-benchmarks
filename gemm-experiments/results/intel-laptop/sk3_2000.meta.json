@@ -1,0 +1,83 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/intel-laptop/sk3_2000.csv",
+  "--threads",
+  "8,16",
+  "--variant",
+  "sr-base=builds/sr-base/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sk2=builds/sk2/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "sk3=builds/sk3/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--dtype",
+  "d,s",
+  "--rounds",
+  "6",
+  "--min-time",
+  "0.2",
+  "--pin",
+  "compact",
+  "--note",
+  "exp24 split-K vs develop",
+  "--shapes",
+  "2000x2000x2000"
+ ],
+ "note": "exp24 split-K vs develop",
+ "host": "xps-ultra-x7",
+ "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+ "start": "2026-11-04T19:09:48+0100",
+ "variants": {
+  "sr-base": {
+   "lib": "builds/sr-base/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sk2": {
+   "lib": "builds/sk2/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "sk3": {
+   "lib": "builds/sk3/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  }
+ },
+ "lscpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           46 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  16\nOn-line CPU(s) list:                     0-15\nVendor ID:                               GenuineIntel\nModel name:                              Intel(R) Core(TM) Ultra X7 358H\nCPU family:                              6\nModel:                                   204\nThread(s) per core:                      1\nCore(s) per socket:                      16\nSocket(s):                               1\nStepping:                                2\nCPU(s) scaling MHz:                      60%\nCPU max MHz:                             4800.0000\nCPU min MHz:                             400.0000\nBogoMIPS:                                7372.80\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdt_a rdseed adx smap clflushopt clwb intel_pt sha_ni xsaveopt xsavec xgetbv1 xsaves split_lock_detect user_shstk avx_vnni lam wbnoinvd dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req hfi vnmi umip pku ospke waitpkg gfni vaes vpclmulqdq rdpid bus_lock_detect movdiri movdir64b fsrm md_clear serialize arch_lbr ibt flush_l1d arch_capabilities\nVirtualization:                          VT-x\nL1d cache:                               576 KiB (16 instances)\nL1i cache:                               1 MiB (16 instances)\nL2 cache:                                24 MiB (7 instances)\nL3 cache:                                18 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-15\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS Not affected; BHI BHI_DIS_S\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected\n",
+ "affinity": "policy: default\npreferred node: current\nphyscpubind: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 \ncpubind: 0 \nnodebind: 0 \nmembind: 0 \npreferred: \n",
+ "loadavg_start": [
+  6.44677734375,
+  7.55322265625,
+  6.15234375
+ ],
+ "lib_headers": {
+  "sr-base": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=10 involuntary_switches=143 migrations=10 openmp=none",
+  "sk2": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=4 involuntary_switches=9 migrations=0 openmp=none",
+  "sk3": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=4 involuntary_switches=34 migrations=0 openmp=none"
+ },
+ "stderr": {
+  "sr-base T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=4 involuntary_switches=17 migrations=0 openmp=none",
+  "sr-base T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=8 involuntary_switches=15 migrations=0 openmp=none",
+  "sk2 T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=4 involuntary_switches=11 migrations=0 openmp=none",
+  "sk2 T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=10 involuntary_switches=28 migrations=2 openmp=none",
+  "sk3 T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=12 involuntary_switches=11 migrations=8 openmp=none",
+  "sk3 T=8 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=10 involuntary_switches=44 migrations=10 openmp=none",
+  "sr-base T=16 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=18 involuntary_switches=138 migrations=19 openmp=none",
+  "sr-base T=16 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=14 involuntary_switches=146 migrations=7 openmp=none",
+  "sk2 T=16 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=18 involuntary_switches=474 migrations=13 openmp=none",
+  "sk2 T=16 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=11 involuntary_switches=124 migrations=2 openmp=none",
+  "sk3 T=16 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=3 involuntary_switches=195 migrations=0 openmp=none",
+  "sk3 T=16 s": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=128 core: Haswell\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=29 involuntary_switches=2592 migrations=24 openmp=none"
+ },
+ "end": "2026-11-04T19:10:14+0100",
+ "loadavg_end": [
+  8.75,
+  7.98193359375,
+  6.3310546875
+ ]
+}

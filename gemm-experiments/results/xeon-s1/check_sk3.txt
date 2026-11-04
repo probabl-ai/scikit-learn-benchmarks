@@ -1,0 +1,472 @@
+builds/sk3 splitk=0 check,d,37,45,2000,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,37,45,2000,NT,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,37,45,2000,TN,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,37,45,2000,TT,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,100,100,200000,NT,beta=0,relerr=1.02e-12,FAIL
+builds/sk3 splitk=0 check,d,10,100000,100,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,100,20000,100,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,7,50000,100,TN,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,50,30000,300,NT,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,d,513,257,129,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=0 check,s,37,45,2000,NN,beta=0,relerr=4.01e-07,OK
+builds/sk3 splitk=0 check,s,37,45,2000,NT,beta=0,relerr=3.98e-07,OK
+builds/sk3 splitk=0 check,s,37,45,2000,TN,beta=0,relerr=3.43e-07,OK
+builds/sk3 splitk=0 check,s,37,45,2000,TT,beta=0,relerr=3.18e-07,OK
+builds/sk3 splitk=0 check,s,100,100,200000,NT,beta=0,relerr=3.47e-07,OK
+builds/sk3 splitk=0 check,s,10,100000,100,NN,beta=0,relerr=4.67e-07,OK
+builds/sk3 splitk=0 check,s,100,20000,100,NN,beta=0,relerr=5.4e-07,OK
+builds/sk3 splitk=0 check,s,7,50000,100,TN,beta=0,relerr=4.21e-07,OK
+builds/sk3 splitk=0 check,s,50,30000,300,NT,beta=0,relerr=7.57e-07,OK
+builds/sk3 splitk=0 check,s,513,257,129,NN,beta=0,relerr=3.74e-07,OK
+builds/sk3 splitk=0 check,d,37,45,2000,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,37,45,2000,NT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,37,45,2000,TN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,37,45,2000,TT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,100,100,200000,NT,beta=0.5,relerr=1.02e-12,FAIL
+builds/sk3 splitk=0 check,d,10,100000,100,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,100,20000,100,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,7,50000,100,TN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,50,30000,300,NT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,d,513,257,129,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=0 check,s,37,45,2000,NN,beta=0.5,relerr=3.99e-07,OK
+builds/sk3 splitk=0 check,s,37,45,2000,NT,beta=0.5,relerr=4.13e-07,OK
+builds/sk3 splitk=0 check,s,37,45,2000,TN,beta=0.5,relerr=3.18e-07,OK
+builds/sk3 splitk=0 check,s,37,45,2000,TT,beta=0.5,relerr=3.1e-07,OK
+builds/sk3 splitk=0 check,s,100,100,200000,NT,beta=0.5,relerr=3.46e-07,OK
+builds/sk3 splitk=0 check,s,10,100000,100,NN,beta=0.5,relerr=4.55e-07,OK
+builds/sk3 splitk=0 check,s,100,20000,100,NN,beta=0.5,relerr=5.11e-07,OK
+builds/sk3 splitk=0 check,s,7,50000,100,TN,beta=0.5,relerr=4.24e-07,OK
+builds/sk3 splitk=0 check,s,50,30000,300,NT,beta=0.5,relerr=7.36e-07,OK
+builds/sk3 splitk=0 check,s,513,257,129,NN,beta=0.5,relerr=3.68e-07,OK
+builds/sk3 splitk=7 check,d,37,45,2000,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,37,45,2000,NT,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,37,45,2000,TN,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,37,45,2000,TT,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,100,100,200000,NT,beta=0,relerr=1.02e-12,FAIL
+builds/sk3 splitk=7 check,d,10,100000,100,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,100,20000,100,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,7,50000,100,TN,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,50,30000,300,NT,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,d,513,257,129,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=7 check,s,37,45,2000,NN,beta=0,relerr=4.01e-07,OK
+builds/sk3 splitk=7 check,s,37,45,2000,NT,beta=0,relerr=3.98e-07,OK
+builds/sk3 splitk=7 check,s,37,45,2000,TN,beta=0,relerr=3.43e-07,OK
+builds/sk3 splitk=7 check,s,37,45,2000,TT,beta=0,relerr=3.18e-07,OK
+builds/sk3 splitk=7 check,s,100,100,200000,NT,beta=0,relerr=3.47e-07,OK
+builds/sk3 splitk=7 check,s,10,100000,100,NN,beta=0,relerr=4.67e-07,OK
+builds/sk3 splitk=7 check,s,100,20000,100,NN,beta=0,relerr=5.4e-07,OK
+builds/sk3 splitk=7 check,s,7,50000,100,TN,beta=0,relerr=4.21e-07,OK
+builds/sk3 splitk=7 check,s,50,30000,300,NT,beta=0,relerr=7.57e-07,OK
+builds/sk3 splitk=7 check,s,513,257,129,NN,beta=0,relerr=3.74e-07,OK
+builds/sk3 splitk=7 check,d,37,45,2000,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,37,45,2000,NT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,37,45,2000,TN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,37,45,2000,TT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,100,100,200000,NT,beta=0.5,relerr=1.02e-12,FAIL
+builds/sk3 splitk=7 check,d,10,100000,100,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,100,20000,100,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,7,50000,100,TN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,50,30000,300,NT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,d,513,257,129,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=7 check,s,37,45,2000,NN,beta=0.5,relerr=3.99e-07,OK
+builds/sk3 splitk=7 check,s,37,45,2000,NT,beta=0.5,relerr=4.13e-07,OK
+builds/sk3 splitk=7 check,s,37,45,2000,TN,beta=0.5,relerr=3.18e-07,OK
+builds/sk3 splitk=7 check,s,37,45,2000,TT,beta=0.5,relerr=3.1e-07,OK
+builds/sk3 splitk=7 check,s,100,100,200000,NT,beta=0.5,relerr=3.46e-07,OK
+builds/sk3 splitk=7 check,s,10,100000,100,NN,beta=0.5,relerr=4.55e-07,OK
+builds/sk3 splitk=7 check,s,100,20000,100,NN,beta=0.5,relerr=5.11e-07,OK
+builds/sk3 splitk=7 check,s,7,50000,100,TN,beta=0.5,relerr=4.24e-07,OK
+builds/sk3 splitk=7 check,s,50,30000,300,NT,beta=0.5,relerr=7.36e-07,OK
+builds/sk3 splitk=7 check,s,513,257,129,NN,beta=0.5,relerr=3.68e-07,OK
+builds/sk3 splitk=auto check,d,37,45,2000,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,37,45,2000,NT,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,37,45,2000,TN,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,37,45,2000,TT,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,100,100,200000,NT,beta=0,relerr=1.02e-12,FAIL
+builds/sk3 splitk=auto check,d,10,100000,100,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,100,20000,100,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,7,50000,100,TN,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,50,30000,300,NT,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,d,513,257,129,NN,beta=0,relerr=0,OK
+builds/sk3 splitk=auto check,s,37,45,2000,NN,beta=0,relerr=4.01e-07,OK
+builds/sk3 splitk=auto check,s,37,45,2000,NT,beta=0,relerr=3.98e-07,OK
+builds/sk3 splitk=auto check,s,37,45,2000,TN,beta=0,relerr=3.43e-07,OK
+builds/sk3 splitk=auto check,s,37,45,2000,TT,beta=0,relerr=3.18e-07,OK
+builds/sk3 splitk=auto check,s,100,100,200000,NT,beta=0,relerr=3.47e-07,OK
+builds/sk3 splitk=auto check,s,10,100000,100,NN,beta=0,relerr=4.67e-07,OK
+builds/sk3 splitk=auto check,s,100,20000,100,NN,beta=0,relerr=5.4e-07,OK
+builds/sk3 splitk=auto check,s,7,50000,100,TN,beta=0,relerr=4.21e-07,OK
+builds/sk3 splitk=auto check,s,50,30000,300,NT,beta=0,relerr=7.57e-07,OK
+builds/sk3 splitk=auto check,s,513,257,129,NN,beta=0,relerr=3.74e-07,OK
+builds/sk3 splitk=auto check,d,37,45,2000,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,37,45,2000,NT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,37,45,2000,TN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,37,45,2000,TT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,100,100,200000,NT,beta=0.5,relerr=1.02e-12,FAIL
+builds/sk3 splitk=auto check,d,10,100000,100,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,100,20000,100,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,7,50000,100,TN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,50,30000,300,NT,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,d,513,257,129,NN,beta=0.5,relerr=0,OK
+builds/sk3 splitk=auto check,s,37,45,2000,NN,beta=0.5,relerr=3.99e-07,OK
+builds/sk3 splitk=auto check,s,37,45,2000,NT,beta=0.5,relerr=4.13e-07,OK
+builds/sk3 splitk=auto check,s,37,45,2000,TN,beta=0.5,relerr=3.18e-07,OK
+builds/sk3 splitk=auto check,s,37,45,2000,TT,beta=0.5,relerr=3.1e-07,OK
+builds/sk3 splitk=auto check,s,100,100,200000,NT,beta=0.5,relerr=3.46e-07,OK
+builds/sk3 splitk=auto check,s,10,100000,100,NN,beta=0.5,relerr=4.55e-07,OK
+builds/sk3 splitk=auto check,s,100,20000,100,NN,beta=0.5,relerr=5.11e-07,OK
+builds/sk3 splitk=auto check,s,7,50000,100,TN,beta=0.5,relerr=4.24e-07,OK
+builds/sk3 splitk=auto check,s,50,30000,300,NT,beta=0.5,relerr=7.36e-07,OK
+builds/sk3 splitk=auto check,s,513,257,129,NN,beta=0.5,relerr=3.68e-07,OK
+builds/sk3 T=2 check,d,126,36168,1,gemvN,beta=0,relerr=1.63e-14,OK
+builds/sk3 T=2 check,d,37,50000,1,gemvN,beta=0,relerr=1.27e-14,OK
+builds/sk3 T=2 check,d,1000,40000,1,gemvN,beta=0,relerr=6.2e-14,OK
+builds/sk3 T=2 check,d,126,36168,1,gemvT,beta=0,relerr=0,OK
+builds/sk3 T=8 check,d,126,36168,1,gemvN,beta=0,relerr=1.63e-14,OK
+builds/sk3 T=8 check,d,37,50000,1,gemvN,beta=0,relerr=1.27e-14,OK
+builds/sk3 T=8 check,d,1000,40000,1,gemvN,beta=0,relerr=6.2e-14,OK
+builds/sk3 T=8 check,d,126,36168,1,gemvT,beta=0,relerr=0,OK
+builds/sk3 T=43 check,d,126,36168,1,gemvN,beta=0,relerr=1.63e-14,OK
+builds/sk3 T=43 check,d,37,50000,1,gemvN,beta=0,relerr=1.27e-14,OK
+builds/sk3 T=43 check,d,1000,40000,1,gemvN,beta=0,relerr=6.2e-14,OK
+builds/sk3 T=43 check,d,126,36168,1,gemvT,beta=0,relerr=0,OK
+builds/sk3 T=86 check,d,126,36168,1,gemvN,beta=0,relerr=1.63e-14,OK
+builds/sk3 T=86 check,d,37,50000,1,gemvN,beta=0,relerr=1.27e-14,OK
+builds/sk3 T=86 check,d,1000,40000,1,gemvN,beta=0,relerr=6.2e-14,OK
+builds/sk3 T=86 check,d,126,36168,1,gemvT,beta=0,relerr=0,OK
+builds/sk3 T=2 check,s,126,36168,1,gemvN,beta=0,relerr=2.16e-06,OK
+builds/sk3 T=2 check,s,37,50000,1,gemvN,beta=0,relerr=2.09e-06,OK
+builds/sk3 T=2 check,s,1000,40000,1,gemvN,beta=0,relerr=2.4e-06,OK
+builds/sk3 T=2 check,s,126,36168,1,gemvT,beta=0,relerr=1.35e-07,OK
+builds/sk3 T=8 check,s,126,36168,1,gemvN,beta=0,relerr=2.34e-06,OK
+builds/sk3 T=8 check,s,37,50000,1,gemvN,beta=0,relerr=4.81e-06,OK
+builds/sk3 T=8 check,s,1000,40000,1,gemvN,beta=0,relerr=2.4e-06,OK
+builds/sk3 T=8 check,s,126,36168,1,gemvT,beta=0,relerr=1.35e-07,OK
+builds/sk3 T=43 check,s,126,36168,1,gemvN,beta=0,relerr=2.34e-06,OK
+builds/sk3 T=43 check,s,37,50000,1,gemvN,beta=0,relerr=2.01e-06,OK
+builds/sk3 T=43 check,s,1000,40000,1,gemvN,beta=0,relerr=5.54e-06,OK
+builds/sk3 T=43 check,s,126,36168,1,gemvT,beta=0,relerr=1.35e-07,OK
+builds/sk3 T=86 check,s,126,36168,1,gemvN,beta=0,relerr=2.34e-06,OK
+builds/sk3 T=86 check,s,37,50000,1,gemvN,beta=0,relerr=2.01e-06,OK
+builds/sk3 T=86 check,s,1000,40000,1,gemvN,beta=0,relerr=3.18e-06,OK
+builds/sk3 T=86 check,s,126,36168,1,gemvT,beta=0,relerr=1.35e-07,OK
+builds/sk3 T=2 check,d,126,36168,1,gemvN,beta=0.5,relerr=1.67e-14,OK
+builds/sk3 T=2 check,d,37,50000,1,gemvN,beta=0.5,relerr=1.29e-14,OK
+builds/sk3 T=2 check,d,1000,40000,1,gemvN,beta=0.5,relerr=6.16e-14,OK
+builds/sk3 T=2 check,d,126,36168,1,gemvT,beta=0.5,relerr=0,OK
+builds/sk3 T=8 check,d,126,36168,1,gemvN,beta=0.5,relerr=1.67e-14,OK
+builds/sk3 T=8 check,d,37,50000,1,gemvN,beta=0.5,relerr=1.29e-14,OK
+builds/sk3 T=8 check,d,1000,40000,1,gemvN,beta=0.5,relerr=6.16e-14,OK
+builds/sk3 T=8 check,d,126,36168,1,gemvT,beta=0.5,relerr=0,OK
+builds/sk3 T=43 check,d,126,36168,1,gemvN,beta=0.5,relerr=1.67e-14,OK
+builds/sk3 T=43 check,d,37,50000,1,gemvN,beta=0.5,relerr=1.29e-14,OK
+builds/sk3 T=43 check,d,1000,40000,1,gemvN,beta=0.5,relerr=6.16e-14,OK
+builds/sk3 T=43 check,d,126,36168,1,gemvT,beta=0.5,relerr=0,OK
+builds/sk3 T=86 check,d,126,36168,1,gemvN,beta=0.5,relerr=1.67e-14,OK
+builds/sk3 T=86 check,d,37,50000,1,gemvN,beta=0.5,relerr=1.29e-14,OK
+builds/sk3 T=86 check,d,1000,40000,1,gemvN,beta=0.5,relerr=6.16e-14,OK
+builds/sk3 T=86 check,d,126,36168,1,gemvT,beta=0.5,relerr=0,OK
+builds/sk3 T=2 check,s,126,36168,1,gemvN,beta=0.5,relerr=2.16e-06,OK
+builds/sk3 T=2 check,s,37,50000,1,gemvN,beta=0.5,relerr=2.04e-06,OK
+builds/sk3 T=2 check,s,1000,40000,1,gemvN,beta=0.5,relerr=2.48e-06,OK
+builds/sk3 T=2 check,s,126,36168,1,gemvT,beta=0.5,relerr=1.36e-07,OK
+builds/sk3 T=8 check,s,126,36168,1,gemvN,beta=0.5,relerr=2.33e-06,OK
+builds/sk3 T=8 check,s,37,50000,1,gemvN,beta=0.5,relerr=4.79e-06,OK
+builds/sk3 T=8 check,s,1000,40000,1,gemvN,beta=0.5,relerr=2.48e-06,OK
+builds/sk3 T=8 check,s,126,36168,1,gemvT,beta=0.5,relerr=1.36e-07,OK
+builds/sk3 T=43 check,s,126,36168,1,gemvN,beta=0.5,relerr=2.33e-06,OK
+builds/sk3 T=43 check,s,37,50000,1,gemvN,beta=0.5,relerr=2.11e-06,OK
+builds/sk3 T=43 check,s,1000,40000,1,gemvN,beta=0.5,relerr=5.51e-06,OK
+builds/sk3 T=43 check,s,126,36168,1,gemvT,beta=0.5,relerr=1.36e-07,OK
+builds/sk3 T=86 check,s,126,36168,1,gemvN,beta=0.5,relerr=2.33e-06,OK
+builds/sk3 T=86 check,s,37,50000,1,gemvN,beta=0.5,relerr=2.11e-06,OK
+builds/sk3 T=86 check,s,1000,40000,1,gemvN,beta=0.5,relerr=3.16e-06,OK
+builds/sk3 T=86 check,s,126,36168,1,gemvT,beta=0.5,relerr=1.36e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0,relerr=4.6e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=8 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0,relerr=8.49e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0,relerr=4.54e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=43 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0,relerr=8.44e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0,relerr=4.54e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0,relerr=1.18e-13,FAIL
+builds/sk3 T=62 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0,relerr=8.49e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0,relerr=4.62e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=86 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0,relerr=8.44e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0,relerr=1.78e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0,relerr=1.62e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0,relerr=1.54e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0,relerr=2.8e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0,relerr=2.85e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0,relerr=1.95e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0,relerr=3.49e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0,relerr=2.98e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0,relerr=3.38e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0,relerr=4.94e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0,relerr=4.27e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0,relerr=3.57e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.6e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=8 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.49e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.54e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=43 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=43 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.44e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.54e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.18e-13,FAIL
+builds/sk3 T=62 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=62 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.49e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.62e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=86 syrk_splitk=0 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=86 syrk_splitk=0 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.44e-14,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0.5,relerr=1.75e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0.5,relerr=1.63e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=8 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0.5,relerr=1.45e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0.5,relerr=2.96e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0.5,relerr=2.89e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=43 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0.5,relerr=1.76e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0.5,relerr=3.68e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0.5,relerr=3.4e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=62 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0.5,relerr=3e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,300,300,20000,syrkN,beta=0.5,relerr=5.58e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,200,200,60000,syrkT,beta=0.5,relerr=4.43e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=86 syrk_splitk=0 check,s,37,37,50000,syrkN,beta=0.5,relerr=3.9e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0,relerr=4.6e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=8 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0,relerr=8.49e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0,relerr=4.54e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=43 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0,relerr=8.44e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0,relerr=4.54e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0,relerr=1.18e-13,FAIL
+builds/sk3 T=62 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0,relerr=8.49e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0,relerr=4.62e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=86 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0,relerr=8.44e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0,relerr=1.78e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0,relerr=1.62e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0,relerr=1.54e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0,relerr=2.8e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0,relerr=2.85e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0,relerr=1.95e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0,relerr=3.49e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0,relerr=2.98e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0,relerr=3.38e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0,relerr=4.94e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0,relerr=4.27e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0,relerr=3.57e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.6e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=8 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.49e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.54e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=43 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=43 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.44e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.54e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.18e-13,FAIL
+builds/sk3 T=62 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=62 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.49e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,300,300,20000,syrkN,beta=0.5,relerr=4.62e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=86 syrk_splitk=7 check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=86 syrk_splitk=7 check,d,37,37,50000,syrkN,beta=0.5,relerr=8.44e-14,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0.5,relerr=1.75e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0.5,relerr=1.63e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=8 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0.5,relerr=1.45e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0.5,relerr=2.96e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0.5,relerr=2.89e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=43 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0.5,relerr=1.76e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0.5,relerr=3.68e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0.5,relerr=3.4e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=62 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0.5,relerr=3e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,300,300,20000,syrkN,beta=0.5,relerr=5.58e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,200,200,60000,syrkT,beta=0.5,relerr=4.43e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=86 syrk_splitk=7 check,s,37,37,50000,syrkN,beta=0.5,relerr=3.9e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0,relerr=4.6e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=8 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0,relerr=8.49e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0,relerr=4.54e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=43 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0,relerr=8.44e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0,relerr=4.54e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0,relerr=1.18e-13,FAIL
+builds/sk3 T=62 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0,relerr=8.49e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0,relerr=1.74e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0,relerr=1.7e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0,relerr=4.62e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0,relerr=1.19e-13,FAIL
+builds/sk3 T=86 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0,relerr=2.01e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0,relerr=8.44e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0,relerr=1.78e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0,relerr=1.62e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0,relerr=1.54e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0,relerr=2.8e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0,relerr=2.85e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0,relerr=1.95e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0,relerr=3.49e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0,relerr=2.98e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0,relerr=3.38e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0,relerr=3.02e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0,relerr=2.62e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0,relerr=4.94e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0,relerr=4.27e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0,relerr=3.13e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0,relerr=3.57e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0.5,relerr=4.6e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=8 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0.5,relerr=8.49e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0.5,relerr=4.54e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=43 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=43 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0.5,relerr=8.44e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0.5,relerr=4.54e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0.5,relerr=1.18e-13,FAIL
+builds/sk3 T=62 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=62 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0.5,relerr=8.49e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,990,990,4000,syrkN,beta=0.5,relerr=1.74e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,990,990,4000,syrkT,beta=0.5,relerr=1.7e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,300,300,20000,syrkN,beta=0.5,relerr=4.62e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,200,200,60000,syrkT,beta=0.5,relerr=1.19e-13,FAIL
+builds/sk3 T=86 syrk_splitk=auto check,d,1500,1500,2000,syrkT,beta=0.5,relerr=2.01e-14,OK
+builds/sk3 T=86 syrk_splitk=auto check,d,37,37,50000,syrkN,beta=0.5,relerr=8.44e-14,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0.5,relerr=1.75e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0.5,relerr=1.63e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=8 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0.5,relerr=1.45e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0.5,relerr=2.96e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0.5,relerr=2.89e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=43 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0.5,relerr=1.76e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0.5,relerr=3.68e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0.5,relerr=3.4e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=62 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0.5,relerr=3e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,990,990,4000,syrkN,beta=0.5,relerr=3.04e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,990,990,4000,syrkT,beta=0.5,relerr=2.66e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,300,300,20000,syrkN,beta=0.5,relerr=5.58e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,200,200,60000,syrkT,beta=0.5,relerr=4.43e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,1500,1500,2000,syrkT,beta=0.5,relerr=3.19e-07,OK
+builds/sk3 T=86 syrk_splitk=auto check,s,37,37,50000,syrkN,beta=0.5,relerr=3.9e-07,OK
