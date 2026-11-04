@@ -29,6 +29,13 @@ def read_env(kind: str, hash: str):
         path = next((p for p in aliases if p.is_file()), path)
     if not path.is_file():
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
+    return _load_env_file(path.resolve())
+
+
+@lru_cache(maxsize=None)
+def _load_env_file(path: Path) -> dict:
+    """Read once per row of a dashboard table otherwise. Callers must not
+    modify the returned dict."""
     with open(path, "r") as f:
         return json.load(f)
 

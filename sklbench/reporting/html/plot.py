@@ -8,7 +8,12 @@ from statistics import median
 
 from plotly import graph_objects as go
 
-from ..matching import BenchmarkRecord, Match, warning_marks_binned_splits
+from ..matching import (
+    BenchmarkRecord,
+    Match,
+    sklearnex_tree_is_binned,
+    warning_marks_binned_splits,
+)
 from .table import data_dtype_label, data_layout_label, default_comparison_key
 from .templates import PLOT_NOTES_TEMPLATE
 
@@ -147,7 +152,7 @@ def _estimator_name(match: Match) -> str:
 
 # Shortens tree-estimator names on x-axis tick labels only - everywhere else
 # (hover text, warning tooltips, matching) keeps the full estimator name.
-_ESTIMATOR_LABEL_ABBREVIATIONS = {
+ESTIMATOR_LABEL_ABBREVIATIONS = {
     "HistGradientBoosting": "HGB",
     "RandomForest": "RF",
     "Regressor": "Reg",
@@ -156,7 +161,7 @@ _ESTIMATOR_LABEL_ABBREVIATIONS = {
 
 
 def _abbreviate_estimator_label(name: str) -> str:
-    for full, short in _ESTIMATOR_LABEL_ABBREVIATIONS.items():
+    for full, short in ESTIMATOR_LABEL_ABBREVIATIONS.items():
         name = name.replace(full, short)
     return name
 
@@ -265,10 +270,23 @@ def _data_hover_lines(case: dict, data_desc: dict | None) -> list[str]:
     return _hover_lines(requested) + _data_desc_hover_lines(case, data_desc)
 
 
+def case_hover_html(case: dict, data_desc: dict | None) -> str:
+    """The part of a point's hover text that only depends on its own case."""
+    algorithm = case.get("algorithm", {})
+    estimator_params = "<br>".join(
+        escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
+    )
+    data_params = "<br>".join(
+        escape(line) for line in _data_hover_lines(case, data_desc)
+    )
+    return "<br>".join(
+        ["<br><b>estimator params</b>", estimator_params, "<br><b>data params</b>", data_params]
+    )
+
+
 def _hover_text(match: Match) -> str:
     result = match.matched_result
     base = match.base_result
-    algorithm = result.case.get("algorithm", {})
     warning_lines = [_warning_tooltip_line(warning) for warning in match.warnings]
     lines = [
         f"<b>speed-up: {match.speedup:.2g}x</b> "
@@ -285,39 +303,14 @@ def _hover_text(match: Match) -> str:
         lines.append("<i>fell back to scikit-learn</i>")
     if warning_lines:
         lines.extend(escape(line) for line in warning_lines)
-    estimator_params = "<br>".join(
-        escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
-    )
-    data_params = "<br>".join(
-        escape(line) for line in _data_hover_lines(result.case, result.data_desc)
-    )
-    lines.extend(
-        [
-            "<br><b>estimator params</b>",
-            estimator_params,
-            "<br><b>data params</b>",
-            data_params,
-        ]
-    )
-    return "<br>".join(lines)
+    return "<br>".join([*lines, case_hover_html(result.case, result.data_desc)])
 
 
-def _failed_hover_text(record: BenchmarkRecord) -> str:
-    algorithm = record.case.get("algorithm", {})
-    estimator_params = "<br>".join(
-        escape(line) for line in _hover_lines(algorithm.get("estimator_params", {}))
-    )
-    data_params = "<br>".join(
-        escape(line)
-        for line in _data_hover_lines(record.case, _record_fit_data_desc(record))
-    )
+def failed_hover_html(record: BenchmarkRecord) -> str:
     return "<br>".join(
         [
             "<b>benchmark run failed</b>",
-            "<br><b>estimator params</b>",
-            estimator_params,
-            "<br><b>data params</b>",
-            data_params,
+            case_hover_html(record.case, _record_fit_data_desc(record)),
         ]
     )
 
@@ -858,6 +851,16 @@ def _x_variant(match: Match, variant: str) -> str:
     return f"{variant} / {max_bins_label}"
 
 
+def split_kind_x_variant(match: Match, variant: str) -> str:
+    """`_x_variant` also splitting comparisons where neither side warns because
+    both bin the same way, like sklearnex against itself on another machine."""
+    result = match.matched_result
+    if result.category != "tree-based":
+        return variant
+    binned = _has_binned_splits_warning(match) or sklearnex_tree_is_binned(result)
+    return f"{variant} / {'1-binned' if binned else '0-exact'}"
+
+
 def speedup_plot_html(
     matches: list[Match],
     *,
@@ -996,7 +999,7 @@ def speedup_plot_html(
                         for failed in variant_failed
                     ],
                     text=[
-                        _failed_hover_text(failed.matched_result)
+                        failed_hover_html(failed.matched_result)
                         for failed in variant_failed
                     ],
                     customdata=[

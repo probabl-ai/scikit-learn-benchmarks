@@ -637,7 +637,42 @@ def _new_failed_row(
     )
 
 
-def _n_iter(result: MethodResult) -> float | None:
+def _export_row(row: dict) -> dict:
+    """A row of `gen_cross_comparison`'s data files: unset fields dropped, column
+    group values formatted (the page picks the columns that vary)."""
+    for group in COLUMNS:
+        if isinstance(group, ColumnGroupSpec):
+            key = f"__group_{group.field_prefix}"
+            row[key] = {name: _format_value(value) for name, value in row[key].items()}
+    return {name: value for name, value in row.items() if value is not None}
+
+
+def export_result_row(result: MethodResult, comparison_key: int) -> dict:
+    return _export_row(
+        _new_row(result, None, comparison_key, json_viewer_url, profile_viewer_url)
+    )
+
+
+def export_failed_row(record: BenchmarkRecord, comparison_key: int) -> dict:
+    return _export_row(_new_failed_row(record, None, comparison_key, json_viewer_url))
+
+
+def export_columns() -> list[dict]:
+    """`COLUMNS` for `cross_comparison.js`, which decides what to show from the
+    rows of the view, like `detailed_results_table_html`."""
+    columns = []
+    for spec in COLUMNS:
+        if isinstance(spec, ColumnGroupSpec):
+            columns.append({"group": spec.field_prefix, "allowedKeys": spec.allowed_keys})
+        else:
+            columns.append({
+                "visibility": "custom" if spec.custom_show else spec.visibility.value,
+                "column": _spec_column_dict(spec, title=spec.title),
+            })
+    return columns
+
+
+def n_iter_median(result: MethodResult) -> float | None:
     """Median over repeats. A per-repeat value can be a list (e.g.
     LogisticRegression's per-class `n_iter_`), reduced to its max."""
     per_repeat = [
@@ -649,11 +684,11 @@ def _n_iter(result: MethodResult) -> float | None:
 
 
 def _format_n_iter(result: MethodResult, base_result: MethodResult | None) -> str | None:
-    n_iter = _n_iter(result)
+    n_iter = n_iter_median(result)
     if n_iter is None:
         return None
     label = f"{n_iter:.0f}"
-    base_n_iter = _n_iter(base_result) if base_result is not None else None
+    base_n_iter = n_iter_median(base_result) if base_result is not None else None
     if base_n_iter and n_iter != base_n_iter:
         ratio = n_iter / base_n_iter
         label += f" ({ratio:.0f}x)" if ratio >= 10 else f" ({ratio:.2g}x)"

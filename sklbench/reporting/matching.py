@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
+from functools import cached_property
 import math
 from pathlib import Path
 import json
@@ -463,7 +464,7 @@ class Match:
     warnings: list[MatchWarning]
 
     @staticmethod
-    def _comparable_metrics(metrics: dict) -> dict:
+    def comparable_metrics(metrics: dict) -> dict:
         metrics = {
             method: dict(method_metrics)
             for method, method_metrics in metrics.items()
@@ -504,14 +505,14 @@ class Match:
             )
         return None
 
-    @property
+    @cached_property
     def metrics_differences(self) -> list[MetricDifference]:
         if self.base_result.method != "fit":
             return []
 
         differences = []
-        base_metrics = self._comparable_metrics(self.base_result.metrics)
-        matched_metrics = self._comparable_metrics(self.matched_result.metrics)
+        base_metrics = self.comparable_metrics(self.base_result.metrics)
+        matched_metrics = self.comparable_metrics(self.matched_result.metrics)
 
         for method in sorted(set(base_metrics) | set(matched_metrics)):
             if method not in base_metrics:
@@ -596,11 +597,11 @@ _CUML_RANDOM_FOREST_ESTIMATORS = {
     "RandomForestClassifier",
     "RandomForestRegressor",
 }
-_BINNED_SPLIT_WARNING_KINDS = {"histogram-splits", "quantile-splits"}
+BINNED_SPLIT_WARNING_KINDS = {"histogram-splits", "quantile-splits"}
 
 
 def warning_marks_binned_splits(warning: MatchWarning) -> bool:
-    return warning.kind in _BINNED_SPLIT_WARNING_KINDS
+    return warning.kind in BINNED_SPLIT_WARNING_KINDS
 
 
 CPU_FALLBACK_WARNING = MatchWarning(
@@ -636,29 +637,30 @@ def append_cpu_fallback_warning(result: MethodResult, warnings: list):
         warnings.append(CPU_FALLBACK_WARNING)
 
 
+def sklearnex_tree_is_binned(result: MethodResult | BenchmarkRecord) -> bool:
+    """Whether this is a sklearnex tree-based result using histogram-based
+    splits. A failed record has no `data_desc`, so a real dataset's n_samples
+    is unknown there: it counts as not binned."""
+    if result.implementation.library != "sklearnex" or result.category != "tree-based":
+        return False
+    max_bins = result.case.get("algorithm", {}).get("estimator_params", {}).get("max_bins", 255)
+    n_samples = result.case.get("data", {}).get("generation_kwargs", {}).get("n_samples")
+    if n_samples is None:
+        n_samples = getattr(result, "data_desc", {}).get("samples")
+    return n_samples is not None and max_bins < n_samples
+
+
 def append_max_bins_warning(
     sklearn_res: MethodResult, sklearnex_res: MethodResult, warnings: list
 ):
     assert sklearn_res.implementation.library == "sklearn"
     assert sklearnex_res.implementation.library == "sklearnex"
 
-    estimator_params = sklearnex_res.case.get("algorithm", {}).get(
-        "estimator_params", {}
-    )
-    max_bins = estimator_params.get("max_bins", 255)
-    n_samples = (
-        sklearnex_res.case.get("data", {})
-        .get("generation_kwargs", {})
-        .get("n_samples")
-    )
-    if n_samples is None:
-        n_samples = sklearnex_res.data_desc.get("samples")
-
-    if n_samples is not None and max_bins < n_samples:
+    if sklearnex_tree_is_binned(sklearnex_res):
         warnings.append(SKLEARNEX_BINS_WARNING)
 
 
-def _is_cuml_random_forest(result: MethodResult) -> bool:
+def is_cuml_random_forest(result: MethodResult) -> bool:
     return (
         result.implementation.library == "cuml"
         and result.case.get("algorithm", {}).get("estimator")
@@ -674,8 +676,8 @@ def append_cuml_rf_bins_warning(
     Both sides bin the same way when they are both cuML, so that pairing
     gets no warning. Either side may be the dashboard baseline.
     """
-    base_is_cuml_rf = _is_cuml_random_forest(base_res)
-    candidate_is_cuml_rf = _is_cuml_random_forest(candidate)
+    base_is_cuml_rf = is_cuml_random_forest(base_res)
+    candidate_is_cuml_rf = is_cuml_random_forest(candidate)
     if base_is_cuml_rf == candidate_is_cuml_rf:
         return
     warnings.append(CUML_RF_BINS_WARNING)

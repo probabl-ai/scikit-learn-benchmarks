@@ -463,6 +463,12 @@ BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
 BASE_TEMPLATE.globals["expand_terms"] = expand_terms
 
+SOURCE_CELL = """            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
+            {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
+            {% if source.commit_url %} &middot; <a href="{{ source.commit_url }}" title="{{ source.commit_subject|e }}"><code>{{ source.commit_sha[:8] }}</code></a> <span class="muted">by {{ source.commit_author|e }}</span>{% endif %}
+"""
+SOURCE_CELL_TEMPLATE = Template(SOURCE_CELL)
+
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">
   {% if empty %}
   <h2>No results</h2>
@@ -481,10 +487,7 @@ DATE_RANGE_TEMPLATE = Template("""<section class="panel">
           <td>{{ row.hardware|e }}</td>
           <td>{{ row.count }}</td>
           <td>
-            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
-            {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
-            {% if source.commit_url %} &middot; <a href="{{ source.commit_url }}" title="{{ source.commit_subject|e }}"><code>{{ source.commit_sha[:8] }}</code></a> <span class="muted">by {{ source.commit_author|e }}</span>{% endif %}
-          </td>
+""" + SOURCE_CELL + """          </td>
           <td>{% for env in row.envs %}<code>{{ env|e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td>
           <td>{% for config in row.configs %}<code>{{ config|e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td>
         </tr>
