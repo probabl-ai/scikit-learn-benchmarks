@@ -545,3 +545,128 @@ exits, no holder left after the run). Deep entries were 0.00 M with the limit.
 
 With only C1, merging wins everywhere, the two runtimes give the same times, and
 the dynamic schedule is slower than the static one.
+
+Laptop part of Exp 16 (16 threads, ran later that morning, `balanced` profile). Same
+picture as gamer: flat up to ~100K, always serial is worse.
+
+### exp16-laptop-gomp.jsonl 
+
+| case | always threaded | 10K | 30K | 100K | 300K | 1M | always serial | PR rule |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| L | 1.19 | 1.12 | 1.13 | 1.24 | 1.20 | 1.24 | 1.43 | 1.30 |
+| L-leaf255 | 1.12 | 0.96 | 0.95 | 0.92 | 0.98 | 0.94 | 1.03 | 0.95 |
+| kddcup09_churn | 2.14 | 2.04 | 2.13 | 2.12 | 2.14 | 2.09 | 2.29 | 2.08 |
+| covtype | 8.64 | 8.03 | 8.46 | 8.66 | 9.18 | 10.18 | 10.13 | 8.06 |
+| susy | 12.83 | 12.56 | 12.93 | 13.94 | 15.71 | 18.14 | 20.98 | 12.81 |
+| year_prediction_msd | 7.12 | 4.55 | 4.55 | 4.77 | 5.10 | 5.40 | 5.36 | 4.75 |
+
+## Exp 18: noise level, and the clean branch (08:07-10:50)
+
+`cakedev0/scikit-learn@hgb/merge-regions` (6ee4279445, build `clean`, variant
+`clean:pr`): fuse3 only, no env var, one path at every thread count, explicit
+barrier in split_indices, no gather when the children are bound to be leaves.
+`scripts/ab/run_exp18.sh`, `analyze_noise.py`, `results/*/exp18/`. 5 processes of 1
+fit per case and variant, all 15 cases, variants shuffled per case. Ratio to `pr`,
+median (min-max of the 5 processes), `pr spread` = (max - min) / median of `pr`,
+geomean interval = 5-95% bootstrap over the processes.
+
+`identity.py`: tree bytes and predictions, 6 parameter sets, forced 1 and 8 threads:
+`clean` == `pr` == `main` for all 12 on gamer, laptop and xeon.
+
+`exp18-gamer-gomp-run2-mislabeled-omp.jsonl` was meant to be libomp, but a literal
+`~` in `LD_PRELOAD` made ld.so ignore it, so it's a second libgomp run. The earlier
+libomp profiles have an absolute path. `bench.py` now refuses a missing file. The
+libomp profile was redone with `run_exp18_omp.sh`.
+
+### exp18-gamer-gomp
+
+| case | pr | pr+fuse3 | abs+fuse3 | clean:pr | pr spread |
+| --- | --- | --- | --- | --- | --- |
+| XS | 0.0558 | 0.98 (0.97-0.99) | 0.99 (0.98-1.01) | 0.92 (0.91-0.92) | 3% |
+| S-thin | 0.121 | 1.00 (0.99-1.01) | 1.00 (0.98-1.01) | 0.96 (0.93-0.96) | 1% |
+| S | 0.326 | 1.01 (1.00-1.02) | 1.01 (1.00-1.01) | 0.95 (0.95-0.96) | 1% |
+| M | 0.416 | 1.00 (1.00-1.01) | 1.00 (1.00-1.01) | 0.97 (0.97-0.98) | 2% |
+| M-very-thin | 0.188 | 1.00 (0.99-1.01) | 1.00 (0.98-1.00) | 0.98 (0.97-0.98) | 1% |
+| L-thin | 0.848 | 0.91 (0.88-0.94) | 0.88 (0.87-0.95) | 0.87 (0.86-0.88) | 4% |
+| L | 0.968 | 0.91 (0.87-0.93) | 0.93 (0.90-0.99) | 0.91 (0.85-0.95) | 9% |
+| L-stumps | 1.13 | 0.99 (0.97-1.04) | 1.02 (1.00-1.09) | 0.99 (0.98-1.03) | 5% |
+| L-leaf255 | 0.873 | 0.82 (0.78-0.83) | 0.82 (0.76-0.86) | 0.83 (0.81-0.85) | 3% |
+| ames_housing | 0.221 | 0.99 (0.99-1.00) | 0.99 (0.98-1.00) | 0.96 (0.95-0.97) | 2% |
+| kddcup09_churn | 1.94 | 0.97 (0.96-1.00) | 1.00 (0.94-1.03) | 0.98 (0.96-0.98) | 14% |
+| amazon_employee_access | 0.365 | 1.00 (1.00-1.01) | 1.00 (0.99-1.01) | 0.99 (0.98-0.99) | 1% |
+| covtype | 8.41 | 0.76 (0.75-0.80) | 0.76 (0.76-0.79) | 0.76 (0.75-0.80) | 5% |
+| susy | 17.1 | 0.77 (0.74-0.81) | 0.70 (0.68-0.76) | 0.80 (0.80-0.84) | 16% |
+| year_prediction_msd | 20.3 | 0.39 (0.38-0.39) | 0.40 (0.39-0.44) | 0.40 (0.39-0.41) | 8% |
+| geomean / pr | 1 | 0.88 (0.87-0.89) | 0.88 (0.87-0.89) | 0.87 (0.86-0.88) | |
+
+### exp18-laptop-gomp
+
+| case | pr | pr+fuse3 | abs+fuse3 | clean:pr | pr spread |
+| --- | --- | --- | --- | --- | --- |
+| XS | 0.0675 | 1.00 (1.00-1.02) | 1.00 (0.99-1.01) | 0.94 (0.93-0.94) | 1% |
+| S-thin | 0.146 | 0.99 (0.97-1.04) | 1.03 (1.01-1.04) | 0.96 (0.95-1.00) | 9% |
+| S | 0.436 | 0.99 (0.98-1.00) | 0.99 (0.98-1.00) | 0.95 (0.95-0.96) | 1% |
+| M | 0.513 | 0.99 (0.99-1.00) | 1.00 (0.99-1.00) | 0.96 (0.96-0.97) | 1% |
+| M-very-thin | 0.225 | 1.00 (1.00-1.00) | 1.00 (1.00-1.00) | 0.97 (0.97-0.98) | 1% |
+| L-thin | 1.06 | 1.05 (0.88-1.09) | 1.03 (0.92-1.07) | 1.00 (0.87-1.08) | 22% |
+| L | 1.35 | 0.89 (0.84-0.91) | 0.87 (0.85-0.91) | 0.86 (0.84-0.90) | 21% |
+| L-stumps | 1.86 | 1.04 (0.98-1.07) | 1.08 (0.99-1.16) | 1.00 (0.94-1.02) | 13% |
+| L-leaf255 | 1.27 | 0.78 (0.74-0.80) | 0.73 (0.68-0.79) | 0.74 (0.72-0.80) | 9% |
+| ames_housing | 0.288 | 0.99 (0.99-1.01) | 1.00 (0.99-1.00) | 0.97 (0.96-0.97) | 1% |
+| kddcup09_churn | 2.27 | 0.92 (0.90-0.93) | 0.90 (0.89-0.93) | 0.91 (0.90-0.92) | 3% |
+| amazon_employee_access | 0.446 | 1.00 (0.99-1.01) | 1.00 (1.00-1.01) | 0.99 (0.98-0.99) | 1% |
+| covtype | 11 | 0.74 (0.71-0.77) | 0.71 (0.70-0.76) | 0.71 (0.69-0.72) | 9% |
+| susy | 13.5 | 0.97 (0.90-1.03) | 0.95 (0.86-0.96) | 0.94 (0.87-0.97) | 2% |
+| year_prediction_msd | 12.1 | 0.40 (0.38-0.41) | 0.36 (0.35-0.38) | 0.38 (0.37-0.41) | 3% |
+| geomean / pr | 1 | 0.90 (0.88-0.91) | 0.88 (0.87-0.90) | 0.87 (0.85-0.88) | |
+
+### exp18-xeon-active
+
+| case | pr | pr+fuse3 | clean:pr | pr spread |
+| --- | --- | --- | --- | --- |
+| XS | 0.0901 | 1.00 (0.99-1.02) | 0.92 (0.92-0.93) | 4% |
+| S-thin | 0.229 | 0.80 (0.76-0.85) | 0.75 (0.75-0.78) | 5% |
+| S | 0.7 | 0.67 (0.65-0.68) | 0.65 (0.65-0.66) | 4% |
+| M | 0.757 | 0.61 (0.61-0.66) | 0.61 (0.59-0.62) | 6% |
+| M-very-thin | 0.319 | 0.91 (0.89-0.93) | 0.84 (0.80-0.90) | 7% |
+| L-thin | 1.21 | 0.88 (0.83-1.00) | 0.97 (0.87-1.06) | 20% |
+| L | 1.26 | 0.77 (0.71-0.80) | 0.75 (0.72-0.75) | 3% |
+| L-stumps | 0.971 | 0.97 (0.96-1.00) | 0.98 (0.94-1.00) | 3% |
+| L-leaf255 | 1.53 | 0.61 (0.60-0.63) | 0.59 (0.57-0.61) | 2% |
+| ames_housing | 0.526 | 0.65 (0.64-0.67) | 0.63 (0.62-0.65) | 5% |
+| kddcup09_churn | 1.17 | 0.81 (0.79-0.87) | 0.79 (0.79-0.80) | 11% |
+| amazon_employee_access | 0.485 | 0.85 (0.80-0.86) | 0.81 (0.78-0.83) | 7% |
+| covtype | 13.4 | 0.76 (0.67-0.81) | 0.70 (0.65-0.76) | 8% |
+| susy | 6.66 | 0.98 (0.96-0.99) | 0.96 (0.94-0.96) | 2% |
+| year_prediction_msd | 4.33 | 0.66 (0.56-0.71) | 0.64 (0.54-0.65) | 5% |
+| geomean / pr | 1 | 0.78 (0.77-0.79) | 0.76 (0.75-0.77) | |
+
+### exp18-xeon-passive
+
+| case | pr | pr+fuse3 | abs+fuse3 | clean:pr | pr spread |
+| --- | --- | --- | --- | --- | --- |
+| XS | 0.089 | 1.01 (1.00-1.05) | 1.03 (1.01-1.04) | 0.94 (0.93-0.98) | 3% |
+| S-thin | 0.205 | 0.99 (0.94-1.01) | 0.99 (0.97-1.03) | 0.94 (0.90-0.95) | 5% |
+| S | 0.593 | 0.98 (0.98-1.01) | 1.00 (0.97-1.03) | 0.97 (0.96-0.98) | 4% |
+| M | 0.813 | 1.01 (0.99-1.02) | 1.01 (1.00-1.02) | 0.98 (0.95-1.00) | 5% |
+| M-very-thin | 0.32 | 1.00 (0.99-1.02) | 1.01 (1.00-1.04) | 0.99 (0.97-1.03) | 6% |
+| L-thin | 6.06 | 0.59 (0.58-0.60) | 0.58 (0.56-0.60) | 0.63 (0.60-0.64) | 19% |
+| L | 8.1 | 0.46 (0.45-0.48) | 0.47 (0.46-0.50) | 0.47 (0.46-0.48) | 15% |
+| L-stumps | 1.95 | 0.91 (0.89-0.95) | 0.94 (0.93-1.01) | 0.88 (0.87-0.97) | 10% |
+| L-leaf255 | 5.68 | 0.68 (0.64-0.74) | 0.69 (0.64-0.72) | 0.68 (0.67-0.71) | 43% |
+| ames_housing | 0.386 | 0.99 (0.97-1.04) | 0.98 (0.97-0.99) | 0.97 (0.94-0.98) | 5% |
+| kddcup09_churn | 7.19 | 0.56 (0.54-0.58) | 0.56 (0.56-0.58) | 0.56 (0.55-0.57) | 8% |
+| amazon_employee_access | 0.606 | 1.00 (0.99-1.01) | 1.00 (0.99-1.01) | 0.97 (0.97-0.98) | 1% |
+| covtype | 97.5 | 0.58 (0.55-0.62) | 0.59 (0.55-0.61) | 0.61 (0.60-0.63) | 9% |
+| susy | 42.2 | 0.50 (0.48-0.51) | 0.57 (0.56-0.60) | 0.54 (0.53-0.57) | 6% |
+| year_prediction_msd | 48.6 | 0.40 (0.38-0.43) | 0.57 (0.47-0.58) | 0.38 (0.37-0.44) | 11% |
+| geomean / pr | 1 | 0.74 (0.73-0.75) | 0.77 (0.75-0.78) | 0.73 (0.72-0.75) | |
+
+Noise: the per-case spread of `pr` is 1-5% on most small cases, up to 16-22% on
+some multi-threaded cases (43% once, L-leaf255 on xeon passive). Geomeans are good to
+about +-0.01-0.02. So 0.9x differences on one case and one process, like in Exp 10,
+aren't reliable, but the geomean differences to `pr` are. `pr+fuse3` and `abs+fuse3`
+can't be told apart on most profiles, except msd and susy on xeon passive, where `pr`'s
+rule is better (msd 0.40 vs 0.57). `clean` is as good as the experimental fuse3 on
+multi-threaded cases, and 1-8% faster than `pr` on the cases that get 1 thread.
+

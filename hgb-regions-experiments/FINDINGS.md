@@ -87,9 +87,16 @@
   like a property of the machine (~100K or less on gamer, ~300K on the xeon at both
   32 and 86 threads), not of the thread count.
 
+## Noise and the clean branch (LOG Exp 18)
+
+- Per-case spread of `pr` between processes: 1-5% on most small cases, up to ~20% on
+  some multi-threaded ones. Geomean over 15 cases: about +-0.01-0.02.
+- `hgb/merge-regions`, the clean fuse3, gives 0.76x of the PR on one Xeon socket with
+  active wait, 0.73x in passive mode, 0.87x on the laptop and 0.87x on gamer libgomp.
+  Its trees and predictions are identical to the PR's, and to main's.
+
 ## Open
 
-- The noise level of the A/B (Exp 18).
 - Why P and E cores differ with deep idle states, and why libomp and libgomp differ
   on P cores.
 - Whether to use manual chunks (`nb`) or a dynamic schedule in a follow-up.

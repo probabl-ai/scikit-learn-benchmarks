@@ -1,0 +1,14 @@
+{
+"clf3_cat_maxfeat/T1": "cb6bab30e159d88a",
+"clf3_cat_maxfeat/T8": "cb6bab30e159d88a",
+"reg_depth/T1": "0f6cea30be3a866c",
+"reg_depth/T8": "0f6cea30be3a866c",
+"reg_interaction/T1": "7cd486c4e172894f",
+"reg_interaction/T8": "7cd486c4e172894f",
+"reg_maxfeat/T1": "abcf85f4e6784c35",
+"reg_maxfeat/T8": "abcf85f4e6784c35",
+"reg_missing_cat/T1": "19e9dc78ee63bea3",
+"reg_missing_cat/T8": "19e9dc78ee63bea3",
+"reg_monotonic/T1": "e104872c22d324c5",
+"reg_monotonic/T8": "e104872c22d324c5"
+}

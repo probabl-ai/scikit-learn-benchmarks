@@ -50,6 +50,9 @@ if args.cases:
     keep = args.cases.split(",")
     cases = [c for c in cases if name(c) in keep]
 extra_env = dict(kv.split("=", 1) for kv in args.env)
+if "LD_PRELOAD" in extra_env and not Path(extra_env["LD_PRELOAD"]).is_file():
+    # ld.so only warns on stderr, and the run silently uses the default runtime.
+    sys.exit(f"LD_PRELOAD not found: {extra_env['LD_PRELOAD']}")
 variants = args.variants.split(",")
 rng = random.Random(0)
 out = open(args.out, "a")
