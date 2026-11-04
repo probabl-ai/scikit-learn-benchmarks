@@ -600,10 +600,6 @@ _CUML_RANDOM_FOREST_ESTIMATORS = {
 BINNED_SPLIT_WARNING_KINDS = {"histogram-splits", "quantile-splits"}
 
 
-def warning_marks_binned_splits(warning: MatchWarning) -> bool:
-    return warning.kind in BINNED_SPLIT_WARNING_KINDS
-
-
 CPU_FALLBACK_WARNING = MatchWarning(
     icon="↩",
     short_message="CPU fallback",
@@ -650,14 +646,10 @@ def sklearnex_tree_is_binned(result: MethodResult | BenchmarkRecord) -> bool:
     return n_samples is not None and max_bins < n_samples
 
 
-def append_max_bins_warning(
-    sklearn_res: MethodResult, sklearnex_res: MethodResult, warnings: list
-):
-    assert sklearn_res.implementation.library == "sklearn"
-    assert sklearnex_res.implementation.library == "sklearnex"
-
-    if sklearnex_tree_is_binned(sklearnex_res):
-        warnings.append(SKLEARNEX_BINS_WARNING)
+def uses_binned_splits(result: "MethodResult | BenchmarkRecord") -> bool:
+    """Random forests and extra trees only: every HistGradientBoosting bins, so it
+    needs no left/right split in the plots."""
+    return sklearnex_tree_is_binned(result) or is_cuml_random_forest(result)
 
 
 def is_cuml_random_forest(result: MethodResult) -> bool:

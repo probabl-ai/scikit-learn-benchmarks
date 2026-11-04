@@ -167,9 +167,7 @@ def _row_hyperparams(inputs: RowInputs) -> dict:
 
 
 def default_comparison_key(result: MethodResult) -> str:
-    """Shared with `speedup_plot_html` (as its `comparison_key` param) so
-    speed-up plot points and detailed-results table rows for the same
-    case agree on the key used to link a plot click to its table row."""
+    """Groups the table rows of one case."""
     return stable_json(
         without_keys(result.case, excluded_names={"implementation", "max_bins"})
     )
@@ -293,7 +291,7 @@ def _row_max_bins(inputs: RowInputs) -> str | None:
     """sklearnex's max_bins setting for tree-based results: "default" (not
     overridden - sklearnex's own default of 255) or "n_samples" (explicitly
     set equal to n_samples, i.e. exact/unbinned splits - see
-    configs/_synthetic_trees.py and append_max_bins_warning in matching.py).
+    configs/_synthetic_trees.py and sklearnex_tree_is_binned in matching.py).
     Empty for sklearn (doesn't vary this param) and for non-tree estimators
     (max_bins isn't a thing for them, same "tree-based" split MethodResult
     uses for `is_sklearnex_tree`)."""

@@ -1,4 +1,4 @@
-// Software, hardware and cross comparison pages: loads the data files of the
+// Software, builds, hardware and cross comparison pages: loads the data files of the
 // variants on screen (sklbench/reporting/comparison.py), then pairs results and
 // draws the plots and tables in the browser. Rendering every combination up front
 // would take tens of MB per page.
@@ -128,17 +128,14 @@
       if (base.entry.maxBins !== candidate.entry.maxBins) {
         return null;
       }
-    } else if (candidate.entry.sklearnexTree) {
-      if (base.entry.library === "sklearn" && candidate.binned) {
-        warnings.push(config.warnings.sklearnexBins);
+    } else {
+      // Only a difference if exactly one side bins. A fallback runs scikit-learn.
+      const baseBinned = base.binned && !base.entry.fallback;
+      const candidateBinned = candidate.binned && !candidate.entry.fallback;
+      if (baseBinned !== candidateBinned) {
+        const binnedSide = baseBinned ? base : candidate;
+        warnings.push(binnedSide.entry.cumlRf ? config.warnings.cumlRfBins : config.warnings.sklearnexBins);
       }
-    } else if (base.entry.sklearnexTree && !base.entry.fallback) {
-      if (candidate.entry.library === "sklearn" && base.binned) {
-        warnings.push(config.warnings.sklearnexBins);
-      }
-    }
-    if (Boolean(base.entry.cumlRf) !== Boolean(candidate.entry.cumlRf)) {
-      warnings.push(config.warnings.cumlRfBins);
     }
     appendIterationsWarning(base, candidate, warnings);
     if (base.entry.solver && candidate.entry.solver && base.entry.solver !== candidate.entry.solver) {
@@ -268,12 +265,12 @@
 
   // Within a variant, tree cases without binning go left. Across machines, both
   // sides of a sklearnex comparison can bin the same way, which no warning tells.
-  function columnOf(label, category, binned, warnings) {
+  function columnOf(label, category, binned, warnings, bothBinned) {
     if (category !== "tree-based") {
       return label;
     }
     const warned = warnings.some((warning) => config.binnedWarningKinds.includes(warning.kind));
-    const isBinned = warned || (config.splitsFromParams && binned);
+    const isBinned = warned || bothBinned || (config.splitsFromParams && binned);
     return `${label} / ${isBinned ? "1-binned" : "0-exact"}`;
   }
 
@@ -684,7 +681,7 @@
     `${category} - ${method} time - ${count} ${count === 1 ? "case" : "cases"}`;
 
   function buildGrid(pending) {
-    const preprocessing = toggle.checked;
+    const preprocessing = Boolean(toggle && toggle.checked);
     const keep = (entry) => !preprocessing || entry.real;
     const baseEntries = view.baseData.results.filter(keep);
     const candidateEntries = view.candidateData.flatMap((data) => data.results).filter(keep);
@@ -711,7 +708,10 @@
         }
         const matches = findMatches(base, candidateByMethod[method].filter(inCategory));
         matches.forEach((match) => {
-          match.column = columnOf(view.labelOf(match.candidate.entry), category, match.candidate.binned, match.warnings);
+          // Two libraries that both bin raise no warning, but the points are still binned.
+          const bothBinned =
+            match.base.binned && match.candidate.binned && match.base.entry.library !== match.candidate.entry.library;
+          match.column = columnOf(view.labelOf(match.candidate.entry), category, match.candidate.binned, match.warnings, bothBinned);
         });
         allMatches.push(...matches);
         const caseCount = new Set([...matches.map((m) => m.base.entry.id), ...plotFailed.map((e) => e.id)]).size;
@@ -719,7 +719,7 @@
         rowCells.push(plotCellHtml(cellTitle(category, method, caseCount), method, plot, pending));
       });
       const hasPlot = METHODS.some((method) => baseByMethod[method].some(inCategory));
-      if (hasPlot && category === "tree-based") {
+      if (hasPlot && category === "tree-based" && view.treeNote) {
         cells.push(`<p class="plot-row-note">${view.treeNote}</p>`);
       }
       cells.push(...rowCells);
@@ -886,7 +886,7 @@
         baselineLabel,
         baseData: loaded.get(baselineKey),
         candidateData: candidates.map((variant) => loaded.get(variant.key)),
-        colors: config.colors,
+        colors: tab.colors || config.colors,
         emptyScope: tab.emptyScope,
         treeNote: config.treeNote,
         labelOf: (entry) => labels.get(entry.variant),
@@ -958,11 +958,13 @@
       view.tab = tab;
       drawGrids();
     });
-    toggle.addEventListener("change", () => {
-      if (view) {
-        drawGrids();
-      }
-    });
+    if (toggle) {
+      toggle.addEventListener("change", () => {
+        if (view) {
+          drawGrids();
+        }
+      });
+    }
     showOuter();
   }
 

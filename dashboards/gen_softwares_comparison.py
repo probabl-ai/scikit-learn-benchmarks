@@ -7,6 +7,7 @@ from sklbench.reporting.comparison import (
     baseline_pick_html,
     expanded_note,
     page_rows,
+    same_machine_case_key,
     tree_binning_note,
     write_data_files,
 )
@@ -25,7 +26,6 @@ from sklbench.reporting.matching import (
     read_all_results, read_failed_records, BenchmarkRecord, MethodResult,
     matches_source_configs,
 )
-from sklbench.reporting.utils import stable_json, without_keys
 
 
 BASE_IMPLEMENTATION = "sklearn"
@@ -169,13 +169,6 @@ def sorted_variant_labels(results: list[MethodResult]) -> list[str]:
     ]
 
 
-def _case_key(result: MethodResult | BenchmarkRecord) -> str:
-    """Same hardware on both sides, so `n_jobs` and forest sizes are part of a case."""
-    return stable_json(
-        without_keys(result.case, excluded_names={"implementation", "max_bins", "source_config"})
-    )
-
-
 def _variant_key(result: MethodResult | BenchmarkRecord) -> str:
     return f"{result.hardware_hash}__{variant_label(result)}"
 
@@ -260,7 +253,7 @@ def generate(output_dir: Path) -> None:
         DATA_DIR,
         shown_variants,
         failed_by_variant=_group_by_variant(failed_records),
-        case_key=_case_key,
+        case_key=same_machine_case_key,
         env_html=env_html,
     )
     config = {

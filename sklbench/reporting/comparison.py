@@ -1,4 +1,4 @@
-"""Data files and page shell of the software, hardware and cross comparison
+"""Data files and page shell of the software, builds, hardware and cross comparison
 dashboards. Their pages hold no results: `html/speedup_comparison.js` loads one
 data file per variant on screen, then pairs results and draws plots and tables.
 """
@@ -38,9 +38,10 @@ from .matching import (
     fitted_solver,
     is_cuml_random_forest,
     is_real_dataset,
-    sklearnex_tree_is_binned,
+    uses_binned_splits,
 )
 from .provenance import summarize_sources
+from .utils import stable_json, without_keys
 
 
 PREPROCESSING_TOGGLE_HTML = (
@@ -71,6 +72,13 @@ def baseline_pick_html(label: str, color: str) -> str:
     )
 
 
+def same_machine_case_key(result: MethodResult | BenchmarkRecord) -> str:
+    """With the same hardware on both sides, `n_jobs` and forest sizes are part of a case."""
+    return stable_json(
+        without_keys(result.case, excluded_names={"implementation", "max_bins", "source_config"})
+    )
+
+
 def _compact_times(times: list[float]) -> list[float]:
     return [float(f"{time:.5g}") for time in times]
 
@@ -79,7 +87,7 @@ def _method_block(result: MethodResult) -> dict:
     return {
         "times": _compact_times(result.times),
         "hover": case_hover_html(result.case, result.data_desc),
-        "binned": sklearnex_tree_is_binned(result),
+        "binned": uses_binned_splits(result),
         "samples": result.data_desc.get("samples"),
         "features": result.data_desc.get("features"),
     }
@@ -143,7 +151,7 @@ def _failed_entries(records: list[BenchmarkRecord], variant_key: str, case_id) -
             "estimator": record.case.get("algorithm", {}).get("estimator", "unknown"),
             "category": record.category,
             "real": is_real_dataset(record),
-            "binned": sklearnex_tree_is_binned(record),
+            "binned": uses_binned_splits(record),
             "hover": failed_hover_html(record),
             "row": export_failed_row(record, entry_id),
         })

@@ -92,8 +92,8 @@ The repository has a few layers:
 - `dashboards/index.py`: the only entry point for the full dashboard site. It
   generates the index page and calls `generate()` in each
   `dashboards/gen_*.py` module. Those modules read `results/` and write one
-  HTML page each, and are not run directly. The software, hardware and cross
-  comparison pages also write one data file per variant, and pair results in the
+  HTML page each, and are not run directly. The software, builds, hardware and
+  cross comparison pages also write one data file per variant, and pair results in the
   browser (`sklbench/reporting/html/speedup_comparison.js`).
   `dashboards/index_comparison.py`
   is the separate entry point for the ephemeral per-PR results of

@@ -298,12 +298,11 @@ BASE_TEMPLATE = Template("""<!doctype html>
     }
 
     // Speed-up plot points carry the same comparison_key as their detailed-
-    // results table row (see speedup_plot_html's `comparison_key` param) -
-    // clicking one applies the same "bring matching rows to top" sort as
-    // clicking the table row. `assemble_plots_in_grid` always places a row's
-    // (or the whole grid's) "Detailed results" <details> right after its
-    // plot(s) in document order, so the nearest one following the clicked
-    // chart is its table - open that first in case it's still collapsed.
+    // results table row (see speedup_comparison.js) - clicking one applies the
+    // same "bring matching rows to top" sort as clicking the table row. A
+    // row's "Detailed results" <details> comes right after its plots in
+    // document order, so the nearest one following the clicked chart is its
+    // table - open that first in case it's still collapsed.
     async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
       if (!comparisonKey) {
         return;
@@ -624,43 +623,3 @@ HARDWARE_TABS_TEMPLATE = Template("""<section class="tabs" id="{{ tabs_id }}">
   </script>
 </section>""")
 
-PLOT_NOTES_TEMPLATE = Template("""<div class="plot-notes">
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-circle">●</span>
-    <span>Metrics and benchmark setup match the baseline</span>
-  </div>
-  {% if warnings %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-square">■</span>
-    <span>
-      Metrics match the baseline, but some comparison details are worth reporting:
-      <ul>
-      {% for warning in warnings %}
-        <li class="warning-note">
-          <span class="warning-icon">{{ warning.icon }}</span>
-          <span>{{ warning.message|e }}</span>
-        </li>
-      {% endfor %}
-      </ul>
-    </span>
-  </div>
-  {% endif %}
-  {% if metric_mismatch_count %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-diamond">◇</span>
-    <span>Metrics differ from the baseline ({{ metric_mismatch_label }})</span>
-  </div>
-  {% endif %}
-  {% if fallback_count %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-circle" style="color: #9e9e9e;">●</span>
-    <span>Ran via sklearnex but fell back to stock scikit-learn, no oneDAL acceleration ({{ fallback_label }})</span>
-  </div>
-  {% endif %}
-  {% if failed_count %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-x">✕</span>
-    <span>Benchmark run failed, shown at the bottom of its column ({{ failed_label }})</span>
-  </div>
-  {% endif %}
-</div>""")
