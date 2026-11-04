@@ -1,0 +1,78 @@
+benchlock: waiting for gkdal11989 all, held by: alacote@gkdal11989 pid=2323549 since=2026-11-04T17:53:23+0000 slot=all tag=gemm: split-K vs develop cmd=env BUILD=sk2 OUT=sk2 scripts/run_splitk.sh intel-gamer-gpu 4,8,12,16,24
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.714
+t0_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=6.829
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=6.135
+t0_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.013
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.024
+t200_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.456
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=2.802
+t200_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.199
+# keepawake period_us=200 seconds=21.7 wakes_per_cpu_per_s=4421
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.183
+t5000_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.479
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.163
+t5000_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.511
+# keepawake period_us=5000 seconds=22.6 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.761
+t0_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.397
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.093
+t0_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=8.115
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.011
+t200_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.314
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=2.807
+t200_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.206
+# keepawake period_us=200 seconds=21.5 wakes_per_cpu_per_s=4415
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.037
+t5000_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.413
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.189
+t5000_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.412
+# keepawake period_us=5000 seconds=22.2 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.114
+t0_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.931
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.104
+t0_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=8.526
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.097
+t200_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.380
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=2.732
+t200_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.204
+# keepawake period_us=200 seconds=21.6 wakes_per_cpu_per_s=4417
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.043
+t5000_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.356
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.107
+t5000_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.405
+# keepawake period_us=5000 seconds=22.1 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.152
+t0_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.593
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=5.742
+t0_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.730
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=3.964
+t200_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.400
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=2.785
+t200_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.113
+# keepawake period_us=200 seconds=21.5 wakes_per_cpu_per_s=4417
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.055
+t5000_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.461
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.101
+t5000_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.492
+# keepawake period_us=5000 seconds=22.4 wakes_per_cpu_per_s=200
+t0 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.128
+t0_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.985
+t0 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.293
+t0_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.941
+t200 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.002
+t200_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.321
+t200 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=2.743
+t200_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.151
+# keepawake period_us=200 seconds=21.2 wakes_per_cpu_per_s=4415
+t5000 rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.042
+t5000_shim rep=0 year_prediction_msd      m331:main  rc=0 fit_med=4.354
+t5000 rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.264
+t5000_shim rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=3.361
+# keepawake period_us=5000 seconds=22.2 wakes_per_cpu_per_s=200
+cfg=toy rt=libomp rep=1 barrier=0 T=24 n=2000 wall_us=26.3 loop_mean_us=1.0 loop_max_us=1.2 entry_max_us=17.6 stacked_threads=0.13 regions_stacked=0.062 moved_threads=0.000
+cfg=toy rt=libomp rep=1 barrier=1 T=24 n=2000 wall_us=29.3 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=23.5 stacked_threads=0.13 regions_stacked=0.058 moved_threads=0.000
+cfg=toy rt=libomp rep=2 barrier=0 T=24 n=2000 wall_us=30.0 loop_mean_us=1.0 loop_max_us=1.3 entry_max_us=20.8 stacked_threads=0.04 regions_stacked=0.019 moved_threads=0.000
+cfg=toy rt=libomp rep=2 barrier=1 T=24 n=2000 wall_us=30.9 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=24.5 stacked_threads=0.12 regions_stacked=0.060 moved_threads=0.000
+cfg=toy rt=libomp rep=3 barrier=0 T=24 n=2000 wall_us=14.9 loop_mean_us=0.9 loop_max_us=1.1 entry_max_us=9.2 stacked_threads=0.02 regions_stacked=0.010 moved_threads=0.000
+cfg=toy rt=libomp rep=3 barrier=1 T=24 n=2000 wall_us=49.1 loop_mean_us=1.0 loop_max_us=1.1 entry_max_us=40.7 stacked_threads=0.01 regions_stacked=0.002 moved_threads=0.000
+# done 18:23

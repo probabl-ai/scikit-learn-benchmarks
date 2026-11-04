@@ -120,6 +120,9 @@ s, interleaved, models identical (same R2 where recorded, same `n_iter`):
 | gamer, libomp, repeat | | 5.79 | 5.17 | 7.13 |
 | laptop, libgomp | 15.74 | 13.37 | 13.58 | 11.14 |
 | laptop, libomp | | 15.45 | 15.43 | 10.07 |
+| xeon one socket, libgomp | | 3.39 | | 2.85 |
+| xeon one socket, libomp (noisy, 3.22 to 8.87) | | 6.85 | | 5.36 |
+| xeon one socket, libomp, `KMP_BLOCKTIME=0`, median of 3 | | 302.17 | | 142.82 |
 
 | other cases, libomp | 3.3.1 | Fix A | Fix B |
 | --- | --- | --- | --- |
@@ -139,8 +142,19 @@ its gaps of up to ~11% on gamer are noise. I didn't compare the utility code or 
 
 - HGB on main with libomp on gamer: Fix B is 23-25% slower on `year_prediction_msd` in 2 rounds, 19%
   on `L`, and all three phases (`hist`, `find_split`, `apply_split`) lose. On the laptop, with the
-  same libomp (`llvm-openmp` 23.1.2), Fix B is 35% faster on the same case. On gamer it also gains on
-  `pr` and `fuse3` (table above). I don't know why, and the Xeon wasn't run on main.
+  same libomp (`llvm-openmp` 23.1.2), Fix B is 35% faster on the same case, and on one socket of the
+  Xeon 22% faster. On gamer it also gains on `pr` and `fuse3` (table above). It stops losing when
+  threads don't sleep (`KMP_BLOCKTIME=200`: 2.94 s vs 2.54 s) or only E-cores are used (4.34 s vs
+  3.43 s). I think deep idle states cause it, but that isn't settled:
+
+  | timer thread on each CPU | C3 entries per fit, 3.3.1 / Fix B | 3.3.1 | Fix B |
+  | --- | --- | --- | --- |
+  | none | 131k / 359k | 5.15 | 7.09 |
+  | 5 ms | 5k / 5k | 4.04 | 3.16 |
+  | 200 us | 0 / 0 | 4.01 | 2.79 |
+
+  Two gaps remain: no neutral control yet, since the 5 ms timer already removes C3, and the laptop
+  has the same idle table as gamer without the slowdown. Details in `LOG.md`, Exp 9.
 - `kddcup09_churn` on gamer: 4-16% slower with the fix, in the 4 configurations. On the Xeon it
   gains. Probably idle states on mixed P and E cores, but I haven't checked.
 - The laptop is noisy: its first round showed HGB predict 27% faster and KMeans lloyd 11% slower,

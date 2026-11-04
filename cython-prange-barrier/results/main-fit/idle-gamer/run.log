@@ -1,0 +1,52 @@
+cfg=base rt=libomp rep=1 barrier=0 T=24 n=2000 wall_us=22.5 loop_mean_us=0.9 loop_max_us=1.1 entry_max_us=14.9 stacked_threads=0.12 regions_stacked=0.058 moved_threads=0.000
+cfg=base rt=libomp rep=1 barrier=1 T=24 n=2000 wall_us=32.6 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=26.2 stacked_threads=0.14 regions_stacked=0.069 moved_threads=0.000
+cfg=base rt=libomp rep=2 barrier=0 T=24 n=2000 wall_us=18.9 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=11.7 stacked_threads=0.17 regions_stacked=0.085 moved_threads=0.000
+cfg=base rt=libomp rep=2 barrier=1 T=24 n=2000 wall_us=31.3 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=24.8 stacked_threads=0.08 regions_stacked=0.039 moved_threads=0.000
+cfg=base rt=libomp rep=3 barrier=0 T=24 n=2000 wall_us=30.4 loop_mean_us=1.0 loop_max_us=1.1 entry_max_us=21.2 stacked_threads=0.08 regions_stacked=0.038 moved_threads=0.000
+cfg=base rt=libomp rep=3 barrier=1 T=24 n=2000 wall_us=28.2 loop_mean_us=0.9 loop_max_us=0.9 entry_max_us=22.2 stacked_threads=0.07 regions_stacked=0.035 moved_threads=0.000
+cfg=base rt=libomp rep=4 barrier=0 T=24 n=2000 wall_us=33.4 loop_mean_us=1.0 loop_max_us=1.2 entry_max_us=23.5 stacked_threads=0.06 regions_stacked=0.029 moved_threads=0.000
+cfg=base rt=libomp rep=4 barrier=1 T=24 n=2000 wall_us=30.7 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=24.2 stacked_threads=0.15 regions_stacked=0.072 moved_threads=0.000
+cfg=base rt=libomp rep=5 barrier=0 T=24 n=2000 wall_us=27.2 loop_mean_us=1.0 loop_max_us=1.1 entry_max_us=18.4 stacked_threads=0.05 regions_stacked=0.025 moved_threads=0.000
+cfg=base rt=libomp rep=5 barrier=1 T=24 n=2000 wall_us=41.6 loop_mean_us=0.9 loop_max_us=1.0 entry_max_us=34.8 stacked_threads=0.17 regions_stacked=0.085 moved_threads=0.000
+base rep=0 year_prediction_msd      m331:main  rc=0 fit_med=6.094
+base rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=7.872
+base rep=0 year_prediction_msd      m331:main  rc=0 fit_med=6.024
+base rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=9.126
+base rep=0 year_prediction_msd      m331:main  rc=0 fit_med=5.927
+base rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=8.521
+base rep=0 year_prediction_msd      m331:main  rc=0 fit_med=6.416
+base rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=8.786
+base rep=0 year_prediction_msd      m331:main  rc=0 fit_med=6.331
+base rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=8.352
+# spinners: 24
+cfg=spin rt=libomp rep=1 barrier=0 T=24 n=2000 wall_us=3522.9 loop_mean_us=1.3 loop_max_us=1.9 entry_max_us=1945.7 stacked_threads=2.80 regions_stacked=0.854 moved_threads=0.000
+cfg=spin rt=libomp rep=1 barrier=1 T=24 n=2000 wall_us=6438.6 loop_mean_us=1.4 loop_max_us=1.8 entry_max_us=5024.6 stacked_threads=2.62 regions_stacked=0.833 moved_threads=0.000
+cfg=spin rt=libomp rep=2 barrier=0 T=24 n=2000 wall_us=3133.4 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=1768.7 stacked_threads=2.46 regions_stacked=0.823 moved_threads=0.000
+cfg=spin rt=libomp rep=2 barrier=1 T=24 n=2000 wall_us=6202.4 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=4847.2 stacked_threads=2.51 regions_stacked=0.824 moved_threads=0.000
+cfg=spin rt=libomp rep=3 barrier=0 T=24 n=2000 wall_us=3088.3 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=1746.4 stacked_threads=2.34 regions_stacked=0.788 moved_threads=0.000
+cfg=spin rt=libomp rep=3 barrier=1 T=24 n=2000 wall_us=6159.2 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=4810.9 stacked_threads=2.50 regions_stacked=0.820 moved_threads=0.000
+cfg=spin rt=libomp rep=4 barrier=0 T=24 n=2000 wall_us=3086.2 loop_mean_us=1.4 loop_max_us=1.8 entry_max_us=1747.6 stacked_threads=2.43 regions_stacked=0.799 moved_threads=0.000
+cfg=spin rt=libomp rep=4 barrier=1 T=24 n=2000 wall_us=6164.4 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=4820.3 stacked_threads=2.57 regions_stacked=0.828 moved_threads=0.000
+cfg=spin rt=libomp rep=5 barrier=0 T=24 n=2000 wall_us=3089.2 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=1748.0 stacked_threads=2.39 regions_stacked=0.802 moved_threads=0.000
+cfg=spin rt=libomp rep=5 barrier=1 T=24 n=2000 wall_us=6158.3 loop_mean_us=1.4 loop_max_us=1.9 entry_max_us=4815.7 stacked_threads=2.50 regions_stacked=0.822 moved_threads=0.000
+spin rep=0 year_prediction_msd      m331:main  rc=0 fit_med=556.547
+spin rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=282.240
+spin rep=0 year_prediction_msd      m331:main  rc=0 fit_med=553.468
+spin rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=279.441
+spin rep=0 year_prediction_msd      m331:main  rc=0 fit_med=553.976
+spin rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=281.707
+spin rep=0 year_prediction_msd      m331:main  rc=0 fit_med=549.338
+spin rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=281.411
+spin rep=0 year_prediction_msd      m331:main  rc=0 fit_med=543.942
+spin rep=0 year_prediction_msd      mB2:main   rc=0 fit_med=276.054
+cfg=base2 rt=libomp rep=1 barrier=0 T=24 n=2000 wall_us=20.5 loop_mean_us=1.0 loop_max_us=1.4 entry_max_us=13.0 stacked_threads=0.08 regions_stacked=0.041 moved_threads=0.000
+cfg=base2 rt=libomp rep=1 barrier=1 T=24 n=2000 wall_us=36.5 loop_mean_us=0.9 loop_max_us=1.2 entry_max_us=29.5 stacked_threads=0.06 regions_stacked=0.027 moved_threads=0.000
+cfg=base2 rt=libomp rep=2 barrier=0 T=24 n=2000 wall_us=26.7 loop_mean_us=1.0 loop_max_us=1.3 entry_max_us=18.4 stacked_threads=0.05 regions_stacked=0.024 moved_threads=0.000
+cfg=base2 rt=libomp rep=2 barrier=1 T=24 n=2000 wall_us=32.6 loop_mean_us=0.9 loop_max_us=1.1 entry_max_us=26.4 stacked_threads=0.13 regions_stacked=0.064 moved_threads=0.000
+cfg=base2 rt=libomp rep=3 barrier=0 T=24 n=2000 wall_us=18.8 loop_mean_us=1.0 loop_max_us=1.2 entry_max_us=11.9 stacked_threads=0.07 regions_stacked=0.033 moved_threads=0.000
+cfg=base2 rt=libomp rep=3 barrier=1 T=24 n=2000 wall_us=28.1 loop_mean_us=0.9 loop_max_us=1.1 entry_max_us=21.7 stacked_threads=0.03 regions_stacked=0.015 moved_threads=0.000
+cfg=base2 rt=libomp rep=4 barrier=0 T=24 n=2000 wall_us=25.0 loop_mean_us=1.0 loop_max_us=1.2 entry_max_us=16.4 stacked_threads=0.04 regions_stacked=0.021 moved_threads=0.000
+cfg=base2 rt=libomp rep=4 barrier=1 T=24 n=2000 wall_us=31.7 loop_mean_us=0.9 loop_max_us=1.1 entry_max_us=25.2 stacked_threads=0.09 regions_stacked=0.046 moved_threads=0.000
+cfg=base2 rt=libomp rep=5 barrier=0 T=24 n=2000 wall_us=23.9 loop_mean_us=1.0 loop_max_us=1.2 entry_max_us=15.1 stacked_threads=0.29 regions_stacked=0.146 moved_threads=0.000
+cfg=base2 rt=libomp rep=5 barrier=1 T=24 n=2000 wall_us=32.9 loop_mean_us=0.9 loop_max_us=1.1 entry_max_us=26.7 stacked_threads=0.06 regions_stacked=0.027 moved_threads=0.000
+# done 17:39

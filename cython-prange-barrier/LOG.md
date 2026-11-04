@@ -279,3 +279,87 @@ Result: Fix A keeps 3.3's gain. Fix B on gamer with libomp is slower on main, in
 gains on the laptop with the same `llvm-openmp` 23.1.2. Tables in `FINDINGS.md`. The cause of 3.3's
 gain over 3.2.x is still unknown: all three phases gain, with no change in the barrier sites of the
 HGB modules.
+
+## Exp 9: why Fix B loses on gamer with libomp on main (2026-11-04)
+
+All on main with `year_prediction_msd`, `m331` vs `mB2`, interleaved, median of 5 fits in s unless
+stated. Results in `results/main-fit/`. The sysfs snapshots are in `snapshots.tar.gz` in each
+directory: unpack them there before running `idle_summary.py`.
+
+**Which configurations lose.** `scripts/gamer_probe.sh`:
+
+| gamer, libomp | 3.3.1 | Fix B |
+| --- | --- | --- |
+| default | 5.25 | 6.82 |
+| default, again | 5.54 | 7.18 |
+| `KMP_BLOCKTIME=200` (spins) | 2.94 | 2.54 |
+| `OMP_PROC_BIND=true OMP_PLACES=cores` | 26.57 | 23.36 |
+| 8 threads on P-cores | 4.51 | 4.31 |
+| 16 threads on E-cores | 4.34 | 3.43 |
+
+Binding is ~5x slower on both builds, and I don't know why.
+
+**Xeon, one socket, 86 threads.** `scripts/xeon_main_fit.sh`, in the `FINDINGS.md` table. Fix B wins
+with libgomp, libomp and `KMP_BLOCKTIME=0`, which is passive like gamer's default. So the slowdown
+doesn't come with libomp or passive waiting alone.
+
+**Hypothesis 1, threads stacking on a CPU: refuted.** I thought the barrier gave the scheduler a
+second chance to place threads. `probes/barrier_placement.c`, a toy, shows stacking of ~0.04 threads
+per region with and without barrier, and the barrier-free version faster. Its first regions were much
+longer than HGB's, so `scripts/idle_probe.sh` reruns it at HGB's size (~1 us of work): 27 us per
+region without barrier, 31 us with it. So the toy doesn't reproduce the slowdown at either size.
+
+**Where the time goes.** `probes/region_shim.c`, an `LD_PRELOAD` shim around `GOMP_parallel` and
+`GOMP_barrier`, on unmodified builds. Totals in s over 87367 regions, gamer, libomp, 3.3.1 / Fix B:
+
+| | wall | wake | spread | work_mean | exit |
+| --- | --- | --- | --- | --- | --- |
+| mix, 24 threads | 5.62 / 8.34 | 1.66 / 6.09 | 1.24 / 5.67 | 1.09 / 1.20 | .54 / 1.00 |
+| E-cores, 16 threads | 4.20 / 3.34 | .61 / .64 | .27 / .33 | 2.03 / 2.04 | .37 / .40 |
+| P-cores, 8 threads | 4.81 / 5.53 | .70 / 1.88 | .41 / 1.64 | 2.55 / 2.64 | .33 / .85 |
+
+Wake goes from ~19 us to ~70 us per region, on all the short loops rather than one site, and work
+doesn't change. Under the shim, 8 threads on P-cores lose, while without it (above) they don't. I
+don't have an explanation for that gap.
+
+**Hypothesis 2, deep idle states.** `scripts/idle_probe.sh`, counters around each fit, base runs:
+
+| P-cores, entries per fit | POLL | C1 | C2 | C3 |
+| --- | --- | --- | --- | --- |
+| 3.3.1 | 53k | 1642k | 19k | 60k |
+| Fix B | 6k | 677k | 41k | 141k |
+
+So each thread sleeps about half as often, since it no longer sleeps in the barrier, and more of
+those sleeps go deep (4.5% to 21% of entries in C2 or C3). E-cores show the same rise in C3. This is
+only a correlation. The mean stay in C3 is ~290 us, far below its 3144 us target residency, so the
+governor is often wrong. The reported exit latency of 1048 us also doesn't match a mean wake of ~60
+us per region with ~4 C3 entries per region. The snapshots cover process start and data loading too,
+so I can't read that per region strictly.
+
+**SCHED_IDLE spinners: failed as a test.** Meant to keep cores out of idle states and yield at once.
+Fits go to ~554 s and ~281 s, with 2.3 threads stacked per region and ~1.8 ms per wake. Fix B is 2x
+faster, similar to the Xeon with blocktime 0. Idle state counters are 0, as intended, but the
+stacking dominates everything else.
+
+**Timer threads.** `probes/keepawake.c`, one `SCHED_IDLE` thread per CPU sleeping on a periodic timer,
+`scripts/keepawake_probe.sh`. No root, and the CPU stays free for wake-up placement. 200 us is below
+C2's target residency. I meant 5 ms as a control, above C3's target, but it isn't neutral:
+
+| timer | C3 entries, 3.3.1 / Fix B | fit | fit with shim | wake with shim | work_mean with shim |
+| --- | --- | --- | --- | --- | --- |
+| none | 131k / 359k | 5.15 / 7.09 | 5.93 / 7.94 | 1.61 / 5.25 | 1.09 / 1.18 |
+| 5 ms | 5k / 5k | 4.04 / 3.16 | 4.41 / 3.41 | .92 / 1.25 | 1.06 / 1.07 |
+| 200 us | 0 / 0 | 4.01 / 2.79 | 4.38 / 3.20 | .78 / .90 | 1.13 / 1.10 |
+
+Fix B goes from 38% slower to 30% faster, and work doesn't change, so this isn't compute speed while
+running. It also fits the toy: it enters C3 ~0.9 times per region without barrier, the fit ~4 times.
+
+Why a 5 ms timer removes nearly all C3 entries isn't clear. My guess is that `menu` scales its
+prediction per bucket of next timer distance, so short real sleeps then teach it a short prediction.
+I haven't checked that.
+
+**Still open.** The idle table on the laptop (Ultra X7 358H, same driver, governor and C1 to C3
+latencies) is identical to gamer's, yet Fix B wins there, so the table alone isn't the explanation.
+The Xeon has a different one (C6 at 170 us). `scripts/keepawake_dose.sh` (periods of 20, 50, 200 ms,
+looking for a neutral helper) and `scripts/keepawake_laptop.sh` are queued behind another run. I didn't
+use root, so `/dev/cpu_dma_latency` and disabling states through sysfs are untested.

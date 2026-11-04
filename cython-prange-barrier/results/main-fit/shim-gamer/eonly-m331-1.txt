@@ -1,0 +1,11 @@
+site=TOTAL n=87367 wall=4.1003 gap=0.4943 wake=0.5785 spread=0.2625 work_mean=2.0351 work_max=2.3592 exit=0.3491 team=16.00 stacked=0.001 moved=0.000
+site=histogram+9b10 n=12513 wall=1.8996 gap=0 wake=0.0805 spread=0.0360 work_mean=1.4166 work_max=1.6616 exit=0.0482 team=16.00 stacked=0.000 moved=0.000
+site=splitting+9f10 n=24238 wall=0.6047 gap=0 wake=0.1515 spread=0.0681 work_mean=0.1154 work_max=0.1409 exit=0.0936 team=16.00 stacked=0.001 moved=0.000
+site=_predictor+5700 n=300 wall=0.3555 gap=0 wake=0.0155 spread=0.0155 work_mean=0.3030 work_max=0.3108 exit=0.0076 team=16.00 stacked=0.007 moved=0.000
+site=splitting+6fe0 n=12600 wall=0.3174 gap=0 wake=0.0810 spread=0.0363 work_mean=0.0629 work_max=0.0697 exit=0.0497 team=16.00 stacked=0.001 moved=0.000
+site=histogram+70a0 n=12413 wall=0.3039 gap=0 wake=0.0805 spread=0.0347 work_mean=0.0566 work_max=0.0654 exit=0.0485 team=16.00 stacked=0.001 moved=0.000
+site=histogram+7260 n=12413 wall=0.2684 gap=0 wake=0.0813 spread=0.0338 work_mean=0.0224 work_max=0.0261 exit=0.0477 team=16.00 stacked=0.000 moved=0.000
+site=splitting+7730 n=12600 wall=0.2559 gap=0 wake=0.0792 spread=0.0354 work_mean=0.0055 work_max=0.0074 exit=0.0497 team=16.00 stacked=0.000 moved=0.000
+site=_gradient_boosting+4da0 n=100 wall=0.0549 gap=0 wake=0.0033 spread=0.0005 work_mean=0.0237 work_max=0.0479 exit=0.0027 team=16.00 stacked=0.000 moved=0.000
+site=_binning+4c40 n=90 wall=0.0234 gap=0 wake=0.0012 spread=0.0003 work_mean=0.0207 work_max=0.0208 exit=0.0004 team=16.00 stacked=0.000 moved=0.000
+site=_loss+34270 n=100 wall=0.0168 gap=0 wake=0.0045 spread=0.0020 work_mean=0.0084 work_max=0.0087 exit=0.0009 team=16.00 stacked=0.000 moved=0.000

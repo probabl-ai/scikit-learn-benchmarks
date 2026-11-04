@@ -23,7 +23,7 @@ for path in sys.argv[1:]:
     fits, phases, same = defaultdict(list), defaultdict(lambda: defaultdict(list)), defaultdict(set)
     for line in Path(path).read_text().splitlines():
         r = json.loads(line)
-        key = (r["case"], r["variant"].split(":")[0])
+        key = (f'{r["profile"]} {r["case"]}', r["variant"].split(":")[0])
         fits[key].extend(r["fit_s"])
         for row in r["rows"]:
             for name in PHASES:
