@@ -92,7 +92,8 @@
 - Per-case spread of `pr` between processes: 1-5% on most small cases, up to ~20% on
   some multi-threaded ones. Geomean over 15 cases: about +-0.01-0.02.
 - `hgb/merge-regions`, the clean fuse3, gives 0.76x of the PR on one Xeon socket with
-  active wait, 0.73x in passive mode, 0.87x on the laptop and 0.87x on gamer libgomp.
+  active wait, 0.73x in passive mode, 0.87x on the laptop and 0.87x on gamer with
+  both runtimes.
   Its trees and predictions are identical to the PR's, and to main's.
 
 ## Open
