@@ -316,7 +316,7 @@ def _build_random_forest_classifier():
             class_weight=None,
             ccp_alpha=0.0,
             max_samples=None,
-            n_bins=128,
+            n_bins=256,
             output_type="numpy",
             **kwargs,
         ):
@@ -376,7 +376,7 @@ def _build_random_forest_regressor():
             warm_start=False,
             ccp_alpha=0.0,
             max_samples=None,
-            n_bins=128,
+            n_bins=256,
             output_type="numpy",
             **kwargs,
         ):
