@@ -1,17 +1,27 @@
-"""Best-of-rounds table from a run_sklearn_e2e.sh CSV: base, build, ratio per case and thread count."""
+"""Table from a run_sklearn_e2e.sh CSV: base, build, ratio per case and thread count.
+
+Each cell is the best of rounds, or with --median the median of rounds (more
+robust on a laptop, where single runs can be 15% fast or slow). --skip-first
+drops round 1: the first process after an idle period runs faster on a laptop.
+"""
 
 import csv
+import statistics
 import sys
 from collections import defaultdict
 
-rows = list(csv.DictReader(open(sys.argv[1])))
+median = "--median" in sys.argv
+skip = "--skip-first" in sys.argv
+path = [a for a in sys.argv[1:] if not a.startswith("--")][0]
+rows = list(csv.DictReader(open(path)))
 labels = list(dict.fromkeys(r["label"] for r in rows))
-best = defaultdict(lambda: float("inf"))
+rows = [r for r in rows if not (skip and r["round"] == "1")]
+vals = defaultdict(list)
 iters = defaultdict(set)
 for r in rows:
-    k = (r["case"], int(r["threads"]), r["label"])
-    best[k] = min(best[k], float(r["best_s"]))
-    iters[r["case"]].add(r.get("n_iter", ""))
+    vals[r["case"], int(r["threads"]), r["label"]].append(float(r["best_s"]))
+    iters[r["case"]].add(r.get("n_iter") or "")
+best = {k: statistics.median(v) if median else min(v) for k, v in vals.items()}
 threads = sorted({int(r["threads"]) for r in rows})
 cases = list(dict.fromkeys(r["case"] for r in rows))
 a, b = labels[0], labels[-1]
