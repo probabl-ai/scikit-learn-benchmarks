@@ -2,8 +2,9 @@
 
 Every `prange` starts with a barrier on GCC and clang. It can be removed safely in most loops,
 and that makes HGB fits up to ~35% faster with a passive runtime (`year_prediction_msd`, one
-Xeon socket), with no change of results. Other cases gain less, and a few get slower. Details
-and commands are in `LOG.md`.
+Xeon socket), with no change of results. Other cases gain less, and a few get slower: HGB on
+scikit-learn main with libomp on the Core Ultra 9 is ~23% slower with Fix B. Details and commands
+are in `LOG.md`.
 
 ## Why the barrier is there
 
@@ -109,8 +110,37 @@ slowdown on KMeans. Against 3.3.1, KMeans with a passive runtime is 15-21% slowe
 doesn't wait at the end of the loop, and KMeans doesn't need that wait since it then reads
 thread-local buffers. But Cython can't know that.
 
+HGB fits on scikit-learn main (d5a61d1149cb), not one of the HGB branches above. Median of 5 fits in
+s, interleaved, models identical (same R2 where recorded, same `n_iter`):
+
+| year_prediction_msd | 3.2.4 | 3.3.1 | Fix A | Fix B |
+| --- | --- | --- | --- | --- |
+| gamer, libgomp | 14.05 | 12.88 | 13.18 | 11.86 |
+| gamer, libomp | 6.66 | 5.55 | 5.48 | 6.95 |
+| gamer, libomp, repeat | | 5.79 | 5.17 | 7.13 |
+| laptop, libgomp | 15.74 | 13.37 | 13.58 | 11.14 |
+| laptop, libomp | | 15.45 | 15.43 | 10.07 |
+
+| other cases, libomp | 3.3.1 | Fix A | Fix B |
+| --- | --- | --- | --- |
+| L, gamer | 2.12 | 2.14 | 2.53 |
+| kddcup09_churn, gamer | 2.33 | 2.60 | 2.59 |
+| susy, gamer | 19.17 | 20.00 | 17.90 |
+| L, laptop | 3.43 | 3.32 | 2.26 |
+| kddcup09_churn, laptop | 4.05 | 4.08 | 1.58 |
+| susy, laptop | 14.03 | 14.08 | 12.06 |
+
+Fix A keeps the gain of 3.3 over 3.2.x on main. The function bodies of `histogram.c` and
+`splitting.c` are identical between 3.3.1 and Fix A once blank lines and temporaries are normalized,
+since all the HGB loops of main are standalone. So 3.3.1 vs Fix A is close to an A/A test here, and
+its gaps of up to ~11% on gamer are noise. I didn't compare the utility code or the other modules.
+
 ## Where it doesn't help
 
+- HGB on main with libomp on gamer: Fix B is 23-25% slower on `year_prediction_msd` in 2 rounds, 19%
+  on `L`, and all three phases (`hist`, `find_split`, `apply_split`) lose. On the laptop, with the
+  same libomp (`llvm-openmp` 23.1.2), Fix B is 35% faster on the same case. On gamer it also gains on
+  `pr` and `fuse3` (table above). I don't know why, and the Xeon wasn't run on main.
 - `kddcup09_churn` on gamer: 4-16% slower with the fix, in the 4 configurations. On the Xeon it
   gains. Probably idle states on mixed P and E cores, but I haven't checked.
 - The laptop is noisy: its first round showed HGB predict 27% faster and KMeans lloyd 11% slower,
