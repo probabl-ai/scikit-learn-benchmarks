@@ -123,14 +123,48 @@ The other findings on this page were not repeated on 3.2.5.
 - #34935 has no msd regression on these two. msd is 7.7 s vs main's 13.0 s on the Mac and
   15.3 s for all three on aws-l4-1 at 2 threads.
 
+## Retuning the thread rule of #34935 (LOG Exp 22-27)
+
+- #34935 gives too many threads: to small and mid problems with active wait, and in its top band in
+  passive mode. A cap by `n_samples * n_features` and wait mode fixes most of it, and the guards can
+  stay (Exp 23-24: once the cap is there, no guard setting wins by more than 1%).
+- The rule, on `hgb/retune-threads` (local, 9d7e7756f4), in values:
+  active 200K:4, 5M:8, 50M:16, 75M:32, then 64. Passive 2M:1, 20M:4, 75M:8, then 16.
+- Geomean against #34935, on the 15 `hgb_scalability` cases then on 15 shapes not used for tuning: 0.98
+  and 0.97 on one Xeon NUMA node, 0.84 and 0.85 on one socket, 0.79 and 0.78 on the whole machine, 0.89
+  and 0.79 on gamer with libgomp, 0.92 and 0.82 with libomp, 0.95 and 0.96 on the laptop, 1.00 and 1.00 on
+  mac-m2.
+- It fixes the msd regression without #42: main, #34935, rule are 14.06, 24.25, 4.80 s on gamer with
+  libgomp, 6.56, 17.79, 5.55 s with libomp, 15.47, 13.83, 8.66 s on the laptop, 3.88, 4.88, 3.28 s on one
+  socket, 10.97, 7.70, 6.08 s on the whole machine.
+- Worst medians against #34935 on default profiles: 1.20x (`t-70M`, laptop), 1.17x (`t-30M` and `t-48M`,
+  NUMA node). Against main: 1.30x (`t-60M-l7`, laptop), 1.29x (`t-22M`, socket), 1.24x (`t-150M`, whole
+  machine).
+- The clear loss is `OMP_PROC_BIND=close` on one socket: geomean 0.96 and 1.03, `t-48M` 1.70x. With the
+  threads bound together, the fewer threads of the rule stay on one NUMA node.
+
+What this doesn't cover or settle:
+
+- Apart from the 6 datasets of `hgb_scalability`, which served for tuning, all shapes are synthetic.
+- libomp on the Xeon and Windows are untested. The laptop ran on the `balanced` power profile.
+- The passive limit of 75M isn't a measured optimum: gamer and the laptop disagree between 36M and 100M,
+  and anywhere from about 50M to 100M does about as well (Exp 26).
+- The active guards were only swept on the laptop and the Mac, not on the Xeon or gamer (Exp 24).
+- The number of leaves isn't in the rule, although work per region depends on it.
+- The benchmarks ran on 313be4c8 plus the rule, and the branch is rebased on the merge of main. Only the
+  tests ran on the rebased commit.
+
 ## Decisions
 
 - Manual chunks (`nb`) are dropped.
-- `hgb/merge-regions` goes up as a follow-up to #34935, after review.
-- Next: retune the heuristics in #34935.
+- `hgb/merge-regions` goes up as a follow-up to #34935, after review. It wasn't part of the retune, and
+  its numbers on this page are against #34935 without the rule.
+- The active cap stays at 16 between 20M and 50M (Exp 26b: cap 20 is 0.95 on a NUMA node, 1.02 on a socket).
 
 ## Open
 
+- How the rule reaches #34935.
+- Whether the number of leaves should enter the rule.
 - Why P and E cores differ with deep idle states, and why libomp and libgomp differ
   on P cores.
 - Whether a dynamic schedule on the merged feature loop is worth a follow-up.

@@ -1,0 +1,83 @@
+diff --git a/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py b/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
+index b1285976bf..d359ee8535 100644
+--- a/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
++++ b/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py
+@@ -624,6 +624,9 @@ class BaseHistGradientBoosting(BaseEstimator, ABC):
+             n_samples,
+             n_features,
+         )
++        import os
++        if "HGB_T" in os.environ:
++            n_threads = min(int(os.environ["HGB_T"]), max_n_threads)
+         # Only matters with several threads, in which case the heuristic above
+         # already ran the (cached) detection.
+         active_wait = n_threads > 1 and _openmp_uses_active_wait()
+@@ -1014,6 +1017,18 @@ class BaseHistGradientBoosting(BaseEstimator, ABC):
+         if not active_wait and n_samples * n_features <= 20_000_000:
+             max_n_threads = min(max_n_threads, 4)
+ 
++        import os
++        if not active_wait and "HGB_PCAP" in os.environ:
++            max_n_threads = min(max_n_threads, int(os.environ["HGB_PCAP"]))
++
++        stair = os.environ.get("HGB_ASTAIR" if active_wait else "HGB_PSTAIR")
++        if stair:
++            for step in stair.split("/"):
++                limit, cap = step.split(":")
++                if n_samples * n_features <= int(limit):
++                    max_n_threads = min(max_n_threads, int(cap))
++                    break
++
+         # Empirically, HGB always scales with strongly diminishing
+         # returns and often very counter-productively past 64 threads.
+         max_n_threads = min(max_n_threads, 64)
+diff --git a/sklearn/ensemble/_hist_gradient_boosting/splitting.pyx b/sklearn/ensemble/_hist_gradient_boosting/splitting.pyx
+index f41776e43c..432cb1ea44 100644
+--- a/sklearn/ensemble/_hist_gradient_boosting/splitting.pyx
++++ b/sklearn/ensemble/_hist_gradient_boosting/splitting.pyx
+@@ -189,6 +189,9 @@ cdef class Splitter:
+         unsigned int [::1] right_indices_buffer
+         int n_threads
+         bint active_wait
++        int knob_split_min
++        int knob_split_abs
++        int knob_fs_factor
+ 
+     def __init__(self,
+                  const X_BINNED_DTYPE_C [::1, :] X_binned,
+@@ -224,6 +227,10 @@ cdef class Splitter:
+         self.rng = rng
+         self.n_threads = n_threads
+         self.active_wait = active_wait
++        import os
++        self.knob_split_min = int(os.environ.get("HGB_SM", 500 if active_wait else 5000))
++        self.knob_split_abs = int(os.environ.get("HGB_SA", 0))
++        self.knob_fs_factor = int(os.environ.get("HGB_FS", -1))
+ 
+         # The partition array maps each sample index into the leaves of the
+         # tree (a leaf in this context is a node that isn't split yet, not
+@@ -330,10 +337,11 @@ cdef class Splitter:
+             # An actively-waiting OpenMP runtime can rejoin a parallel region cheaply
+             # enough to make threading worth it on smaller workloads; a passively
+             # waiting one needs a much bigger workload to amortize that cost.
+-            int min_samples_per_thread_to_split = 500 if self.active_wait else 5000
++            int min_samples_per_thread_to_split = self.knob_split_min
+             bint use_threads = (
+                 n_threads > 1
+                 and n_threads * min_samples_per_thread_to_split < n_samples
++                and n_samples >= self.knob_split_abs
+             )
+ 
+             int right_child_position
+@@ -554,7 +562,10 @@ cdef class Splitter:
+         # leaves some threads with no work while still paying for the overhead
+         # of spinning up the parallel region. An actively-waiting OpenMP runtime
+         # makes that overhead cheap enough that it's not worth guarding against.
+-        use_threads = self.active_wait or (n_split_candidates >= n_threads * 5)
++        if self.knob_fs_factor >= 0:
++            use_threads = n_split_candidates >= n_threads * self.knob_fs_factor
++        else:
++            use_threads = self.active_wait or (n_split_candidates >= n_threads * 5)
+ 
+         with nogil:
+ 

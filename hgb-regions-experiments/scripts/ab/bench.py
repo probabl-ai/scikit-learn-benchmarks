@@ -13,12 +13,17 @@ DEFAULT_VARIANTS = "main,pr,abs,pr+fuse,pr+fuse3,abs+fuse3,none+fuse3"
 
 
 def parse_variant(name):
-    """`main`, or `[BUILD:]GUARD[+FUSE][@ABS_SAMPLES]`, e.g. `abs+fuse3@50000`, `nb:pr+fuse3`."""
+    """`main`, or `[BUILD:]GUARD[+FUSE][@ABS_SAMPLES]`, e.g. `abs+fuse3@50000`, `nb:pr+fuse3`.
+
+    A `~KNOB=VAL` suffix sets HGB_KNOB=VAL, e.g. `c325knob:main~T=4~FS=0`.
+    """
+    name, *knobs = name.split("~")
+    knob_env = {f"HGB_{k}": v for k, v in (kv.split("=") for kv in knobs)}
     if name == "main":
-        return "main", {}
+        return "main", knob_env
     build, _, rest = name.rpartition(":")
     if rest == "main":  # a build without the experiment switches
-        return build, {}
+        return build, knob_env
     rest, _, samples = rest.partition("@")
     guard, _, fuse = rest.partition("+")
     env = {"SKLEARN_HGB_GUARD": guard}
@@ -40,12 +45,20 @@ p.add_argument("--n-runs", type=int, default=3)
 p.add_argument("--reps", type=int, default=1)
 p.add_argument("--phases", action="store_true", help="also record the grower phase times")
 p.add_argument("--cpus", default="", help="taskset CPU list, replaces the case's cpu_affinity")
+p.add_argument("--workloads", default="", help="extra synthetic cases, NAME:N_SAMPLES:N_FEATURES[:LEAVES],...")
 p.add_argument("--out", required=True)
 args = p.parse_args()
 
 sys.path.insert(0, str(B / "configs"))
 import hgb_scalability as cfg
 cfg.get_n_cores_list = lambda **kw: [args.threads]
+for spec in filter(None, args.workloads.split(",")):
+    if ":" not in spec:  # a case the config already has
+        continue
+    wname, n, p_, *leaves = spec.split(":")
+    cfg.WORKLOADS.append({"name": wname, "n_samples": int(n), "n_features": int(p_)})
+    if leaves:
+        cfg.WORKLOADS[-1]["max_leaf_nodes"] = int(leaves[0])
 cases = cfg.generate_cases()
 name = lambda c: c["data"].get("dataset") or c["metadata"]["name"]
 if args.cases:

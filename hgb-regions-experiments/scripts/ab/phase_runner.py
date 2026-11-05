@@ -32,6 +32,8 @@ def timed_grow(self):
     totals["apply"] += self.total_apply_split_time
     totals["n_nodes"] += self.n_nodes
     totals["n_trees"] += 1
+    totals["n_threads"] = self.splitter.n_threads
+    totals["active_wait"] = bool(getattr(self.splitter, "active_wait", False))
 
 
 TreeGrower.grow = timed_grow

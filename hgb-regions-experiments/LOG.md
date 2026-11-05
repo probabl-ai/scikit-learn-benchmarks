@@ -850,3 +850,251 @@ or disassembly. Details in `cython-prange-barrier/LOG.md` Exp 8 on the branch
 - Manual chunks (`nb`): dropped, on Arthur's call.
 - `hgb/merge-regions` goes up as a follow-up to #34935, after Arthur's review.
 - Next: retune the heuristics in #34935, before the follow-up.
+
+## Exp 22: fit time against the thread count (2026-11-05)
+
+`run_exp22.sh`, `analyze_exp22.py`, `knobs.patch` and `build_knob.sh` (#34935 at 313be4c8 plus env
+knobs: `T` forces the thread count, `SM` the samples per thread of `split_indices`, `FS` the factor of
+`find_node_split`). All of Exp 22-27 use Cython 3.2.5, leave #42 out and compare against #34935.
+19 cases: the 15 of `hgb_scalability` plus `N-thin` 200K x 10, `N` 40K x 50, `N-wide` 10K x 300 and
+`O` 300K x 100. 3 processes of 1 fit. Results in `results/*/exp22/`. The NUMA node and whole-machine
+Xeon results are in `xeon-s0/` too.
+
+| profile | main / #34935 | best T per case / #34935 |
+| --- | --- | --- |
+| xeon, 1 NUMA node, 22 threads, active | 1.30 | 0.92 |
+| xeon, 1 socket, 86 threads, active | 1.42 | 0.79 |
+| xeon, whole machine, 172 threads, active | 2.23 | 0.81 |
+| xeon, 1 NUMA node, 22 threads, passive | 12.48 | 0.64 |
+| gamer, 24 threads, libgomp | 5.24 | 0.80 |
+| gamer, 24 threads, libomp | 2.60 | 0.86 |
+| gamer, active forced | 1.15 | 0.97 |
+| laptop, 16 threads, libgomp | 3.92 | 0.89 |
+| laptop, active forced | 1.16 | 0.93 |
+| mac-m2, 8 threads | 2.65 | 0.97 |
+| mac-m2, active forced | 1.06 | 0.94 |
+
+- With active wait, #34935 gives too many threads to small and mid problems. On one socket, `S`, `M`,
+  `N` and `ames_housing` are at 0.57-0.61x with T=8 instead of T=40-50. The big ones need more:
+  `L-stumps` 0.96x at T=64, `kddcup09_churn` and `susy` 0.98x at T=32. `msd` is best at T=16 (0.68x).
+- On the whole machine, T=8 or T=16 is best on most cases, and T=172 costs up to 19x (`XS`). T=64 is
+  the best only on `L-stumps`.
+- In passive mode, #34935's top band is the problem: `msd` gets T=23 on gamer and is at 0.17x with
+  T=16 (libgomp), 0.27x with libomp. `O` is at 0.40x with T=8. T=24 can cost 25x on small cases.
+- The Xeon in passive mode wants even fewer threads: `msd` 0.17x at T=2, `covtype` 0.27x at T=1. I
+  didn't tune for this one: passive isn't its default.
+- Always threading `find_node_split` (`FS=0`) only helps at #34935's high T: 0.47x on `msd` on gamer.
+
+## Exp 23: passive guards, with the top band capped at 8 threads (2026-11-05)
+
+`run_exp23.sh`, `analyze_exp23.py`. Base: #34935 with `PCAP=8`. 10 cases that get several threads, 3
+processes. `results/{gamer,laptop,mac-m2}/exp23/`. Geomean against the base:
+
+| guard | gamer libgomp | gamer libomp | laptop | mac-m2 |
+| --- | --- | --- | --- | --- |
+| `SM=500` | 1.00 | 1.03 | 1.09 | 1.03 |
+| `SM=2000` | 0.99 | 1.01 | 1.03 | 1.01 |
+| `SM=20000` | 1.06 | 1.02 | 1.01 | 1.00 |
+| `SM=100000` | 1.06 | 1.09 | 1.02 | 1.02 |
+| `FS=0` (always threaded) | 1.02 | 1.05 | 1.02 | 1.04 |
+| `FS=1` | 1.02 | 1.03 | 1.01 | 1.03 |
+| `FS=2` | 1.02 | 1.03 | 1.00 | 1.03 |
+| `FS=100000` (never) | 1.11 | 1.08 | 1.11 | 1.02 |
+| #34935, no cap | 1.30 | 1.22 | 1.03 | 0.99 |
+
+- Once the top band is capped, no guard setting beats 5000 samples per thread and factor 5 by more
+  than 1%. So the guards stay as they are in passive mode.
+- The cap removes the msd regression on gamer: #34935 is 5.08x the capped base with libgomp, 3.14x with
+  libomp. `L-stumps` pays for it, at 0.72-0.76x for #34935, so the top band needs a size limit (Exp 26).
+
+## Exp 24: active guards at a provisional stair (2026-11-05)
+
+`run_exp24.sh`. Base: stair 200K:4/5M:8/20M:16. 18 cases, 3 processes, laptop and mac-m2 with active
+wait forced. It did not run on the Xeon or gamer. `results/{laptop,mac-m2}/exp24/`.
+
+| guard | laptop | mac-m2 |
+| --- | --- | --- |
+| `SM=100` | 1.02 | 1.03 |
+| `SM=2000` | 1.02 | 1.02 |
+| `SM=5000` | 1.03 | 1.01 |
+| `SM=20000` | 1.12 | 1.05 |
+| `FS=1` | 0.99 | 1.01 |
+| `FS=2` | 1.04 | 1.01 |
+| `FS=5` | 1.13 | 1.06 |
+| #34935 | 1.14 | 1.09 |
+
+No setting clearly beats 500 samples per thread and always threaded, so these stay too. The laptop
+is noisy here (intervals up to 1.93).
+
+## Exp 25: candidate stairs on 15 held-out shapes (2026-11-05)
+
+`run_exp25.sh`, `analyze_exp25.py`. 15 shapes from 100K to 200M values, 5 processes, interleaved.
+`results/*/exp25/`. Candidates: A32 is 200K:4/5M:8/32, A16 is 200K:4/5M:8/20M:16/32, A64 is
+200K:4/5M:8/20M:16/100M:32/64 and P8 is 2M:1/20M:4/8. Geomean against #34935:
+
+| profile | main | A32 | A16 | A64 | P8 |
+| --- | --- | --- | --- | --- | --- |
+| xeon, 1 NUMA node | 1.14 | 0.94 | 0.92 | 0.92 | |
+| xeon, 1 socket | 1.16 | 0.86 | 0.85 | 0.82 | |
+| xeon, 1 socket, `OMP_PROC_BIND=close` | | 0.97 | 0.98 | 0.95 | |
+| gamer, active forced | 1.09 | 0.98 | 1.00 | | |
+| laptop, active forced | 1.10 | | 0.97 | | |
+| mac-m2, active forced | 0.99 | | 0.94 | | |
+| gamer, libgomp | 4.33 | | | | 0.85 |
+| gamer, libomp | 2.07 | | | | 0.85 |
+| laptop, libgomp | 2.89 | | | | 0.95 |
+| mac-m2 | 1.98 | | | | 1.00 |
+
+- Capping too low hurts at the top end. `h-200M` is 1.34x with a cap of 32 on one socket (T=25) and
+  0.99x with 64 (T=50). On the laptop, `P8` has `h-200M` at 1.30x and `h-80M` at 1.23x.
+- So the top bands need a second look (Exp 26). The Xeon `s0-close` run was stopped at 181 of 375 rows
+  to free the machine for Exp 26a and 27, so that row only covers part of the processes.
+
+## Exp 26: where the passive cap goes from 8 to 16 (2026-11-05)
+
+`run_exp26.sh`, `analyze_exp26.py`. 11 shapes from 30M to 120M values, 5 processes, cap 16 against
+cap 8. `results/{gamer,laptop}/exp26/`. T is often 15 or 13 and not 16, from the features chunking.
+
+| shape | laptop | gamer libgomp | gamer libomp |
+| --- | --- | --- | --- |
+| b-30M | 1.01 | 0.96 | 1.03 |
+| b-36M | 1.69 | 0.88 | 0.89 |
+| b-45M | 0.93 | 0.83 | 1.02 |
+| b-50M | 1.49 | 0.78 | 0.77 |
+| b-60M | 0.93 | 1.29 | 1.05 |
+| b-60M-t | 1.09 | 0.94 | 0.84 |
+| b-60M-w | 0.80 | 0.85 | 0.88 |
+| b-60M-l127 | 1.71 | 0.88 | 0.88 |
+| b-75M | 0.77 | 0.88 | 0.94 |
+| b-100M | 0.83 | 1.18 | 1.28 |
+| b-120M | 0.78 | 1.02 | 1.07 |
+
+This doesn't give a sharp limit, and the two machines disagree. Gamer mostly prefers 16 from 36M to 75M
+(`b-60M` is the exception), and 8 at 100M. The laptop can lose 1.5-1.7x with 16 up to 60M, and prefers
+16 from 75M. I chose cap 8 up to 75M and 16 above, because the losses with 16 are the largest (1.7x,
+against 1.3x with 8) and Exp 22 agrees at or below 30M (16 vs 8: `covtype` 1.16-2.11x, `O` 1.43-1.74x).
+`L-stumps` (100M) wants 16: 0.78-0.83x in Exp 22. Anywhere from about 50M to 100M does about as well,
+so 75M isn't a measured optimum.
+
+## Exp 26a and 26b: active caps above 16 (2026-11-05)
+
+`run_exp26a.sh`, `run_exp26b.sh`, `analyze_exp26a.py`, `analyze_exp26b.py`. Cap 32 and 64, then 20 and
+24, against cap 16, 5 processes, on socket 1 (86 threads) and one NUMA node (22 threads).
+`results/xeon-s0/exp26a/`, `results/xeon-s0/exp26b/`. One fit of 26a on the socket failed because I
+killed it with a `pkill` meant for the Exp 25 queue. On the socket:
+
+| case | values | cap 32 / 16 | cap 64 / 16 |
+| --- | --- | --- | --- |
+| `year_prediction_msd` | | 1.31 | 1.44 |
+| h-25M | 25M | 1.23 | 1.23 |
+| b-36M | 36M | 1.14 | 1.20 |
+| h-40M-l127 | 40M | 1.33 | 1.38 |
+| b-50M | 50M | 1.02 | 1.05 |
+| b-60M | 60M | 0.75 | 0.93 |
+| b-75M | 75M | 0.75 | 1.00 |
+| b-100M | 100M | 0.72 | 0.59 |
+| b-120M | 120M | 0.72 | 0.60 |
+| h-200M | 200M | 0.69 | 0.52 |
+| `L-stumps` | 100M | 0.78 | 0.62 |
+
+- So the active stair ends with 50M:16/75M:32/64. On a NUMA node, the cap of 22 threads binds first:
+  T=20-22 is 0.80-0.90x of cap 16 on most big cases, and `b-36M` is the worst at 1.15x.
+- Between 20M and 50M, 26b tries a cap of 20 or 24. Geomean on the socket 1.02 and 1.04 (worst `b-36M`
+  1.27x, `h-40M-l127` 1.36x), on a NUMA node 0.95 and 0.97 (cap 16's worst is `t-30M` at 0.87x, where
+  the features chunking gives T=11 against 20).
+- I kept 16: the effects are small and opposite, and the stair keeps doubling.
+
+## The retuned rule (2026-11-05)
+
+Branch `hgb/retune-threads`, local only. Commit 9d7e7756f4, on top of the merge of main (67a9bc9cdd).
+`retune.patch` is the same rule on 313be4c8, which is what Exp 27 runs. It lowers `max_n_threads` before
+the rest of the heuristic, by `n_samples * n_features` and wait mode. The guards don't change:
+
+| values up to | active | passive |
+| --- | --- | --- |
+| 200K | 4 | 1 |
+| 2M | 8 | 1 |
+| 5M | 8 | 4 |
+| 20M | 16 | 4 |
+| 50M | 16 | 8 |
+| 75M | 32 | 8 |
+| more | 64 | 16 |
+
+Up to 20K values it stays at 1 thread, in both modes. The features chunking can lower T further: 20
+features with a cap of 16 gives T=10 or 11.
+
+Tests: `test_get_heuristic_optimal_n_threads_monotonic_in_n_samples` and
+`test_get_heuristic_optimal_n_threads_fewer_with_passive_wait` are new, and
+`test_feature_thread_count_preserves_static_chunk_size` runs in both modes.
+`check_retune_tests.py` and `check_retune_tests2.py` break the rule to see them fail. My first
+monotonic test used powers of ten and missed a non-monotonic stair, so it now uses `2**k`. With the fix,
+clean: 39 pass, tables swapped: 14 fail, non-monotonic stair: 2 fail.
+
+On 9d7e7756f4: HGB and OpenMP helper tests 406 passed, 105 skipped, HGB tests with active wait forced 387
+passed, 105 skipped (on this thinkpad). Trees and predictions of `retune.patch` are identical to #34935's on 12 of
+12 parameter sets on the 4 machines.
+
+## Exp 27: the retuned rule against #34935 and main (2026-11-05)
+
+`run_exp27.sh`, `analyze_exp27.py`, `build_retune.sh`, `retune.patch`. Real code, with no knobs: #34935 at
+313be4c8, the same plus the rule, and main at its merge base, all on Cython 3.2.5, interleaved. 15 cases
+of `hgb_scalability`, which also served for tuning, and 15 `t-*` shapes from 150K to 300M values, which
+did not. `t-22M`, `t-30M` and `t-48M` also ran in Exp 26b, but the rule didn't change after that. 5
+processes of 1 fit (3 for the Xeon passive and whole-machine rows). `results/*/exp27/`.
+
+Geomean against #34935, with the 5-95% bootstrap over the processes, and msd in seconds:
+
+| profile | retune, 15 cases | retune, `t-*` | main, 15 cases | main, `t-*` | msd main | #34935 | retune |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| xeon, 1 NUMA node, 22 threads | 0.98 (0.97-0.99) | 0.97 (0.97-0.98) | 1.35 | 1.06 | 2.82 | 2.53 | 2.73 |
+| xeon, 1 socket, 86 threads | 0.84 (0.83-0.85) | 0.85 (0.84-0.86) | 1.53 | 1.06 | 3.88 | 4.88 | 3.28 |
+| xeon, whole machine, 172 threads | 0.79 (0.74-0.80) | 0.78 (0.77-0.79) | 2.58 | 1.54 | 10.97 | 7.70 | 6.08 |
+| xeon, 1 socket, `OMP_PROC_BIND=close` | 0.96 (0.95-0.97) | 1.03 (1.03-1.04) | | | | 3.16 | 4.26 |
+| xeon, 1 socket, passive | 1.00 (0.97-1.03) | 0.98 (0.94-1.00) | | | | 66.2 | 59.7 |
+| xeon, 1 NUMA node, passive | 0.98 (0.96-1.00) | 0.96 (0.93-0.97) | | | | 80.3 | 60.9 |
+| gamer, 24 threads, libgomp | 0.89 (0.88-0.89) | 0.79 (0.77-0.80) | 5.06 | 3.29 | 14.06 | 24.25 | 4.80 |
+| gamer, 24 threads, libomp | 0.92 (0.90-0.94) | 0.82 (0.80-0.85) | 2.79 | 1.63 | 6.56 | 17.79 | 5.55 |
+| gamer, active forced | 1.03 (1.01-1.04) | 1.01 (1.00-1.03) | 1.24 | 1.06 | 2.03 | 2.00 | 2.21 |
+| laptop, 16 threads, libgomp | 0.95 (0.92-1.01) | 0.96 (0.88-1.07) | 4.38 | 2.23 | 15.47 | 13.83 | 8.66 |
+| laptop, active forced | 0.96 (0.87-1.17) | 0.97 (0.82-1.22) | 1.31 | 1.06 | 4.61 | 4.71 | 4.52 |
+| mac-m2, 8 threads | 1.00 (0.99-1.00) | 1.00 (0.99-1.01) | 2.96 | 1.65 | 12.94 | 11.60 | 11.56 |
+| mac-m2, active forced | 0.87 (0.81-0.93) | 0.97 (0.94-1.00) | 1.11 | 1.01 | 10.34 | 10.21 | 10.33 |
+
+Worst medians on the default profiles:
+
+| profile | vs #34935 | vs main |
+| --- | --- | --- |
+| xeon, 1 NUMA node | `t-30M` 1.17, `t-48M` 1.17, `L-thin` 1.10 | `t-48M` 1.22, `t-30M` 1.18 |
+| xeon, 1 socket | `t-30M` 1.09, `t-22M` 1.08 | `t-22M` 1.29, `t-48M` 1.12, `kddcup09_churn` 1.09 |
+| xeon, whole machine | `t-60M-l7` 1.09, `L-stumps` 1.07 | `t-150M` 1.24 |
+| gamer, libgomp | `t-90M` 1.06 | none above 1 (`L-stumps` 0.95) |
+| gamer, libomp | `L-stumps` 1.08 | none above 1 (`t-70M` 0.96) |
+| laptop, libgomp | `t-70M` 1.20, `t-60M-l7` 1.17, `covtype` 1.14 | `t-60M-l7` 1.30 |
+| mac-m2 | none above 1.01 | `kddcup09_churn` 1.03 |
+
+- msd is faster than main on all 7 default profiles, without #42. On gamer with libomp, where #34935 is
+  2.7x slower than main, the rule gets 5.55 s against 6.56 s.
+- The biggest gains over #34935 come from fewer threads on small problems with active wait (`t-150K` is
+  0.48x on one socket, 0.28x on the whole machine) and from the 20-75M band in passive mode (`t-22M` is
+  0.21x on gamer with libgomp, 0.54x on the laptop).
+- The Mac at 8 threads gets the same T as with #34935 on all 30 cases.
+- `OMP_PROC_BIND=close` on one socket is the one real loss: `t-48M` 1.70x, `t-30M` 1.42x, msd 1.35x.
+  #34935 puts 60 threads on several NUMA nodes there, and the rule's 15 stay on one. It's not a default
+  setup, and without binding the same cases are 0.90x, 1.09x and 0.67x.
+- `covtype` on the laptop has the same T=4 on both sides and goes from 0.82 to 1.18, so 1.14 is noise.
+- The Mac with active wait forced gets 0.87 partly from `ames_housing` at 0.35x. #34935 is slow in this run
+  (0.53 s vs 0.25 s in Exp 22), so I wouldn't read that case as a gain of 3x.
+
+About the runs: of 4980 fits, one failed, `L-leaf255` on the rule, on gamer with active wait forced. It was a
+SIGSEGV with CPython frames only, like the random ones known on this machine, and the rule changes no
+compiled code. On the laptop with active wait forced, part of processes 4 and 5 is disturbed on all three builds
+(one `susy` at 154 s instead of 14 s), I don't know by what. Medians hold, but the intervals of that row are
+wide. The Mac stayed on AC, with one 2 s maintenance sleep during
+`exp27-mac`. The laptop is on the `balanced` power profile.
+
+## Merge of main into #34935 (2026-11-05)
+
+Arthur asked to merge main into the PR while Exp 27 ran. 67a9bc9cdd is pushed on `hgb/active_wait`. One
+conflict, at the end of `test_gradient_boosting.py`, keeping both sides. HGB and OpenMP helper tests: 388
+passed, 105 skipped, and with active wait forced 369 passed, 105 skipped (on this thinkpad). The retune is rebased on it
+and not pushed. Exp 27 ran before the merge, on 313be4c8.
