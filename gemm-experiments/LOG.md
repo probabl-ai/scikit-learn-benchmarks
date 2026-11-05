@@ -1008,7 +1008,10 @@ the reverse: there develop also ran after enough all-core shapes.
 So the gamer has no split-K slowdown. The grid's develop-path ratios there
 are not usable; a clean grid would need a cool-down between shapes.
 
-v3 vs develop, 5 rounds (`sk3.csv`, threads not pinned). Checks: the two f64
+Both runs above are suspect: `pmset -g log` shows the sk2 run going through
+"Maintenance Sleep" periods and the sk3 run on battery (97% down to 12%).
+
+v3 vs develop, 5 rounds (`sk3.csv`, threads not pinned, on battery). Checks: the two f64
 threshold artifacts only. Split cells, median ratio develop/v3: 2T 1.01-2.0x,
 4T 1.04-2.9x, 8T 1.05-3.5x, 6T 0.74-4.9x. All the split losses are at 6T,
 syrk with 64-128 columns and k = 5e3-5e4, 6 chunks: d 64 columns 0.74-0.85x
@@ -1021,3 +1024,12 @@ likely the same power/thermal ordering effect as on the gamer.
 
 The xeon-s1 recheck (`sk3_recheck.csv`) gave up after 3600 s: an
 hptuning_taskset run holds both sockets. Not retried.
+
+Rerun on AC under `caffeinate`, 5 rounds (`sk3_ac.csv`, 2026-11-05
+00:21-01:04, no sleep in `pmset -g log`). Split cells, median ratio
+develop/v3: 2T 1.02-2.0x, 4T 1.05-2.9x, 8T 1.07-3.2x, 6T 0.81-5.1x. The
+losses are still only at 6T, syrk with 64-128 columns and k = 5e3-5e4:
+d 64x5000 0.85, f32 64 columns 0.88-0.91 (min ratio 0.98-1.28), f32
+128x5000 0.81. Develop-path cells: 0.96-1.09 at 2, 4 and 8T, 0.86-0.94 in 3
+cells at 6T. Arthur is fine with the 6T syrk loss (6 threads isn't the
+default on the M2).
