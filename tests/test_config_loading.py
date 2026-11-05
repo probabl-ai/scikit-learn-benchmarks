@@ -30,6 +30,7 @@ ENV_SENSITIVE_CONFIGS = {
     # implementations and produce no cases.
     Path("configs/hptuning.py"): GENERAL_ENVS,
     Path("configs/hptuning_taskset.py"): GENERAL_ENVS,
+    Path("configs/hptuning_strong_scaling.py"): GENERAL_ENVS,
 }
 
 

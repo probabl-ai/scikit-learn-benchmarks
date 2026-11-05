@@ -53,7 +53,8 @@ A few configs inspect the machine to size or filter their matrix:
 - `hptuning.py` sizes its outer `n_jobs` sweep from the physical core count,
   with one CV split per outer worker. Each fit stays the same on every
   machine. `hptuning_taskset.py` turns that sweep into a CPU affinity sweep,
-  with `n_jobs=-1`.
+  with `n_jobs=-1`. `hptuning_strong_scaling.py` does the same with a fixed
+  number of fits.
 - `_real_datasets.py` caps KMeans' `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
   machines with very many cores, in the scikit-learn environments on OpenBLAS
   only (to avoid an OpenBLAS crash),
