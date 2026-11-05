@@ -53,7 +53,8 @@ ABOUT_HTML = """<section class="panel">
     to ~2.4x faster and <b>HistGradientBoosting</b> on kddcup09_churn and
     year_prediction_msd is ~1.6x to ~1.8x faster, probably because memory bandwidth limits
     them (not measured). <b>RandomForest</b> on the small ames_housing dataset barely
-    changes.</li>
+    changes. NUMA nodes 0 and 1 share a bottleneck: 43 cores on nodes 0 and 2 are ~1.6x
+    to ~1.8x faster than on nodes 0 and 1, and crossing sockets costs nothing.</li>
   </ul>
   <details class="about-section">
     <summary>How to read</summary>
