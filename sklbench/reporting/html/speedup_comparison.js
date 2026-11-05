@@ -392,14 +392,19 @@
       return `<section class="panel"><h2>Software</h2>${data.envHtml}</section>`;
     }
 
-    // A tab describes what varies between tabs, and the other side only when it
-    // isn't the baseline's.
-    function comparedEnvHtml(baselineKey, target, key, data) {
-      const baseline = config.variants[baselineKey];
-      const variant = config.variants[key];
-      const showHardware = target.startsWith("software-") || variant.hardwareHash !== baseline.hardwareHash;
-      const showSoftware = target.startsWith("hardware-") || variant.software !== baseline.software;
-      return `<div class="cross-env">${showSoftware ? softwareHtml(data) : ""}${showHardware ? data.hardwareHtml : ""}</div>`;
+    // Machine tabs keep the software: its threadpools and versions depend on the machine.
+    function comparedEnvHtml(target, data) {
+      return target.startsWith("software-")
+        ? `<div class="cross-env">${data.hardwareHtml}${softwareHtml(data)}</div>`
+        : softwareHtml(data);
+    }
+
+    // All the tabs of a machine share its hardware.
+    function sharedHardwareHtml(state, candidateData) {
+      const isOtherMachine = state.target !== `hardware-${config.variants[state.baseline].hardwareHash}`;
+      return state.target.startsWith("hardware-") && isOtherMachine
+        ? `<div class="page-row">${candidateData[0].hardwareHtml}</div>`
+        : "";
     }
 
     async function render(state) {
@@ -428,11 +433,12 @@
         return {
           label,
           color: view.colors[label],
-          html: comparedEnvHtml(state.baseline, state.target, candidates[index], candidateData[index]),
+          html: comparedEnvHtml(state.target, candidateData[index]),
         };
       });
       baselineEnv.innerHTML = softwareHtml(baseData) + baseData.hardwareHtml;
       content.innerHTML =
+        sharedHardwareHtml(state, candidateData) +
         `<div class="page-row">${innerTabsHtml(tabs)}</div>` +
         dateRangeHtml([baseData, ...candidateData]);
       wireInnerTabs();
