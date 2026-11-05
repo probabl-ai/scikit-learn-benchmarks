@@ -1033,3 +1033,9 @@ d 64x5000 0.85, f32 64 columns 0.88-0.91 (min ratio 0.98-1.28), f32
 128x5000 0.81. Develop-path cells: 0.96-1.09 at 2, 4 and 8T, 0.86-0.94 in 3
 cells at 6T. Arthur is fine with the 6T syrk loss (6 threads isn't the
 default on the M2).
+
+xeon-s1 recheck, 10 rounds (`sk3_recheck.csv`, 2026-11-05): the three
+one-chunk cells that were under 0.95x are noise. Median ratio develop/v3:
+d 64x64x20000 86T 1.00, s syrk 32x20000 86T 1.00, s 64x64x5000 24-86T
+0.92-1.15 (min ratio 0.92-1.12). The split cells in the same run: 64x64x20000
+7.5-11.9x and syrk 32x20000 11-19x at 24-64T.
