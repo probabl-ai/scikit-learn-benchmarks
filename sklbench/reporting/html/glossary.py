@@ -242,8 +242,9 @@ TERMS = {
     ),
     "smt sibling": Term("The other logical CPU of the same physical core."),
     "numa node": Term(
-        "A group of CPU cores and the memory attached to them. A core reaches "
-        "the memory of its own group faster than that of another group.",
+        "On big servers, a group of CPU cores and the memory attached to them. "
+        "A core reaches the memory of its own group faster than that of another "
+        "group.",
         aliases=("numa nodes",),
     ),
     "e-cores": Term(
