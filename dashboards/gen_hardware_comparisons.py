@@ -384,10 +384,11 @@ def _env_html(_variant_key: str, result: MethodResult) -> str:
         software_hash=result.software_hash,
     )
     summary["name"] = software_label(result)
-    return (
-        HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", result.hardware_hash)))
-        + SOFTWARE_TEMPLATE.render(**summary)
-    )
+    return SOFTWARE_TEMPLATE.render(**summary)
+
+
+def _hardware_html(result: MethodResult) -> str:
+    return HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", result.hardware_hash)))
 
 
 @lru_cache(maxsize=None)
@@ -405,6 +406,7 @@ def write_variant_data(output_dir: Path) -> dict[Variant, list[MethodResult]]:
         case_key=comparison_key,
         search_key=search_match_key,
         env_html=_env_html,
+        hardware_html=_hardware_html,
     )
     return results_by_variant
 

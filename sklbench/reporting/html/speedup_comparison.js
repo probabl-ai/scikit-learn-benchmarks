@@ -95,9 +95,15 @@
     sklbenchWirePlotClicks();
   }
 
-  function drawGrids() {
+  function clearGrids() {
     const container = document.getElementById("comparison-grids");
     container.querySelectorAll(".plotly-graph-div").forEach((chart) => Plotly.purge(chart));
+    container.innerHTML = "";
+    return container;
+  }
+
+  function drawGrids() {
+    const container = clearGrids();
     window.sklbenchTables = {};
     const pending = {charts: [], tables: []};
     const grid = core.computeGrid(view, Boolean(toggle && toggle.checked));
@@ -220,7 +226,7 @@
         label: variant.label,
         color: variant.tabColor,
         isBaseline: variant.label === baselineLabel,
-        html: (variant.pickHtml || "") + loaded.get(variant.key).envHtml,
+        html: (variant.pickHtml || "") + (loaded.get(variant.key).hardwareHtml || "") + loaded.get(variant.key).envHtml,
       }));
       panel.innerHTML =
         `<div class="page-row">${dateRangeHtml(dataList)}</div>` +
@@ -273,7 +279,18 @@
   function initCrossPage() {
     const softwareSelect = document.getElementById("cross-software");
     const machineSelect = document.getElementById("cross-machine");
-    const targetSelect = document.getElementById("cross-target");
+    const baselineEnv = document.getElementById("cross-baseline-env");
+    const targetPickers = {
+      software: {
+        select: document.getElementById("cross-target-software"),
+        radio: document.getElementById("cross-target-software-radio"),
+      },
+      hardware: {
+        select: document.getElementById("cross-target-hardware"),
+        radio: document.getElementById("cross-target-hardware-radio"),
+      },
+    };
+    const softwareSuffix = document.getElementById("cross-target-software-suffix");
     let viewKey = null;
 
     function readState() {
@@ -306,10 +323,27 @@
       select.value = selected;
     }
 
-    function targetLabel(target) {
-      return target.startsWith("hardware-")
-        ? config.machineNames[target.slice("hardware-".length)]
-        : target.slice("software-".length);
+    function ownValue(kind, baseline) {
+      return kind === "software" ? baseline.software : baseline.hardwareHash;
+    }
+
+    // The picker that isn't in use shows the baseline's own value when it can.
+    function updateTargetPicker(kind, state) {
+      const {select, radio} = targetPickers[kind];
+      const prefix = `${kind}-`;
+      const values = config.pages[state.baseline]
+        .filter((target) => target.startsWith(prefix))
+        .map((target) => target.slice(prefix.length));
+      const own = ownValue(kind, config.variants[state.baseline]);
+      const active = state.target.startsWith(prefix);
+      const selected = active ? state.target.slice(prefix.length) : values.includes(own) ? own : values[0];
+      setOptions(
+        select,
+        values.map((value) => [value, kind === "software" ? value : config.machineNames[value]]),
+        selected
+      );
+      radio.checked = active;
+      radio.disabled = select.disabled = !values.length;
     }
 
     function updateSelectors(state) {
@@ -323,38 +357,56 @@
           .map((v) => [v.hardwareHash, config.machineNames[v.hardwareHash]]),
         baseline.hardwareHash
       );
-      const targets = config.pages[state.baseline];
-      targetSelect.innerHTML = [
-        ["One software, on every machine", "software-"],
-        ["One machine, with every software", "hardware-"],
-      ]
-        .map(([label, prefix]) => {
-          const options = targets
-            .filter((target) => target.startsWith(prefix))
-            .map((target) => `<option value="${escapeHtml(target)}">${escapeHtml(targetLabel(target))}</option>`)
-            .join("");
-          return options ? `<optgroup label="${label}">${options}</optgroup>` : "";
-        })
-        .join("");
-      targetSelect.value = state.target;
+      updateTargetPicker("software", state);
+      updateTargetPicker("hardware", state);
+      // Another software also runs on the baseline's machine.
+      softwareSuffix.textContent =
+        targetPickers.software.select.value === baseline.software ? "on all other machines" : "on all machines";
     }
 
-    function onSelectorChange() {
+    function closestTarget(baselineKey, target) {
+      const targets = config.pages[baselineKey];
+      if (targets.includes(target)) {
+        return target;
+      }
+      const kind = target.slice(0, target.indexOf("-"));
+      const own = `${kind}-${ownValue(kind, config.variants[baselineKey])}`;
+      if (targets.includes(own)) {
+        return own;
+      }
+      return targets.find((candidate) => candidate.startsWith(`${kind}-`)) || targets[0];
+    }
+
+    function onBaselineChange() {
       const software = softwareSelect.value;
       const keys = Object.keys(config.pages).filter((key) => config.variants[key].software === software);
       const baseline = keys.find((key) => config.variants[key].hardwareHash === machineSelect.value) || keys[0];
-      const targets = config.pages[baseline];
       writeState({
         baseline,
-        target: targets.includes(targetSelect.value) ? targetSelect.value : targets[0],
+        target: closestTarget(baseline, readState().target),
         preprocessing: toggle.checked,
       });
+    }
+
+    function softwareHtml(data) {
+      return `<section class="panel"><h2>Software</h2>${data.envHtml}</section>`;
+    }
+
+    // A tab describes what varies between tabs, and the other side only when it
+    // isn't the baseline's.
+    function comparedEnvHtml(baselineKey, target, key, data) {
+      const baseline = config.variants[baselineKey];
+      const variant = config.variants[key];
+      const showHardware = target.startsWith("software-") || variant.hardwareHash !== baseline.hardwareHash;
+      const showSoftware = target.startsWith("hardware-") || variant.software !== baseline.software;
+      return `<div class="cross-env">${showSoftware ? softwareHtml(data) : ""}${showHardware ? data.hardwareHtml : ""}</div>`;
     }
 
     async function render(state) {
       const token = (renderToken += 1);
       updateSelectors(state);
       const candidates = core.crossCandidates(state.baseline, state.target);
+      clearGrids();
       content.innerHTML = '<section class="empty">Loading results...</section>';
       const keys = [state.baseline, ...candidates];
       let dataList;
@@ -371,18 +423,18 @@
       viewKey = `${state.baseline}|${state.target}`;
       view = core.crossView(state.baseline, state.target, new Map(keys.map((key, index) => [key, dataList[index]])));
       const labelOfVariant = view.labelOfVariant;
-      const tabs = [
-        {label: view.baselineLabel, html: baseData.envHtml, isBaseline: true},
-        ...sortVariants(candidates.map(labelOfVariant)).map((label) => ({
+      const tabs = sortVariants(candidates.map(labelOfVariant)).map((label) => {
+        const index = candidates.findIndex((key) => labelOfVariant(key) === label);
+        return {
           label,
           color: view.colors[label],
-          html: candidateData[candidates.findIndex((key) => labelOfVariant(key) === label)].envHtml,
-        })),
-      ];
+          html: comparedEnvHtml(state.baseline, state.target, candidates[index], candidateData[index]),
+        };
+      });
+      baselineEnv.innerHTML = softwareHtml(baseData) + baseData.hardwareHtml;
       content.innerHTML =
-        `<div class="page-row">${dateRangeHtml([baseData, ...candidateData])}</div>` +
         `<div class="page-row">${innerTabsHtml(tabs)}</div>` +
-        '<div id="comparison-grids"></div>';
+        dateRangeHtml([baseData, ...candidateData]);
       wireInnerTabs();
       sklbenchFormatDateRanges();
       drawGrids();
@@ -401,8 +453,13 @@
       }
     }
 
-    [softwareSelect, machineSelect, targetSelect].forEach((select) => {
-      select.addEventListener("change", onSelectorChange);
+    [softwareSelect, machineSelect].forEach((select) => {
+      select.addEventListener("change", onBaselineChange);
+    });
+    Object.entries(targetPickers).forEach(([kind, {select, radio}]) => {
+      const pick = () => writeState({...readState(), target: `${kind}-${select.value}`});
+      select.addEventListener("change", pick);
+      radio.addEventListener("change", pick);
     });
     toggle.addEventListener("change", () => {
       const state = readState();

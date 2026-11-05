@@ -285,21 +285,17 @@ body.predict-collapsed .predict-collapse-toggle {
   text-transform: uppercase;
   vertical-align: 1px;
 }
-.comparison-selector {
+.cross-heading {
+  margin: 0 0 8px;
+}
+.cross-picker {
   display: flex;
-  align-items: flex-end;
-  gap: 14px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-}
-.comparison-selector label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   font-weight: 600;
-  color: var(--muted);
-  font-size: 13px;
 }
-.comparison-selector select {
+.cross-picker select {
   font: inherit;
   padding: 6px 8px;
   border: 1px solid var(--line);
@@ -308,10 +304,25 @@ body.predict-collapsed .predict-collapse-toggle {
   color: var(--text);
   min-width: 220px;
 }
-.comparison-selector-sep {
-  color: var(--muted);
-  font-weight: 600;
-  padding-bottom: 7px;
+.cross-env {
+  display: grid;
+  gap: 12px;
+}
+#cross-baseline-env {
+  margin-top: 14px;
+}
+.cross-compared-to {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+}
+.cross-compared-to .cross-heading {
+  margin: 6px 0 0;
+}
+.cross-targets {
+  display: grid;
+  gap: 8px;
 }
 .plot-subtitle {
   margin: -6px 0 8px;

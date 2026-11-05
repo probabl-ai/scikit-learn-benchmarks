@@ -27,9 +27,10 @@ ABOUT_HTML = """<section class="panel">
   <details class="about-section">
     <summary>How to read</summary>
     <p>Pick a <dfn>baseline</dfn>: one software on one machine. Then compare it with
-    either one software on every machine (one color per machine), or one machine
-    with every software (one color per software). The tabs below describe the
-    baseline and each compared machine and <dfn>software environment</dfn>.</p>
+    either one software on every machine (one color per machine), or every software
+    on one machine (one color per software). The baseline's
+    <dfn>software environment</dfn> and hardware are described under its selectors,
+    and the tabs describe what it's compared to.</p>
     <p>The plots read like in
     <a href="per_hardware.html">the software/implementations dashboard</a>: each
     point is one benchmark case, and points above the dashed 1x line are faster
@@ -107,15 +108,33 @@ def _comparable_targets(results_by_variant, softwares, hardware_hashes) -> dict[
     return pages
 
 
-SELECTOR_HTML = """<section class="panel">
-  <div class="comparison-selector">
-    <label>Baseline software<select id="cross-software"></select></label>
-    <span class="comparison-selector-sep">on</span>
-    <label>Baseline machine<select id="cross-machine"></select></label>
-    <span class="comparison-selector-sep">vs</span>
-    <label>Compare with<select id="cross-target"></select></label>
+BASELINE_HTML = """<h2 class="cross-heading">Baseline</h2>
+<section class="panel">
+  <div class="cross-picker">
+    <select id="cross-software" aria-label="Baseline software"></select>
+    <span>on</span>
+    <select id="cross-machine" aria-label="Baseline machine"></select>
+  </div>
+  <div id="cross-baseline-env" class="cross-env"></div>
+</section>"""
+
+COMPARED_TO_HTML = """<section class="cross-compared-to">
+  <h2 class="cross-heading">Compared to:</h2>
+  <div class="cross-targets">
+    <label class="cross-picker">
+      <input type="radio" name="cross-target-kind" id="cross-target-software-radio">
+      <select id="cross-target-software" aria-label="Compared software"></select>
+      <span id="cross-target-software-suffix"></span>
+    </label>
+    <label class="cross-picker">
+      <input type="radio" name="cross-target-kind" id="cross-target-hardware-radio">
+      <span>All softwares on</span>
+      <select id="cross-target-hardware" aria-label="Compared machine"></select>
+    </label>
   </div>
 </section>"""
+
+GRIDS_HTML = '<div id="comparison-grids"></div>'
 
 
 def generate(output_dir: Path) -> None:
@@ -156,9 +175,11 @@ def generate(output_dir: Path) -> None:
     }
     html = BASE_TEMPLATE.render(title=TITLE, rows=[
         ABOUT_HTML,
-        SELECTOR_HTML,
-        PREPROCESSING_TOGGLE_HTML,
+        BASELINE_HTML,
+        COMPARED_TO_HTML,
         CONTENT_HTML,
+        PREPROCESSING_TOGGLE_HTML,
+        GRIDS_HTML,
         *page_rows(config),
     ])
     output = output_dir / ENTRY_PAGE

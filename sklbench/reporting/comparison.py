@@ -244,9 +244,11 @@ def write_data_files(
     env_html: Callable[[str, MethodResult], str],
     search_by_variant: dict[str, list[MethodResult]] | None = None,
     search_key: Callable[[MethodResult], str] | None = None,
+    hardware_html: Callable[[MethodResult], str] | None = None,
 ) -> None:
     """Writes one file per variant key. Equal `id`s across files mean the same
-    case, so `case_key` is what decides which results pair up."""
+    case, so `case_key` is what decides which results pair up. `hardware_html` is
+    for pages whose variants don't all run on one machine."""
     directory = output_dir / data_dir
     # Variants can disappear from one run to the next.
     shutil.rmtree(directory, ignore_errors=True)
@@ -275,6 +277,8 @@ def write_data_files(
                 (search_by_variant or {}).get(variant_key, []), variant_key, search_id
             ),
         }
+        if hardware_html is not None:
+            data["hardwareHtml"] = hardware_html(results[0])
         payload = json.dumps(data, separators=(",", ":"), default=str)
         (directory / f"{variant_key}.js").write_text(
             f"window.sklbenchComparisonData[{json.dumps(variant_key)}]={payload};\n"
