@@ -70,7 +70,7 @@ ABOUT_HTML = """<section class="panel">
     <p>There is one tab per machine and one plot per (estimator, dataset) pair.
     The x-axis is the number of physical cores allowed (log scale), the y-axis is
     the wall time of the search divided by its number of
-    <code><dfn>.fit()</dfn></code> calls, with one color per <dfn>environment</dfn>. The
+    <code><dfn>.fit()</dfn></code> calls (log scale), with one color per <dfn>environment</dfn>. The
     solid line is <code>n_jobs=-1</code>, the dashed line is one worker per physical
     core: a dashed line below the solid one means that workers on SMT siblings
     slow the search down. The marker size is the mean load of the allowed logical
@@ -143,6 +143,7 @@ def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
         y_title=hptuning.DURATION_METRIC,
         y_unit="s",
         x_log=True,
+        y_log=True,
         size_domain=(0, 100),
     )
     title = escape(hptuning._row_title(row_key))
