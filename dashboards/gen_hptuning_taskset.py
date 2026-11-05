@@ -46,6 +46,14 @@ ABOUT_HTML = """<section class="panel">
     susy to ~55x on year_prediction_msd. <b>Ridge</b> on ames_housing peaks at ~21x at
     43 cores.</li>
     <li>On the laptop, the 16 cores give ~2x to ~7x.</li>
+    <li>On the Xeon, the CPU affinity fills the <dfn>NUMA nodes</dfn> in order, so the
+    plots also reflect that placement from 22 to 86 cores. In a separate run on
+    <dfn>PyPI</dfn> scikit-learn with the same 43 cores spread evenly over the NUMA nodes,
+    <b>LogisticRegression</b> on susy and <b>Ridge</b> on year_prediction_msd are ~2.3x
+    to ~2.4x faster and <b>HistGradientBoosting</b> on kddcup09_churn and
+    year_prediction_msd is ~1.6x to ~1.8x faster, probably because memory bandwidth limits
+    them (not measured). <b>RandomForest</b> on the small ames_housing dataset barely
+    changes.</li>
   </ul>
   <details class="about-section">
     <summary>How to read</summary>

@@ -241,6 +241,11 @@ TERMS = {
         aliases=("hyper-threading",),
     ),
     "smt sibling": Term("The other logical CPU of the same physical core."),
+    "numa node": Term(
+        "A group of CPU cores and the memory attached to them. A core reaches "
+        "the memory of its own group faster than that of another group.",
+        aliases=("numa nodes",),
+    ),
     "e-cores": Term(
         "Efficiency cores: smaller and slower cores that recent Intel laptop "
         "CPUs have next to their fast performance cores.",
