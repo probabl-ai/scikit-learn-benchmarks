@@ -45,6 +45,26 @@ ABOUT_HTML = """<section class="panel">
   on as many <dfn>CV splits</dfn> as physical cores. Both variants run the same
   fits, so their times compare directly. Machines without SMT only run
   <code>n_jobs=-1</code>, since the other variant has the same number of workers.</p>
+  <p>On the benchmarked cases, all on the Xeon server since it is the only machine
+  with SMT:</p>
+  <ul>
+    <li><code>n_jobs=-1</code> is at most ~1.2x slower than one worker per physical
+    core and up to ~2.4x faster, so there is little reason to replace it.</li>
+    <li>The <b>linear models</b> gain the most up to 22 physical cores:
+    <code>n_jobs=-1</code> is typically ~1.6x faster with the <b><dfn>PyPI</dfn></b>
+    build, ~1.3x faster with the <b><dfn>MKL conda-forge build</dfn></b> and about as
+    fast with <b>scikit-learn-intelex</b>. From 43 cores, the gap depends on the case,
+    from ~1.4x faster to ~1.2x slower.</li>
+    <li><b>HistGradientBoosting</b> with <code>n_jobs=-1</code> is ~1.1x faster up to
+    22 cores and ~1.1x to ~1.2x slower from 43 cores. On the small ames_housing
+    dataset, it is up to ~2x faster up to 43 cores.</li>
+    <li><b>RandomForest</b> and <b>ExtraTrees</b> barely change: the typical gap stays
+    within ~3%.</li>
+    <li>With <code>n_jobs=-1</code>, more cores don't always help. <b>RandomForest</b>
+    on susy goes from ~54x faster than one core at 86 cores to ~30x at 172 cores,
+    while <b>scikit-learn-intelex</b> reaches ~110x. <b>Ridge</b> on ames_housing peaks
+    at ~21x at 43 cores.</li>
+  </ul>
   <details class="about-section">
     <summary>How to read</summary>
     <p>There is one tab per machine and one plot per (estimator, dataset) pair.
