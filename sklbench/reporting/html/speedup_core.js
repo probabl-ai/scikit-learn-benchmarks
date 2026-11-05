@@ -7,8 +7,8 @@ window.sklbenchSpeedupCore = function (config) {
   const HEADER_FILTER = {clearable: true, sort: "asc", valuesLookup: true};
   const FAILED_MARKER_GAP = 0.4;
   const OFFSET_STEP = 0.14;
-  // Keeps every column of an estimator closer to its tick than to the next one.
-  const MAX_COLUMNS_SPAN = 0.84;
+  // Half the distance between ticks, so that estimators read as separate groups.
+  const MAX_COLUMNS_SPAN = 0.5;
   const FALLBACK_COLOR = "#9e9e9e";
   const REFERENCE_LINE_COLOR = "#48566b";
 
