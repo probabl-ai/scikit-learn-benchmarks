@@ -96,7 +96,7 @@ DASHBOARD_DESCRIPTIONS = {
     gen_cross_comparison.ENTRY_PAGE: "Any software on any machine against one software on every machine, or every software on one machine.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
-    "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use, and if one worker per <dfn>physical core</dfn> is faster.",
+    "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
 }
 
