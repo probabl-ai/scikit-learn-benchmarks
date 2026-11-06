@@ -14,6 +14,10 @@ const loaded = new Map(Object.entries(window.sklbenchComparisonData));
 const core = window.sklbenchSpeedupCore(input.config);
 
 function buildView(spec) {
+  if (spec.tab) {
+    const tab = input.config.outerTabs.find((outer) => outer.label === spec.tab);
+    return core.tabsView(tab, loaded, spec.baseline || tab.variants[0].label);
+  }
   const softwareGroups = spec.softwareGroups || input.config.defaultSoftwareGroups;
   return core.crossView(spec.baseline, spec.target, softwareGroups, loaded);
 }

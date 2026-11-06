@@ -6,7 +6,7 @@ the results, so the page builds the one on screen from one data file per variant
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from dashboards import GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS, GPU_NAMES, HARDWARE_NAMES
+from dashboards import GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS, GPU_NAMES, HARDWARE_COLORS, HARDWARE_NAMES
 from sklbench.reporting.comparison import (
     CONTENT_HTML,
     CUML_TREE_NOTE,
@@ -26,7 +26,6 @@ from sklbench.reporting.envs import (
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
     HARDWARE_TEMPLATE,
-    SERIES_COLORS,
     SOFTWARE_TEMPLATE,
     variant_color_map,
 )
@@ -202,7 +201,8 @@ ABOUT_HTML = f"""<section class="panel">
   <details class="about-section">
     <summary>Hardware comparison</summary>
     <p>Compares machines running the same software. Since the software is fixed, a
-    <dfn>speed-up</dfn> comes from the hardware.</p>
+    <dfn>speed-up</dfn> comes from the hardware. For many fits at once, see the
+    <a href="hardware_parallel_fits.html">parallelized fits dashboard</a>.</p>
     {_use_case_button(DEFAULT_SOFTWARE_GROUPS, across_machines=True)}
     <details class="about-section">
       <summary>How to read</summary>
@@ -332,15 +332,10 @@ def hardware_label(result: MethodResult | BenchmarkRecord) -> str:
 HARDWARE_ORDER = [*HARDWARE_NAMES.values(), *GPU_NAMES.values()]
 
 
-def hardware_colors(results: list[MethodResult]) -> dict[str, str]:
-    """A machine keeps its color across tabs, under its CPU and GPU names."""
-    hashes = {result.hardware_hash for result in results}
-    colors = {}
-    for index, hardware_hash in enumerate(h for h in HARDWARE_NAMES if h in hashes):
-        color = SERIES_COLORS[index % len(SERIES_COLORS)]
-        colors[HARDWARE_NAMES[hardware_hash]] = color
-        if hardware_hash in GPU_NAMES:
-            colors[GPU_NAMES[hardware_hash]] = color
+def hardware_colors() -> dict[str, str]:
+    """A machine has one color, under its CPU and GPU names."""
+    colors = {HARDWARE_NAMES[hardware_hash]: color for hardware_hash, color in HARDWARE_COLORS.items()}
+    colors |= {GPU_NAMES[hardware_hash]: HARDWARE_COLORS[hardware_hash] for hardware_hash in GPU_NAMES}
     return colors
 
 
@@ -451,10 +446,10 @@ def variant_of(result: MethodResult | BenchmarkRecord) -> Variant:
     return Variant(software_label(result), result.hardware_hash)
 
 
-def _group_by_variant(results) -> dict[Variant, list]:
+def group_by_variant(results, variant=variant_of) -> dict[Variant, list]:
     grouped: dict[Variant, list] = {}
     for result in results:
-        grouped.setdefault(variant_of(result), []).append(result)
+        grouped.setdefault(variant(result), []).append(result)
     return grouped
 
 
@@ -468,23 +463,23 @@ def _env_html(_variant_key: str, result: MethodResult) -> str:
     return SOFTWARE_TEMPLATE.render(**summary)
 
 
-def _hardware_html(result: MethodResult) -> str:
+def hardware_html(result: MethodResult) -> str:
     return HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", result.hardware_hash)))
 
 
 def write_variant_data(output_dir: Path) -> dict[Variant, list[MethodResult]]:
     """Returns the results per variant."""
     results, failed_records = read_results()
-    results_by_variant = _group_by_variant(results)
+    results_by_variant = group_by_variant(results)
     with_keys = lambda grouped: {variant.key: items for variant, items in grouped.items()}
     write_data_files(
         output_dir,
         DATA_DIR,
         with_keys(results_by_variant),
-        failed_by_variant=with_keys(_group_by_variant(failed_records)),
+        failed_by_variant=with_keys(group_by_variant(failed_records)),
         case_key=comparison_key,
         env_html=_env_html,
-        hardware_html=_hardware_html,
+        hardware_html=hardware_html,
     )
     return results_by_variant
 
@@ -592,7 +587,6 @@ MACHINE_TABS_HTML = f"""<section class="tabs">
 
 def generate(output_dir: Path) -> None:
     results_by_variant = write_variant_data(output_dir)
-    results = [res for variant_results in results_by_variant.values() for res in variant_results]
     softwares = sorted({variant.software for variant in results_by_variant}, key=software_sort_key)
     hashes = {variant.hardware_hash for variant in results_by_variant}
     hardware_hashes = [hardware_hash for hardware_hash in HARDWARE_NAMES if hardware_hash in hashes]
@@ -622,7 +616,7 @@ def generate(output_dir: Path) -> None:
         },
         "machineNames": {h: HARDWARE_NAMES[h] for h in hardware_hashes},
         "labelOrder": [*softwares, *HARDWARE_ORDER],
-        "hardwareColors": hardware_colors(results),
+        "hardwareColors": hardware_colors(),
         # The palette is shorter than the softwares: the ones shown together by default
         # come first, so they get different colors.
         "softwareColors": variant_color_map(

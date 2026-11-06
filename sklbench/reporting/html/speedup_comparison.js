@@ -1,4 +1,4 @@
-// Cross comparison page: loads the data files of the
+// Fit and parallelized fits comparison pages: loads the data files of the
 // variants on screen (sklbench/reporting/comparison.py), then draws what
 // speedup_core.js computes from them. Rendering every combination up front would
 // take tens of MB per page.
@@ -58,11 +58,7 @@
       const hasPlot = row.cells.some((cell) => !cell.empty);
       return [
         hasPlot && row.category === "tree-based" && view.treeNote ? `<p class="plot-row-note">${view.treeNote}</p>` : "",
-        ...row.cells.map((cell) =>
-          cell.empty
-            ? '<section class="plot-cell empty">No data</section>'
-            : plotCellHtml(cell.title, cell.plot, pending)
-        ),
+        ...row.cells.filter((cell) => !cell.empty).map((cell) => plotCellHtml(cell.title, cell.plot, pending)),
         tableHtml(row.table, pending),
       ];
     });
@@ -139,12 +135,12 @@
       </details></section>`;
   }
 
-  // `tabs` are {label, html, color}.
+  // `tabs` are {label, html, color, isBaseline}.
   function innerTabsHtml(tabs) {
     const buttons = tabs
       .map((tab, index) => {
         const style = tab.color ? ` style="background: ${tab.color}1F;"` : "";
-        return `<button class="tab-button${index === 0 ? " active" : ""}" type="button" data-tab-index="${index}"${style}>${escapeHtml(tab.label)}</button>`;
+        return `<button class="tab-button${index === 0 ? " active" : ""}${tab.isBaseline ? " is-baseline" : ""}" type="button" data-tab-index="${index}" data-label="${escapeHtml(tab.label)}"${style}>${escapeHtml(tab.label)}</button>`;
       })
       .join("");
     const panels = tabs
@@ -164,6 +160,105 @@
         element.classList.toggle("active", element.dataset.tabIndex === button.dataset.tabIndex);
       });
     });
+  }
+
+  // --- Parallelized fits page: outer tabs with a pick-baseline button. ---
+
+  function initBaselineTabsPage() {
+    const outerTabs = config.outerTabs;
+    let pickedBaseline = null;
+    let outerIndex = 0;
+
+    const fromHash = outerTabs.findIndex((tab) => tab.slug === window.location.hash.slice(1));
+    if (fromHash !== -1) {
+      outerIndex = fromHash;
+    }
+
+    function outerHtml() {
+      const buttons = outerTabs
+        .map((tab, index) => `<button class="tab-button${index === outerIndex ? " active" : ""}" type="button" data-outer-index="${index}">${escapeHtml(tab.label)}</button>`)
+        .join("");
+      return `<section class="tabs"><div class="tab-buttons" id="comparison-outer-tabs">${buttons}</div><div class="tab-panel active" id="comparison-outer-panel"></div></section>`;
+    }
+
+    function setBaselineButtons(baselineLabel) {
+      document.querySelectorAll(".baseline-pick").forEach((button) => {
+        const picked = button.dataset.baseline === baselineLabel;
+        button.disabled = picked;
+        button.textContent = picked ? "✓ Current baseline" : "Pick as baseline";
+      });
+      document.querySelectorAll("#comparison-inner-tabs > .tab-buttons .tab-button").forEach((button) => {
+        button.classList.toggle("is-baseline", button.dataset.label === baselineLabel);
+      });
+    }
+
+    async function showOuter() {
+      const token = (renderToken += 1);
+      const tab = outerTabs[outerIndex];
+      const panel = document.getElementById("comparison-outer-panel");
+      panel.innerHTML = '<section class="empty">Loading results...</section>';
+      let dataList;
+      try {
+        dataList = await Promise.all(tab.variants.map((variant) => loadVariant(variant.key)));
+      } catch (error) {
+        panel.innerHTML = `<section class="empty">${escapeHtml(error.message)}</section>`;
+        return;
+      }
+      if (token !== renderToken) {
+        return;
+      }
+      const loaded = new Map(tab.variants.map((variant, index) => [variant.key, dataList[index]]));
+      const hasLabel = (label) => tab.variants.some((variant) => variant.label === label);
+      const baselineLabel = hasLabel(pickedBaseline) ? pickedBaseline : tab.variants[0].label;
+      const tabs = tab.variants.map((variant) => ({
+        label: variant.label,
+        color: variant.tabColor,
+        isBaseline: variant.label === baselineLabel,
+        html: (variant.pickHtml || "") + (loaded.get(variant.key).hardwareHtml || "") + loaded.get(variant.key).envHtml,
+      }));
+      panel.innerHTML =
+        `<div class="page-row">${dateRangeHtml(dataList)}</div>` +
+        `<div class="page-row">${innerTabsHtml(tabs)}</div>` +
+        '<div id="comparison-grids"></div>';
+      wireInnerTabs();
+      sklbenchFormatDateRanges();
+      setBaselineButtons(baselineLabel);
+      view = {...core.tabsView(tab, loaded, baselineLabel), loaded, tab};
+      drawGrids();
+    }
+
+    content.innerHTML = outerHtml();
+    document.getElementById("comparison-outer-tabs").addEventListener("click", (event) => {
+      const button = event.target.closest(".tab-button");
+      if (!button) {
+        return;
+      }
+      outerIndex = Number(button.dataset.outerIndex);
+      document.querySelectorAll("#comparison-outer-tabs .tab-button").forEach((item) => {
+        item.classList.toggle("active", item === button);
+      });
+      history.replaceState(null, "", `#${outerTabs[outerIndex].slug}`);
+      showOuter();
+    });
+    content.addEventListener("click", (event) => {
+      const pick = event.target.closest(".baseline-pick");
+      if (!pick || pick.disabled) {
+        return;
+      }
+      pickedBaseline = pick.dataset.baseline;
+      const {loaded, tab} = view;
+      setBaselineButtons(pickedBaseline);
+      view = {...core.tabsView(tab, loaded, pickedBaseline), loaded, tab};
+      drawGrids();
+    });
+    if (toggle) {
+      toggle.addEventListener("change", () => {
+        if (view) {
+          drawGrids();
+        }
+      });
+    }
+    showOuter();
   }
 
   // --- Cross page: the picked combination lives in the URL hash. ---
@@ -471,5 +566,9 @@
     onHashChange();
   }
 
-  initCrossPage();
+  if (config.outerTabs) {
+    initBaselineTabsPage();
+  } else {
+    initCrossPage();
+  }
 })();

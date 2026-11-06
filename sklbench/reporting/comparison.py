@@ -1,9 +1,10 @@
-"""Data files and page shell of the cross comparison
-dashboard. Its page holds no results: `html/speedup_comparison.js` loads one
+"""Data files and page shell of the cross comparison and parallelized fits
+dashboards. Their pages hold no results: `html/speedup_comparison.js` loads one
 data file per variant on screen, then `html/speedup_core.js` pairs results and
 builds plots and tables.
 """
 
+from html import escape
 from importlib.resources import files
 import json
 from pathlib import Path
@@ -68,6 +69,14 @@ def tree_binning_note(variant_noun: str) -> str:
 CUML_TREE_NOTE = (
     " cuML random forests are only paired with the binned scikit-learn-intelex cases."
 )
+
+
+def baseline_pick_html(label: str, color: str) -> str:
+    return (
+        '<button type="button" class="baseline-pick" '
+        f'data-baseline="{escape(label)}" style="--variant-color: {color}">'
+        "Pick as baseline</button>"
+    )
 
 
 # What many-core machines cap KMeans's threads with, in the scikit-learn environments

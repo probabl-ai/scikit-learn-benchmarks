@@ -19,6 +19,17 @@ HARDWARE_NAMES = {
     "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
 }
 
+# So that a machine has the same color on every dashboard.
+HARDWARE_COLORS = {
+    "3b5e61": "#2294c4",
+    "b281b2": "#f7931e",
+    "be1055": "#15688c",
+    "332097": "#8045e5",
+    "5dcf30": "#b76c13",
+    "534824": "#2e9e5b",
+    "d189c4": "#d1495b",
+}
+
 GPU_NAMES = {
     "3b5e61": "Intel Core Ultra laptop GPU",
     "b281b2": "Apple M4 laptop GPU",

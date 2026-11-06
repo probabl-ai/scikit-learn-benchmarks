@@ -13,6 +13,7 @@ from dashboards import (
     HARDWARE_NAMES,
     dashboard_output_dir,
     gen_cross_comparison,
+    gen_hardware_parallel_fits,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
     gen_hptuning_strong_scaling,
@@ -59,7 +60,8 @@ ABOUT_HTML = """<section class="panel">
     </li>
     <li>
     Using a bigger machine doesn't help a lot for a single fit for most models
-    except <b>random forests</b> and alike. But it helps a lot for multiple parallelized fits, typically
+    except <b>random forests</b> and alike. But it helps a lot for
+    <a href="hardware_parallel_fits.html">multiple parallelized fits</a>, typically
     for hyper-parameter tuning workloads.
     </li>
     <li>
@@ -77,6 +79,7 @@ DASHBOARDS = [
     (module.TITLE, module, href)
     for module, href in [
         (gen_cross_comparison, gen_cross_comparison.ENTRY_PAGE),
+        (gen_hardware_parallel_fits, gen_hardware_parallel_fits.ENTRY_PAGE),
         (gen_models_scalability, "models_scalability.html"),
         (gen_hptuning_scalability, "hptuning_scalability.html"),
         (gen_hptuning_taskset, "hptuning_taskset.html"),
@@ -87,6 +90,7 @@ DASHBOARDS = [
 
 DASHBOARD_DESCRIPTIONS = {
     gen_cross_comparison.ENTRY_PAGE: "Comparison of fit times across any software variant and any machine: cuML, scikit-learn-intelex, <dfn>Array API</dfn> backends, <dfn>BLAS/OpenMP builds</dfn>, on the same machine or another one.",
+    gen_hardware_parallel_fits.ENTRY_PAGE: "Machines getting through many fits in parallel, with each search on all their cores.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",

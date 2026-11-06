@@ -321,7 +321,7 @@ window.sklbenchSpeedupCore = function (config) {
     const markers = {"plot-marker-x": "✕", "plot-marker-square": "■", "plot-marker-diamond": "◇", "plot-marker-circle": "●"};
     const note = (markerClass, style, text) =>
       `<div class="plot-note"><span class="plot-marker ${markerClass}"${style}>${markers[markerClass]}</span><span>${text}</span></div>`;
-    const parts = [note("plot-marker-circle", "", "Metrics and benchmark setup match the baseline")];
+    const parts = [note("plot-marker-circle", "", config.matchNote || "Metrics and benchmark setup match the baseline")];
     if (warnings.size) {
       const items = Array.from(warnings.values())
         .map((w) => `<li class="warning-note"><span class="warning-icon">${w.icon}</span><span>${escapeHtml(w.message)}</span></li>`)
@@ -632,6 +632,24 @@ window.sklbenchSpeedupCore = function (config) {
 
   // --- Views: what's compared on screen. ---
 
+  // Parallelized fits page: `loaded` maps a variant key to its data.
+  function tabsView(tab, loaded, baselineLabel) {
+    const labels = new Map(tab.variants.map((variant) => [variant.key, variant.label]));
+    const baselineKey = tab.variants.find((variant) => variant.label === baselineLabel).key;
+    const candidates = tab.variants.filter((variant) => variant.key !== baselineKey);
+    return {
+      baselineLabel,
+      baseData: loaded.get(baselineKey),
+      candidateData: candidates.map((variant) => loaded.get(variant.key)),
+      colors: config.colors,
+      emptyScope: tab.emptyScope,
+      treeNote: config.treeNote,
+      columnTitle: config.columnTitle,
+      labelOf: (entry) => labels.get(entry.variant),
+      isBaseline: (entry) => entry.variant === baselineKey,
+    };
+  }
+
   // Cross page: the variants a target compares with, baseline excluded.
   // `softwareGroups` only filters a machine's softwares: a software target names its software.
   function crossCandidates(baselineKey, target, softwareGroups) {
@@ -730,5 +748,5 @@ window.sklbenchSpeedupCore = function (config) {
     return {rows};
   }
 
-  return {computeGrid, crossCandidates, crossView, escapeHtml, sortVariants, sum, unique};
+  return {computeGrid, crossCandidates, crossView, escapeHtml, sortVariants, sum, tabsView, unique};
 };

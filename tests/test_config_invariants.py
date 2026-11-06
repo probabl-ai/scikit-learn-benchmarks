@@ -11,9 +11,10 @@ from unittest import mock
 import pytest
 
 from dashboards.gen_cross_comparison import comparison_key
+from dashboards.gen_hardware_parallel_fits import search_match_key
 from sklbench.config import load_cases_from_script
 from sklbench.reporting.matching import _case_without_bench
-from sklbench.reporting.utils import stable_json, without_keys
+from sklbench.reporting.utils import stable_json
 
 
 CONFIGS_DIR = Path("configs").resolve()
@@ -52,13 +53,6 @@ def _cases(monkeypatch, config, pixi_env):
     return load_cases_from_script(config)
 
 
-def _search_key(result):
-    """`configs/hptuning.py` sweeps the outer `n_jobs` with one CV split per worker,
-    so neither is part of a search's identity."""
-    excluded = {"implementation", "max_bins", "n_jobs", "n_splits", "source_config"}
-    return stable_json(without_keys(result.case, excluded_names=excluded))
-
-
 def _identities(cases, key):
     return {
         key(SimpleNamespace(case=_case_without_bench(case.json_dict()))) for case in cases
@@ -70,7 +64,7 @@ def _identities(cases, key):
     [
         ("configs/all_models.py", comparison_key),
         ("configs/all_models_16gb.py", comparison_key),
-        ("configs/hptuning.py", _search_key),
+        ("configs/hptuning.py", search_match_key),
     ],
 )
 @pytest.mark.parametrize("pixi_env", ["sklearn-pypi", "intel"])

@@ -18,7 +18,7 @@ import subprocess
 
 import pytest
 
-from dashboards import gen_cross_comparison
+from dashboards import gen_cross_comparison, gen_hardware_parallel_fits
 
 
 LAPTOP, XEON, DESKTOP, M4, L4 = "3b5e61", "534824", "332097", "b281b2", "d189c4"
@@ -55,6 +55,7 @@ TORCH_CUDA = {
     "implementation": {"library": "sklearn", "device": "cuda", "data_library": "torch"},
 }
 
+LOGICAL_CPUS = 32
 N_SAMPLES = 1000
 SYNTHETIC = {
     "source": "make_classification",
@@ -93,7 +94,7 @@ class Results:
             env = {"pixi_environment_name": name, "pixi_packages": {"python": {"version": "3.14"}}}
             self._write_env("software", software_hash, env)
         for hardware_hash in (LAPTOP, XEON, DESKTOP, M4, L4):
-            self._write_env("hardware", hardware_hash, {"CPU": {"name": "test CPU"}})
+            self._write_env("hardware", hardware_hash, {"CPU": {"name": "test CPU", "logical_cpus": LOGICAL_CPUS}})
 
     def _write_env(self, kind, env_hash, env):
         (self.root / "results" / f"{kind}-envs" / f"{env_hash}.json").write_text(json.dumps(env))
@@ -161,6 +162,20 @@ class Results:
         case = self._case(variant, estimator, params, data)
         self._write(hardware, variant["software"], case, [], age, failed_case={"return_code": 1})
 
+    def add_search(self, hardware, variant, seconds, n_fits, mask=LOGICAL_CPUS):
+        """A hyper-parameter search of `configs/hptuning_taskset.py` taking `seconds`
+        overall, restricted to `mask` logical CPUs."""
+        case = self._case(
+            variant,
+            FOREST,
+            {},
+            SYNTHETIC,
+            config="configs/hptuning_taskset.py",
+            hptuning={"n_jobs": -1, "n_splits": n_fits, "candidates": [{"a": 1}]},
+            bench={"cpu_affinity": list(range(mask))},
+        )
+        self._write(hardware, variant["software"], case, [{"duration_s": seconds, "cv_task_times": [1] * n_fits}], 0)
+
 
 @pytest.fixture
 def results(tmp_path, monkeypatch):
@@ -177,14 +192,14 @@ def _node() -> str:
     return node
 
 
-def render(views: list[dict]) -> tuple[list[dict], dict]:
+def render(views: list[dict], page=gen_cross_comparison) -> tuple[list[dict], dict]:
     """Generates the page from the results of the current directory, then computes
     `views` like the page would. Returns them with the page's config."""
     node = _node()
     output_dir = Path("site")
     output_dir.mkdir(exist_ok=True)
-    gen_cross_comparison.generate(output_dir.resolve())
-    html = (output_dir / gen_cross_comparison.ENTRY_PAGE).read_text()
+    page.generate(output_dir.resolve())
+    html = (output_dir / page.ENTRY_PAGE).read_text()
     config = json.loads(
         re.search(r'id="comparison-config">(.*?)</script>', html, re.S).group(1).replace("<\\/", "</")
     )
@@ -429,6 +444,24 @@ def test_cpu_and_gpu_runs_of_a_library_are_separate_softwares(results):
     assert machines("sklearn-torch-gpu") == {f"{LAPTOP_NAME} GPU", L4_GPU_NAME}
     gpu = only(points(across_machines("sklearn-torch-gpu")))
     assert (gpu.name, gpu.speedup) == (L4_GPU_NAME, pytest.approx(4))
+
+
+# --- Parallelized fits ---
+
+
+def test_parallel_fits_compare_the_time_per_fit_on_all_the_cores(results):
+    results.add_search(LAPTOP, SKLEARN, seconds=40, n_fits=100)
+    results.add_search(LAPTOP, SKLEARN, seconds=1, n_fits=50, mask=LOGICAL_CPUS // 2)
+    results.add_search(XEON, SKLEARN, seconds=80, n_fits=400)
+
+    rendered, config = render(
+        [{"tab": "sklearn-pypi"}, {"tab": "sklearn-pypi", "baseline": XEON_NAME}],
+        page=gen_hardware_parallel_fits,
+    )
+    assert [variant["label"] for variant in only(config["outerTabs"])["variants"]] == [LAPTOP_NAME, XEON_NAME]
+    point = only(points(rendered[0], "tree-based"))
+    assert (point.name, point.speedup) == (XEON_NAME, pytest.approx(2))  # 400 ms vs 200 ms per fit
+    assert only(points(rendered[1], "tree-based")).speedup == pytest.approx(0.5)
 
 
 # --- Tree binning ---

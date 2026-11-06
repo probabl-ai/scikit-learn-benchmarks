@@ -4,7 +4,7 @@ that can't run."""
 from pathlib import Path
 import tomllib
 
-from dashboards import GPU_NAMES, HARDWARE_NAMES, HARDWARE_PLATFORMS
+from dashboards import GPU_NAMES, HARDWARE_COLORS, HARDWARE_NAMES, HARDWARE_PLATFORMS
 from dashboards.index import DASHBOARDS
 
 
@@ -25,6 +25,11 @@ def test_declared_envs_exist():
         env for _, module, _ in DASHBOARDS for env in module.SOURCE_ENVS if env not in environments
     }
     assert not missing
+
+
+def test_every_machine_has_its_own_color():
+    assert set(HARDWARE_COLORS) == set(HARDWARE_NAMES)
+    assert len(set(HARDWARE_COLORS.values())) == len(HARDWARE_COLORS)
 
 
 def test_every_gpu_and_platform_belongs_to_a_known_machine():

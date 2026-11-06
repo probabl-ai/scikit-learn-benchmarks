@@ -202,13 +202,14 @@ code {
   font-weight: 600;
   cursor: pointer;
 }
+.baseline-pick,
 .use-case-pick {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   margin-top: 6px;
   padding: 5px 12px;
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--variant-color, var(--accent));
   border-radius: 999px;
   background: white;
   color: var(--text);
@@ -219,21 +220,25 @@ code {
   cursor: pointer;
   transition: background-color 0.15s;
 }
+.baseline-pick::before,
 .use-case-pick::before {
   content: "";
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--variant-color, var(--accent));
 }
+.baseline-pick:hover:not(:disabled),
 .use-case-pick:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 12%, white);
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 12%, white);
 }
+.baseline-pick:disabled,
 .use-case-pick:disabled {
   border-color: transparent;
-  background: color-mix(in srgb, var(--accent) 16%, white);
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 16%, white);
   cursor: default;
 }
+.baseline-pick:disabled::before,
 .use-case-pick:disabled::before {
   display: none;
 }
