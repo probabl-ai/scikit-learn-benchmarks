@@ -86,7 +86,7 @@ DASHBOARDS = [
 ]
 
 DASHBOARD_DESCRIPTIONS = {
-    gen_cross_comparison.ENTRY_PAGE: "Fit times of any software on any machine against other softwares: scikit-learn-intelex and <dfn>Array API</dfn> backends, <dfn>BLAS/OpenMP builds</dfn>, on the same machine or another one.",
+    gen_cross_comparison.ENTRY_PAGE: "Comparison of fit times across any software variant and any machine: cuML, scikit-learn-intelex, <dfn>Array API</dfn> backends, <dfn>BLAS/OpenMP builds</dfn>, on the same machine or another one.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
