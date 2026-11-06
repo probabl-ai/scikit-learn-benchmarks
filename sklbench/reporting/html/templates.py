@@ -415,6 +415,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
     <h1>{{ title|default("sklbench dashboard") }}</h1>
   </header>
   <main>
+  <div class="page-row"><section class="panel"><p>This is a fixed dashboard published on Nov. 6, 2026, so it might be outdated. See the latest results on the <a href="https://probabl-ai.github.io/scikit-learn-benchmarks/">dev dashboard</a>.</p></section></div>
   {% for row in rows %}
   <div class="page-row">{{ expand_terms(row) }}</div>
   {% endfor %}

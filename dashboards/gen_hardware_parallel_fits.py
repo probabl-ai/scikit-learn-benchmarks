@@ -17,6 +17,8 @@ from sklbench.reporting.utils import stable_json, without_keys
 
 
 ABOUT_HTML = """<section class="panel">
+  <p>Work in progress: this dashboard doesn't have many data points yet. We'll add more
+  later.</p>
   <p>This dashboard compares machines getting through many fits in parallel, like a
   hyper-parameter search with <code>n_jobs=-1</code> on all the cores of the machine. A
   bigger machine often brings little to a <a href="cross_comparison.html">single fit</a>,
@@ -36,10 +38,7 @@ ABOUT_HTML = """<section class="panel">
     of <code><dfn>.fit()</dfn></code> calls. Marker shapes and "Detailed results" work like in
     <a href="cross_comparison.html">the single fit dashboard</a>.</p>
     <p>Each machine scores its candidates on its own splits, so <dfn>metrics</dfn> aren't
-    compared. scikit-learn-intelex trees use <dfn>exact splits</dfn> here, like scikit-learn.
-    These searches are the last point of the
-    <a href="hptuning_taskset.html">CPU affinity dashboard</a>, which also describes their
-    inner parallelism.</p>
+    compared. scikit-learn-intelex trees use <dfn>exact splits</dfn> here, like scikit-learn.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>

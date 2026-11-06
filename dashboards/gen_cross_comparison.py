@@ -234,8 +234,6 @@ ABOUT_HTML = f"""<section class="panel">
         <a href="https://github.com/scikit-learn/scikit-learn/issues/34764">scikit-learn#34764</a>
         and the <a href="hgb_scaling.html">HistGradientBoosting
         thread-scalability breakdown</a>.</li>
-        <li>On the <b><dfn>PyPI</dfn></b> build, the Apple M4 CPU is ~1.5x to 2x slower
-        than the Intel Core Ultra laptop.</li>
       </ul>
     </details>
   </details>
@@ -289,6 +287,9 @@ BASE_IMPLEMENTATION = "sklearn"
 # "None"/"default" and the plain "cpu" tag all mean "ran on the CPU".
 CPU_DEVICES = {None, "default", "cpu"}
 DATA_DIR = "across_machines_data"
+# TMP: left out of the stable dashboard.
+HIDDEN_HARDWARE = {"b281b2"}  # Apple M4 laptop
+HIDDEN_SOFTWARES = {"sklearnex-gpu"}
 
 
 def is_gpu_result(result: MethodResult | BenchmarkRecord) -> bool:
@@ -408,7 +409,9 @@ def read_results() -> tuple[list[MethodResult], list[BenchmarkRecord]]:
     def is_kept(result: MethodResult | BenchmarkRecord) -> bool:
         return (
             result.hardware_hash in HARDWARE_NAMES
+            and result.hardware_hash not in HIDDEN_HARDWARE
             and matches_source_configs(result.case, SOURCE_CONFIGS)
+            and software_label(result) not in HIDDEN_SOFTWARES
         )
 
     results = [

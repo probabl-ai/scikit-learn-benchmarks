@@ -16,8 +16,6 @@ from dashboards import (
     gen_hardware_parallel_fits,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
-    gen_hptuning_strong_scaling,
-    gen_hptuning_taskset,
     gen_models_scalability,
 )
 from sklbench.reporting.envs import read_env, summarize_hardware_env
@@ -64,13 +62,6 @@ ABOUT_HTML = """<section class="panel">
     <a href="hardware_parallel_fits.html">multiple parallelized fits</a>, typically
     for hyper-parameter tuning workloads.
     </li>
-    <li>
-    cuML <b>LogisticRegression</b> always runs the quasi-Newton <dfn>solver</dfn>
-    <code>qn</code> (L-BFGS or OWL-QN). A point may still be labeled
-    <code>lbfgs</code>, <code>newton-cg</code>, or <code>newton-cholesky</code>:
-    the wrapper maps every one of those names onto <code>qn</code>, so those
-    cuML cases time the same algorithm.
-    </li>
   </ul>
 </section>"""
 
@@ -79,27 +70,23 @@ DASHBOARDS = [
     (module.TITLE, module, href)
     for module, href in [
         (gen_cross_comparison, gen_cross_comparison.ENTRY_PAGE),
-        (gen_hardware_parallel_fits, gen_hardware_parallel_fits.ENTRY_PAGE),
         (gen_models_scalability, "models_scalability.html"),
         (gen_hptuning_scalability, "hptuning_scalability.html"),
-        (gen_hptuning_taskset, "hptuning_taskset.html"),
-        (gen_hptuning_strong_scaling, "hptuning_strong_scaling.html"),
         (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+        (gen_hardware_parallel_fits, gen_hardware_parallel_fits.ENTRY_PAGE),
     ]
 ]
 
 DASHBOARD_DESCRIPTIONS = {
     gen_cross_comparison.ENTRY_PAGE: "Comparison of fit times across any software variant and any machine: cuML, scikit-learn-intelex, <dfn>Array API</dfn> backends, <dfn>BLAS/OpenMP builds</dfn>, on the same machine or another one.",
-    gen_hardware_parallel_fits.ENTRY_PAGE: "Machines getting through many fits in parallel, with each search on all their cores.",
+    gen_hardware_parallel_fits.ENTRY_PAGE: "Machines getting through many fits in parallel, with each search on all their cores. Work in progress: it doesn't have many data points yet.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
-    "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
-    "hptuning_strong_scaling.html": "How much extra CPUs shorten a search with a fixed number of fits.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
 }
 
 # Machines that are benchmarked but not presented on the index page.
-INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30"}
+INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30", "b281b2"}
 
 
 def _hardware_overview_html() -> str:

@@ -647,7 +647,8 @@ def test_failure_superseded_by_a_success_is_dropped_across_machines(results):
 # --- Layout ---
 
 
-def test_columns_stay_on_their_estimator_with_many_columns(results):
+def test_columns_stay_on_their_estimator_with_many_columns(results, monkeypatch):
+    monkeypatch.setattr(gen_cross_comparison, "HIDDEN_HARDWARE", set())
     forest = {"estimator": FOREST}
     other_forest = {"estimator": "RandomForestRegressor"}
     results.add(LAPTOP, SKLEARNEX, fit=[100], params=EXACT, **forest)
