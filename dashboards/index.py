@@ -17,6 +17,7 @@ from dashboards import (
     gen_hardware_comparisons,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
+    gen_hptuning_strong_scaling,
     gen_hptuning_taskset,
     gen_models_scalability,
     gen_softwares_comparison,
@@ -85,6 +86,7 @@ DASHBOARDS = [
         (gen_models_scalability, "models_scalability.html"),
         (gen_hptuning_scalability, "hptuning_scalability.html"),
         (gen_hptuning_taskset, "hptuning_taskset.html"),
+        (gen_hptuning_strong_scaling, "hptuning_strong_scaling.html"),
         (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
     ]
 ]
@@ -97,6 +99,7 @@ DASHBOARD_DESCRIPTIONS = {
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
+    "hptuning_strong_scaling.html": "How much extra CPUs shorten a search with a fixed number of fits.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
 }
 
