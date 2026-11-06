@@ -12,15 +12,12 @@ from html import escape
 from dashboards import (
     HARDWARE_NAMES,
     dashboard_output_dir,
-    gen_builds_comparison,
     gen_cross_comparison,
-    gen_hardware_comparisons,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
     gen_hptuning_strong_scaling,
     gen_hptuning_taskset,
     gen_models_scalability,
-    gen_softwares_comparison,
 )
 from sklbench.reporting.envs import read_env, summarize_hardware_env
 from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_software_tabs
@@ -33,8 +30,8 @@ ABOUT_HTML = """<section class="panel">
   <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/">scikit-learn-intelex</a>
   or an <a href="https://scikit-learn.org/stable/modules/array_api.html">Array API</a> backend,
   and when a different <dfn>BLAS</dfn>/<dfn>OpenMP</dfn> <dfn>build</dfn> or machine changes anything.
-  Most dashboards below vary one of these (<dfn>implementation</dfn>, build or hardware)
-  and keep the others fixed. The scalability ones look at how a fit speeds up
+  The comparison dashboard varies these (<dfn>implementation</dfn>, build or hardware).
+  The scalability ones look at how a fit speeds up
   with more <dfn>CPU cores</dfn>. Each dashboard explains how to read it in its own intro.
   </p>
 
@@ -79,9 +76,6 @@ ABOUT_HTML = """<section class="panel">
 DASHBOARDS = [
     (module.TITLE, module, href)
     for module, href in [
-        (gen_softwares_comparison, "per_hardware.html"),
-        (gen_builds_comparison, "builds_comparison.html"),
-        (gen_hardware_comparisons, "hardware_comparisons.html"),
         (gen_cross_comparison, gen_cross_comparison.ENTRY_PAGE),
         (gen_models_scalability, "models_scalability.html"),
         (gen_hptuning_scalability, "hptuning_scalability.html"),
@@ -92,10 +86,7 @@ DASHBOARDS = [
 ]
 
 DASHBOARD_DESCRIPTIONS = {
-    "per_hardware.html": "scikit-learn-intelex and <dfn>Array API</dfn> backends vs stock scikit-learn.",
-    "builds_comparison.html": "<dfn>PyPI</dfn> vs <dfn>conda-forge</dfn> <dfn>BLAS/OpenMP builds</dfn> of scikit-learn.",
-    "hardware_comparisons.html": "Same software on different machines.",
-    gen_cross_comparison.ENTRY_PAGE: "Any software on any machine against one software on every machine, or every software on one machine.",
+    gen_cross_comparison.ENTRY_PAGE: "Fit times of any software on any machine against other softwares: scikit-learn-intelex and <dfn>Array API</dfn> backends, <dfn>BLAS/OpenMP builds</dfn>, on the same machine or another one.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",

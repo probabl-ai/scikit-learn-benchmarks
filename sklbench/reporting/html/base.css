@@ -105,6 +105,9 @@ code {
   font-weight: 600;
   color: var(--accent);
 }
+.about-section .about-section {
+  margin-left: 16px;
+}
 .muted {
   color: var(--muted);
 }
@@ -192,44 +195,6 @@ code {
 .plot-cell-title {
   margin: 0;
 }
-.predict-collapse-toggle {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: white;
-  color: var(--muted);
-  cursor: pointer;
-  line-height: 1;
-  font-size: 15px;
-  padding: 0;
-  transition: transform 0.2s ease;
-}
-.predict-collapse-toggle:hover {
-  background: var(--surface);
-}
-.plot-grid.method-grid {
-  transition: grid-template-columns 0.2s ease;
-}
-body.predict-collapsed .plot-grid.method-grid {
-  grid-template-columns: var(--collapsed-columns) !important;
-}
-body.predict-collapsed .plot-cell[data-method="predict"] {
-  padding: 8px 4px;
-  overflow: hidden;
-}
-body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-title,
-body.predict-collapsed .plot-cell[data-method="predict"] .plot-cell-body {
-  display: none;
-}
-body.predict-collapsed .plot-cell.empty[data-method="predict"] {
-  padding: 8px 4px;
-  font-size: 0;
-}
-body.predict-collapsed .predict-collapse-toggle {
-  transform: rotate(180deg);
-}
 .preprocessing-toggle {
   display: flex;
   align-items: center;
@@ -237,13 +202,13 @@ body.predict-collapsed .predict-collapse-toggle {
   font-weight: 600;
   cursor: pointer;
 }
-.baseline-pick {
+.use-case-pick {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   margin-top: 6px;
   padding: 5px 12px;
-  border: 1.5px solid var(--variant-color, var(--accent));
+  border: 1.5px solid var(--accent);
   border-radius: 999px;
   background: white;
   color: var(--text);
@@ -254,22 +219,22 @@ body.predict-collapsed .predict-collapse-toggle {
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.baseline-pick::before {
+.use-case-pick::before {
   content: "";
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--variant-color, var(--accent));
+  background: var(--accent);
 }
-.baseline-pick:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--variant-color, var(--accent)) 12%, white);
+.use-case-pick:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, white);
 }
-.baseline-pick:disabled {
+.use-case-pick:disabled {
   border-color: transparent;
-  background: color-mix(in srgb, var(--variant-color, var(--accent)) 16%, white);
+  background: color-mix(in srgb, var(--accent) 16%, white);
   cursor: default;
 }
-.baseline-pick:disabled::before {
+.use-case-pick:disabled::before {
   display: none;
 }
 .tab-button.is-baseline::after {
@@ -312,17 +277,70 @@ body.predict-collapsed .predict-collapse-toggle {
   margin-top: 14px;
 }
 .cross-compared-to {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px 18px;
-  flex-wrap: wrap;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
 }
 .cross-compared-to .cross-heading {
-  margin: 6px 0 0;
+  margin: 0;
+}
+.cross-advanced {
+  width: 100%;
+}
+.cross-advanced > summary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+}
+.cross-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+.cross-advanced > summary::after {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  line-height: 1;
+}
+.cross-advanced[open] > summary::after {
+  content: "\2212";
 }
 .cross-targets {
   display: grid;
+  justify-items: center;
   gap: 8px;
+  margin-top: 8px;
+}
+.cross-how-to {
+  justify-self: stretch;
+  margin: 0 0 6px;
+}
+.cross-variants {
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+}
+.cross-variants legend {
+  margin: 0 auto 6px;
+  padding: 0;
+  color: var(--muted);
+}
+.cross-variants-boxes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+}
+.cross-variants-boxes label:has(input:disabled) {
+  color: var(--muted);
 }
 .plot-subtitle {
   margin: -6px 0 8px;

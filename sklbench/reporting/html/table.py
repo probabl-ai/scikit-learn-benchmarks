@@ -662,7 +662,7 @@ def export_columns() -> list[dict]:
     for spec in COLUMNS:
         if isinstance(spec, ColumnGroupSpec):
             columns.append({"group": spec.field_prefix, "allowedKeys": spec.allowed_keys})
-        else:
+        elif not spec.field.startswith("predict_"):
             columns.append({
                 "visibility": "custom" if spec.custom_show else spec.visibility.value,
                 "column": _spec_column_dict(spec, title=spec.title),

@@ -389,40 +389,6 @@ BASE_TEMPLATE = Template("""<!doctype html>
     document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
     setInterval(sklbenchFormatDateRanges, 60000);
 
-    function sklbenchSetPredictCollapsed(collapsed) {
-      document.body.classList.toggle("predict-collapsed", collapsed);
-      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
-        button.setAttribute("aria-expanded", String(!collapsed));
-      });
-      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
-        if (chart.offsetParent !== null) {
-          Plotly.Plots.resize(chart);
-        }
-      });
-    }
-    document.addEventListener("click", (event) => {
-      const button = event.target.closest(".predict-collapse-toggle");
-      if (!button) {
-        return;
-      }
-      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
-    });
-
-    document.addEventListener("change", (event) => {
-      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
-        return;
-      }
-      document.body.classList.toggle("with-preprocessing", event.target.checked);
-      if (event.target.checked) {
-        sklbenchSetPredictCollapsed(true);
-      }
-      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
-        if (chart.offsetParent !== null) {
-          Plotly.Plots.resize(chart);
-        }
-      });
-    });
-
     // Shift a term's tooltip left when it would overflow the viewport's
     // right edge (e.g. a term near the end of a line on a phone).
     function sklbenchPlaceTermTip(event) {

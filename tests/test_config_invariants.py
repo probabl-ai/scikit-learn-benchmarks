@@ -10,10 +10,10 @@ from unittest import mock
 
 import pytest
 
-from dashboards.gen_hardware_comparisons import comparison_key, search_match_key
+from dashboards.gen_cross_comparison import comparison_key
 from sklbench.config import load_cases_from_script
 from sklbench.reporting.matching import _case_without_bench
-from sklbench.reporting.utils import stable_json
+from sklbench.reporting.utils import stable_json, without_keys
 
 
 CONFIGS_DIR = Path("configs").resolve()
@@ -52,6 +52,13 @@ def _cases(monkeypatch, config, pixi_env):
     return load_cases_from_script(config)
 
 
+def _search_key(result):
+    """`configs/hptuning.py` sweeps the outer `n_jobs` with one CV split per worker,
+    so neither is part of a search's identity."""
+    excluded = {"implementation", "max_bins", "n_jobs", "n_splits", "source_config"}
+    return stable_json(without_keys(result.case, excluded_names=excluded))
+
+
 def _identities(cases, key):
     return {
         key(SimpleNamespace(case=_case_without_bench(case.json_dict()))) for case in cases
@@ -63,13 +70,13 @@ def _identities(cases, key):
     [
         ("configs/all_models.py", comparison_key),
         ("configs/all_models_16gb.py", comparison_key),
-        ("configs/hptuning.py", search_match_key),
+        ("configs/hptuning.py", _search_key),
     ],
 )
 @pytest.mark.parametrize("pixi_env", ["sklearn-pypi", "intel"])
 def test_every_machine_runs_the_same_cases(monkeypatch, config, key, pixi_env):
-    """The hardware and cross comparisons can only compare what pairs up, so a
-    case that depends on the machine silently vanishes from them."""
+    """Comparisons across machines can only compare what pairs up, so a case that
+    depends on the machine silently vanishes from them."""
     with _machine(8):
         small = _identities(_cases(monkeypatch, config, pixi_env), key)
     with _machine(344):

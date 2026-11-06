@@ -1,10 +1,9 @@
-"""Data files and page shell of the software, builds, hardware and cross comparison
-dashboards. Their pages hold no results: `html/speedup_comparison.js` loads one
+"""Data files and page shell of the cross comparison
+dashboard. Its page holds no results: `html/speedup_comparison.js` loads one
 data file per variant on screen, then `html/speedup_core.js` pairs results and
 builds plots and tables.
 """
 
-from html import escape
 from importlib.resources import files
 import json
 from pathlib import Path
@@ -43,7 +42,6 @@ from .matching import (
     uses_binned_splits,
 )
 from .provenance import summarize_sources
-from .utils import stable_json, without_keys
 
 
 PREPROCESSING_TOGGLE_HTML = (
@@ -72,29 +70,10 @@ CUML_TREE_NOTE = (
 )
 
 
-def baseline_pick_html(label: str, color: str) -> str:
-    return (
-        '<button type="button" class="baseline-pick" '
-        f'data-baseline="{escape(label)}" style="--variant-color: {color}">'
-        "Pick as baseline</button>"
-    )
-
-
 # What many-core machines cap KMeans's threads with, in the scikit-learn environments
 # on OpenBLAS only (`KMEANS_BENCH` in `_real_datasets.py`). Not part of a case on the
 # comparison pages, whose configs don't sweep threads.
 THREAD_CAPS = {"OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS"}
-
-
-def same_machine_case_key(result: MethodResult | BenchmarkRecord) -> str:
-    """With the same hardware on both sides, `n_jobs` and forest sizes are part of a case."""
-    case = without_keys(
-        result.case,
-        excluded_names={"implementation", "max_bins", "source_config"} | THREAD_CAPS,
-    )
-    if not case.get("env"):
-        case.pop("env", None)
-    return stable_json(case)
 
 
 def _compact_times(times: list[float]) -> list[float]:
@@ -145,11 +124,7 @@ def _result_entries(results: list[MethodResult], variant_key: str, case_id) -> l
             "nIter": first.attributes.get("n_iter", []),
             "nIterMedian": n_iter_median(first),
             "metrics": Match.comparable_metrics(first.metrics),
-            "methods": {
-                method: _method_block(by_method[method])
-                for method in ("fit", "predict")
-                if method in by_method
-            },
+            "methods": {"fit": _method_block(by_method["fit"])} if "fit" in by_method else {},
             "row": export_result_row(first, entry_id),
         }
         if "preprocessing" in by_method:
@@ -174,25 +149,6 @@ def _failed_entries(records: list[BenchmarkRecord], variant_key: str, case_id) -
             "cumlRf": is_cuml_random_forest(record),
             "hover": failed_hover_html(record),
             "row": export_failed_row(record, entry_id),
-        })
-    return entries
-
-
-def _search_entries(results: list[MethodResult], variant_key: str, case_id) -> list[dict]:
-    entries = []
-    for result in results:
-        entry_id = case_id(result)
-        entries.append({
-            "id": entry_id,
-            "variant": variant_key,
-            "path": result.record.record_path.as_posix(),
-            "estimator": result.case.get("algorithm", {}).get("estimator", "unknown"),
-            "category": "hyper-parameter search",
-            "searchNJobs": result.case["hptuning"].get("n_jobs", 1),
-            "nIter": [],
-            "metrics": {},
-            "methods": {"fit": _method_block(result)},
-            "row": export_result_row(result, entry_id),
         })
     return entries
 
@@ -242,13 +198,10 @@ def write_data_files(
     failed_by_variant: dict[str, list[BenchmarkRecord]],
     case_key: Callable[[MethodResult | BenchmarkRecord], str],
     env_html: Callable[[str, MethodResult], str],
-    search_by_variant: dict[str, list[MethodResult]] | None = None,
-    search_key: Callable[[MethodResult], str] | None = None,
-    hardware_html: Callable[[MethodResult], str] | None = None,
+    hardware_html: Callable[[MethodResult], str],
 ) -> None:
     """Writes one file per variant key. Equal `id`s across files mean the same
-    case, so `case_key` is what decides which results pair up. `hardware_html` is
-    for pages whose variants don't all run on one machine."""
+    case, so `case_key` is what decides which results pair up."""
     directory = output_dir / data_dir
     # Variants can disappear from one run to the next.
     shutil.rmtree(directory, ignore_errors=True)
@@ -258,9 +211,6 @@ def write_data_files(
 
     def case_id(result) -> int:
         return ids.setdefault(case_key(result), len(ids) + 1)
-
-    def search_id(result) -> int:
-        return ids.setdefault(f"search:{search_key(result)}", len(ids) + 1)
 
     for variant_key, results in results_by_variant.items():
         results = _without_older_thread_caps(results, case_key)
@@ -273,12 +223,8 @@ def write_data_files(
             "sources": _source_rows(results),
             "results": _result_entries(results, variant_key, case_id),
             "failed": _failed_entries(failed_by_variant.get(variant_key, []), variant_key, case_id),
-            "search": _search_entries(
-                (search_by_variant or {}).get(variant_key, []), variant_key, search_id
-            ),
+            "hardwareHtml": hardware_html(results[0]),
         }
-        if hardware_html is not None:
-            data["hardwareHtml"] = hardware_html(results[0])
         payload = json.dumps(data, separators=(",", ":"), default=str)
         (directory / f"{variant_key}.js").write_text(
             f"window.sklbenchComparisonData[{json.dumps(variant_key)}]={payload};\n"

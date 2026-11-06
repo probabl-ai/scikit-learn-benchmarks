@@ -18,12 +18,7 @@ import subprocess
 
 import pytest
 
-from dashboards import (
-    gen_builds_comparison,
-    gen_cross_comparison,
-    gen_hardware_comparisons,
-    gen_softwares_comparison,
-)
+from dashboards import gen_cross_comparison
 
 
 LAPTOP, XEON, DESKTOP, M4, L4 = "3b5e61", "534824", "332097", "b281b2", "d189c4"
@@ -166,32 +161,11 @@ class Results:
         case = self._case(variant, estimator, params, data)
         self._write(hardware, variant["software"], case, [], age, failed_case={"return_code": 1})
 
-    def add_search(self, hardware, variant, n_jobs, seconds, n_fits=100):
-        """A hyper-parameter search taking `seconds` overall."""
-        case = self._case(
-            variant,
-            FOREST,
-            {},
-            SYNTHETIC,
-            config="configs/hptuning.py",
-            hptuning={"n_jobs": n_jobs, "n_splits": n_jobs, "candidates": [{"a": 1}]},
-        )
-        run = {"duration_s": seconds, "cv_task_times": [1] * n_fits}
-        self._write(hardware, variant["software"], case, [run], 0)
-
 
 @pytest.fixture
 def results(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     return Results(tmp_path)
-
-
-PAGES = {
-    "software": (gen_softwares_comparison, "per_hardware.html"),
-    "builds": (gen_builds_comparison, "builds_comparison.html"),
-    "hardware": (gen_hardware_comparisons, "hardware_comparisons.html"),
-    "cross": (gen_cross_comparison, "cross_comparison.html"),
-}
 
 
 def _node() -> str:
@@ -203,15 +177,14 @@ def _node() -> str:
     return node
 
 
-def render(page: str, views: list[dict]) -> tuple[list[dict], dict]:
-    """Generates `page` from the results of the current directory, then computes
+def render(views: list[dict]) -> tuple[list[dict], dict]:
+    """Generates the page from the results of the current directory, then computes
     `views` like the page would. Returns them with the page's config."""
-    module, file_name = PAGES[page]
     node = _node()
     output_dir = Path("site")
     output_dir.mkdir(exist_ok=True)
-    module.generate(output_dir.resolve())
-    html = (output_dir / file_name).read_text()
+    gen_cross_comparison.generate(output_dir.resolve())
+    html = (output_dir / gen_cross_comparison.ENTRY_PAGE).read_text()
     config = json.loads(
         re.search(r'id="comparison-config">(.*?)</script>', html, re.S).group(1).replace("<\\/", "</")
     )
@@ -231,15 +204,22 @@ def render(page: str, views: list[dict]) -> tuple[list[dict], dict]:
     return json.loads(process.stdout), config
 
 
-def view(page: str, **spec) -> dict:
-    spec.setdefault("kind", "cross" if page == "cross" else "tabs")
-    views, _ = render(page, [spec])
+def view(**spec) -> dict:
+    views, _ = render([spec])
     return views[0]
 
 
-def cell(rendered: dict, category: str, method: str = "fit") -> dict:
+def on_machine(hardware: str, baseline: str = "sklearn-pypi", **spec) -> dict:
+    return view(baseline=f"{baseline}__{hardware}", target=f"hardware-{hardware}", **spec)
+
+
+def across_machines(software: str = "sklearn-pypi", **spec) -> dict:
+    return view(baseline=f"{software}__{LAPTOP}", target=f"software-{software}", **spec)
+
+
+def cell(rendered: dict, category: str) -> dict:
     row = next(row for row in rendered["grid"]["rows"] if row["category"] == category)
-    return next(cell for cell in row["cells"] if cell["method"] == method)
+    return only(row["cells"])
 
 
 def table(rendered: dict, category: str) -> list[dict]:
@@ -267,8 +247,8 @@ def plot_points(plot: dict | None) -> list[Point]:
     return points
 
 
-def points(rendered: dict, category: str = "linear", method: str = "fit") -> list[Point]:
-    return plot_points(cell(rendered, category, method).get("plot"))
+def points(rendered: dict, category: str = "linear") -> list[Point]:
+    return plot_points(cell(rendered, category).get("plot"))
 
 
 def only(items: list):
@@ -285,49 +265,54 @@ def by_time(points_list: list[Point], baseline_ms: float) -> dict[float, Point]:
 
 
 def test_speedup_is_baseline_time_over_candidate_time(results):
+    results.add(LAPTOP, SKLEARN, fit=[100])
+    results.add(LAPTOP, SKLEARNEX, fit=[50])
+
+    assert only(points(on_machine(LAPTOP))).speedup == pytest.approx(2)
+    assert only(points(on_machine(LAPTOP, baseline="sklearnex-cpu"))).speedup == pytest.approx(0.5)
+
+
+def test_predict_times_are_left_out(results):
     results.add(LAPTOP, SKLEARN, fit=[100], predict=[10])
     results.add(LAPTOP, SKLEARNEX, fit=[50], predict=[40])
 
-    rendered = view("software", tab=LAPTOP_NAME)
-    assert only(points(rendered, method="fit")).speedup == pytest.approx(2)
-    assert only(points(rendered, method="predict")).speedup == pytest.approx(0.25)
-
-    flipped = view("software", tab=LAPTOP_NAME, baseline="sklearnex-cpu")
-    assert only(points(flipped, method="fit")).speedup == pytest.approx(0.5)
-    assert only(points(flipped, method="predict")).speedup == pytest.approx(4)
+    rendered, config = render([{"baseline": f"sklearn-pypi__{LAPTOP}", "target": f"hardware-{LAPTOP}"}])
+    assert only(points(rendered[0])).speedup == pytest.approx(2)
+    fields = [spec["column"]["field"] for spec in config["columns"] if "column" in spec]
+    assert "fit_time" in fields and not any(field.startswith("predict_") for field in fields)
+    assert all(row.get("predict_time") is None for row in table(rendered[0], "linear"))
 
 
 def test_speedup_uses_the_median_of_repeats(results):
     results.add(LAPTOP, SKLEARN, fit=[100, 100, 900])
     results.add(LAPTOP, SKLEARNEX, fit=[50, 50, 1])
 
-    assert only(points(view("software", tab=LAPTOP_NAME))).speedup == pytest.approx(2)
+    assert only(points(on_machine(LAPTOP))).speedup == pytest.approx(2)
 
 
 def test_table_and_plot_agree(results):
-    results.add(LAPTOP, SKLEARN, fit=[100], predict=[10])
-    results.add(LAPTOP, SKLEARNEX, fit=[50], predict=[40])
+    results.add(LAPTOP, SKLEARN, fit=[100])
+    results.add(LAPTOP, SKLEARNEX, fit=[50])
 
-    rows = {row["variant"]: row for row in table(view("software", tab=LAPTOP_NAME), "linear")}
-    assert rows["sklearn-pypi"]["is_baseline"]
-    assert rows["sklearn-pypi"]["fit_speedup"] == pytest.approx(1)
+    rendered = on_machine(LAPTOP)
+    rows = {row["variant"]: row for row in table(rendered, "linear")}
+    assert rows[rendered["baselineLabel"]]["is_baseline"]
+    assert rows[rendered["baselineLabel"]]["fit_speedup"] == pytest.approx(1)
     assert rows["sklearnex-cpu"]["fit_time"] == pytest.approx(50)
     assert rows["sklearnex-cpu"]["fit_speedup"] == pytest.approx(2)
-    assert rows["sklearnex-cpu"]["predict_speedup"] == pytest.approx(0.25)
 
 
 def test_preprocessing_view_adds_preprocessing_to_fit_on_real_datasets_only(results):
-    results.add(LAPTOP, SKLEARN, fit=[100], predict=[10], data=REAL, preprocessing=[100])
-    results.add(LAPTOP, SKLEARNEX, fit=[50], predict=[20], data=REAL, preprocessing=[150])
+    results.add(LAPTOP, SKLEARN, fit=[100], data=REAL, preprocessing=[100])
+    results.add(LAPTOP, SKLEARNEX, fit=[50], data=REAL, preprocessing=[150])
     results.add(LAPTOP, SKLEARN, fit=[100], params={"alpha": 2})
     results.add(LAPTOP, SKLEARNEX, fit=[10], params={"alpha": 2})
 
-    default = view("software", tab=LAPTOP_NAME)
+    default = on_machine(LAPTOP)
     assert sorted(point.speedup for point in points(default)) == pytest.approx([2, 10])
 
-    rendered = view("software", tab=LAPTOP_NAME, preprocessing=True)
+    rendered = on_machine(LAPTOP, preprocessing=True)
     assert only(points(rendered)).speedup == pytest.approx(1)
-    assert only(points(rendered, method="predict")).speedup == pytest.approx(0.5)
 
 
 # --- Which results get paired ---
@@ -336,18 +321,16 @@ def test_preprocessing_view_adds_preprocessing_to_fit_on_real_datasets_only(resu
 def test_different_cases_are_not_paired(results):
     results.add(LAPTOP, SKLEARN, params={"alpha": 1})
     results.add(LAPTOP, SKLEARNEX, params={"alpha": 2})
+    results.add(XEON, SKLEARN, params={"alpha": 1})
 
-    assert points(view("software", tab=LAPTOP_NAME)) == []
+    assert points(on_machine(LAPTOP)) == []
 
 
-def test_n_jobs_is_part_of_a_case_on_one_machine_but_not_across_machines(results):
+def test_n_jobs_is_not_part_of_a_case(results):
     results.add(LAPTOP, SKLEARN, fit=[100], params={"n_jobs": 14})
-    results.add(LAPTOP, SKLEARNEX, fit=[50], params={"n_jobs": 8})
     results.add(XEON, SKLEARN, fit=[50], params={"n_jobs": 155})
 
-    assert points(view("software", tab=LAPTOP_NAME)) == []
-    across_machines = view("hardware", tab="sklearn-pypi")
-    assert only(points(across_machines)).speedup == pytest.approx(2)
+    assert only(points(across_machines())).speedup == pytest.approx(2)
 
 
 def test_baseline_uses_its_latest_run(results):
@@ -355,7 +338,7 @@ def test_baseline_uses_its_latest_run(results):
     results.add(LAPTOP, SKLEARN, fit=[100])
     results.add(LAPTOP, SKLEARNEX, fit=[50])
 
-    assert only(points(view("software", tab=LAPTOP_NAME))).speedup == pytest.approx(2)
+    assert only(points(on_machine(LAPTOP))).speedup == pytest.approx(2)
 
 
 def test_stale_runs_are_dropped_across_machines(results):
@@ -364,7 +347,7 @@ def test_stale_runs_are_dropped_across_machines(results):
     results.add(XEON, SKLEARN, fit=[900], params={"n_jobs": 86}, age=100)
     results.add(XEON, SKLEARN, fit=[50], params={"n_jobs": -1})
 
-    assert only(points(view("hardware", tab="sklearn-pypi"))).speedup == pytest.approx(2)
+    assert only(points(across_machines())).speedup == pytest.approx(2)
 
 
 # --- Across machines ---
@@ -376,15 +359,16 @@ def test_thread_caps_of_many_core_machines_dont_split_cases_across_machines(resu
     results.add(XEON, SKLEARN, fit=[900], estimator="KMeans", env={"OMP_NUM_THREADS": "128"}, age=100)
     results.add(XEON, SKLEARN, fit=[50], estimator="KMeans", env=capped)
 
-    rendered = view("hardware", tab="sklearn-pypi")
+    rendered = across_machines()
     assert only(points(rendered, "clustering")).speedup == pytest.approx(2)
 
 
 def test_other_env_vars_still_split_cases_across_machines(results):
     results.add(LAPTOP, SKLEARN, env={"GOMP_SPINCOUNT": "0"})
     results.add(XEON, SKLEARN, env={"GOMP_SPINCOUNT": "300000"})
+    results.add(LAPTOP, SKLEARNEX, env={"GOMP_SPINCOUNT": "0"})
 
-    assert points(view("hardware", tab="sklearn-pypi")) == []
+    assert points(across_machines()) == []
 
 
 def test_thread_caps_dont_split_cases_on_one_machine(results):
@@ -393,24 +377,24 @@ def test_thread_caps_dont_split_cases_on_one_machine(results):
     results.add(XEON, SKLEARNEX, fit=[900], estimator="KMeans", env=capped, age=100)
     results.add(XEON, SKLEARNEX, fit=[50], estimator="KMeans")
 
-    rendered = view("software", tab=XEON_NAME)
+    rendered = on_machine(XEON)
     assert only(points(rendered, "clustering")).speedup == pytest.approx(2)
 
 
 def test_other_env_vars_still_split_cases_on_one_machine(results):
     results.add(XEON, SKLEARN, estimator="KMeans")
     results.add(XEON, SKLEARNEX, estimator="KMeans", env={"GOMP_SPINCOUNT": "0"})
+    results.add(LAPTOP, SKLEARN, estimator="KMeans")
 
-    assert points(view("software", tab=XEON_NAME), "clustering") == []
+    assert points(on_machine(XEON), "clustering") == []
 
 
 def test_forest_times_are_rescaled_to_the_same_size(results):
-    results.add(LAPTOP, SKLEARN, fit=[100], predict=[100], estimator=FOREST, params={"n_estimators": 100})
-    results.add(XEON, SKLEARN, fit=[100], predict=[400], estimator=FOREST, params={"n_estimators": 200})
+    results.add(LAPTOP, SKLEARN, fit=[100], estimator=FOREST, params={"n_estimators": 100})
+    results.add(XEON, SKLEARN, fit=[100], estimator=FOREST, params={"n_estimators": 200})
 
-    rendered = view("hardware", tab="sklearn-pypi")
-    assert only(points(rendered, "tree-based", "fit")).speedup == pytest.approx(2)
-    assert only(points(rendered, "tree-based", "predict")).speedup == pytest.approx(0.5)
+    rendered = across_machines()
+    assert only(points(rendered, "tree-based")).speedup == pytest.approx(2)
 
 
 def test_preprocessing_time_is_not_rescaled_with_the_forest(results):
@@ -418,7 +402,7 @@ def test_preprocessing_time_is_not_rescaled_with_the_forest(results):
     results.add(LAPTOP, SKLEARN, fit=[100], preprocessing=[100], params={"n_estimators": 100}, **forest)
     results.add(XEON, SKLEARN, fit=[100], preprocessing=[50], params={"n_estimators": 200}, **forest)
 
-    rendered = view("hardware", tab="sklearn-pypi", preprocessing=True)
+    rendered = across_machines(preprocessing=True)
     assert only(points(rendered, "tree-based")).speedup == pytest.approx(2)
 
 
@@ -428,45 +412,23 @@ def test_metrics_of_different_forest_sizes_are_not_compared(results):
     results.add(LAPTOP, SKLEARN, params={"n_estimators": 100}, metrics=metrics(0.7), **forest)
     results.add(XEON, SKLEARN, params={"n_estimators": 200}, metrics=metrics(0.9), **forest)
 
-    assert only(points(view("hardware", tab="sklearn-pypi"), "tree-based")).symbol == "circle"
+    assert only(points(across_machines(), "tree-based")).symbol == "circle"
 
 
-def test_cpu_and_gpu_runs_of_a_library_are_separate_tabs(results):
+def test_cpu_and_gpu_runs_of_a_library_are_separate_softwares(results):
     results.add(LAPTOP, TORCH_CPU, fit=[100])
     results.add(XEON, TORCH_CPU, fit=[50])
     results.add(LAPTOP, TORCH_XPU, fit=[100])
     results.add(L4, TORCH_CUDA, fit=[25])
 
-    _, config = render("hardware", [])
-    tabs = {tab["label"]: [variant["label"] for variant in tab["variants"]] for tab in config["outerTabs"]}
-    assert tabs == {
-        "sklearn-torch-cpu": [LAPTOP_NAME, XEON_NAME],
-        "sklearn-torch-gpu": [f"{LAPTOP_NAME} GPU", L4_GPU_NAME],
+    _, config = render([])
+    machines = lambda software: {
+        variant["hardwareLabel"] for variant in config["variants"].values() if variant["software"] == software
     }
-    gpu = only(points(view("hardware", tab="sklearn-torch-gpu")))
+    assert machines("sklearn-torch-cpu") == {LAPTOP_NAME, XEON_NAME}
+    assert machines("sklearn-torch-gpu") == {f"{LAPTOP_NAME} GPU", L4_GPU_NAME}
+    gpu = only(points(across_machines("sklearn-torch-gpu")))
     assert (gpu.name, gpu.speedup) == (L4_GPU_NAME, pytest.approx(4))
-
-
-def test_software_on_a_single_machine_gets_no_hardware_tab(results):
-    results.add(L4, CUML)
-    results.add(L4, SKLEARN)
-    results.add(XEON, SKLEARN)
-
-    _, config = render("hardware", [])
-    assert [tab["label"] for tab in config["outerTabs"]] == ["sklearn-pypi"]
-
-
-def test_search_compares_time_per_fit_at_each_machine_best_n_jobs(results):
-    results.add(LAPTOP, SKLEARN)
-    results.add(XEON, SKLEARN)
-    results.add_search(LAPTOP, SKLEARN, n_jobs=2, seconds=100)
-    results.add_search(LAPTOP, SKLEARN, n_jobs=4, seconds=40)
-    results.add_search(XEON, SKLEARN, n_jobs=16, seconds=20)
-
-    search = view("hardware", tab="sklearn-pypi")["search"]
-    point = only(plot_points(search["plot"]))
-    assert point.speedup == pytest.approx(2)  # 400 ms vs 200 ms per fit
-    assert "outer n_jobs: 4 vs 16" in point.text
 
 
 # --- Tree binning ---
@@ -484,7 +446,7 @@ def _binning_results(results):
 def test_sklearn_vs_sklearnex_has_a_binned_column_with_squares_and_an_exact_one(results):
     _binning_results(results)
 
-    rendered = view("software", tab=L4_CPU_NAME)
+    rendered = on_machine(L4)
     sklearnex = [point for point in points(rendered, "tree-based") if point.name == "sklearnex-cpu"]
     by_speedup = by_time(sklearnex, 1000)
     exact, binned = by_speedup[500], by_speedup[200]
@@ -496,7 +458,7 @@ def test_sklearn_vs_sklearnex_has_a_binned_column_with_squares_and_an_exact_one(
 def test_sklearnex_baseline_vs_sklearn_has_the_same_two_columns(results):
     _binning_results(results)
 
-    rendered = view("software", tab=L4_CPU_NAME, baseline="sklearnex-cpu")
+    rendered = on_machine(L4, baseline="sklearnex-cpu")
     sklearn = [point for point in points(rendered, "tree-based") if point.name == "sklearn-pypi"]
     assert len(sklearn) == 2
     exact, binned = sorted(sklearn, key=lambda point: point.x)
@@ -504,11 +466,11 @@ def test_sklearnex_baseline_vs_sklearn_has_the_same_two_columns(results):
     assert binned.speedup == pytest.approx(0.2) and binned.symbol == "square"
 
 
-@pytest.mark.parametrize("baseline, other", [("sklearn-pypi", "cuml-cuda"), ("cuml-cuda", "sklearn-pypi")])
+@pytest.mark.parametrize("baseline, other", [("sklearn-pypi", "cuml-gpu"), ("cuml-gpu", "sklearn-pypi")])
 def test_sklearn_vs_cuml_has_one_column_with_squares(results, baseline, other):
     _binning_results(results)
 
-    rendered = view("software", tab=L4_CPU_NAME, baseline=baseline)
+    rendered = on_machine(L4, baseline=baseline)
     point = only([point for point in points(rendered, "tree-based") if point.name == other])
     assert point.symbol == "square"
 
@@ -516,13 +478,13 @@ def test_sklearn_vs_cuml_has_one_column_with_squares(results, baseline, other):
 def test_cuml_is_only_paired_with_binned_sklearnex_without_a_marker(results):
     _binning_results(results)
 
-    from_cuml = view("software", tab=L4_CPU_NAME, baseline="cuml-cuda")
+    from_cuml = on_machine(L4, baseline="cuml-gpu")
     point = only([point for point in points(from_cuml, "tree-based") if point.name == "sklearnex-cpu"])
     assert point.speedup == pytest.approx(0.5)  # the binned 200 ms, not the exact 500 ms
     assert point.symbol == "circle"
 
-    from_sklearnex = view("software", tab=L4_CPU_NAME, baseline="sklearnex-cpu")
-    point = only([point for point in points(from_sklearnex, "tree-based") if point.name == "cuml-cuda"])
+    from_sklearnex = on_machine(L4, baseline="sklearnex-cpu")
+    point = only([point for point in points(from_sklearnex, "tree-based") if point.name == "cuml-gpu"])
     assert point.speedup == pytest.approx(2)
     assert point.symbol == "circle"
 
@@ -535,8 +497,8 @@ def test_failed_cuml_run_stays_in_cuml_column(results):
     results.add_failed(L4, CUML, params={"max_depth": 3}, **forest)
 
     tree_points = [
-        point for point in points(view("software", tab=L4_CPU_NAME), "tree-based")
-        if point.name == "cuml-cuda"
+        point for point in points(on_machine(L4), "tree-based")
+        if point.name == "cuml-gpu"
     ]
     failed = only([point for point in tree_points if point.symbol == "x"])
     plotted = only([point for point in tree_points if point.symbol != "x"])
@@ -549,7 +511,7 @@ def test_exact_sklearnex_failure_is_left_out_against_cuml(results):
     results.add(L4, SKLEARNEX, fit=[200], **forest)
     results.add_failed(L4, SKLEARNEX, params=EXACT, **forest)
 
-    rendered = view("software", tab=L4_CPU_NAME, baseline="cuml-cuda")
+    rendered = on_machine(L4, baseline="cuml-gpu")
     assert only(points(rendered, "tree-based")).symbol == "circle"
 
 
@@ -560,7 +522,7 @@ def test_sklearnex_across_machines_pairs_each_split_kind_with_itself(results):
     results.add(XEON, SKLEARNEX, fit=[50], params=EXACT, **forest)
     results.add(XEON, SKLEARNEX, fit=[25], **forest)
 
-    rendered = view("hardware", tab="sklearnex-cpu")
+    rendered = across_machines("sklearnex-cpu")
     by_speedup = {round(point.speedup): point for point in points(rendered, "tree-based")}
     exact, binned = by_speedup[2], by_speedup[4]
     assert exact.x < binned.x
@@ -577,7 +539,7 @@ def test_metric_difference_gives_a_diamond_within_tolerance_a_circle(results):
     results.add(LAPTOP, SKLEARN, params={"alpha": 2}, metrics=metrics(0.8))
     results.add(LAPTOP, SKLEARNEX, params={"alpha": 2}, metrics=metrics(0.805))
 
-    symbols = sorted(point.symbol for point in points(view("software", tab=LAPTOP_NAME)))
+    symbols = sorted(point.symbol for point in points(on_machine(LAPTOP)))
     assert symbols == ["circle", "diamond-open"]
 
 
@@ -592,7 +554,7 @@ def test_setup_difference_gives_a_square(results, base_attributes, attributes, e
     results.add(LAPTOP, SKLEARN, attributes=base_attributes)
     results.add(LAPTOP, SKLEARNEX, attributes=attributes)
 
-    point = only(points(view("software", tab=LAPTOP_NAME)))
+    point = only(points(on_machine(LAPTOP)))
     assert point.symbol == "square" and expected in point.text
 
 
@@ -601,7 +563,7 @@ def test_sklearnex_fallback_is_grey_without_warnings(results):
     fallback = {"has_onedal_estimator": False, "n_iter": 100}
     results.add(LAPTOP, SKLEARNEX, estimator=FOREST, attributes=fallback)
 
-    point = only(points(view("software", tab=LAPTOP_NAME), "tree-based"))
+    point = only(points(on_machine(LAPTOP), "tree-based"))
     assert point.color == GREY and point.symbol == "circle"
 
 
@@ -614,7 +576,7 @@ def test_failed_candidate_is_below_its_column_and_keeps_the_baseline_row(results
     results.add(LAPTOP, SKLEARN, fit=[100], params={"alpha": 2})
     results.add_failed(LAPTOP, SKLEARNEX, params={"alpha": 2})
 
-    rendered = view("software", tab=LAPTOP_NAME)
+    rendered = on_machine(LAPTOP)
     failed = only([point for point in points(rendered) if point.symbol == "x"])
     plotted = only([point for point in points(rendered) if point.symbol != "x"])
     assert failed.x == pytest.approx(plotted.x)
@@ -622,7 +584,7 @@ def test_failed_candidate_is_below_its_column_and_keeps_the_baseline_row(results
 
     rows = table(rendered, "linear")
     assert sorted(row["status"] for row in rows if row["variant"] == "sklearnex-cpu") == ["failed", "ok"]
-    baseline_rows = [row for row in rows if row["variant"] == "sklearn-pypi"]
+    baseline_rows = [row for row in rows if row["variant"] == rendered["baselineLabel"]]
     assert len(baseline_rows) == 2
     assert sorted(str(row["fit_speedup"]) for row in baseline_rows) == ["1", "None"]
 
@@ -633,7 +595,7 @@ def test_failed_baseline_is_not_plotted_but_shows_in_the_table(results):
     results.add(LAPTOP, SKLEARNEX, params={"alpha": 1})
     results.add(LAPTOP, SKLEARNEX, fit=[77], params={"alpha": 2})
 
-    rendered = view("software", tab=LAPTOP_NAME)
+    rendered = on_machine(LAPTOP)
     assert only(points(rendered)).symbol == "circle"
     rows = table(rendered, "linear")
     assert [row["status"] for row in rows if row["status"] != "ok"] == ["failed"]
@@ -646,7 +608,7 @@ def test_failure_superseded_by_a_success_is_dropped_across_machines(results):
     results.add(XEON, SKLEARN, fit=[50])
     results.add_failed(XEON, SKLEARN, age=100)
 
-    assert only(points(view("hardware", tab="sklearn-pypi"))).symbol == "circle"
+    assert only(points(across_machines())).symbol == "circle"
 
 
 # --- Layout ---
@@ -663,7 +625,7 @@ def test_columns_stay_on_their_estimator_with_many_columns(results):
         results.add(hardware, SKLEARN, fit=[25], **forest)
         results.add(hardware, SKLEARN, fit=[10], **other_forest)
 
-    rendered = view("cross", baseline=f"sklearnex-cpu__{LAPTOP}", target="software-sklearn-pypi")
+    rendered = view(baseline=f"sklearnex-cpu__{LAPTOP}", target="software-sklearn-pypi")
     tree_cell = cell(rendered, "tree-based")
     assert tree_cell["plot"]["layout"]["xaxis"]["ticktext"] == ["RFClf", "RFReg"]
     all_points = plot_points(tree_cell["plot"])
@@ -683,7 +645,7 @@ def test_cross_page_compares_one_software_on_every_machine(results):
     results.add(L4, SKLEARN, fit=[25])
     results.add(L4, CUML, fit=[10])
 
-    rendered = view("cross", baseline=f"sklearn-pypi__{LAPTOP}", target="software-sklearn-pypi")
+    rendered = view(baseline=f"sklearn-pypi__{LAPTOP}", target="software-sklearn-pypi")
     assert rendered["baselineLabel"] == f"sklearn-pypi on {LAPTOP_NAME}"
     speedups = {point.name: point.speedup for point in points(rendered)}
     assert speedups == {XEON_NAME: pytest.approx(2), L4_CPU_NAME: pytest.approx(4)}
@@ -695,10 +657,26 @@ def test_cross_page_compares_every_software_on_one_machine(results):
     results.add(L4, SKLEARN, fit=[25])
     results.add(L4, CUML, fit=[10])
 
-    rendered = view("cross", baseline=f"cuml-gpu__{L4}", target=f"hardware-{L4}")
+    rendered = view(baseline=f"cuml-gpu__{L4}", target=f"hardware-{L4}")
     assert rendered["baselineLabel"] == f"cuml-gpu on {L4_GPU_NAME}"
     assert only(points(rendered)).name == "sklearn-pypi"
     assert only(points(rendered)).speedup == pytest.approx(0.4)
+
+
+def test_cross_page_software_groups_filter_a_machines_softwares_only(results):
+    results.add(LAPTOP, SKLEARN, fit=[100])
+    results.add(LAPTOP, SKLEARNEX, fit=[50])
+    results.add(LAPTOP, MKL, fit=[25])
+    results.add(XEON, MKL, fit=[10])
+    baseline = f"sklearnex-cpu__{LAPTOP}"
+
+    def names(**spec):
+        return {point.name for point in points(view(baseline=baseline, **spec))}
+
+    machine = f"hardware-{LAPTOP}"
+    assert names(target=machine) == {"sklearn-pypi"}
+    assert names(target=machine, softwareGroups=["non-pypi"]) == {"sklearn-pypi", "sklearn-cf-mkl"}
+    assert names(target="software-sklearn-cf-mkl", softwareGroups=[]) == {LAPTOP_NAME, XEON_NAME}
 
 
 def test_cross_page_only_offers_targets_sharing_a_case(results):
@@ -706,41 +684,30 @@ def test_cross_page_only_offers_targets_sharing_a_case(results):
     results.add(XEON, SKLEARN, params={"alpha": 1})
     results.add(LAPTOP, MKL, params={"alpha": 2})
 
-    _, config = render("cross", [])
+    _, config = render([])
     assert config["pages"][f"sklearn-pypi__{LAPTOP}"] == ["software-sklearn-pypi", f"hardware-{XEON}"]
     assert f"sklearn-cf-mkl__{LAPTOP}" not in config["pages"]
 
 
-def test_software_page_offers_mkl_as_baseline_but_does_not_plot_it(results):
+def test_mkl_is_not_plotted_by_default_but_can_be_the_baseline(results):
     results.add(LAPTOP, SKLEARN, fit=[100])
     results.add(LAPTOP, SKLEARNEX, fit=[50])
     results.add(LAPTOP, MKL, fit=[25])
 
-    default = view("software", tab=LAPTOP_NAME)
-    assert only(points(default)).name == "sklearnex-cpu"
+    assert only(points(on_machine(LAPTOP))).name == "sklearnex-cpu"
 
-    from_mkl = view("software", tab=LAPTOP_NAME, baseline="sklearn-cf-mkl")
+    from_mkl = on_machine(LAPTOP, baseline="sklearn-cf-mkl")
     speedups = {point.name: point.speedup for point in points(from_mkl)}
     assert speedups == {"sklearn-pypi": pytest.approx(0.25), "sklearnex-cpu": pytest.approx(0.5)}
 
 
-def test_builds_page_compares_scikit_learn_builds_with_pypi_only(results):
+def test_builds_group_compares_scikit_learn_builds_with_pypi_only(results):
     results.add(LAPTOP, SKLEARN, fit=[100])
     results.add(LAPTOP, MKL, fit=[50])
     results.add(LAPTOP, CF_DEFAULT, fit=[25])
     results.add(LAPTOP, SKLEARNEX, fit=[10])
     results.add(LAPTOP, TORCH_CPU, fit=[10])
 
-    rendered = view("builds", tab=LAPTOP_NAME)
+    rendered = on_machine(LAPTOP, softwareGroups=gen_cross_comparison.BUILDS_SOFTWARE_GROUPS)
     speedups = {point.name: point.speedup for point in points(rendered)}
     assert speedups == {"sklearn-cf-mkl": pytest.approx(2), "sklearn-cf-default": pytest.approx(4)}
-    assert rendered["baselineLabel"] == "sklearn-pypi"
-
-
-def test_hardware_page_keeps_mkl_but_not_the_other_conda_forge_builds(results):
-    for variant in (SKLEARN, MKL, CF_DEFAULT):
-        results.add(LAPTOP, variant)
-        results.add(XEON, variant)
-
-    _, config = render("hardware", [])
-    assert [tab["label"] for tab in config["outerTabs"]] == ["sklearn-pypi", "sklearn-cf-mkl"]

@@ -87,23 +87,12 @@ VANILLA_SKLEARN_PIXI_ENVS = {"sklearn", "sklearn-pypi"}
 
 
 @lru_cache(maxsize=None)
-def is_vanilla_sklearn(software_hash: str) -> bool:
-    return read_env("software", software_hash)["pixi_environment_name"] in VANILLA_SKLEARN_PIXI_ENVS
-
-
-SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
-
-# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
-# "sklearn-dev-libomp@..." (see configs/_utils/implementations.py).
-_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
-
-
 def is_sklearn_dev_build(build_name: str) -> bool:
     """Whether `build_name` (a `software_build_name` return value) is a
     `sklearn-dev`/`sklearn-dev-libomp`/... branch-vs-branch build - meant for
     its own dedicated comparison (gen_sklearn_dev_comparison.py,
     gen_hgb_speedup_breakdown.py) rather than being folded in as a build
-    variant elsewhere (e.g. gen_builds_comparison.py)."""
+    variant elsewhere."""
     return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
 
 
@@ -131,8 +120,7 @@ def software_build_name(software_hash: str) -> str:
     # Distinguishes e.g. two `sklearn-dev` runs against different scikit-learn
     # forks/branches (same pixi env, different sklearn-src checkout) - without
     # this they'd share the plain "sklearn-dev" name and get conflated into one
-    # build variant by callers that group/label results by this name (e.g.
-    # gen_builds_comparison.py's `groupby(other_results, build_variant)`).
+    # build variant by callers that group/label results by this name.
     git_info = env.get("runtime_imports", {}).get("sklearn", {}).get("git")
     if git_info:
         ref_label = _git_ref_label(git_info)

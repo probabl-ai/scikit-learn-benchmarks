@@ -14,11 +14,8 @@ const loaded = new Map(Object.entries(window.sklbenchComparisonData));
 const core = window.sklbenchSpeedupCore(input.config);
 
 function buildView(spec) {
-  if (spec.kind === "cross") {
-    return core.crossView(spec.baseline, spec.target, loaded);
-  }
-  const tab = input.config.outerTabs.find((outer) => outer.label === spec.tab);
-  return core.tabsView(tab, loaded, spec.baseline || tab.variants[0].label);
+  const softwareGroups = spec.softwareGroups || input.config.defaultSoftwareGroups;
+  return core.crossView(spec.baseline, spec.target, softwareGroups, loaded);
 }
 
 const output = input.views.map((spec) => {
@@ -26,7 +23,6 @@ const output = input.views.map((spec) => {
   return {
     baselineLabel: view.baselineLabel,
     grid: core.computeGrid(view, Boolean(spec.preprocessing)),
-    search: core.computeSearch(view),
   };
 });
 // The plot template is large and irrelevant here.

@@ -12,7 +12,7 @@ import pytest
 from sklbench.config import EstimatorCase
 from sklbench.orchestrator import implementation
 from sklbench.reporting.matching import read_all_results, read_failed_records
-from test_speedup_comparison import ENVS, LAPTOP, LAPTOP_NAME, Results, only, points, table, view
+from test_speedup_comparison import ENVS, LAPTOP, Results, on_machine, only, points, table
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -77,12 +77,11 @@ def test_real_runs_reach_the_dashboards_with_their_own_times(results_dir, monkey
         ("fit", 3),
         ("predict", 3),
     }
-    for method in ("fit", "predict"):
-        expected = statistics.median(_raw_times(results_dir, "pypi00", method)) / statistics.median(
-            _raw_times(results_dir, "mkl000", method)
-        )
-        rendered = view("builds", tab=LAPTOP_NAME)
-        assert only(points(rendered, "linear", method)).speedup == pytest.approx(expected, rel=1e-2)
+    expected = statistics.median(_raw_times(results_dir, "pypi00", "fit")) / statistics.median(
+        _raw_times(results_dir, "mkl000", "fit")
+    )
+    rendered = on_machine(LAPTOP, softwareGroups=["non-pypi"])
+    assert only(points(rendered, "linear")).speedup == pytest.approx(expected, rel=1e-2)
 
     rows = {row["variant"]: row for row in table(rendered, "linear")}
     candidate = rows["sklearn-cf-mkl"]

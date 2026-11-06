@@ -1,9 +1,8 @@
-// Pairs results and builds plot and table data for the comparison pages, without
+// Pairs results and builds plot and table data for the comparison page, without
 // touching the page. tests/test_speedup_comparison.py runs it in Node.
 window.sklbenchSpeedupCore = function (config) {
   const CATEGORIES = ["linear", "tree-based", "clustering"];
-  const METHODS = ["fit", "predict"];
-  const SEARCH_ROW = "hyper-parameter search";
+  const METHODS = ["fit"];
   const HEADER_FILTER = {clearable: true, sort: "asc", valuesLookup: true};
   const FAILED_MARKER_GAP = 0.4;
   const OFFSET_STEP = 0.14;
@@ -252,7 +251,7 @@ window.sklbenchSpeedupCore = function (config) {
       return label;
     }
     const warned = warnings.some((warning) => config.binnedWarningKinds.includes(warning.kind));
-    const isBinned = warned || bothBinned || (config.splitsFromParams && binned);
+    const isBinned = warned || bothBinned || binned;
     return `${label} / ${isBinned ? "1-binned" : "0-exact"}`;
   }
 
@@ -293,9 +292,6 @@ window.sklbenchSpeedupCore = function (config) {
       `<b>speed-up: ${Number(match.speedup.toPrecision(2))}x</b> ` +
         `(${formatDuration(median(match.base.times))} vs ${formatDuration(median(match.candidate.times))})`,
     ];
-    if (match.base.entry.searchNJobs !== undefined) {
-      lines.push(`outer n_jobs: ${match.base.entry.searchNJobs} vs ${match.candidate.entry.searchNJobs}`);
-    }
     lines.push(...differenceLines(match));
     if (match.candidate.entry.fallback) {
       lines.push("<i>fell back to scikit-learn</i>");
@@ -636,40 +632,30 @@ window.sklbenchSpeedupCore = function (config) {
 
   // --- Views: what's compared on screen. ---
 
-  // Software, builds and hardware pages: `loaded` maps a variant key to its data.
-  function tabsView(tab, loaded, baselineLabel) {
-    const labels = new Map(tab.variants.map((variant) => [variant.key, variant.label]));
-    const baselineKey = tab.variants.find((variant) => variant.label === baselineLabel).key;
-    const candidates = tab.variants.filter((variant) => variant.key !== baselineKey && variant.plotted);
-    return {
-      baselineLabel,
-      baseData: loaded.get(baselineKey),
-      candidateData: candidates.map((variant) => loaded.get(variant.key)),
-      colors: tab.colors || config.colors,
-      emptyScope: tab.emptyScope,
-      treeNote: config.treeNote,
-      columnTitle: config.columnTitle,
-      labelOf: (entry) => labels.get(entry.variant),
-      isBaseline: (entry) => entry.variant === baselineKey,
-    };
-  }
-
   // Cross page: the variants a target compares with, baseline excluded.
-  function crossCandidates(baselineKey, target) {
+  // `softwareGroups` only filters a machine's softwares: a software target names its software.
+  function crossCandidates(baselineKey, target, softwareGroups) {
     const isSoftwareTarget = target.startsWith("software-");
     const value = target.slice(target.indexOf("-") + 1);
     return Object.keys(config.variants).filter((key) => {
       const variant = config.variants[key];
-      return key !== baselineKey && (isSoftwareTarget ? variant.software === value : variant.hardwareHash === value);
+      if (key === baselineKey) {
+        return false;
+      }
+      if (isSoftwareTarget) {
+        return variant.software === value;
+      }
+      const group = config.softwareGroups[variant.software];
+      return variant.hardwareHash === value && (!group || softwareGroups.includes(group));
     });
   }
 
-  function crossView(baselineKey, target, loaded) {
+  function crossView(baselineKey, target, softwareGroups, loaded) {
     const baseline = config.variants[baselineKey];
     const isSoftwareTarget = target.startsWith("software-");
     const labelOfVariant = (key) =>
       isSoftwareTarget ? config.variants[key].hardwareLabel : config.variants[key].software;
-    const candidates = crossCandidates(baselineKey, target);
+    const candidates = crossCandidates(baselineKey, target, softwareGroups);
     return {
       baselineLabel: `${baseline.software} on ${baseline.hardwareLabel}`,
       baseData: loaded.get(baselineKey),
@@ -744,28 +730,5 @@ window.sklbenchSpeedupCore = function (config) {
     return {rows};
   }
 
-  function computeSearch(view) {
-    const toResults = (entries) =>
-      entries.map((entry) => ({entry, method: "fit", times: entry.methods.fit.times, hover: entry.methods.fit.hover, binned: false}));
-    const base = new Map(toResults(view.baseData.search).map((result) => [result.entry.id, result]));
-    const matches = toResults(view.candidateData.flatMap((data) => data.search))
-      .filter((candidate) => base.has(candidate.entry.id))
-      .map((candidate) => {
-        const match = makeMatch(base.get(candidate.entry.id), candidate, []);
-        match.differences = [];
-        match.column = view.labelOf(candidate.entry);
-        return match;
-      });
-    if (!matches.length) {
-      return null;
-    }
-    const caseCount = new Set(matches.map((match) => match.base.entry.id)).size;
-    return {
-      title: cellTitle(SEARCH_ROW, "fit", caseCount),
-      plot: buildPlot(view, matches, []),
-      table: buildTable(view, matches, [], [], []),
-    };
-  }
-
-  return {computeGrid, computeSearch, crossCandidates, crossView, escapeHtml, sortVariants, sum, tabsView, unique};
+  return {computeGrid, crossCandidates, crossView, escapeHtml, sortVariants, sum, unique};
 };
