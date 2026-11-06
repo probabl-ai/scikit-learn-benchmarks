@@ -1,0 +1,2423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Hardware comparison of parallelized fits</title>
+  <link href="https://unpkg.com/tabulator-tables@6.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-4.1.1.min.js"></script>
+  <script src="https://unpkg.com/tabulator-tables@6.5.0/dist/js/tabulator.min.js"></script>
+  <style>
+:root {
+  color-scheme: light;
+  /* scikit-learn documentation palette: pydata-sphinx-theme neutrals plus
+     the sklearn cyan/orange brand colors (doc/scss/colors.scss). */
+  --text: #222832;
+  --muted: #48566b;
+  --line: #d1d5da;
+  --line-soft: #e5e7ea;
+  --surface: #f3f4f5;
+  --accent: #0a7d91;
+  --accent-hover: #8045e5;
+  --sk-cyan: #29abe2;
+  --sk-cyan-shades-2: #1c7ea8;
+  --sk-cyan-shades-3: #15688c;
+  --sk-orange: #f7931e;
+  --sk-orange-tint-3: #fcb575;
+  --sk-orange-tint-8: #ffead9;
+  --sk-orange-tint-9: #fff5ec;
+  --warn: #8a1f11;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  background: white;
+}
+main {
+  margin: 0 auto;
+  padding: 24px;
+}
+.site-header {
+  padding: 28px 24px;
+  background: linear-gradient(
+    120deg,
+    var(--sk-cyan-shades-3) 0%,
+    var(--sk-cyan) 17%,
+    var(--sk-orange-tint-8) 59%,
+    var(--sk-orange-tint-3) 100%
+  );
+}
+.site-header h1 {
+  margin: 0;
+  color: white;
+  text-shadow: 0 0 8px var(--sk-cyan-shades-3);
+}
+.site-header a {
+  color: inherit;
+  text-decoration: none;
+}
+.site-header .site-home {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 0 6px var(--sk-cyan-shades-3);
+}
+.site-header .site-home:hover {
+  text-decoration: underline;
+}
+h1, h2, h3 { font-weight: 500; line-height: 1.25; }
+h1 { margin: 0 0 20px; font-size: 30px; }
+h2 { margin: 0 0 12px; font-size: 20px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+a:hover {
+  color: var(--accent-hover);
+  text-decoration-thickness: 2px;
+}
+code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: #912583;
+  background: var(--surface);
+}
+.page-row {
+  margin-bottom: 24px;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  background: white;
+}
+.panel p {
+  margin: 5px 0;
+}
+.about-section {
+  margin-top: 8px;
+}
+.about-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+.about-section .about-section {
+  margin-left: 16px;
+}
+.muted {
+  color: var(--muted);
+}
+.tabs {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+.tab-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.tab-button:hover {
+  color: var(--text);
+}
+.tab-button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tab-button.active {
+  color: var(--text);
+  background: white;
+  box-shadow: inset 0 -3px 0 var(--sk-orange);
+}
+.tab-panel {
+  display: none;
+  padding: 16px;
+}
+.tab-panel.active {
+  display: block;
+}
+.software-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  gap: 12px 28px;
+  align-items: start;
+}
+.package-list {
+  columns: 2;
+  column-gap: 40px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 5px 0;
+  padding-left: 18px;
+}
+@media (max-width: 900px) {
+  .software-details {
+    grid-template-columns: 1fr;
+  }
+  .package-list {
+    width: auto;
+  }
+}
+.plot-grid {
+  display: grid;
+  gap: 18px;
+}
+.plot-cell {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  background: white;
+}
+.plot-cell h3 {
+  color: var(--muted);
+  font-weight: 600;
+}
+.plot-cell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.plot-cell-title {
+  margin: 0;
+}
+.preprocessing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.baseline-pick,
+.use-case-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 5px 12px;
+  border: 1.5px solid var(--variant-color, var(--accent));
+  border-radius: 999px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.baseline-pick::before,
+.use-case-pick::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--variant-color, var(--accent));
+}
+.baseline-pick:hover:not(:disabled),
+.use-case-pick:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 12%, white);
+}
+.baseline-pick:disabled,
+.use-case-pick:disabled {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--variant-color, var(--accent)) 16%, white);
+  cursor: default;
+}
+.baseline-pick:disabled::before,
+.use-case-pick:disabled::before {
+  display: none;
+}
+.tab-button.is-baseline::after {
+  content: "baseline";
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.cross-heading {
+  margin: 0 0 8px;
+}
+.cross-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-weight: 600;
+}
+.cross-picker select {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--text);
+  min-width: 220px;
+}
+.cross-env {
+  display: grid;
+  gap: 12px;
+}
+#cross-baseline-env {
+  margin-top: 14px;
+}
+.cross-compared-to {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.cross-compared-to .cross-heading {
+  margin: 0;
+}
+.cross-advanced {
+  width: 100%;
+}
+.cross-advanced > summary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+}
+.cross-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+.cross-advanced > summary::after {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  line-height: 1;
+}
+.cross-advanced[open] > summary::after {
+  content: "\2212";
+}
+.cross-targets {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.cross-how-to {
+  justify-self: stretch;
+  margin: 0 0 6px;
+}
+.cross-variants {
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+}
+.cross-variants legend {
+  margin: 0 auto 6px;
+  padding: 0;
+  color: var(--muted);
+}
+.cross-variants-boxes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+}
+.cross-variants-boxes label:has(input:disabled) {
+  color: var(--muted);
+}
+.plot-subtitle {
+  margin: -6px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plot-cell-body > .plot-subtitle:first-child {
+  margin-top: 2px;
+}
+.plotly-graph-div {
+  width: 100%;
+  height: 540px;
+}
+.plot-detail-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.plot-row-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.phase-breakdown {
+  gap: 24px;
+}
+.phase-breakdown .plot-cell {
+  padding: 16px;
+}
+.phase-breakdown .plotly-graph-div {
+  height: 320px;
+}
+.phase-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.phase-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.detailed-results {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: white;
+}
+.detailed-results summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.detailed-results-title {
+  color: var(--muted);
+  font-weight: 600;
+}
+.detailed-results-table {
+  margin-top: 12px;
+}
+.detailed-results-table .tabulator-row {
+  cursor: pointer;
+}
+.detailed-results-table .tabulator-row.row-just-matched {
+  animation: row-just-matched-flash 1s ease-out;
+}
+@keyframes row-just-matched-flash {
+  from {
+    background-color: rgba(247, 147, 30, 0.35);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.speedup-positive {
+  color: #18794e;
+  font-weight: 600;
+}
+.speedup-negative {
+  color: #b42318;
+  font-weight: 600;
+}
+.plot-notes {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.plot-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 3px 0;
+}
+.plot-note ul {
+  margin: 3px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plot-marker {
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+.plot-marker-circle {
+  font-size: 20px;
+}
+.plot-marker-square,
+.plot-marker-diamond {
+  font-size: 16px;
+}
+.plot-marker-x {
+  font-size: 16px;
+  color: var(--muted);
+}
+.warning-note {
+  display: grid;
+  grid-template-columns: 1.8em minmax(0, 1fr);
+  column-gap: 0.45em;
+  align-items: baseline;
+  margin: 2px 0;
+}
+.warning-icon {
+  text-align: center;
+}
+.empty {
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border-radius: 6px;
+}
+ul.compact {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.dashboard-list {
+  border-collapse: collapse;
+}
+.dashboard-list td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+}
+.dashboard-list tr:last-child td {
+  border-bottom: none;
+}
+.dashboard-list td:first-child {
+  padding-right: 24px;
+  white-space: nowrap;
+}
+.dashboard-list td:last-child {
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .dashboard-list td:first-child {
+    white-space: normal;
+  }
+}
+.tabulator {
+  border-color: var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+}
+.tabulator .tabulator-header,
+.tabulator .tabulator-header .tabulator-col {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+.tabulator .tabulator-tableholder .tabulator-table,
+.tabulator-row,
+.tabulator-row .tabulator-cell {
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+.tabulator-row.tabulator-row-even {
+  background: #fafbfb;
+}
+.tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+.tabulator .tabulator-footer {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.tabulator .tabulator-footer .tabulator-page.active {
+  color: var(--accent);
+}
+/* Detailed-results rows are banded per comparison_key group (see the
+   table's renderComplete handler), so plain row striping would blur them. */
+.detailed-results-table .tabulator-row.tabulator-row-even {
+  background: white;
+}
+.detailed-results-table .tabulator-row.row-group-alt {
+  background: #eef1f4;
+}
+.detailed-results-table .tabulator-row.row-group-start {
+  border-top: 1px solid var(--line);
+}
+.detailed-results-table .tabulator-row.tabulator-selectable:hover {
+  background: var(--sk-orange-tint-9);
+}
+/* Technical terms with a hover definition (see sklbench/reporting/html/glossary.py). */
+.term {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted rgba(72, 86, 107, 0.6);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.term:focus {
+  outline: none;
+}
+.term:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+.term-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 14px rgba(34, 40, 50, 0.14);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: auto;
+}
+/* Invisible bridge over the gap, so the pointer can reach the tooltip's link. */
+.term-tip::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+.term:hover > .term-tip,
+.term:focus-within > .term-tip {
+  display: block;
+}
+.term-tip a {
+  white-space: nowrap;
+}
+.sources-table {
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+.sources-table th,
+.sources-table td {
+  padding: 4px 10px 4px 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.sources-table td:nth-child(3) {
+  text-align: right;
+}
+
+  </style>
+  <script>
+    window.sklbenchTables = window.sklbenchTables || {};
+
+    function sklbenchFormatDuration(value) {
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      if (value < 10) {
+        return `${value.toPrecision(2)}ms`;
+      }
+      if (value < 1000) {
+        return `${Math.round(value)}ms`;
+      }
+      if (value < 10000) {
+        return `${(value / 1000).toPrecision(2)}s`;
+      }
+      return `${Math.round(value / 1000)}s`;
+    }
+
+    function sklbenchDurationFormatter(cell) {
+      return sklbenchFormatDuration(cell.getValue());
+    }
+
+    function sklbenchFormatRatio(value) {
+      return value >= 100 ? `${Math.round(value)}` : value.toPrecision(2);
+    }
+
+    // `<field>_low`/`<field>_high` bound the speed-up over the interquartile
+    // ranges of both sides' repeats (see `_speedup_interval` in table.py).
+    // Below 5% of spread the value is shown as is, up to 15% as approximate,
+    // and beyond that as the interval itself.
+    function sklbenchSpeedupFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "N/A";
+      }
+      let label = `${sklbenchFormatRatio(value)}x`;
+      let attributes = "";
+      const field = cell.getColumn().getField();
+      const low = cell.getData()[`${field}_low`];
+      const high = cell.getData()[`${field}_high`];
+      if (Number.isFinite(low) && Number.isFinite(high)) {
+        const lowLabel = sklbenchFormatRatio(low);
+        const highLabel = sklbenchFormatRatio(high);
+        attributes += ` title="median ${label}, ${lowLabel}x to ${highLabel}x over the middle half of the repeats"`;
+        const spread = Math.sqrt(high / low) - 1;
+        if (spread > 0.15) {
+          label = `${lowLabel}-${highLabel}x`;
+        } else if (spread >= 0.05) {
+          label = `~${label}`;
+        }
+      }
+      if (value > 1.1) {
+        attributes += ` class="speedup-positive"`;
+      } else if (value < 0.9) {
+        attributes += ` class="speedup-negative"`;
+      }
+      return attributes ? `<span${attributes}>${label}</span>` : label;
+    }
+
+    // Test score, colored when significantly better or worse than the
+    // baseline (`<field>_cmp`, see `_add_scores` in table.py).
+    function sklbenchScoreFormatter(cell) {
+      const value = cell.getValue();
+      if (value === null || value === undefined || !Number.isFinite(value)) {
+        return "";
+      }
+      const label = value.toFixed(3);
+      const comparison = cell.getData()[`${cell.getColumn().getField()}_cmp`];
+      if (comparison === "better") {
+        return `<span class="speedup-positive">${label}</span>`;
+      }
+      if (comparison === "worse") {
+        return `<span class="speedup-negative">${label}</span>`;
+      }
+      return label;
+    }
+
+    function sklbenchLinkFormatter(cell, formatterParams) {
+      const value = cell.getValue();
+      if (!value) {
+        return "N/A";
+      }
+      const field = cell.getColumn().getField();
+      const rowLabel = cell.getData()[`${field}_label`];
+      const label = rowLabel || formatterParams.label || "open";
+      return `<a href="${value}" target="_blank" rel="noopener">${label}</a>`;
+    }
+
+    function sklbenchPrepareColumns(columns) {
+      return columns.map((column) => {
+        const prepared = {...column};
+        if (prepared.formatterName === "duration") {
+          prepared.formatter = sklbenchDurationFormatter;
+        } else if (prepared.formatterName === "speedup") {
+          prepared.formatter = sklbenchSpeedupFormatter;
+        } else if (prepared.formatterName === "score") {
+          prepared.formatter = sklbenchScoreFormatter;
+        } else if (prepared.formatterName === "link") {
+          prepared.formatter = sklbenchLinkFormatter;
+          prepared.formatterParams = {label: prepared.linkLabel || "open"};
+        }
+        if (prepared.datasetKindFilters) {
+          const kindFilters = prepared.datasetKindFilters;
+          prepared.headerFilterFunc = (headerValue, rowValue, rowData) =>
+            headerValue in kindFilters
+              ? rowData.real_dataset === kindFilters[headerValue]
+              : rowValue == headerValue;
+        }
+        delete prepared.formatterName;
+        delete prepared.linkLabel;
+        delete prepared.datasetKindFilters;
+        return prepared;
+      });
+    }
+
+    function sklbenchInitTable(tableId, rows, columns, defaultHeaderFilters) {
+      if (window.sklbenchTables[tableId]) {
+        window.sklbenchTables[tableId].redraw(true);
+        return;
+      }
+      // Rows of the same case (same comparison_key) stay together, in the
+      // order precomputed by `_add_group_ranks` in table.py.
+      const initialSort = [{column: "comparison_key", dir: "asc"}];
+      // Row click (in the table, or on a matching speed-up plot point via
+      // sklbenchApplyPlotMatchSort) puts every row sharing the clicked
+      // comparison_key on top instead of filtering everything else out, so
+      // clicking a column header to sort by something else naturally
+      // supersedes it.
+      let matchSortKey = null;
+      // Set only for a table-row click (row.getData().row_id is unique per
+      // row - see table.py's _row_key/_add_result_method) so that specific
+      // row sorts first among same-comparison_key siblings. A plot-point
+      // click has no single row to pin, so this stays null and rows sharing
+      // matchSortKey keep their within_rank order.
+      let matchedRowId = null;
+      // The clicked row's (or plot trace's) variant: its other rows, e.g.
+      // the same implementation on the other machine, come right after it.
+      let matchedVariant = null;
+      const matchFirstSorter = (a, b, aRow, bRow) => {
+        const aData = aRow.getData();
+        const bData = bRow.getData();
+        const aMatches = a === matchSortKey ? 0 : 1;
+        const bMatches = b === matchSortKey ? 0 : 1;
+        if (aMatches !== bMatches) {
+          return aMatches - bMatches;
+        }
+        if (aData.group_rank !== bData.group_rank) {
+          return aData.group_rank - bData.group_rank;
+        }
+        if (aMatches === 0) {
+          if (matchedRowId) {
+            const aIsClicked = aData.row_id === matchedRowId;
+            const bIsClicked = bData.row_id === matchedRowId;
+            if (aIsClicked !== bIsClicked) {
+              return aIsClicked ? -1 : 1;
+            }
+          }
+          if (matchedVariant) {
+            const aSameVariant = aData.variant === matchedVariant;
+            const bSameVariant = bData.variant === matchedVariant;
+            if (aSameVariant !== bSameVariant) {
+              return aSameVariant ? -1 : 1;
+            }
+          }
+        }
+        return aData.within_rank - bData.within_rank;
+      };
+      const preparedColumns = sklbenchPrepareColumns(columns).map((column) => {
+        if (column.field === "comparison_key") {
+          return {...column, sorter: matchFirstSorter};
+        }
+        return column;
+      });
+      const table = new Tabulator(`#${tableId}`, {
+        data: rows,
+        columns: preparedColumns,
+        layout: "fitDataStretch",
+        pagination: "local",
+        paginationSize: 25,
+        paginationSizeSelector: [10, 25, 50, 100, true],
+        initialSort,
+        initialHeaderFilter: Object.entries(defaultHeaderFilters || {}).map(
+          ([field, value]) => ({field, value})
+        ),
+      });
+      // Alternating background per run of rows sharing a comparison_key, in
+      // the current sort/filter order, so groups stay visible whatever the
+      // sort.
+      table.on("renderComplete", () => {
+        let band = 0;
+        let previousKey;
+        table.getRows("active").forEach((row) => {
+          const key = row.getData().comparison_key;
+          const isGroupStart = key !== previousKey;
+          if (isGroupStart && previousKey !== undefined) {
+            band = 1 - band;
+          }
+          previousKey = key;
+          const el = row.getElement();
+          if (el) {
+            el.classList.toggle("row-group-alt", band === 1);
+            el.classList.toggle("row-group-start", isGroupStart);
+          }
+        });
+      });
+      // Briefly flashes every row sharing comparisonKey (the ones
+      // applyMatchSort just brought to the top) so it's visible they moved.
+      // Re-triggers cleanly even if the previous flash hasn't finished: the
+      // class is dropped and a reflow forced before re-adding it, since
+      // re-adding an already-present class wouldn't restart the CSS
+      // animation in base.css.
+      const highlightMatches = (comparisonKey) => {
+        table.getRows().forEach((row) => {
+          if (row.getData().comparison_key !== comparisonKey) {
+            return;
+          }
+          const el = row.getElement();
+          if (!el) {
+            return;
+          }
+          el.classList.remove("row-just-matched");
+          void el.offsetWidth;
+          el.classList.add("row-just-matched");
+          setTimeout(() => el.classList.remove("row-just-matched"), 1000);
+        });
+      };
+      const applyMatchSort = (comparisonKey, rowId, variant) => {
+        matchSortKey = comparisonKey;
+        matchedRowId = rowId || null;
+        matchedVariant = variant || null;
+        table.setSort([{column: "comparison_key", dir: "asc"}]);
+        requestAnimationFrame(() => highlightMatches(comparisonKey));
+      };
+      table.on("rowClick", (event, row) => {
+        if (event.target.closest("a, button")) {
+          return;
+        }
+        const comparisonKey = row.getData().comparison_key;
+        if (!comparisonKey) {
+          return;
+        }
+        applyMatchSort(comparisonKey, row.getData().row_id, row.getData().variant);
+      });
+      // Exposed so a click on a matching speed-up plot point
+      // (sklbenchApplyPlotMatchSort) can trigger the same sort. Tabulator
+      // builds asynchronously - table.setSort isn't safe to call until
+      // "tableBuilt" fires, which a plot click (unlike a click on an
+      // already-rendered row) can easily race.
+      table.sklbenchRows = rows;
+      table.sklbenchApplyMatchSort = applyMatchSort;
+      table.sklbenchBuilt = new Promise((resolve) => table.on("tableBuilt", resolve));
+      window.sklbenchTables[tableId] = table;
+    }
+
+    // A table only builds (sklbenchInitTable runs) the first time its
+    // "Detailed results" <details> is opened - see the toggle listener next
+    // to each sklbenchInitTable call. Opening it programmatically still goes
+    // through that same listener, but the "toggle" event it relies on is
+    // dispatched as a separate task rather than synchronously, so callers
+    // await this before assuming the table exists.
+    function sklbenchOpenDetails(details) {
+      if (details.open) {
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        details.addEventListener("toggle", () => resolve(), {once: true});
+        details.open = true;
+      });
+    }
+
+    // Speed-up plot points carry the same comparison_key as their detailed-
+    // results table row (see speedup_comparison.js) - clicking one applies the
+    // same "bring matching rows to top" sort as clicking the table row. A
+    // row's "Detailed results" <details> comes right after its plots in
+    // document order, so the nearest one following the clicked chart is its
+    // table - open that first in case it's still collapsed.
+    async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
+      if (!comparisonKey) {
+        return;
+      }
+      const details = Array.from(document.querySelectorAll("details.detailed-results")).find(
+        (el) => chartEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      if (details) {
+        await sklbenchOpenDetails(details);
+      }
+      // The same case can show up in tables of hidden tabs or views, so
+      // prefer the table right after the clicked chart.
+      const tables = Object.entries(window.sklbenchTables);
+      const hasKey = ([, t]) => t.sklbenchRows && t.sklbenchRows.some((row) => row.comparison_key === comparisonKey);
+      const inDetails = ([id]) => details && details.contains(document.getElementById(id));
+      const entry = tables.find((e) => inDetails(e) && hasKey(e)) || tables.find(hasKey);
+      const table = entry && entry[1];
+      if (table) {
+        await table.sklbenchBuilt;
+        table.sklbenchApplyMatchSort(comparisonKey, null, variant);
+      }
+    }
+
+    function sklbenchWirePlotClicks() {
+      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+        if (chart.sklbenchClickWired || typeof chart.on !== "function") {
+          return;
+        }
+        chart.sklbenchClickWired = true;
+        chart.on("plotly_click", (eventData) => {
+          const point = eventData.points && eventData.points[0];
+          if (point) {
+            // Speed-up plot traces are named after the table's variant.
+            sklbenchApplyPlotMatchSort(chart, point.customdata, point.data && point.data.name);
+          }
+        });
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchWirePlotClicks);
+
+    // Each chart's inline Plotly.newPlot() call runs synchronously while the
+    // page is still parsing, so it can bake in a stale width from before the
+    // surrounding CSS grid has settled into its final column sizes (visible
+    // as an oversized/clipped first chart until something - a tab switch, a
+    // window resize - happens to trigger Plotly.Plots.resize). Re-measure
+    // every chart once immediately after full page load to catch that case
+    // without waiting on a user-triggered resize.
+    window.addEventListener("load", () => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
+          if (chart.offsetParent !== null) {
+            Plotly.Plots.resize(chart);
+          }
+        });
+      });
+    });
+
+    function sklbenchRelativeTime(isoString, nowMs) {
+      const seconds = (nowMs - new Date(isoString).getTime()) / 1000;
+      if (seconds < 60) {
+        return "just now";
+      }
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) {
+        return `${minutes}m ago`;
+      }
+      const hours = Math.floor(seconds / 3600);
+      if (hours < 24) {
+        return `${hours}h ago`;
+      }
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+
+    function sklbenchFormatDateRanges() {
+      const nowMs = Date.now();
+      document.querySelectorAll(".date-range").forEach((el) => {
+        const start = sklbenchRelativeTime(el.dataset.start, nowMs);
+        const end = sklbenchRelativeTime(el.dataset.end, nowMs);
+        const range = start === end ? start : `${start} to ${end}`;
+        el.textContent = `${el.dataset.count} benchmark records from ${range}`;
+      });
+    }
+    document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
+    setInterval(sklbenchFormatDateRanges, 60000);
+
+    // Shift a term's tooltip left when it would overflow the viewport's
+    // right edge (e.g. a term near the end of a line on a phone).
+    function sklbenchPlaceTermTip(event) {
+      const term = event.target.closest && event.target.closest(".term");
+      if (!term) {
+        return;
+      }
+      const tip = term.querySelector(".term-tip");
+      tip.style.left = "0px";
+      const overflow = tip.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+      if (overflow > 0) {
+        const termLeft = term.getBoundingClientRect().left;
+        tip.style.left = `${-Math.min(overflow, termLeft - 8)}px`;
+      }
+    }
+    document.addEventListener("mouseover", sklbenchPlaceTermTip);
+    document.addEventListener("focusin", sklbenchPlaceTermTip);
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    
+    <a class="site-home" href="index.html">&larr; All dashboards</a>
+    <h1>Hardware comparison of parallelized fits</h1>
+  </header>
+  <main>
+  <div class="page-row"><section class="panel"><p>This is a fixed dashboard published on Nov. 6, 2026, so it might be outdated. See the latest results on the <a href="https://probabl-ai.github.io/scikit-learn-benchmarks/">dev dashboard</a>.</p></section></div>
+  
+  <div class="page-row"><section class="panel">
+  <p>Work in progress: this dashboard doesn't have many data points yet. We'll add more
+  later.</p>
+  <p>This dashboard compares machines getting through many fits in parallel, like a
+  hyper-parameter search with <code>n_jobs=-1</code> on all the cores of the machine. A
+  bigger machine often brings little to a <a href="cross_comparison.html">single fit</a>,
+  but it can run more of them at once.</p>
+  <p>Each search fits 8 <span class="term" tabindex="0">candidates<span class="term-tip" role="tooltip">Hyperparameter combinations tried by the search. Each one is fitted and scored on every cross-validation split.</span></span> on as many <span class="term" tabindex="0">CV splits<span class="term-tip" role="tooltip">Train/test splits of the data used by cross-validation: each candidate is fitted on the train part and scored on the test part. <a href="https://scikit-learn.org/stable/glossary.html#term-cross-validation" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span> as the machine
+  has <span class="term" tabindex="0">physical cores<span class="term-tip" role="tooltip">One hardware core of the CPU. With SMT, it shows up as two logical CPUs.</span></span>. Bigger machines have more fits to do, but each fit is the
+  same on every machine (same data size and number of trees). So the time per fit compares
+  machines: a 2x <span class="term" tabindex="0">speed-up<span class="term-tip" role="tooltip">Baseline time divided by the compared time: 2x is twice as fast as the baseline, 0.5x twice as slow. In the detailed results, a noisy speed-up is shown as ~1.5x (5-15% spread over the repeats) or as a range like 1.2-1.9x (more than 15%).</span></span> means twice as many fits per second.</p>
+  <details class="about-section">
+    <summary>How to read</summary>
+    <p>Pick a software tab. Below it, each machine has a tab describing the machine and its
+    <span class="term" tabindex="0">software environment<span class="term-tip" role="tooltip">One Pixi environment of this repository: a fixed set of package versions and builds.</span></span>, since versions can differ between machines. To change
+    the <span class="term" tabindex="0">baseline<span class="term-tip" role="tooltip">The reference that speed-ups are computed against.</span></span>, open another machine tab and click "Pick as baseline".</p>
+    <p>There's one color per machine. Each point is one search, and points above the dashed
+    1x line get through fits faster than the baseline. Hover a point to see its dataset.
+    "fit time" in "Detailed results" is the wall time of the search divided by its number
+    of <code><span class="term" tabindex="0">.fit()<span class="term-tip" role="tooltip">Training a model on data. <a href="https://scikit-learn.org/stable/glossary.html#term-fit" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span></code> calls. Marker shapes and "Detailed results" work like in
+    <a href="cross_comparison.html">the single fit dashboard</a>.</p>
+    <p>Each machine scores its candidates on its own splits, so <span class="term" tabindex="0">metrics<span class="term-tip" role="tooltip">Scores of the fitted model on held-out data (ROC AUC, R2 score). They check that the compared implementations learn equivalent models. <a href="https://scikit-learn.org/stable/glossary.html#term-evaluation-metric" target="_blank" rel="noopener">More in the scikit-learn glossary</a></span></span> aren't
+    compared. scikit-learn-intelex trees use <span class="term" tabindex="0">exact splits<span class="term-tip" role="tooltip">Splits chosen among every distinct value of the feature.</span></span> here, like scikit-learn.</p>
+  </details>
+  <details class="about-section">
+    <summary>Findings</summary>
+    <p>On the benchmarked cases:</p>
+    <ul>
+      <li>The Xeon server has ~11x the cores of the Intel Core Ultra laptop, and most
+      <b>random forests</b>, <b>extra trees</b> and <b>HistGradientBoosting</b> searches get
+      ~9x to ~13x faster on it. <b>Ridge</b> on year_prediction_msd too, at ~12x to ~13x. With
+      <b>scikit-learn-intelex</b>, <b>random forests</b> and <b>extra trees</b> reach ~13x to
+      ~18x. On that server, its first repeat is up to ~3x slower than the next two, which
+      the median leaves out.</li>
+      <li>Other searches gain less on the Xeon server: ~5x to ~7x for
+      <b>LogisticRegression</b>, ~4x to ~5x for <b>HistGradientBoosting</b> on the small
+      ames_housing dataset, and ~2x to ~3x for <b>Ridge</b> on susy and ames_housing. Even so,
+      these <b>linear models</b> are faster on the server than on the laptop, while a
+      <a href="cross_comparison.html">single fit</a> is often slower on the server.</li>
+      <li><b>RandomForestClassifier</b> on susy stays at ~6x on the Xeon server without
+      <b>scikit-learn-intelex</b>, and it's unstable: its repeats go from ~20 ms to ~50 ms
+      per fit.</li>
+      <li>The Intel Core Ultra desktop has 1.5x the cores of the laptop. <b>Random forests</b>
+      and <b>extra trees</b> are mostly ~2.5x to ~3x faster on it, and <b>HistGradientBoosting</b>
+      ~2x to ~2.5x. <b>LogisticRegression</b> and <b>Ridge</b> on susy stay at ~1x, probably
+      because memory bandwidth limits them (not measured).</li>
+      <li>On the shortest fits, a very big machine doesn't help: <b>Ridge</b> on ames_housing
+      takes ~6 ms per fit on both the desktop and the Xeon server.</li>
+    </ul>
+  </details>
+</section></div>
+  
+  <div class="page-row"><div id="comparison-content"></div></div>
+  
+  <div class="page-row"><script type="application/json" id="comparison-config">{"dataDir":"parallel_fits_data","outerTabs":[{"label":"sklearn-pypi","slug":"sklearn_pypi","emptyScope":"sklearn-pypi","variants":[{"key":"sklearn-pypi__3b5e61","label":"Intel Core Ultra laptop","tabColor":"#2294c4","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"Intel Core Ultra laptop\" style=\"--variant-color: #2294c4\">Pick as baseline<\/button>"},{"key":"sklearn-pypi__332097","label":"Intel Core Ultra desktop","tabColor":"#8045e5","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"Intel Core Ultra desktop\" style=\"--variant-color: #8045e5\">Pick as baseline<\/button>"},{"key":"sklearn-pypi__534824","label":"High-end Intel Xeon server","tabColor":"#2e9e5b","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"High-end Intel Xeon server\" style=\"--variant-color: #2e9e5b\">Pick as baseline<\/button>"}]},{"label":"sklearn-cf-mkl","slug":"sklearn_cf_mkl","emptyScope":"sklearn-cf-mkl","variants":[{"key":"sklearn-cf-mkl__3b5e61","label":"Intel Core Ultra laptop","tabColor":"#2294c4","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"Intel Core Ultra laptop\" style=\"--variant-color: #2294c4\">Pick as baseline<\/button>"},{"key":"sklearn-cf-mkl__332097","label":"Intel Core Ultra desktop","tabColor":"#8045e5","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"Intel Core Ultra desktop\" style=\"--variant-color: #8045e5\">Pick as baseline<\/button>"},{"key":"sklearn-cf-mkl__534824","label":"High-end Intel Xeon server","tabColor":"#2e9e5b","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"High-end Intel Xeon server\" style=\"--variant-color: #2e9e5b\">Pick as baseline<\/button>"}]},{"label":"sklearnex","slug":"sklearnex","emptyScope":"sklearnex","variants":[{"key":"sklearnex__3b5e61","label":"Intel Core Ultra laptop","tabColor":"#2294c4","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"Intel Core Ultra laptop\" style=\"--variant-color: #2294c4\">Pick as baseline<\/button>"},{"key":"sklearnex__332097","label":"Intel Core Ultra desktop","tabColor":"#8045e5","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"Intel Core Ultra desktop\" style=\"--variant-color: #8045e5\">Pick as baseline<\/button>"},{"key":"sklearnex__534824","label":"High-end Intel Xeon server","tabColor":"#2e9e5b","pickHtml":"<button type=\"button\" class=\"baseline-pick\" data-baseline=\"High-end Intel Xeon server\" style=\"--variant-color: #2e9e5b\">Pick as baseline<\/button>"}]}],"colors":{"Intel Core Ultra laptop":"#2294c4","Apple M4 laptop":"#f7931e","Low-end Intel laptop":"#15688c","Intel Core Ultra desktop":"#8045e5","AMD Workstation":"#b76c13","High-end Intel Xeon server":"#2e9e5b","L4 VM (8 CPU, 32 GB RAM)":"#d1495b","Intel Core Ultra laptop GPU":"#2294c4","Apple M4 laptop GPU":"#f7931e","Intel Arc B580":"#8045e5","NVIDIA RTX 2060":"#b76c13","NVIDIA L4 g6.2xlarge":"#d1495b"},"columnTitle":"Hardware","labelOrder":["Intel Core Ultra laptop","Apple M4 laptop","Low-end Intel laptop","Intel Core Ultra desktop","AMD Workstation","High-end Intel Xeon server","L4 VM (8 CPU, 32 GB RAM)"],"matchNote":"Same setup as the baseline. Metrics aren't compared on this page","warnings":{"sklearnexBins":{"icon":"\ud83e\uddfa","short_message":"histogram-based splits","message":"Scikit-learn intelex uses binning & histogram-based splits while scikit-learn doesn't","kind":"histogram-splits"},"cumlRfBins":{"icon":"\ud83e\uddfa","short_message":"quantile-based splits","message":"cuML Random Forest uses quantile-based split candidates (n_bins=256 in these benchmarks), while scikit-learn searches exact split thresholds","kind":"quantile-splits"},"cpuFallback":{"icon":"\u21a9","short_message":"CPU fallback","message":"Some operations fell back to CPU according to benchmark logs","kind":null}},"binnedWarningKinds":["histogram-splits","quantile-splits"],"metricTolerance":{"stdFactor":3,"absFloor":0.01,"relFloor":0.01},"scoreMetrics":{"roc_auc":"ROC AUC","r2":"R2"},"datasetKindFilters":{"All real datasets":true,"All synthetic datasets":false},"columns":[{"visibility":"always","column":{"title":"comparison_key","field":"comparison_key","visible":false,"headerSort":false,"sorter":"string"}},{"visibility":"if_any","column":{"title":"Hardware","field":"hardware","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"always","column":{"title":"Variant name","field":"variant","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"if_varies","column":{"title":"Env","field":"env","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"if_varies","column":{"title":"Estimator name","field":"estimator","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"always","column":{"title":"Dataset name","field":"dataset","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"always","column":{"title":"n_samples","field":"n_samples","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"number"}},{"visibility":"always","column":{"title":"n_features","field":"n_features","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"number"}},{"visibility":"if_varies","column":{"title":"columns","field":"columns","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"if_varies","column":{"title":"order","field":"order","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"if_varies","column":{"title":"dtype","field":"dtype","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"if_varies","column":{"title":"max_bins","field":"max_bins","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"custom","column":{"title":"OpenMP","field":"openmp","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"custom","column":{"title":"OMP active wait","field":"omp_active_wait","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"group":"hp","allowedKeys":["solver","n_estimators","n_clusters"]},{"group":"env","allowedKeys":null},{"visibility":"custom","column":{"title":"Status","field":"status","headerFilter":"list","headerFilterParams":{"clearable":true,"sort":"asc","valuesLookup":true},"sorter":"string"}},{"visibility":"if_any","column":{"title":"outer n_jobs","field":"search_n_jobs","sorter":"number"}},{"visibility":"if_any","column":{"title":"n_iter","field":"n_iter","sorter":"number"}},{"visibility":"always","column":{"title":"fit time","field":"fit_time","sorter":"number","formatterName":"duration"}},{"visibility":"always","column":{"title":"fit speed up","field":"fit_speedup","sorter":"number","formatterName":"speedup"}},{"visibility":"if_any","column":{"title":"ROC AUC","field":"roc_auc","sorter":"number","formatterName":"score"}},{"visibility":"if_any","column":{"title":"R2","field":"r2","sorter":"number","formatterName":"score"}},{"visibility":"if_any","column":{"title":"profile link","field":"profile_url","headerSort":false,"sorter":"string","formatterName":"link","linkLabel":"profile"}},{"visibility":"always","column":{"title":"JSON link","field":"json_url","headerSort":false,"sorter":"string","formatterName":"link","linkLabel":"JSON"}}],"estimatorAbbreviations":[["HistGradientBoosting","HGB"],["RandomForest","RF"],["Regressor","Reg"],["Classifier","Clf"]],"plotTemplate":{"layout":{"colorway":["#2294c4","#f7931e","#8045e5","#2e9e5b","#d1495b","#15688c","#b76c13","#e377c2","#9aa500","#7ac5ec"],"font":{"color":"#222832","family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif","size":12},"hoverlabel":{"font":{"family":"system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif"}},"paper_bgcolor":"white","plot_bgcolor":"white","xaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"},"yaxis":{"gridcolor":"#e5e7ea","linecolor":"#d1d5da","zerolinecolor":"#e5e7ea"}}}}</script></div>
+  
+  <div class="page-row"><script>// Pairs results and builds plot and table data for the comparison page, without
+// touching the page. tests/test_speedup_comparison.py runs it in Node.
+window.sklbenchSpeedupCore = function (config) {
+  const CATEGORIES = ["linear", "tree-based", "clustering"];
+  const METHODS = ["fit"];
+  const HEADER_FILTER = {clearable: true, sort: "asc", valuesLookup: true};
+  const FAILED_MARKER_GAP = 0.4;
+  const OFFSET_STEP = 0.14;
+  // Half the distance between ticks, so that estimators read as separate groups.
+  const MAX_COLUMNS_SPAN = 0.5;
+  const FALLBACK_COLOR = "#9e9e9e";
+  const REFERENCE_LINE_COLOR = "#48566b";
+
+
+  const escapeHtml = (text) =>
+    String(text).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;"}[c]));
+  const unique = (values) => Array.from(new Set(values));
+  const sum = (values) => values.reduce((total, value) => total + value, 0);
+  const mean = (values) => sum(values) / values.length;
+  const compareStrings = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+  function median(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  function stdev(values) {
+    const center = mean(values);
+    return Math.sqrt(sum(values.map((value) => (value - center) ** 2)) / (values.length - 1));
+  }
+
+  // statistics.quantiles(values, n=4, method="inclusive")
+  function quartiles(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+    const at = (fraction) => {
+      const position = (sorted.length - 1) * fraction;
+      const low = Math.floor(position);
+      const high = Math.min(low + 1, sorted.length - 1);
+      return sorted[low] + (position - low) * (sorted[high] - sorted[low]);
+    };
+    return [at(0.25), at(0.75)];
+  }
+
+  function groupBy(items, keyOf) {
+    const groups = new Map();
+    items.forEach((item) => {
+      const key = keyOf(item);
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key).push(item);
+    });
+    return groups;
+  }
+
+  // --- Pairing results. ---
+
+  const entryTimes = (entry, method, preprocessing) => {
+    const times = entry.methods[method].times;
+    if (preprocessing && method === "fit" && entry.preprocessingTimes) {
+      return times.map((time, index) => time + entry.preprocessingTimes[index]);
+    }
+    return times;
+  };
+
+  function methodResults(entries, method, preprocessing) {
+    return entries
+      .filter((entry) => entry.methods[method])
+      .map((entry) => ({
+        entry,
+        method,
+        times: entryTimes(entry, method, preprocessing),
+        hover: entry.methods[method].hover,
+        binned: entry.methods[method].binned,
+      }));
+  }
+
+  function appendIterationsWarning(base, candidate, warnings) {
+    const baseValues = base.entry.nIter.map((value) => JSON.stringify(value));
+    const values = candidate.entry.nIter.map((value) => JSON.stringify(value));
+    if (baseValues.some((value) => values.includes(value))) {
+      return;
+    }
+    if (!baseValues.length && !values.length) {
+      return;
+    }
+    const baseFirst = base.entry.nIter[0];
+    const first = candidate.entry.nIter[0];
+    if (!values.length) {
+      warnings.push({icon: "🔁", short_message: `(${baseFirst} vs ?)`, message: "Number iteration of iteration not reported for this variant"});
+    } else if (!baseValues.length) {
+      warnings.push({icon: "🔁", short_message: `(? vs ${first})`, message: "Number iteration of iteration not reported for the baseline"});
+    } else {
+      warnings.push({icon: "🔁", short_message: `(${baseFirst} vs ${first})`, message: "Number of iteration differs: this might mean algorithms differ"});
+    }
+  }
+
+  function pairWarnings(base, candidate) {
+    const warnings = [];
+    if (base.entry.sklearnexTree && candidate.entry.sklearnexTree) {
+      // sklearnex tree cases are run both with the default max_bins and with
+      // exact splits: pair each with its counterpart.
+      if (base.entry.maxBins !== candidate.entry.maxBins) {
+        return null;
+      }
+    } else {
+      // cuML always bins, so sklearnex's exact-split cases aren't comparable to it.
+      const exactSklearnex = (side) => side.entry.sklearnexTree && !side.binned && !side.entry.fallback;
+      if ((base.entry.cumlRf && exactSklearnex(candidate)) || (candidate.entry.cumlRf && exactSklearnex(base))) {
+        return null;
+      }
+      // Only a difference if exactly one side bins. A fallback runs scikit-learn.
+      const baseBinned = base.binned && !base.entry.fallback;
+      const candidateBinned = candidate.binned && !candidate.entry.fallback;
+      if (baseBinned !== candidateBinned) {
+        const binnedSide = baseBinned ? base : candidate;
+        warnings.push(binnedSide.entry.cumlRf ? config.warnings.cumlRfBins : config.warnings.sklearnexBins);
+      }
+    }
+    appendIterationsWarning(base, candidate, warnings);
+    if (base.entry.solver && candidate.entry.solver && base.entry.solver !== candidate.entry.solver) {
+      warnings.push({icon: "🧮", short_message: `(${base.entry.solver} vs ${candidate.entry.solver})`, message: "Solver differs"});
+    }
+    [base, candidate].forEach((side) => {
+      if (side.entry.cpuFallback) {
+        warnings.push(config.warnings.cpuFallback);
+      }
+    });
+    return warnings;
+  }
+
+  function shortMetric(value) {
+    return String(Number(value.toPrecision(3)));
+  }
+
+  function metricTolerance(baseValues) {
+    return Math.max(
+      config.metricTolerance.stdFactor * (baseValues.length >= 2 ? stdev(baseValues) : 0),
+      config.metricTolerance.absFloor,
+      config.metricTolerance.relFloor * Math.abs(mean(baseValues))
+    );
+  }
+
+  const isNumericList = (values) =>
+    values.length > 0 && values.every((value) => typeof value === "number");
+
+  function metricDifference(method, name, baseValues, values) {
+    if (!isNumericList(baseValues) || !isNumericList(values)) {
+      if (JSON.stringify(baseValues) !== JSON.stringify(values)) {
+        return {method, name, base: JSON.stringify(baseValues), target: JSON.stringify(values)};
+      }
+      return null;
+    }
+    if (Math.abs(mean(values) - mean(baseValues)) > metricTolerance(baseValues)) {
+      return {method, name, base: shortMetric(mean(baseValues)), target: shortMetric(mean(values))};
+    }
+    return null;
+  }
+
+  // Match.metrics_differences. A bigger forest scores differently, so metrics
+  // aren't compared across forest sizes.
+  function metricsDifferences(base, candidate) {
+    if (base.method !== "fit" || base.entry.nEstimators !== candidate.entry.nEstimators) {
+      return [];
+    }
+    const differences = [];
+    const baseMetrics = base.entry.metrics;
+    const metrics = candidate.entry.metrics;
+    unique([...Object.keys(baseMetrics), ...Object.keys(metrics)]).sort().forEach((method) => {
+      if (!baseMetrics[method]) {
+        differences.push({method, name: "*", base: "(missing)", target: "(present)"});
+      } else if (!metrics[method]) {
+        differences.push({method, name: "*", base: "(present)", target: "(missing)"});
+      } else {
+        unique([...Object.keys(baseMetrics[method]), ...Object.keys(metrics[method])]).sort().forEach((name) => {
+          const baseValues = baseMetrics[method][name];
+          const values = metrics[method][name];
+          if (baseValues === undefined) {
+            differences.push({method, name, base: "(missing)", target: JSON.stringify(values)});
+          } else if (values === undefined) {
+            differences.push({method, name, base: JSON.stringify(baseValues), target: "(missing)"});
+          } else {
+            const difference = metricDifference(method, name, baseValues, values);
+            if (difference) {
+              differences.push(difference);
+            }
+          }
+        });
+      }
+    });
+    return differences;
+  }
+
+  function makeMatch(base, candidate, warnings) {
+    const candidateMedian = median(candidate.times);
+    return {
+      base,
+      candidate,
+      // A fallback runs the same code as scikit-learn, so the warnings about
+      // oneDAL's implementation choices would be misleading.
+      warnings: candidate.entry.fallback ? [] : warnings,
+      speedup: candidateMedian === 0 ? Infinity : median(base.times) / candidateMedian,
+      differences: metricsDifferences(base, candidate),
+    };
+  }
+
+  function findMatches(baseResults, others) {
+    const matches = [];
+    // A sklearnex baseline has one tree result per max_bins value for the same case.
+    groupBy(baseResults, (result) => result.entry.maxBins ?? null).forEach((group) => {
+      // A software env rebuild can leave two baseline runs of one case: keep the
+      // most recent.
+      const baseById = new Map();
+      group.forEach((result) => {
+        const current = baseById.get(result.entry.id);
+        if (!current || result.entry.timestamp > current.entry.timestamp) {
+          baseById.set(result.entry.id, result);
+        }
+      });
+      others.forEach((candidate) => {
+        const base = baseById.get(candidate.entry.id);
+        if (base) {
+          const warnings = pairWarnings(base, candidate);
+          if (warnings) {
+            matches.push(makeMatch(base, candidate, warnings));
+          }
+        }
+      });
+    });
+    return matches;
+  }
+
+  // --- Plots. ---
+
+  function sortVariants(variants) {
+    const rank = (variant) => {
+      if (!config.labelOrder) {
+        return 0;
+      }
+      const index = config.labelOrder.indexOf(variant.split(" / ")[0]);
+      return index === -1 ? config.labelOrder.length : index;
+    };
+    return [...variants].sort((a, b) => rank(a) - rank(b) || compareStrings(a, b));
+  }
+
+  // Within a variant, tree cases without binning go left. Across machines, both
+  // sides of a sklearnex comparison can bin the same way, which no warning tells.
+  function columnOf(label, category, binned, warnings, bothBinned) {
+    if (category !== "tree-based") {
+      return label;
+    }
+    const warned = warnings.some((warning) => config.binnedWarningKinds.includes(warning.kind));
+    const isBinned = warned || bothBinned || binned;
+    return `${label} / ${isBinned ? "1-binned" : "0-exact"}`;
+  }
+
+  function formatDuration(time) {
+    if (time < 10) {
+      return `${Number(time.toPrecision(2))}ms`;
+    }
+    if (time < 1000) {
+      return `${Math.round(time)}ms`;
+    }
+    if (time < 10000) {
+      return `${Number((time / 1000).toPrecision(2))}s`;
+    }
+    return `${Math.round(time / 1000)}s`;
+  }
+
+  function differenceLines(match) {
+    const differences = match.differences;
+    if (!differences.length) {
+      return [];
+    }
+    const methodLabel = (method) => ({fit: "train", predict: "test"}[method] || method);
+    const lineOf = (d) => escapeHtml(`${d.name}: ${d.base} (base) vs ${d.target} (variant)`);
+    const fit = differences.filter((d) => d.method === "fit");
+    const other = differences.filter((d) => d.method !== "fit");
+    if (other.length) {
+      const lines = [`<b>${escapeHtml(methodLabel(other[0].method))} metrics differ:</b>`, ...other.map(lineOf)];
+      if (fit.length) {
+        lines.push(`<i>${methodLabel("fit")} metrics also mismatch</i>`);
+      }
+      return lines;
+    }
+    return [`<b>${methodLabel("fit")} metrics differ:</b>`, ...fit.map(lineOf)];
+  }
+
+  function hoverText(match) {
+    const lines = [
+      `<b>speed-up: ${Number(match.speedup.toPrecision(2))}x</b> ` +
+        `(${formatDuration(median(match.base.times))} vs ${formatDuration(median(match.candidate.times))})`,
+    ];
+    lines.push(...differenceLines(match));
+    if (match.candidate.entry.fallback) {
+      lines.push("<i>fell back to scikit-learn</i>");
+    }
+    match.warnings.forEach((warning) => {
+      lines.push(escapeHtml(warning.short_message ? `${warning.icon} ${warning.short_message}` : warning.icon));
+    });
+    lines.push(match.candidate.hover);
+    return lines.join("<br>");
+  }
+
+  function markerSymbol(match) {
+    if (match.differences.length) {
+      return "diamond-open";
+    }
+    return match.warnings.length ? "square" : "circle";
+  }
+
+  function markerNotesHtml(matches, failedCount) {
+    const mismatchCount = matches.filter((match) => match.differences.length).length;
+    const fallbackCount = matches.filter((match) => match.candidate.entry.fallback).length;
+    const points = (count) => (count === 1 ? `${count} point` : `${count} points`);
+    const warnings = new Map();
+    matches
+      .filter((match) => !match.differences.length)
+      .forEach((match) => match.warnings.forEach((w) => warnings.set(`${w.icon}${w.message}`, w)));
+    const markers = {"plot-marker-x": "✕", "plot-marker-square": "■", "plot-marker-diamond": "◇", "plot-marker-circle": "●"};
+    const note = (markerClass, style, text) =>
+      `<div class="plot-note"><span class="plot-marker ${markerClass}"${style}>${markers[markerClass]}</span><span>${text}</span></div>`;
+    const parts = [note("plot-marker-circle", "", config.matchNote || "Metrics and benchmark setup match the baseline")];
+    if (warnings.size) {
+      const items = Array.from(warnings.values())
+        .map((w) => `<li class="warning-note"><span class="warning-icon">${w.icon}</span><span>${escapeHtml(w.message)}</span></li>`)
+        .join("");
+      parts.push(note("plot-marker-square", "", `Metrics match the baseline, but some comparison details are worth reporting:<ul>${items}</ul>`));
+    }
+    if (mismatchCount) {
+      parts.push(note("plot-marker-diamond", "", `Metrics differ from the baseline (${points(mismatchCount)})`));
+    }
+    if (fallbackCount) {
+      parts.push(note("plot-marker-circle", ' style="color: #9e9e9e;"', `Ran via sklearnex but fell back to stock scikit-learn, no oneDAL acceleration (${points(fallbackCount)})`));
+    }
+    if (failedCount) {
+      parts.push(note("plot-marker-x", "", `Benchmark run failed, shown at the bottom of its column (${points(failedCount)})`));
+    }
+    return `<div class="plot-notes">${parts.join("")}</div>`;
+  }
+
+  function buildPlot(view, matches, failed) {
+    const items = matches.map((match) => ({
+      match,
+      entry: match.candidate.entry,
+      variant: view.labelOf(match.candidate.entry),
+      column: match.column,
+      estimator: match.candidate.entry.estimator,
+    }));
+    const failedItems = failed.map((entry) => ({
+      entry,
+      variant: view.labelOf(entry),
+      column: columnOf(view.labelOf(entry), entry.category, entry.binned, [], entry.cumlRf),
+      estimator: entry.estimator,
+    }));
+    const allItems = [...items, ...failedItems];
+    const estimators = unique(allItems.map((item) => item.estimator)).sort();
+    const positions = new Map(estimators.map((estimator, index) => [estimator, index]));
+    const columns = sortVariants(unique(allItems.map((item) => item.column)));
+    const center = (columns.length - 1) / 2;
+    const step = columns.length > 1 ? Math.min(OFFSET_STEP, MAX_COLUMNS_SPAN / (columns.length - 1)) : 0;
+    const offsets = new Map(columns.map((column, index) => [column, (index - center) * step]));
+
+    const columnMin = new Map();
+    items.forEach((item) => {
+      const key = `${item.estimator}|${item.column}`;
+      const y = Math.log2(item.match.speedup);
+      columnMin.set(key, Math.min(columnMin.get(key) ?? y, y));
+    });
+    const values = items.map((item) => Math.log2(item.match.speedup));
+    const fallbackMin = values.length ? Math.min(...values) : 0;
+    const failedY = (item) =>
+      (columnMin.get(`${item.estimator}|${item.column}`) ?? fallbackMin) - FAILED_MARKER_GAP;
+
+    const traces = [];
+    sortVariants(unique(allItems.map((item) => item.variant))).forEach((variant) => {
+      const color = view.colors[variant];
+      const common = {mode: "markers", type: "scatter", name: variant, legendgroup: variant};
+      traces.push({...common, showlegend: true, hoverinfo: "skip", x: [null], y: [null], marker: {size: 10, symbol: "circle", color}});
+      const rank = (item) => (markerSymbol(item.match) !== "circle" ? 1 : 0);
+      const variantItems = items
+        .filter((item) => item.variant === variant)
+        .sort((a, b) => rank(a) - rank(b) || compareStrings(a.estimator, b.estimator));
+      if (variantItems.length) {
+        traces.push({
+          ...common,
+          showlegend: false,
+          x: variantItems.map((item) => positions.get(item.estimator) + offsets.get(item.column)),
+          y: variantItems.map((item) => Math.log2(item.match.speedup)),
+          text: variantItems.map((item) => hoverText(item.match)),
+          customdata: variantItems.map((item) => item.entry.id),
+          hovertemplate: "%{text}<extra></extra>",
+          marker: {
+            size: 10,
+            symbol: variantItems.map((item) => markerSymbol(item.match)),
+            color: variantItems.map((item) => (item.entry.fallback ? FALLBACK_COLOR : color)),
+          },
+        });
+      }
+      const variantFailed = failedItems.filter((item) => item.variant === variant);
+      if (variantFailed.length) {
+        traces.push({
+          ...common,
+          showlegend: false,
+          x: variantFailed.map((item) => positions.get(item.estimator) + offsets.get(item.column)),
+          y: variantFailed.map(failedY),
+          text: variantFailed.map((item) => item.entry.hover),
+          customdata: variantFailed.map((item) => item.entry.id),
+          hovertemplate: "%{text}<extra></extra>",
+          marker: {size: 10, symbol: "x", color},
+        });
+      }
+    });
+
+    const allValues = [...values, ...failedItems.map(failedY)];
+    const minTick = Math.floor(Math.min(...allValues, 0));
+    const maxTick = Math.ceil(Math.max(...allValues, 0));
+    const ticks = Array.from({length: maxTick - minTick + 1}, (_, index) => minTick + index);
+    const layout = {
+      template: config.plotTemplate,
+      xaxis: {
+        tickmode: "array",
+        tickvals: estimators.map((_, index) => index),
+        ticktext: estimators.map((estimator) =>
+          config.estimatorAbbreviations.reduce((name, [full, short]) => name.replace(full, short), estimator)
+        ),
+        range: [-0.5, estimators.length - 0.5],
+      },
+      yaxis: {
+        title: {text: `speed-up vs ${view.baselineLabel}`},
+        tickmode: "array",
+        tickvals: ticks,
+        ticktext: ticks.map((tick) => (tick >= 0 ? `${2 ** tick}x` : `1/${2 ** -tick}x`)),
+      },
+      shapes: [{type: "line", xref: "paper", x0: 0, x1: 1, yref: "y", y0: 0, y1: 0, line: {color: REFERENCE_LINE_COLOR, width: 1, dash: "dash"}}],
+      annotations: [{
+        xref: "paper", x: 0, xanchor: "left", yref: "y", y: 0, yanchor: "bottom",
+        text: `1x = ${view.baselineLabel}`, showarrow: false,
+        font: {size: 11, color: REFERENCE_LINE_COLOR}, bgcolor: "rgba(255, 255, 255, 0.7)",
+      }],
+      margin: {l: 70, r: 20, t: 20, b: 110},
+      showlegend: true,
+      legend: {orientation: "h"},
+    };
+    return {traces, layout, notes: markerNotesHtml(matches, failedItems.length)};
+  }
+
+  // --- Detailed results tables. ---
+
+  function speedupInterval(base, candidate) {
+    if (base.times.length < 3 || candidate.times.length < 3) {
+      return null;
+    }
+    const [baseQ1, baseQ3] = quartiles(base.times);
+    const [q1, q3] = quartiles(candidate.times);
+    return q1 <= 0 || baseQ1 <= 0 ? null : [baseQ1 / q3, baseQ3 / q1];
+  }
+
+  function formatNIter(entry, baseEntry) {
+    if (entry.nIterMedian === undefined) {
+      return undefined;
+    }
+    let label = entry.nIterMedian.toFixed(0);
+    const baseNIter = baseEntry ? baseEntry.nIterMedian : undefined;
+    if (baseNIter && entry.nIterMedian !== baseNIter) {
+      const ratio = entry.nIterMedian / baseNIter;
+      label += ratio >= 10 ? ` (${ratio.toFixed(0)}x)` : ` (${Number(ratio.toPrecision(2))}x)`;
+    }
+    return label;
+  }
+
+  function addScores(row, entry, baseEntry) {
+    const metrics = (entry.metrics || {}).predict || {};
+    const baseMetrics = baseEntry ? (baseEntry.metrics || {}).predict || {} : {};
+    Object.entries(config.scoreMetrics).forEach(([field, name]) => {
+      const values = (metrics[name] || []).filter((value) => typeof value === "number");
+      if (!values.length) {
+        return;
+      }
+      row[field] = mean(values);
+      if (!baseEntry || baseEntry === entry || !baseMetrics[name] || baseEntry.nEstimators !== entry.nEstimators) {
+        return;
+      }
+      if (!isNumericList(baseMetrics[name])) {
+        return;
+      }
+      const difference = mean(values) - mean(baseMetrics[name]);
+      if (Math.abs(difference) > metricTolerance(baseMetrics[name])) {
+        row[`${field}_cmp`] = difference > 0 ? "better" : "worse";
+      }
+    });
+  }
+
+  function addResultMethod(rows, result, base, variant, isBaseline) {
+    const key = `${variant}:${result.entry.path}`;
+    if (!rows.has(key)) {
+      rows.set(key, {...result.entry.row, variant, row_id: key, is_baseline: false});
+    }
+    const row = rows.get(key);
+    if (isBaseline) {
+      row.is_baseline = true;
+    }
+    addScores(row, result.entry, base ? base.entry : null);
+    const method = result.method;
+    if (method === "fit") {
+      row.n_samples = result.entry.methods.fit.samples;
+      row.n_features = result.entry.methods.fit.features;
+      const nIter = formatNIter(result.entry, base ? base.entry : null);
+      if (nIter !== undefined) {
+        row.n_iter = nIter;
+      }
+    }
+    row[`${method}_time`] = median(result.times);
+    row[`${method}_speedup`] = base ? median(base.times) / median(result.times) : null;
+    const interval = base && base !== result ? speedupInterval(base, result) : null;
+    if (interval) {
+      row[`${method}_speedup_low`] = interval[0];
+      row[`${method}_speedup_high`] = interval[1];
+    }
+  }
+
+  function addGroupRanks(rows) {
+    const compare = (a, b) => {
+      for (let index = 0; index < a.length; index += 1) {
+        if (a[index] < b[index]) return -1;
+        if (a[index] > b[index]) return 1;
+      }
+      return 0;
+    };
+    const groups = Array.from(groupBy(rows, (row) => row.comparison_key).entries());
+    const groupKey = ([key, group]) => [
+      group[0].estimator,
+      group[0].dataset,
+      Math.min(...group.map((row) => row.n_samples || -1)),
+      Math.min(...group.map((row) => row.n_features || -1)),
+      key,
+    ];
+    groups.sort((a, b) => compare(groupKey(a), groupKey(b)));
+    groups.forEach(([, group], groupRank) => {
+      const baselineVariants = new Set(group.filter((row) => row.is_baseline).map((row) => row.variant));
+      const within = (row) => [
+        baselineVariants.has(row.variant) ? 0 : 1, row.variant, row.is_baseline ? 0 : 1, row.env || "", row.row_id,
+      ];
+      [...group].sort((a, b) => compare(within(a), within(b))).forEach((row, withinRank) => {
+        row.group_rank = groupRank;
+        row.within_rank = withinRank;
+      });
+    });
+  }
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined) return "N/A";
+    return typeof value === "object" ? JSON.stringify(value) : String(value);
+  };
+  const variesAcross = (rows, field) => new Set(rows.map((row) => formatValue(row[field]))).size > 1;
+
+  function isColumnVisible(spec, rows) {
+    const field = spec.column.field;
+    if (spec.visibility === "custom") {
+      if (field === "status") {
+        return rows.some((row) => row.status !== "ok");
+      }
+      const hgbRows = rows.filter((row) => String(row.estimator || "").startsWith("HistGradientBoosting"));
+      return hgbRows.length > 0 && variesAcross(hgbRows, field);
+    }
+    if (spec.visibility === "if_varies") {
+      return variesAcross(rows, field);
+    }
+    if (spec.visibility === "if_any") {
+      return rows.some((row) => row[field]);
+    }
+    return true;
+  }
+
+  function buildColumns(rows, variantTitle) {
+    const ompSpec = config.columns.find((spec) => spec.column && spec.column.field === "omp_active_wait");
+    const hiddenEnv = isColumnVisible(ompSpec, rows) ? ["GOMP_SPINCOUNT", "KMP_BLOCKTIME"] : [];
+    const columns = [];
+    config.columns.forEach((spec) => {
+      if (spec.group) {
+        const groupKey = `__group_${spec.group}`;
+        const names = spec.allowedKeys || unique(rows.flatMap((row) => Object.keys(row[groupKey] || {}))).sort();
+        names
+          .filter((name) => !(spec.group === "env" && hiddenEnv.includes(name)))
+          .filter((name) => new Set(rows.map((row) => formatValue((row[groupKey] || {})[name]))).size > 1)
+          .forEach((name, index) => {
+            const field = `${spec.group}_${index}`;
+            rows.forEach((row) => {
+              row[field] = formatValue((row[groupKey] || {})[name]);
+            });
+            columns.push({title: name, field, headerFilter: "list", headerFilterParams: HEADER_FILTER, sorter: "string"});
+          });
+      } else if (isColumnVisible(spec, rows)) {
+        const column = {...spec.column};
+        if (column.field === "variant") {
+          column.title = variantTitle;
+        }
+        if (column.field === "dataset" && new Set(rows.map((row) => Boolean(row.real_dataset))).size > 1) {
+          const names = unique(rows.map((row) => row.dataset)).sort((a, b) => compareStrings(a.toLowerCase(), b.toLowerCase()));
+          column.headerFilterParams = {clearable: true, values: [...Object.keys(config.datasetKindFilters), ...names]};
+          column.datasetKindFilters = config.datasetKindFilters;
+        }
+        columns.push(column);
+      }
+    });
+    return columns;
+  }
+
+  function buildTable(view, allMatches, failed, unmatchedBase, unmatchedCandidate) {
+    const rows = new Map();
+    allMatches.forEach((match) => {
+      addResultMethod(rows, match.base, match.base, view.baselineLabel, true);
+      addResultMethod(rows, match.candidate, match.base, view.labelOf(match.candidate.entry), false);
+    });
+    failed.forEach((entry) => {
+      const variant = view.isBaseline(entry) ? view.baselineLabel : view.labelOf(entry);
+      const key = `${variant}:${entry.path}`;
+      rows.set(key, {...entry.row, variant, row_id: key, is_baseline: false});
+    });
+    unmatchedBase.forEach((result) => addResultMethod(rows, result, null, view.baselineLabel, true));
+    unmatchedCandidate.forEach((result) => addResultMethod(rows, result, null, view.labelOf(result.entry), false));
+    if (!rows.size) {
+      return null;
+    }
+    const rowList = Array.from(rows.values());
+    const columns = buildColumns(rowList, view.columnTitle);
+    addGroupRanks(rowList);
+    rowList.sort((a, b) => a.group_rank - b.group_rank || a.within_rank - b.within_rank);
+    return {rows: rowList, columns};
+  }
+
+  // --- Views: what's compared on screen. ---
+
+  // Parallelized fits page: `loaded` maps a variant key to its data.
+  function tabsView(tab, loaded, baselineLabel) {
+    const labels = new Map(tab.variants.map((variant) => [variant.key, variant.label]));
+    const baselineKey = tab.variants.find((variant) => variant.label === baselineLabel).key;
+    const candidates = tab.variants.filter((variant) => variant.key !== baselineKey);
+    return {
+      baselineLabel,
+      baseData: loaded.get(baselineKey),
+      candidateData: candidates.map((variant) => loaded.get(variant.key)),
+      colors: config.colors,
+      emptyScope: tab.emptyScope,
+      treeNote: config.treeNote,
+      columnTitle: config.columnTitle,
+      labelOf: (entry) => labels.get(entry.variant),
+      isBaseline: (entry) => entry.variant === baselineKey,
+    };
+  }
+
+  // Cross page: the variants a target compares with, baseline excluded.
+  // `softwareGroups` only filters a machine's softwares: a software target names its software.
+  function crossCandidates(baselineKey, target, softwareGroups) {
+    const isSoftwareTarget = target.startsWith("software-");
+    const value = target.slice(target.indexOf("-") + 1);
+    return Object.keys(config.variants).filter((key) => {
+      const variant = config.variants[key];
+      if (key === baselineKey) {
+        return false;
+      }
+      if (isSoftwareTarget) {
+        return variant.software === value;
+      }
+      const group = config.softwareGroups[variant.software];
+      return variant.hardwareHash === value && (!group || softwareGroups.includes(group));
+    });
+  }
+
+  function crossView(baselineKey, target, softwareGroups, loaded) {
+    const baseline = config.variants[baselineKey];
+    const isSoftwareTarget = target.startsWith("software-");
+    const labelOfVariant = (key) =>
+      isSoftwareTarget ? config.variants[key].hardwareLabel : config.variants[key].software;
+    const candidates = crossCandidates(baselineKey, target, softwareGroups);
+    return {
+      baselineLabel: `${baseline.software} on ${baseline.hardwareLabel}`,
+      baseData: loaded.get(baselineKey),
+      candidateData: candidates.map((key) => loaded.get(key)),
+      colors: isSoftwareTarget ? config.hardwareColors : config.softwareColors,
+      emptyScope: "real datasets",
+      treeNote: config.treeNotes[isSoftwareTarget ? "machine" : "software"],
+      columnTitle: isSoftwareTarget ? "Hardware" : "Software",
+      labelOfVariant,
+      labelOf: (entry) => labelOfVariant(entry.variant),
+      isBaseline: (entry) => entry.variant === baselineKey,
+    };
+  }
+
+  // --- Grid of plots. ---
+
+  const cellTitle = (category, method, count) =>
+    `${category} - ${method} time - ${count} ${count === 1 ? "case" : "cases"}`;
+
+  function computeGrid(view, preprocessing) {
+    const keep = (entry) => !preprocessing || entry.real;
+    const baseEntries = view.baseData.results.filter(keep);
+    const candidateEntries = view.candidateData.flatMap((data) => data.results).filter(keep);
+    const failed = [...view.baseData.failed, ...view.candidateData.flatMap((data) => data.failed)].filter(keep);
+    if (!baseEntries.length) {
+      return {emptyMessage: `No ${view.baselineLabel} baseline results for ${view.emptyScope}.`};
+    }
+    const baseByMethod = Object.fromEntries(METHODS.map((m) => [m, methodResults(baseEntries, m, preprocessing)]));
+    const candidateByMethod = Object.fromEntries(METHODS.map((m) => [m, methodResults(candidateEntries, m, preprocessing)]));
+    const baseIsCuml = baseEntries.some((entry) => entry.cumlRf);
+    const failedCandidates = failed.filter(
+      (entry) => !view.isBaseline(entry) && !(baseIsCuml && entry.sklearnexTree && !entry.binned)
+    );
+
+    const rows = CATEGORIES.map((category) => {
+      const inCategory = (result) => result.entry.category === category;
+      const categoryFailed = failed.filter((entry) => entry.category === category);
+      const plotFailed = failedCandidates.filter((entry) => entry.category === category);
+      const allMatches = [];
+      const cells = METHODS.map((method) => {
+        const base = baseByMethod[method].filter(inCategory);
+        if (!base.length) {
+          return {method, empty: true};
+        }
+        const matches = findMatches(base, candidateByMethod[method].filter(inCategory));
+        matches.forEach((match) => {
+          // Two libraries that both bin raise no warning, but the points are still binned.
+          const bothBinned =
+            match.base.binned && match.candidate.binned && match.base.entry.library !== match.candidate.entry.library;
+          match.column = columnOf(view.labelOf(match.candidate.entry), category, match.candidate.binned, match.warnings, bothBinned);
+        });
+        allMatches.push(...matches);
+        const caseCount = new Set([...matches.map((m) => m.base.entry.id), ...plotFailed.map((e) => e.id)]).size;
+        const plot = matches.length || plotFailed.length ? buildPlot(view, matches, plotFailed) : null;
+        return {method, title: cellTitle(category, method, caseCount), plot};
+      });
+
+      // Without this the side that succeeded would vanish along with its failed counterpart.
+      const baseResults = METHODS.flatMap((m) => baseByMethod[m].filter(inCategory));
+      const candidateResults = METHODS.flatMap((m) => candidateByMethod[m].filter(inCategory));
+      const unmatchedBase = [];
+      const unmatchedCandidate = [];
+      categoryFailed.forEach((entry) => {
+        if (view.isBaseline(entry)) {
+          unmatchedCandidate.push(...candidateResults.filter((result) => result.entry.id === entry.id));
+        } else {
+          unmatchedBase.push(...baseResults.filter((result) => result.entry.id === entry.id));
+        }
+      });
+      return {category, cells, table: buildTable(view, allMatches, categoryFailed, unmatchedBase, unmatchedCandidate)};
+    });
+    return {rows};
+  }
+
+  return {computeGrid, crossCandidates, crossView, escapeHtml, sortVariants, sum, tabsView, unique};
+};
+</script></div>
+  
+  <div class="page-row"><script>// Fit and parallelized fits comparison pages: loads the data files of the
+// variants on screen (sklbench/reporting/comparison.py), then draws what
+// speedup_core.js computes from them. Rendering every combination up front would
+// take tens of MB per page.
+(function () {
+  const config = JSON.parse(document.getElementById("comparison-config").textContent);
+  const core = window.sklbenchSpeedupCore(config);
+  const {escapeHtml, sortVariants, sum, unique} = core;
+  const toggle = document.querySelector(".preprocessing-toggle-checkbox");
+  const content = document.getElementById("comparison-content");
+
+  let nextId = 0;
+  let renderToken = 0;
+  let view = null;
+
+  // Data files are scripts so that the page also works from file://.
+  window.sklbenchComparisonData = {};
+  const loading = {};
+  function loadVariant(key) {
+    if (!loading[key]) {
+      loading[key] = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `${config.dataDir}/${encodeURIComponent(key)}.js`;
+        script.onload = () => resolve(window.sklbenchComparisonData[key]);
+        script.onerror = () => reject(new Error(`Cannot load ${script.src}`));
+        document.head.appendChild(script);
+      });
+    }
+    return loading[key];
+  }
+
+  function tableHtml(table, pending) {
+    if (!table) {
+      return "";
+    }
+    const id = `comparison-table-${(nextId += 1)}`;
+    pending.tables.push({id, table});
+    return `<section class="plot-detail-row"><details class="detailed-results"><summary>Detailed results</summary><div id="${id}" class="detailed-results-table"></div></details></section>`;
+  }
+
+  // --- Grid of plots. ---
+
+  function plotCellHtml(title, plot, pending) {
+    let body = '<div class="empty">No matches for this group.</div>';
+    if (plot) {
+      const id = `comparison-chart-${(nextId += 1)}`;
+      pending.charts.push({id, plot});
+      body = `<div id="${id}" class="plotly-graph-div" style="height:540px; width:100%;"></div>\n${plot.notes}`;
+    }
+    return `<section class="plot-cell"><div class="plot-cell-head"><h3 class="plot-cell-title">${escapeHtml(title)}</h3></div><div class="plot-cell-body">${body}</div></section>`;
+  }
+
+  function gridHtml(grid, pending) {
+    if (grid.emptyMessage) {
+      return `<section class="empty">${escapeHtml(grid.emptyMessage)}</section>`;
+    }
+    const cells = grid.rows.flatMap((row) => {
+      const hasPlot = row.cells.some((cell) => !cell.empty);
+      return [
+        hasPlot && row.category === "tree-based" && view.treeNote ? `<p class="plot-row-note">${view.treeNote}</p>` : "",
+        ...row.cells.filter((cell) => !cell.empty).map((cell) => plotCellHtml(cell.title, cell.plot, pending)),
+        tableHtml(row.table, pending),
+      ];
+    });
+    return `<section class="plot-grid" style="grid-template-columns: repeat(1, minmax(0, 1fr));">${cells.join("")}</section>`;
+  }
+
+  function drawPending(pending) {
+    pending.charts.forEach(({id, plot}) => {
+      Plotly.newPlot(id, plot.traces, plot.layout, {responsive: true});
+    });
+    pending.tables.forEach(({id, table}) => {
+      document.getElementById(id).closest("details").addEventListener("toggle", (event) => {
+        if (event.target.open) {
+          sklbenchInitTable(id, table.rows, table.columns, {});
+        }
+      }, {once: true});
+    });
+    sklbenchWirePlotClicks();
+  }
+
+  function clearGrids() {
+    const container = document.getElementById("comparison-grids");
+    container.querySelectorAll(".plotly-graph-div").forEach((chart) => Plotly.purge(chart));
+    container.innerHTML = "";
+    return container;
+  }
+
+  function drawGrids() {
+    const container = clearGrids();
+    // The cross page can filter out every candidate.
+    if (!view) {
+      return;
+    }
+    window.sklbenchTables = {};
+    const pending = {charts: [], tables: []};
+    const grid = core.computeGrid(view, Boolean(toggle && toggle.checked));
+    container.innerHTML = `<div class="page-row">${gridHtml(grid, pending)}</div>`;
+    drawPending(pending);
+  }
+
+  // --- Page parts. ---
+
+  function dateRangeHtml(allData) {
+    const start = allData.map((data) => data.start).sort()[0];
+    const end = allData.map((data) => data.end).sort().pop();
+    const count = sum(allData.map((data) => data.count));
+    const sources = new Map();
+    allData.flatMap((data) => data.sources).forEach((source) => {
+      const key = `${source.hardware}|${source.cell}`;
+      const merged = sources.get(key);
+      if (merged) {
+        merged.count += source.count;
+        merged.start = merged.start < source.start ? merged.start : source.start;
+        merged.end = merged.end > source.end ? merged.end : source.end;
+        merged.envs = unique([...merged.envs, ...source.envs]).sort();
+        merged.configs = unique([...merged.configs, ...source.configs]).sort();
+      } else {
+        sources.set(key, {...source});
+      }
+    });
+    const codes = (values) => values.map((value) => `<code>${escapeHtml(value)}</code>`).join(", ");
+    const rows = Array.from(sources.values())
+      .sort((a, b) => (a.end < b.end ? 1 : a.end > b.end ? -1 : a.hardware < b.hardware ? 1 : -1))
+      .map((source) => {
+        const startDay = source.start.slice(0, 10);
+        const endDay = source.end.slice(0, 10);
+        const dates = startDay === endDay ? startDay : `${startDay} to ${endDay}`;
+        return `<tr><td>${dates}</td><td>${escapeHtml(source.hardware)}</td><td>${source.count}</td><td>${source.cell}</td><td>${codes(source.envs)}</td><td>${codes(source.configs)}</td></tr>`;
+      })
+      .join("");
+    return `<section class="panel"><h2 class="date-range" data-count="${count}" data-start="${start}" data-end="${end}"></h2>
+      <details class="about-section result-sources"><summary>Where these results come from (${sources.size} source${sources.size > 1 ? "s" : ""})</summary>
+      <table class="sources-table"><thead><tr><th>Recorded</th><th>Hardware</th><th>Records</th><th>Source</th><th>Envs</th><th>Config</th></tr></thead><tbody>${rows}</tbody></table>
+      </details></section>`;
+  }
+
+  // `tabs` are {label, html, color, isBaseline}.
+  function innerTabsHtml(tabs) {
+    const buttons = tabs
+      .map((tab, index) => {
+        const style = tab.color ? ` style="background: ${tab.color}1F;"` : "";
+        return `<button class="tab-button${index === 0 ? " active" : ""}${tab.isBaseline ? " is-baseline" : ""}" type="button" data-tab-index="${index}" data-label="${escapeHtml(tab.label)}"${style}>${escapeHtml(tab.label)}</button>`;
+      })
+      .join("");
+    const panels = tabs
+      .map((tab, index) => `<div class="tab-panel${index === 0 ? " active" : ""}" data-tab-index="${index}">${tab.html}</div>`)
+      .join("");
+    return `<section class="tabs" id="comparison-inner-tabs"><div class="tab-buttons">${buttons}</div>${panels}</section>`;
+  }
+
+  function wireInnerTabs() {
+    const tabs = document.getElementById("comparison-inner-tabs");
+    tabs.addEventListener("click", (event) => {
+      const button = event.target.closest(".tab-button");
+      if (!button) {
+        return;
+      }
+      tabs.querySelectorAll(".tab-button, .tab-panel").forEach((element) => {
+        element.classList.toggle("active", element.dataset.tabIndex === button.dataset.tabIndex);
+      });
+    });
+  }
+
+  // --- Parallelized fits page: outer tabs with a pick-baseline button. ---
+
+  function initBaselineTabsPage() {
+    const outerTabs = config.outerTabs;
+    let pickedBaseline = null;
+    let outerIndex = 0;
+
+    const fromHash = outerTabs.findIndex((tab) => tab.slug === window.location.hash.slice(1));
+    if (fromHash !== -1) {
+      outerIndex = fromHash;
+    }
+
+    function outerHtml() {
+      const buttons = outerTabs
+        .map((tab, index) => `<button class="tab-button${index === outerIndex ? " active" : ""}" type="button" data-outer-index="${index}">${escapeHtml(tab.label)}</button>`)
+        .join("");
+      return `<section class="tabs"><div class="tab-buttons" id="comparison-outer-tabs">${buttons}</div><div class="tab-panel active" id="comparison-outer-panel"></div></section>`;
+    }
+
+    function setBaselineButtons(baselineLabel) {
+      document.querySelectorAll(".baseline-pick").forEach((button) => {
+        const picked = button.dataset.baseline === baselineLabel;
+        button.disabled = picked;
+        button.textContent = picked ? "✓ Current baseline" : "Pick as baseline";
+      });
+      document.querySelectorAll("#comparison-inner-tabs > .tab-buttons .tab-button").forEach((button) => {
+        button.classList.toggle("is-baseline", button.dataset.label === baselineLabel);
+      });
+    }
+
+    async function showOuter() {
+      const token = (renderToken += 1);
+      const tab = outerTabs[outerIndex];
+      const panel = document.getElementById("comparison-outer-panel");
+      panel.innerHTML = '<section class="empty">Loading results...</section>';
+      let dataList;
+      try {
+        dataList = await Promise.all(tab.variants.map((variant) => loadVariant(variant.key)));
+      } catch (error) {
+        panel.innerHTML = `<section class="empty">${escapeHtml(error.message)}</section>`;
+        return;
+      }
+      if (token !== renderToken) {
+        return;
+      }
+      const loaded = new Map(tab.variants.map((variant, index) => [variant.key, dataList[index]]));
+      const hasLabel = (label) => tab.variants.some((variant) => variant.label === label);
+      const baselineLabel = hasLabel(pickedBaseline) ? pickedBaseline : tab.variants[0].label;
+      const tabs = tab.variants.map((variant) => ({
+        label: variant.label,
+        color: variant.tabColor,
+        isBaseline: variant.label === baselineLabel,
+        html: (variant.pickHtml || "") + (loaded.get(variant.key).hardwareHtml || "") + loaded.get(variant.key).envHtml,
+      }));
+      panel.innerHTML =
+        `<div class="page-row">${dateRangeHtml(dataList)}</div>` +
+        `<div class="page-row">${innerTabsHtml(tabs)}</div>` +
+        '<div id="comparison-grids"></div>';
+      wireInnerTabs();
+      sklbenchFormatDateRanges();
+      setBaselineButtons(baselineLabel);
+      view = {...core.tabsView(tab, loaded, baselineLabel), loaded, tab};
+      drawGrids();
+    }
+
+    content.innerHTML = outerHtml();
+    document.getElementById("comparison-outer-tabs").addEventListener("click", (event) => {
+      const button = event.target.closest(".tab-button");
+      if (!button) {
+        return;
+      }
+      outerIndex = Number(button.dataset.outerIndex);
+      document.querySelectorAll("#comparison-outer-tabs .tab-button").forEach((item) => {
+        item.classList.toggle("active", item === button);
+      });
+      history.replaceState(null, "", `#${outerTabs[outerIndex].slug}`);
+      showOuter();
+    });
+    content.addEventListener("click", (event) => {
+      const pick = event.target.closest(".baseline-pick");
+      if (!pick || pick.disabled) {
+        return;
+      }
+      pickedBaseline = pick.dataset.baseline;
+      const {loaded, tab} = view;
+      setBaselineButtons(pickedBaseline);
+      view = {...core.tabsView(tab, loaded, pickedBaseline), loaded, tab};
+      drawGrids();
+    });
+    if (toggle) {
+      toggle.addEventListener("change", () => {
+        if (view) {
+          drawGrids();
+        }
+      });
+    }
+    showOuter();
+  }
+
+  // --- Cross page: the picked combination lives in the URL hash. ---
+
+  function initCrossPage() {
+    const machineTabs = document.getElementById("cross-machine-tabs");
+    const machineHardware = document.getElementById("cross-machine-hardware");
+    const softwareSelect = document.getElementById("cross-software");
+    const baselineEnv = document.getElementById("cross-baseline-env");
+    const targetPickers = {
+      software: {
+        select: document.getElementById("cross-target-software"),
+        radio: document.getElementById("cross-target-software-radio"),
+      },
+      hardware: {
+        select: document.getElementById("cross-target-hardware"),
+        radio: document.getElementById("cross-target-hardware-radio"),
+      },
+    };
+    const softwareSuffix = document.getElementById("cross-target-software-suffix");
+    const groupBoxes = Array.from(document.querySelectorAll(".cross-variants input"));
+    const useCaseButtons = Array.from(document.querySelectorAll(".use-case-pick"));
+    const defaultSoftware = config.variants[config.defaultBaseline].software;
+    let viewKey = null;
+
+    machineTabs.innerHTML = config.baselineMachines
+      .map((hash) => `<button class="tab-button" type="button" data-machine="${hash}">${escapeHtml(config.machineNames[hash])}</button>`)
+      .join("");
+
+    function readState() {
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      let baseline = params.get("baseline");
+      let target = params.get("target");
+      if (!config.pages[baseline]) {
+        baseline = config.defaultBaseline;
+      }
+      if (!config.pages[baseline].includes(target)) {
+        target = closestTarget(baseline, ownMachineTarget(baseline));
+      }
+      const softwareGroups = params.has("variants")
+        ? groupBoxes.map((box) => box.dataset.group).filter((group) => params.get("variants").split(",").includes(group))
+        : config.defaultSoftwareGroups;
+      return {baseline, target, softwareGroups, preprocessing: params.get("preprocessing") === "1"};
+    }
+
+    function hasDefaultGroups(state) {
+      return state.softwareGroups.join() === config.defaultSoftwareGroups.join();
+    }
+
+    function writeState(state) {
+      const params = new URLSearchParams({baseline: state.baseline, target: state.target});
+      if (!hasDefaultGroups(state)) {
+        params.set("variants", state.softwareGroups.join());
+      }
+      if (state.preprocessing) {
+        params.set("preprocessing", "1");
+      }
+      window.location.hash = params.toString();
+    }
+
+    function setOptions(select, options, selected) {
+      select.innerHTML = options
+        .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
+        .join("");
+      select.value = selected;
+    }
+
+    function ownValue(kind, baseline) {
+      return kind === "software" ? baseline.software : baseline.hardwareHash;
+    }
+
+    function ownMachineTarget(baselineKey) {
+      return `hardware-${config.variants[baselineKey].hardwareHash}`;
+    }
+
+    // The picker that isn't in use shows the baseline's own value when it can.
+    function updateTargetPicker(kind, state) {
+      const {select, radio} = targetPickers[kind];
+      const prefix = `${kind}-`;
+      const values = config.pages[state.baseline]
+        .filter((target) => target.startsWith(prefix))
+        .map((target) => target.slice(prefix.length));
+      const own = ownValue(kind, config.variants[state.baseline]);
+      const active = state.target.startsWith(prefix);
+      const selected = active ? state.target.slice(prefix.length) : values.includes(own) ? own : values[0];
+      setOptions(
+        select,
+        values.map((value) => [value, kind === "software" ? value : config.machineNames[value]]),
+        selected
+      );
+      radio.checked = active;
+      radio.disabled = select.disabled = !values.length;
+    }
+
+    function updateSelectors(state) {
+      const baseline = config.variants[state.baseline];
+      machineTabs.querySelectorAll(".tab-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.machine === baseline.hardwareHash);
+      });
+      const softwares = Object.keys(config.pages)
+        .map((key) => config.variants[key])
+        .filter((variant) => variant.hardwareHash === baseline.hardwareHash)
+        .map((variant) => variant.software);
+      setOptions(softwareSelect, softwares.map((s) => [s, s]), baseline.software);
+      updateTargetPicker("software", state);
+      updateTargetPicker("hardware", state);
+      // Another software also runs on the baseline's machine.
+      softwareSuffix.textContent =
+        targetPickers.software.select.value === baseline.software ? "on all other machines" : "on all machines";
+      updateGroupBoxes(state);
+      updateUseCaseButtons(state);
+    }
+
+    function machineRan(hash, softwareGroups) {
+      return Object.values(config.variants).some(
+        (variant) => variant.hardwareHash === hash && softwareGroups.includes(config.softwareGroups[variant.software])
+      );
+    }
+
+    // What the button of a use case switches to. Not every machine ran every software:
+    // the builds, for one, only ran on a few.
+    function useCaseState(button, state) {
+      const softwareGroups = button.dataset.softwareGroups.split(",");
+      const acrossMachines = "acrossMachines" in button.dataset;
+      const current = config.variants[state.baseline].hardwareHash;
+      const machine = acrossMachines || machineRan(current, softwareGroups)
+        ? current
+        : config.baselineMachines.find((hash) => machineRan(hash, softwareGroups));
+      const baseline = baselineOn(machine, defaultSoftware);
+      const target = acrossMachines ? `software-${defaultSoftware}` : ownMachineTarget(baseline);
+      return {...state, baseline, target: closestTarget(baseline, target), softwareGroups};
+    }
+
+    function updateUseCaseButtons(state) {
+      useCaseButtons.forEach((button) => {
+        const shown = viewKeyOf(useCaseState(button, state)) === viewKeyOf(state);
+        button.disabled = shown;
+        button.textContent = shown ? "✓ Currently shown" : "Show this comparison";
+      });
+    }
+
+    // Greyed out when the box wouldn't change anything on screen.
+    function updateGroupBoxes(state) {
+      const onMachine = targetPickers.hardware.radio.checked;
+      const machine = targetPickers.hardware.select.value;
+      groupBoxes.forEach((box) => {
+        const group = box.dataset.group;
+        box.checked = state.softwareGroups.includes(group);
+        box.disabled = !onMachine || !Object.keys(config.variants).some((key) => {
+          const variant = config.variants[key];
+          return key !== state.baseline && variant.hardwareHash === machine && config.softwareGroups[variant.software] === group;
+        });
+      });
+    }
+
+    function closestTarget(baselineKey, target) {
+      const targets = config.pages[baselineKey];
+      if (targets.includes(target)) {
+        return target;
+      }
+      const kind = target.slice(0, target.indexOf("-"));
+      const own = `${kind}-${ownValue(kind, config.variants[baselineKey])}`;
+      if (targets.includes(own)) {
+        return own;
+      }
+      return targets.find((candidate) => candidate.startsWith(`${kind}-`)) || targets[0];
+    }
+
+    function baselineOn(hash, software) {
+      const keys = Object.keys(config.pages).filter((key) => config.variants[key].hardwareHash === hash);
+      const withSoftware = (name) => keys.find((key) => config.variants[key].software === name);
+      return withSoftware(software) || withSoftware(defaultSoftware) || keys[0];
+    }
+
+    function onSoftwareChange() {
+      const state = readState();
+      const baseline = baselineOn(config.variants[state.baseline].hardwareHash, softwareSelect.value);
+      writeState({...state, baseline, target: closestTarget(baseline, state.target)});
+    }
+
+    // The default comparison, with the softwares of the baseline's machine, follows the tab.
+    function onMachineTab(hash) {
+      const state = readState();
+      const baseline = baselineOn(hash, config.variants[state.baseline].software);
+      const target = state.target === ownMachineTarget(state.baseline) ? ownMachineTarget(baseline) : state.target;
+      writeState({...state, baseline, target: closestTarget(baseline, target)});
+    }
+
+    function softwareHtml(data) {
+      return `<section class="panel"><h2>Software</h2>${data.envHtml}</section>`;
+    }
+
+    // Machine tabs keep the software: its threadpools and versions depend on the machine.
+    function comparedEnvHtml(target, data) {
+      return target.startsWith("software-")
+        ? `<div class="cross-env">${data.hardwareHtml}${softwareHtml(data)}</div>`
+        : softwareHtml(data);
+    }
+
+    // All the tabs of a machine share its hardware.
+    function sharedHardwareHtml(state, candidateData) {
+      const isOtherMachine = state.target !== `hardware-${config.variants[state.baseline].hardwareHash}`;
+      return state.target.startsWith("hardware-") && isOtherMachine
+        ? `<div class="page-row">${candidateData[0].hardwareHtml}</div>`
+        : "";
+    }
+
+    async function render(state) {
+      const token = (renderToken += 1);
+      updateSelectors(state);
+      const candidates = core.crossCandidates(state.baseline, state.target, state.softwareGroups);
+      clearGrids();
+      content.innerHTML = '<section class="empty">Loading results...</section>';
+      const keys = [state.baseline, ...candidates];
+      let dataList;
+      try {
+        dataList = await Promise.all(keys.map(loadVariant));
+      } catch (error) {
+        content.innerHTML = `<section class="empty">${escapeHtml(error.message)}</section>`;
+        return;
+      }
+      if (token !== renderToken) {
+        return;
+      }
+      const [baseData, ...candidateData] = dataList;
+      viewKey = viewKeyOf(state);
+      machineHardware.innerHTML = baseData.hardwareHtml;
+      baselineEnv.innerHTML = softwareHtml(baseData);
+      if (!candidates.length) {
+        view = null;
+        content.innerHTML = '<section class="empty">Nothing left to compare: include more software variants in the advanced comparison settings.</section>';
+        return;
+      }
+      view = core.crossView(state.baseline, state.target, state.softwareGroups, new Map(keys.map((key, index) => [key, dataList[index]])));
+      const labelOfVariant = view.labelOfVariant;
+      const tabs = sortVariants(candidates.map(labelOfVariant)).map((label) => {
+        const index = candidates.findIndex((key) => labelOfVariant(key) === label);
+        return {
+          label,
+          color: view.colors[label],
+          html: comparedEnvHtml(state.target, candidateData[index]),
+        };
+      });
+      content.innerHTML =
+        sharedHardwareHtml(state, candidateData) +
+        `<div class="page-row">${innerTabsHtml(tabs)}</div>` +
+        dateRangeHtml([baseData, ...candidateData]);
+      wireInnerTabs();
+      sklbenchFormatDateRanges();
+      drawGrids();
+    }
+
+    function viewKeyOf(state) {
+      return `${state.baseline}|${state.target}|${state.softwareGroups.join()}`;
+    }
+
+    function onHashChange() {
+      const state = readState();
+      if (toggle.checked !== state.preprocessing) {
+        toggle.checked = state.preprocessing;
+        toggle.dispatchEvent(new Event("change", {bubbles: true}));
+      }
+      if (viewKey === viewKeyOf(state)) {
+        drawGrids();
+      } else {
+        render(state);
+      }
+    }
+
+    machineTabs.addEventListener("click", (event) => {
+      const button = event.target.closest(".tab-button");
+      if (button) {
+        onMachineTab(button.dataset.machine);
+      }
+    });
+    softwareSelect.addEventListener("change", onSoftwareChange);
+    useCaseButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        writeState(useCaseState(button, readState()));
+        machineTabs.scrollIntoView({behavior: "smooth"});
+      });
+    });
+    groupBoxes.forEach((box) => {
+      box.addEventListener("change", () => {
+        const softwareGroups = groupBoxes.filter((item) => item.checked).map((item) => item.dataset.group);
+        writeState({...readState(), softwareGroups});
+      });
+    });
+    Object.entries(targetPickers).forEach(([kind, {select, radio}]) => {
+      const pick = () => writeState({...readState(), target: `${kind}-${select.value}`});
+      select.addEventListener("change", pick);
+      radio.addEventListener("change", pick);
+    });
+    toggle.addEventListener("change", () => {
+      const state = readState();
+      if (state.preprocessing !== toggle.checked) {
+        writeState({...state, preprocessing: toggle.checked});
+      }
+    });
+    window.addEventListener("hashchange", onHashChange);
+    // A shared link to another comparison shows how it was set up.
+    const initial = readState();
+    document.getElementById("cross-advanced").open =
+      initial.target !== ownMachineTarget(initial.baseline) || !hasDefaultGroups(initial);
+    onHashChange();
+  }
+
+  if (config.outerTabs) {
+    initBaselineTabsPage();
+  } else {
+    initCrossPage();
+  }
+})();
+</script></div>
+  
+  </main>
+</body>
+</html>
