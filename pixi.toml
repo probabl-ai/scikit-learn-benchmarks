@@ -101,6 +101,11 @@ liblapack = { version = "*", build = "*_openblas" }
 libopenblas = { version = "*", build = "*openmp*" }
 scikit-learn = "1.9.*"
 
+[feature.custom-openblas]
+# No dependencies: `scripts/setup_custom_openblas.sh` builds OpenBLAS and points
+# the env's BLAS symlinks at it. Linux-only, like that script.
+platforms = ["linux-64"]
+
 [feature.sklearn-openblas-pthreads-kmp-llvm]
 # The libgomp->libomp compat symlink build below is Linux-only (see the
 # dependency comment); macOS already links OpenMP against libomp directly,
@@ -309,6 +314,8 @@ sklearn-cf-libgomp-openblas = ["py314", "sklearn-openblas-pthreads", "numpy-cond
 sklearn-cf-libomp-openblas = ["py314", "sklearn-openblas-pthreads", "sklearn-openblas-pthreads-kmp-llvm", "numpy-conda"]
 sklearn-cf-libomp-openblas-omp = ["py314", "sklearn-openblas-openmp", "numpy-conda"]
 sklearn-cf-mkl = ["py314", "sklearn-mkl", "numpy-conda"]
+sklearn-cf-develop-openblas = ["py314", "sklearn-openblas-pthreads", "custom-openblas", "numpy-conda"]
+sklearn-cf-optimized-openblas = ["py314", "sklearn-openblas-pthreads", "custom-openblas", "numpy-conda"]
 sklearn-dev = ["py314", "sklearn-dev", "numpy-conda"]
 sklearn-dev-libomp = ["py314", "sklearn-dev", "sklearn-dev-libomp", "numpy-conda"]
 sklearn-dev-mkl = ["py314", "sklearn-dev", "sklearn-dev-mkl", "numpy-conda"]

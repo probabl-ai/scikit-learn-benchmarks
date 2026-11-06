@@ -105,6 +105,8 @@ PIXI_TO_IMPLEMENTATIONS = {
     "sklearn-cf-libomp-openblas": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-libomp-openblas-omp": SKLEARN_IMPLEMENTATIONS,
     "sklearn-cf-mkl": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-develop-openblas": SKLEARN_IMPLEMENTATIONS,
+    "sklearn-cf-optimized-openblas": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev-libomp": SKLEARN_IMPLEMENTATIONS,
     "sklearn-dev-mkl": SKLEARN_IMPLEMENTATIONS,

@@ -6,7 +6,7 @@ the results, so the page builds the one on screen from one data file per variant
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from dashboards import GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS, GPU_NAMES, HARDWARE_COLORS, HARDWARE_NAMES
+from dashboards import GENERAL_SOURCE_CONFIG_OVERRIDES, GENERAL_SOURCE_CONFIGS, GENERAL_SOURCE_ENVS, GPU_NAMES, HARDWARE_COLORS, HARDWARE_NAMES
 from sklbench.reporting.comparison import (
     CONTENT_HTML,
     CUML_TREE_NOTE,
@@ -160,6 +160,15 @@ ABOUT_HTML = f"""<section class="panel">
     </ul>
     <p><code>sklearn-cf-default</code> installs conda-forge's scikit-learn without pinning
     either, which gives the same libraries as <code>sklearn-cf-libgomp-openblas</code>.</p>
+    <p><code>sklearn-cf-develop-openblas</code> and <code>sklearn-cf-optimized-openblas</code> only
+    run the <b>linear models</b>. They replace the released OpenBLAS of
+    <code>sklearn-cf-libgomp-openblas</code> with its unreleased development branch, without and
+    with four proposed threading changes
+    (<a href="https://github.com/cakedev0/OpenBLAS/pull/3">#3</a>,
+    <a href="https://github.com/cakedev0/OpenBLAS/pull/8">#8</a>,
+    <a href="https://github.com/cakedev0/OpenBLAS/pull/10">#10</a> and
+    <a href="https://github.com/cakedev0/OpenBLAS/pull/11">#11</a> on a fork). To see the effect
+    of those changes alone, compare the two with each other.</p>
     {_use_case_button(BUILDS_SOFTWARE_GROUPS)}
     <details class="about-section">
       <summary>How to read</summary>
@@ -276,6 +285,7 @@ ABOUT_HTML = f"""<section class="panel">
 TITLE = "Software and hardware comparison of a single fit"
 SOURCE_CONFIGS = GENERAL_SOURCE_CONFIGS
 SOURCE_ENVS = GENERAL_SOURCE_ENVS
+SOURCE_CONFIG_OVERRIDES = GENERAL_SOURCE_CONFIG_OVERRIDES
 ENTRY_PAGE = "cross_comparison.html"
 # Merged into this page, but issues and other sites can link to them.
 REDIRECTS = {

@@ -61,6 +61,10 @@ The project uses these Pixi environments:
 - `sklearn-cf-*`: conda-forge scikit-learn builds with different BLAS/OpenMP
   backends (see the `[environments]` table in `pixi.toml` for the exact
   matrix)
+- `sklearn-cf-develop-openblas`, `sklearn-cf-optimized-openblas`: the packages
+  of `sklearn-cf-libgomp-openblas` on an OpenBLAS built from source, at the
+  commits pinned in `scripts/setup_custom_openblas.sh`. `run.sh` builds and
+  installs it. Linux only.
 - `sklearn-dev`: scikit-learn built from a git checkout (see ["Running Against
   scikit-learn Branches"](#running-against-scikit-learn-branches))
 - `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
