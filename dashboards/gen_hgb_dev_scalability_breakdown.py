@@ -26,6 +26,7 @@ across tabs instead of landing them on the same page/plot.
 """
 from pathlib import Path
 
+from dashboards import gen_hgb_scalability_breakdown as hgb
 from dashboards.gen_hgb_scalability_breakdown import (
     HARDWARE_NAMES,
     PHASE_COLORS,
@@ -67,6 +68,10 @@ from sklbench.reporting.html import (
 )
 from sklbench.reporting.matching import BenchmarkRecord, date_range, read_benchmark_records
 
+
+SOURCE_CONFIGS = hgb.SOURCE_CONFIGS
+# The envs that have built scikit-learn branches for these configs so far.
+SOURCE_ENVS = ["sklearn-dev", "sklearn-dev-libomp"]
 
 ABOUT_HTML = """<section class="panel">
   <p>This dashboard compares HistGradientBoosting's fit time, phase by phase,

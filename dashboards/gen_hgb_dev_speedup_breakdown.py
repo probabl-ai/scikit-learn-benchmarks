@@ -37,6 +37,7 @@ from pathlib import Path
 from statistics import median
 from typing import Callable
 
+from dashboards import gen_hgb_dev_scalability_breakdown as hgb_dev
 from dashboards.gen_hgb_scalability_breakdown import (
     HARDWARE_NAMES,
     PHASE_LABELS,
@@ -93,6 +94,9 @@ from sklbench.reporting.matching import (
 )
 from sklbench.reporting.utils import groupby
 
+
+SOURCE_CONFIGS = hgb_dev.SOURCE_CONFIGS
+SOURCE_ENVS = hgb_dev.SOURCE_ENVS
 
 # `_phase_breakdown_ms()` already carries the wall-clock fit time as
 # "total_ms" alongside the real phases - reusing that dict key as one more

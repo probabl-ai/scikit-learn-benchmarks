@@ -5,6 +5,7 @@ for every machine and thread setting at once.
 from pathlib import Path
 
 from dashboards import HARDWARE_NAMES
+from dashboards import gen_hgb_dev_scalability_breakdown as hgb_dev
 from dashboards.gen_hgb_scalability_breakdown import SOURCE_CONFIGS
 from dashboards.index_comparison import (
     _base_build,
@@ -27,6 +28,7 @@ from sklbench.reporting.utils import groupby
 
 
 TITLE = "[dev] HGB branch vs main table"
+SOURCE_ENVS = hgb_dev.SOURCE_ENVS
 
 ABOUT_HTML = """<section class="panel">
   <p>This table compares the fit and predict times of scikit-learn branches
