@@ -16,7 +16,8 @@ HARDWARE_NAMES = {
     "332097": "Intel Core Ultra desktop",
     "5dcf30": "AMD Workstation",
     "534824": "High-end Intel Xeon server",
-    "d189c4": "L4 VM (8 CPU, 32 GB RAM)",
+    "d189c4": "Nvidia L4 VM",
+    "7c42d6": "64-cores AMD EPYC VM",
 }
 
 # So that a machine has the same color on every dashboard.
@@ -28,6 +29,7 @@ HARDWARE_COLORS = {
     "5dcf30": "#b76c13",
     "534824": "#2e9e5b",
     "d189c4": "#d1495b",
+    "7c42d6": "#c2379a",
 }
 
 GPU_NAMES = {
@@ -54,6 +56,7 @@ HARDWARE_PLATFORMS = {
     "5dcf30": {"win-64"},
     "332097": {"linux-64"},
     "d189c4": {"linux-64", "linux-64-cuda-12-9"},
+    "7c42d6": {"linux-64"},
 }
 
 # `SOURCE_CONFIGS`/`SOURCE_ENVS` of gen_cross_comparison, which draws on the broad
