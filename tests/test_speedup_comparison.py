@@ -24,7 +24,7 @@ from dashboards import gen_cross_comparison, gen_hardware_parallel_fits
 LAPTOP, XEON, DESKTOP, M4, L4 = "3b5e61", "534824", "332097", "b281b2", "d189c4"
 LAPTOP_NAME = "Intel Core Ultra laptop"
 XEON_NAME = "High-end Intel Xeon server"
-L4_CPU_NAME = "L4 VM (8 CPU, 32 GB RAM)"
+L4_CPU_NAME = "NVIDIA L4 VM"
 L4_GPU_NAME = "NVIDIA L4 g6.2xlarge"
 
 # Software hash -> pixi env. Fixed across tests, since env lookups can be cached by hash.
