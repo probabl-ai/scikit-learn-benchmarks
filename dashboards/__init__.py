@@ -16,8 +16,8 @@ HARDWARE_NAMES = {
     "332097": "Intel Core Ultra desktop",
     "5dcf30": "AMD Workstation",
     "534824": "High-end Intel Xeon server",
-    "d189c4": "Nvidia L4 VM",
-    "7c42d6": "64-cores AMD EPYC VM",
+    "d189c4": "NVIDIA L4 VM",
+    "7c42d6": "64-core AMD EPYC VM",
 }
 
 # So that a machine has the same color on every dashboard.
