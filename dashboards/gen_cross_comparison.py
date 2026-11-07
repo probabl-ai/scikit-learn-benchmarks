@@ -204,6 +204,12 @@ ABOUT_HTML = f"""<section class="panel">
         <li><b>ExtraTrees</b> fits are ~25% slower on <b>conda-forge</b> builds.
         <a href="https://github.com/scikit-learn/scikit-learn/pull/34876">scikit-learn#34876</a>
         fixes it and will land in the next release.</li>
+        <li>Compared with <code>sklearn-cf-develop-openblas</code>, the proposed
+        <b>OpenBLAS</b> changes make many <b>linear model</b> fits 1.2x to 2x faster,
+        and 2.6x to 3.4x on the Xeon server for wide data (<b>Ridge</b> with ~1000
+        features, <b>LogisticRegression</b> with 12600 features). The other fits are unchanged,
+        except LogisticRegression with lbfgs on 1000 features and 5 classes, which
+        is ~10% slower.</li>
       </ul>
     </details>
   </details>

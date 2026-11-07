@@ -99,6 +99,11 @@ ABOUT_HTML = """<section class="panel">
       faster from 8 cores on, but that's a <b><dfn>oneDAL</dfn></b> bug: on 4 threads or
       more, L-BFGS stops too early and returns a worse model. See
       <a href="https://github.com/uxlfoundation/oneDAL/issues/3820">oneDAL#3820</a>.</li>
+      <li>With the proposed <b>OpenBLAS</b> changes, <b>Ridge</b> on the Xeon server
+      fits ~3x faster from 32 cores on: the development branch computes
+      <code>X.T @ X</code> on a single thread there, which is why its line goes flat.
+      <b>LogisticRegression</b> fits up to 1.35x faster on the Xeon server and
+      up to 1.5x faster on the desktop.</li>
     </ul>
   </details>
 </section>"""
