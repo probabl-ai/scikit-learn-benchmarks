@@ -582,6 +582,8 @@ HARDWARE_COMMERCIAL_INFO = {
     "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
     # Cloud-only CPU; priced as the rented 8 vCPU + NVIDIA L4 VM it was benchmarked on.
     "AMD EPYC 7R13 Processor": {"price_per_hour_usd": 1, "release_year": 2024},
+    # Priced as the rented 64 vCPU, 256 GB RAM VM it was benchmarked on.
+    "AMD EPYC 9555P 64-Core Processor": {"price_per_hour_usd": 3, "release_year": 2024},
 }
 
 # GPUs that are an integrated tile of a CPU package above rather than a separately
