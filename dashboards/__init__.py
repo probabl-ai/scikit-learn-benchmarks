@@ -67,11 +67,17 @@ HARDWARE_PLATFORMS = {
 # configs/smoke_check_test.py
 # is deliberately excluded - it's a CI-only sanity config, not meant to
 # produce dashboard-worthy results.
+# configs/all_models_linear.py is the linear models of all_models.py, the only
+# cases run on the custom OpenBLAS builds.
 GENERAL_SOURCE_CONFIGS = [
     "configs/all_models.py",
     "configs/all_models_16gb.py",
     "configs/all_models_cuml_only.py",
+    "configs/all_models_linear.py",
 ]
+
+# Built by scripts/setup_custom_openblas.sh.
+CUSTOM_OPENBLAS_ENVS = ["sklearn-cf-develop-openblas", "sklearn-cf-optimized-openblas"]
 
 GENERAL_SOURCE_ENVS = [
     "sklearn-pypi",
@@ -85,7 +91,16 @@ GENERAL_SOURCE_ENVS = [
     "skl-nvidia",
     "skl-mps",
     "intel",
+    *CUSTOM_OPENBLAS_ENVS,
 ]
+
+_STOCK_ENVS = [env for env in GENERAL_SOURCE_ENVS if env not in CUSTOM_OPENBLAS_ENVS]
+GENERAL_SOURCE_CONFIG_OVERRIDES = {
+    "configs/all_models.py": {"envs": _STOCK_ENVS},
+    "configs/all_models_16gb.py": {"envs": _STOCK_ENVS},
+    "configs/all_models_cuml_only.py": {"envs": _STOCK_ENVS},
+    "configs/all_models_linear.py": {"envs": CUSTOM_OPENBLAS_ENVS},
+}
 
 
 def dashboard_output_dir() -> Path:

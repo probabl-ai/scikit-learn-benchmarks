@@ -312,6 +312,8 @@ def _threadpool_summary(env: dict) -> list[str]:
         label = name
         if version:
             label += f" {version}"
+        if "custom_openblas" in env and info.get("internal_api") == "openblas":
+            label += f" [{env['custom_openblas']['label']}]"
         # The threading layer is what tells the pthreads and OpenMP builds of
         # the same OpenBLAS apart. For an OpenMP one, name the runtime it
         # shares with scikit-learn when only one is loaded.
