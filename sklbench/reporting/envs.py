@@ -86,7 +86,13 @@ def env_platforms() -> dict[str, frozenset[str]]:
 VANILLA_SKLEARN_PIXI_ENVS = {"sklearn", "sklearn-pypi"}
 
 
-@lru_cache(maxsize=None)
+SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
+
+# Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
+# "sklearn-dev-libomp@..." (see configs/_utils/implementations.py).
+_SKLEARN_DEV_BUILD_RE = re.compile(rf"^{re.escape(SKLEARN_DEV_PIXI_ENV)}-?.*@")
+
+
 def is_sklearn_dev_build(build_name: str) -> bool:
     """Whether `build_name` (a `software_build_name` return value) is a
     `sklearn-dev`/`sklearn-dev-libomp`/... branch-vs-branch build - meant for
