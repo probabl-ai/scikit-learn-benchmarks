@@ -262,12 +262,12 @@ def _memory_percent_max(record: BenchmarkRecord) -> float | None:
     return max(samples) if samples else None
 
 
-def _hover_extra(record: BenchmarkRecord) -> str:
+def _hover_extra(record: BenchmarkRecord, cpu_percent_fn=_cpu_percent_mean) -> str:
     parts = [f"fits: {_n_candidates(record)} candidates x {_n_splits(record)} splits"]
     duration = _duration_s(record)
     if duration is not None:
         parts.append(f"wall time: {format_duration_ms(duration * 1000)}")
-    cpu_percent = _cpu_percent_mean(record)
+    cpu_percent = cpu_percent_fn(record)
     if cpu_percent is not None:
         parts.append(f"CPU load: {cpu_percent:.0f}%")
     memory_percent = _memory_percent_max(record)
@@ -285,16 +285,16 @@ def _hover_extra(record: BenchmarkRecord) -> str:
     return "<br>".join(parts)
 
 
-def _dedup_latest(records: list[BenchmarkRecord]) -> list[BenchmarkRecord]:
+def _dedup_latest(records: list[BenchmarkRecord], sweep_point=_n_jobs) -> list[BenchmarkRecord]:
     """Keep only the latest-timestamp record per (hardware, software, row,
-    n_jobs) - `read_benchmark_records()` returns every historical run
+    sweep point) - `read_benchmark_records()` returns every historical run
     (including ones from a config shape that's since changed, e.g. this
     config's outer-`n_jobs` sweep or its RF/ET `n_jobs` used to be
     different), so without this a rerun would leave two points at the same
     x position for the same small multiple."""
     latest: dict[tuple, BenchmarkRecord] = {}
     for record in records:
-        key = (record.hardware_hash, record.software_hash, _row_key(record), _n_jobs(record))
+        key = (record.hardware_hash, record.software_hash, _row_key(record), sweep_point(record))
         current = latest.get(key)
         if current is None or record.timestamp_recorded > current.timestamp_recorded:
             latest[key] = record
@@ -431,7 +431,9 @@ def _row_sort_key(row_key: tuple) -> tuple:
     return (order, dataset, n_samples or 0, n_features or 0)
 
 
-def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> str | None:
+def render_hardware_page(
+    records: list[BenchmarkRecord], hardware_hash: str, row_cell_html=_row_cell_html
+) -> str | None:
     hw_records = [record for record in records if record.hardware_hash == hardware_hash]
     if not hw_records:
         return None
@@ -452,7 +454,7 @@ def render_hardware_page(records: list[BenchmarkRecord], hardware_hash: str) -> 
     cells = [
         cell_html
         for row_key in sorted(by_row, key=_row_sort_key)
-        if (cell_html := _row_cell_html(row_key, by_row[row_key]))
+        if (cell_html := row_cell_html(row_key, by_row[row_key]))
     ]
     if cells:
         grid = (
@@ -477,8 +479,9 @@ def read_records() -> list[BenchmarkRecord]:
     ])
 
 
-def generate(output_dir: Path) -> None:
-    records = read_records()
+def render_dashboard(
+    title: str, about_html: str, records: list[BenchmarkRecord], row_cell_html=_row_cell_html
+) -> str:
     hardware_hashes = sorted(
         {record.hardware_hash for record in records},
         key=lambda hardware_hash: (
@@ -491,15 +494,18 @@ def generate(output_dir: Path) -> None:
     hardware_pages = [
         (
             HARDWARE_NAMES.get(hardware_hash, hardware_hash),
-            render_hardware_page(records, hardware_hash),
+            render_hardware_page(records, hardware_hash, row_cell_html),
         )
         for hardware_hash in hardware_hashes
     ]
-
-    html = BASE_TEMPLATE.render(
-        title=TITLE,
-        rows=[ABOUT_HTML, render_hardware_tabs(hardware_pages)],
+    return BASE_TEMPLATE.render(
+        title=title,
+        rows=[about_html, render_hardware_tabs(hardware_pages)],
     )
+
+
+def generate(output_dir: Path) -> None:
+    html = render_dashboard(TITLE, ABOUT_HTML, read_records())
     output = output_dir / "hptuning_scalability.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

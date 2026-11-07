@@ -357,8 +357,7 @@ def _smt_section_html(hw_results: list[MethodResult]) -> list[str]:
 
 def _software_tabs_html(hw_results: list[MethodResult]) -> str:
     """Tabbed `SOFTWARE_TEMPLATE` card per swept environment (pixi env,
-    package versions, threadpools, OpenMP - see `summarize_software_env`),
-    same pattern as e.g. `gen_softwares_comparison.py`/`gen_builds_comparison.py`."""
+    package versions, threadpools, OpenMP - see `summarize_software_env`)."""
     cards = []
     for env in ENV_ORDER:
         env_results = [result for result in hw_results if _env(result) == env]

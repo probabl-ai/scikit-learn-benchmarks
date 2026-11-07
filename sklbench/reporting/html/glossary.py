@@ -185,7 +185,7 @@ TERMS = {
     "quantile-based splits": Term(
         "Split candidates chosen from a fixed number of quantiles of each "
         "feature, instead of among every distinct value. cuML Random Forest "
-        "does this with n_bins=128 by default.",
+        "does this, with n_bins=256 in these benchmarks (128 by default).",
     ),
     "exact splits": Term("Splits chosen among every distinct value of the feature."),
     "max_bins": Term("Maximum number of bins per feature for histogram-based splits."),
@@ -241,6 +241,12 @@ TERMS = {
         aliases=("hyper-threading",),
     ),
     "smt sibling": Term("The other logical CPU of the same physical core."),
+    "numa node": Term(
+        "On big servers, a group of CPU cores and the memory attached to them. "
+        "A core reaches the memory of its own group faster than that of another "
+        "group.",
+        aliases=("numa nodes",),
+    ),
     "e-cores": Term(
         "Efficiency cores: smaller and slower cores that recent Intel laptop "
         "CPUs have next to their fast performance cores.",
@@ -248,6 +254,10 @@ TERMS = {
     "thread affinity": Term(
         "Pinning threads to given CPU cores, so the operating system doesn't "
         "move them around.",
+    ),
+    "cpu affinity": Term(
+        "The set of logical CPUs a process may run on. joblib only counts those "
+        "for n_jobs=-1.",
     ),
     "omp_num_threads": Term("Environment variable setting how many threads OpenMP code uses."),
     "active wait": Term(

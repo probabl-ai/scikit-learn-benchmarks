@@ -29,6 +29,13 @@ def read_env(kind: str, hash: str):
         path = next((p for p in aliases if p.is_file()), path)
     if not path.is_file():
         raise FileNotFoundError(f"Expected {kind} environment file: {path}")
+    return _load_env_file(path.resolve())
+
+
+@lru_cache(maxsize=None)
+def _load_env_file(path: Path) -> dict:
+    """Read once per row of a dashboard table otherwise. Callers must not
+    modify the returned dict."""
     with open(path, "r") as f:
         return json.load(f)
 
@@ -79,11 +86,6 @@ def env_platforms() -> dict[str, frozenset[str]]:
 VANILLA_SKLEARN_PIXI_ENVS = {"sklearn", "sklearn-pypi"}
 
 
-@lru_cache(maxsize=None)
-def is_vanilla_sklearn(software_hash: str) -> bool:
-    return read_env("software", software_hash)["pixi_environment_name"] in VANILLA_SKLEARN_PIXI_ENVS
-
-
 SKLEARN_DEV_PIXI_ENV = "sklearn-dev"
 
 # Matches "sklearn-dev@..." as well as pixi-env variants of it, e.g.
@@ -96,7 +98,7 @@ def is_sklearn_dev_build(build_name: str) -> bool:
     `sklearn-dev`/`sklearn-dev-libomp`/... branch-vs-branch build - meant for
     its own dedicated comparison (gen_sklearn_dev_comparison.py,
     gen_hgb_speedup_breakdown.py) rather than being folded in as a build
-    variant elsewhere (e.g. gen_builds_comparison.py)."""
+    variant elsewhere."""
     return build_name == SKLEARN_DEV_PIXI_ENV or bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
 
 
@@ -124,8 +126,7 @@ def software_build_name(software_hash: str) -> str:
     # Distinguishes e.g. two `sklearn-dev` runs against different scikit-learn
     # forks/branches (same pixi env, different sklearn-src checkout) - without
     # this they'd share the plain "sklearn-dev" name and get conflated into one
-    # build variant by callers that group/label results by this name (e.g.
-    # gen_builds_comparison.py's `groupby(other_results, build_variant)`).
+    # build variant by callers that group/label results by this name.
     git_info = env.get("runtime_imports", {}).get("sklearn", {}).get("git")
     if git_info:
         ref_label = _git_ref_label(git_info)
@@ -530,6 +531,9 @@ def _implementation_package_names(implementation: Implementation) -> list[str]:
         package_names.append("daal")
         return package_names
 
+    if library == "cuml":
+        return ["cuml", "cudf", "cupy", "rmm", "scikit-learn"]
+
     return [name for name in [library, data_library] if name]
 
 
@@ -584,6 +588,8 @@ HARDWARE_COMMERCIAL_INFO = {
     "AMD Ryzen 7 3700X 8-Core Processor": {"price_usd": 1_100, "release_year": 2019},
     # Cloud-only CPU; priced as the rented 8 vCPU + NVIDIA L4 VM it was benchmarked on.
     "AMD EPYC 7R13 Processor": {"price_per_hour_usd": 1, "release_year": 2024},
+    # Priced as the rented 64 vCPU, 256 GB RAM VM it was benchmarked on.
+    "AMD EPYC 9555P 64-Core Processor": {"price_per_hour_usd": 3, "release_year": 2024},
 }
 
 # GPUs that are an integrated tile of a CPU package above rather than a separately

@@ -298,12 +298,11 @@ BASE_TEMPLATE = Template("""<!doctype html>
     }
 
     // Speed-up plot points carry the same comparison_key as their detailed-
-    // results table row (see speedup_plot_html's `comparison_key` param) -
-    // clicking one applies the same "bring matching rows to top" sort as
-    // clicking the table row. `assemble_plots_in_grid` always places a row's
-    // (or the whole grid's) "Detailed results" <details> right after its
-    // plot(s) in document order, so the nearest one following the clicked
-    // chart is its table - open that first in case it's still collapsed.
+    // results table row (see speedup_comparison.js) - clicking one applies the
+    // same "bring matching rows to top" sort as clicking the table row. A
+    // row's "Detailed results" <details> comes right after its plots in
+    // document order, so the nearest one following the clicked chart is its
+    // table - open that first in case it's still collapsed.
     async function sklbenchApplyPlotMatchSort(chartEl, comparisonKey, variant) {
       if (!comparisonKey) {
         return;
@@ -390,40 +389,6 @@ BASE_TEMPLATE = Template("""<!doctype html>
     document.addEventListener("DOMContentLoaded", sklbenchFormatDateRanges);
     setInterval(sklbenchFormatDateRanges, 60000);
 
-    function sklbenchSetPredictCollapsed(collapsed) {
-      document.body.classList.toggle("predict-collapsed", collapsed);
-      document.querySelectorAll(".predict-collapse-toggle").forEach((button) => {
-        button.setAttribute("aria-expanded", String(!collapsed));
-      });
-      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
-        if (chart.offsetParent !== null) {
-          Plotly.Plots.resize(chart);
-        }
-      });
-    }
-    document.addEventListener("click", (event) => {
-      const button = event.target.closest(".predict-collapse-toggle");
-      if (!button) {
-        return;
-      }
-      sklbenchSetPredictCollapsed(!document.body.classList.contains("predict-collapsed"));
-    });
-
-    document.addEventListener("change", (event) => {
-      if (!event.target.classList.contains("preprocessing-toggle-checkbox")) {
-        return;
-      }
-      document.body.classList.toggle("with-preprocessing", event.target.checked);
-      if (event.target.checked) {
-        sklbenchSetPredictCollapsed(true);
-      }
-      document.querySelectorAll(".plotly-graph-div").forEach((chart) => {
-        if (chart.offsetParent !== null) {
-          Plotly.Plots.resize(chart);
-        }
-      });
-    });
-
     // Shift a term's tooltip left when it would overflow the viewport's
     // right edge (e.g. a term near the end of a line on a phone).
     function sklbenchPlaceTermTip(event) {
@@ -463,6 +428,12 @@ BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
 BASE_TEMPLATE.globals["expand_terms"] = expand_terms
 
+SOURCE_CELL = """            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
+            {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
+            {% if source.commit_url %} &middot; <a href="{{ source.commit_url }}" title="{{ source.commit_subject|e }}"><code>{{ source.commit_sha[:8] }}</code></a> <span class="muted">by {{ source.commit_author|e }}</span>{% endif %}
+"""
+SOURCE_CELL_TEMPLATE = Template(SOURCE_CELL)
+
 DATE_RANGE_TEMPLATE = Template("""<section class="panel">
   {% if empty %}
   <h2>No results</h2>
@@ -481,10 +452,7 @@ DATE_RANGE_TEMPLATE = Template("""<section class="panel">
           <td>{{ row.hardware|e }}</td>
           <td>{{ row.count }}</td>
           <td>
-            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
-            {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
-            {% if source.commit_url %} &middot; <a href="{{ source.commit_url }}" title="{{ source.commit_subject|e }}"><code>{{ source.commit_sha[:8] }}</code></a> <span class="muted">by {{ source.commit_author|e }}</span>{% endif %}
-          </td>
+""" + SOURCE_CELL + """          </td>
           <td>{% for env in row.envs %}<code>{{ env|e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td>
           <td>{% for config in row.configs %}<code>{{ config|e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</td>
         </tr>
@@ -621,43 +589,3 @@ HARDWARE_TABS_TEMPLATE = Template("""<section class="tabs" id="{{ tabs_id }}">
   </script>
 </section>""")
 
-PLOT_NOTES_TEMPLATE = Template("""<div class="plot-notes">
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-circle">●</span>
-    <span>Metrics and benchmark setup match the baseline</span>
-  </div>
-  {% if warnings %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-square">■</span>
-    <span>
-      Metrics match the baseline, but some comparison details are worth reporting:
-      <ul>
-      {% for warning in warnings %}
-        <li class="warning-note">
-          <span class="warning-icon">{{ warning.icon }}</span>
-          <span>{{ warning.message|e }}</span>
-        </li>
-      {% endfor %}
-      </ul>
-    </span>
-  </div>
-  {% endif %}
-  {% if metric_mismatch_count %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-diamond">◇</span>
-    <span>Metrics differ from the baseline ({{ metric_mismatch_label }})</span>
-  </div>
-  {% endif %}
-  {% if fallback_count %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-circle" style="color: #9e9e9e;">●</span>
-    <span>Ran via sklearnex but fell back to stock scikit-learn, no oneDAL acceleration ({{ fallback_label }})</span>
-  </div>
-  {% endif %}
-  {% if failed_count %}
-  <div class="plot-note">
-    <span class="plot-marker plot-marker-x">✕</span>
-    <span>Benchmark run failed, shown at the bottom of its column ({{ failed_label }})</span>
-  </div>
-  {% endif %}
-</div>""")

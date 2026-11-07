@@ -274,17 +274,19 @@ def _candidates(grid: dict, k: int = K, seed: int = 0) -> list[dict]:
     ]
 
 
-def get_n_jobs_list(estimator: str) -> list[int]:
-    n_jobs_list = [round(math.pow(N_CORES, v)) for v in [0.5, 0.7, 1]]
-    if estimator in TREES:
-        n_jobs_list = [1, 2, *n_jobs_list]
-    n_jobs_list = sorted(set([min(n_jobs, N_CORES) for n_jobs in n_jobs_list]))
-
-    if N_CORES == 16:
-        n_jobs_list = [1, 2, 4, 8, 16]
-    elif N_CORES == 172:
-        n_jobs_list = [1, 2, 5, 11, 22, 43, 86, 172]
-    return n_jobs_list
+def get_n_jobs_list(estimator: str, strong_scaling=False) -> list[int]:
+    if strong_scaling:
+        # A set since `N_CORES // 4` and `N_CORES // 2` can both be 1 on small CI machines.
+        n_jobs_list = sorted({max(N_CORES // 4, 1), max(N_CORES // 2, 1), N_CORES})
+        if N_CORES == 172:
+            n_jobs_list = [22, 43, 86, 172]
+        return n_jobs_list
+    else:
+        # 1, 2, 4, ..., n_cores
+        n_jobs_list = [*[2**i for i in range((N_CORES - 1).bit_length())], N_CORES]
+        if N_CORES == 172:
+            n_jobs_list = [1, 2, 5, 11, 22, 43, 86, 172]
+        return n_jobs_list
 
 
 def _case(
@@ -297,6 +299,7 @@ def _case(
     skip_libraries: tuple[str, ...],
     scoring: str | None,
     preprocessing_kwargs_by_library: dict[str, dict] | None,
+    strong_scaling: bool,
 ) -> list[HPTuningCase]:
     estimator_params, grid = _split_search_space(search_space)
     candidates = _candidates(grid)
@@ -326,7 +329,7 @@ def _case(
             n_samples = max_samples if max_samples is not None else DATASET_N_SAMPLES[dataset]
             implem_estimator_params = {**estimator_params, "max_bins": n_samples}
 
-        for n_jobs in get_n_jobs_list(estimator):
+        for n_jobs in get_n_jobs_list(estimator, strong_scaling):
             cases.append(HPTuningCase(
                 bench=BENCH,
                 algorithm=Algorithm(estimator=estimator, estimator_params=implem_estimator_params),
@@ -334,7 +337,7 @@ def _case(
                 implementation=implem,
                 hptuning=HPTuning(
                     candidates=candidates,
-                    n_splits=n_jobs,
+                    n_splits=N_CORES if strong_scaling else n_jobs,
                     max_samples=max_samples,
                     n_jobs=n_jobs,
                     scoring=scoring,
@@ -344,7 +347,7 @@ def _case(
     return cases
 
 
-def generate_cases() -> list[HPTuningCase]:
+def generate_cases(strong_scaling: bool = False) -> list[HPTuningCase]:
     # CPU-only, non-array-API implementations
     implementations = [
         implem
@@ -365,6 +368,7 @@ def generate_cases() -> list[HPTuningCase]:
             cases.extend(_case(
                 dataset, max_samples, preprocessing_kind, estimator, search_space,
                 implementations, skip_libraries, scoring, preprocessing_kwargs_by_library,
+                strong_scaling,
             ))
 
     return cases

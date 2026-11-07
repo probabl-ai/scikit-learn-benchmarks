@@ -73,17 +73,16 @@ def get_subset_metrics_of_estimator(
                 )
     elif task == "clustering":
         if hasattr(estimator_instance, "inertia_"):
-            # compute inertia manually using distances to cluster centers
-            # provided by KMeans.transform
+            # Distances to the nearest center from KMeans.transform.
+            # cuML returns squared distances (cuVS L2Expanded); sklearn returns
+            # Euclidean distances, which we square to match inertia_.
+            nearest = convert_to_numpy(estimator_instance.transform(x)).min(axis=1)
+            cuml = any(
+                cls.__module__.split(".", 1)[0] == "cuml"
+                for cls in type(estimator_instance).mro()
+            )
             metrics.update(
-                {
-                    "inertia": float(
-                        np.power(
-                            convert_to_numpy(estimator_instance.transform(x)).min(axis=1),
-                            2,
-                        ).sum()
-                    )
-                }
+                {"inertia": float(nearest.sum() if cuml else np.square(nearest).sum())}
             )
         if hasattr(estimator_instance, "predict"):
             y_pred = convert_to_numpy(estimator_instance.predict(x))

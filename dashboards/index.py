@@ -12,15 +12,16 @@ from html import escape
 from dashboards import (
     HARDWARE_NAMES,
     dashboard_output_dir,
-    gen_builds_comparison,
-    gen_hardware_comparisons,
+    gen_cross_comparison,
+    gen_hardware_parallel_fits,
     gen_hgb_dev_comparison,
     gen_hgb_dev_scalability_breakdown,
     gen_hgb_dev_speedup_breakdown,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
+    gen_hptuning_strong_scaling,
+    gen_hptuning_taskset,
     gen_models_scalability,
-    gen_softwares_comparison,
 )
 from sklbench.reporting.envs import read_env, summarize_hardware_env
 from sklbench.reporting.html import BASE_TEMPLATE, HARDWARE_TEMPLATE, render_software_tabs
@@ -33,8 +34,8 @@ ABOUT_HTML = """<section class="panel">
   <a href="https://uxlfoundation.github.io/scikit-learn-intelex/latest/">scikit-learn-intelex</a>
   or an <a href="https://scikit-learn.org/stable/modules/array_api.html">Array API</a> backend,
   and when a different <dfn>BLAS</dfn>/<dfn>OpenMP</dfn> <dfn>build</dfn> or machine changes anything.
-  Most dashboards below vary one of these (<dfn>implementation</dfn>, build or hardware)
-  and keep the others fixed. The scalability ones look at how a fit speeds up
+  The comparison dashboard varies these (<dfn>implementation</dfn>, build or hardware).
+  The scalability ones look at how a fit speeds up
   with more <dfn>CPU cores</dfn>. Each dashboard explains how to read it in its own intro.
   </p>
 
@@ -62,8 +63,16 @@ ABOUT_HTML = """<section class="panel">
     </li>
     <li>
     Using a bigger machine doesn't help a lot for a single fit for most models
-    except <b>random forests</b> and alike. But it helps a lot for multiple parallelized fits, typically
+    except <b>random forests</b> and alike. But it helps a lot for
+    <a href="hardware_parallel_fits.html">multiple parallelized fits</a>, typically
     for hyper-parameter tuning workloads.
+    </li>
+    <li>
+    cuML <b>LogisticRegression</b> always runs the quasi-Newton <dfn>solver</dfn>
+    <code>qn</code> (L-BFGS or OWL-QN). A point may still be labeled
+    <code>lbfgs</code>, <code>newton-cg</code>, or <code>newton-cholesky</code>:
+    the wrapper maps every one of those names onto <code>qn</code>, so those
+    cuML cases time the same algorithm.
     </li>
   </ul>
 </section>"""
@@ -76,11 +85,12 @@ DASHBOARDS = [
 ]
 
 DASHBOARD_DESCRIPTIONS = {
-    "per_hardware.html": "scikit-learn-intelex and <dfn>Array API</dfn> backends vs stock scikit-learn.",
-    "builds_comparison.html": "<dfn>PyPI</dfn> vs <dfn>conda-forge</dfn> <dfn>BLAS/OpenMP builds</dfn> of scikit-learn.",
-    "hardware_comparisons.html": "Same software on different machines.",
+    gen_cross_comparison.ENTRY_PAGE: "Comparison of fit times across any software variant and any machine: cuML, scikit-learn-intelex, <dfn>Array API</dfn> backends, <dfn>BLAS/OpenMP builds</dfn>, on the same machine or another one.",
+    gen_hardware_parallel_fits.ENTRY_PAGE: "Machines getting through many fits in parallel, with each search on all their cores.",
     "models_scalability.html": "How a single fit scales with more CPU cores.",
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
+    "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
+    "hptuning_strong_scaling.html": "How much extra CPUs shorten a search with a fixed number of fits.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
     "hgb_dev_scaling.html": "Fit time per phase as the thread count grows, for scikit-learn branches.",
     "hgb_speedup_breakdown.html": "Per-phase fit speed-up of scikit-learn branches over main.",

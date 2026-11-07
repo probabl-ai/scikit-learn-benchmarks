@@ -179,7 +179,8 @@ def run_hptuning(case: HPTuningCase) -> dict:
     ):
         # Warm up the worker pool so its startup cost isn't attributed to
         # the timed search below.
-        Parallel(n_jobs=hptuning.n_jobs)(delayed(lambda: None)() for _ in range(hptuning.n_jobs))
+        n_workers = joblib.effective_n_jobs(hptuning.n_jobs)
+        Parallel(n_jobs=n_workers)(delayed(lambda: None)() for _ in range(n_workers))
 
         # No refit: it would run once in the main process whatever n_jobs is.
         search = GridSearchCV(

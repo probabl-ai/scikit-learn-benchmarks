@@ -25,31 +25,47 @@ path (`kick`'s second LogisticRegression case below), which opts in via
 
 The clustering cases (`sift`, `nytimes_256`, `fashion_mnist_784`) are dense
 embedding datasets from ann-benchmarks.com and only get a single KMeans
-case each, run at library-default hyperparameters aside from `n_clusters`:
+case each, run at library-default hyperparameters aside from `n_clusters`
+and a fixed number of iterations (`tol=1e-9`, `max_iter=100`):
 unlike the linear/tree cases above, the interesting axis here is
 n_samples/n_clusters, not per-model hyperparameter tuning.
 """
 from typing import Callable, Iterable
 
+from _utils.implementations import pixi_env_runs_sklearn_on_openblas
 from joblib import cpu_count
 
 from sklbench.config.utils import select_logistic_regression_solver
 
 BENCH = {"n_runs": 5}
 
-# KMeans crashes (segfault / heap corruption / OpenBLAS "too many memory
-# regions") on many-core machines with the PyPI wheel's OpenBLAS: it is
-# precompiled with NUM_THREADS=64, i.e. a fixed pool of 128 memory buffers,
-# and KMeans calls gemm concurrently from every OpenMP thread, so 128 OpenMP
-# threads exhaust the pool - see
-# https://github.com/OpenMathLib/OpenBLAS/issues/5958. The cap applies to
-# every env, not just sklearn-pypi, because `bench.env` is part of the case
-# match key: builds are only compared when they ran with the same env.
+# scikit-learn's KMeans crashes (segfault / heap corruption / "too many memory
+# regions") on many-core machines with every OpenBLAS build: it calls gemm
+# concurrently from every OpenMP thread, which exhausts OpenBLAS's fixed pool of
+# memory buffers, see https://github.com/OpenMathLib/OpenBLAS/issues/5958.
+# MKL and sklearnex don't need the cap.
 _KMEANS_ENV = {}
-if cpu_count() > 64:
+if cpu_count() > 64 and pixi_env_runs_sklearn_on_openblas():
     _KMEANS_ENV["OMP_NUM_THREADS"] = "64"
     _KMEANS_ENV["OPENBLAS_NUM_THREADS"] = "64"
 KMEANS_BENCH = {"env": _KMEANS_ENV}
+# Note that cuML uses a slightly different init method compared to
+# scikit-learn: its default is `init="scalable-k-means++"` instead of
+# `init="k-means++"`. This can lead to non-trivial inertia discrepancies
+# for particular data distributions. Pin `init="k-means++"`.
+# cuML reads `n_init="auto"` as 10 restarts for `k-means++` and as 1
+# restart for `scalable-k-means++`. scikit-learn's auto with `k-means++`
+# is 1 restart. Pin `n_init=1`.
+# `tol=1e-9` and `max_iter=100` fix the number of iterations. Otherwise
+# the two implementations stop after very different iteration counts and
+# the timings are not comparable. cuML rejects `tol=0`; the value has to
+# be positive.
+_KMEANS_PARAMS = {
+    "tol": 1e-9,
+    "max_iter": 100,
+    "init": "k-means++",
+    "n_init": 1,
+}
 
 # Forests run with n_jobs=-1, as most users would: one thread per logical CPU.
 N_THREADS = cpu_count()
@@ -601,20 +617,20 @@ def sift(implem: dict):
     # KMeans, full dataset, few clusters: ~3s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10},
+        "estimator_params": {"n_clusters": 10, **_KMEANS_PARAMS},
         "tier": "fast",
         "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~29s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100},
+        "estimator_params": {"n_clusters": 100, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
     # n_samples/n_clusters ~= 100 (10000/100).
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 1000},
+        "estimator_params": {"n_clusters": 1000, **_KMEANS_PARAMS},
         "split_kwargs": {"train_size": 100000, "test_size": 1000},
         "bench": KMEANS_BENCH,
     }
@@ -630,13 +646,13 @@ def nytimes_256(implem: dict):
     # KMeans, full dataset, few clusters: ~2s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10},
+        "estimator_params": {"n_clusters": 10, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~15s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100},
+        "estimator_params": {"n_clusters": 100, **_KMEANS_PARAMS},
         "tier": "normal",
         "bench": KMEANS_BENCH,
     }
@@ -649,7 +665,7 @@ def fashion_mnist_784(implem: dict):
     # default. KMeans, full dataset, many clusters: ~7.5s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 100},
+        "estimator_params": {"n_clusters": 100, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
 
@@ -665,13 +681,13 @@ def road_network_points(implem: dict):
     # KMeans, full dataset, few clusters: ~0.2s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 10},
+        "estimator_params": {"n_clusters": 10, **_KMEANS_PARAMS},
         "bench": KMEANS_BENCH,
     }
     # KMeans, full dataset, many clusters: ~14s/fit.
     yield {
         "estimator": "KMeans",
-        "estimator_params": {"n_clusters": 1000},
+        "estimator_params": {"n_clusters": 1000, **_KMEANS_PARAMS},
         "tier": "normal",
         "bench": KMEANS_BENCH,
     }
