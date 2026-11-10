@@ -26,3 +26,6 @@ dashboards/*.html
 
 # Local wrangler CLI cache/config (Cloudflare Pages deploys)
 .wrangler/
+
+# Local Claude Code settings, skills and worktrees
+.claude/
