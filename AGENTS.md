@@ -30,3 +30,34 @@
   `generate_cases()` before running full benchmarks.
 - Do not add tests for small UX/log-noise details, such as filtering known
   benign command-line warnings from orchestrator output.
+
+# Experimentation guidelines
+
+These apply to ad hoc timing experiments on the benchmark machines (A/B tests,
+library comparisons, reruns of an upstream PR's benchmark), not only to the
+`sklbench` runs.
+
+- Time everything under `benchlock`, which is on the PATH of all benchmark
+  machines (`benchlock --help`). Check `benchlock status --all-hosts` first,
+  always pass `--tag` with a short description of the task, and also take the
+  lock for CPU-heavy setup (`pixi install`, builds, data preparation). If it
+  gives up waiting (exit 75), pick another machine or slot instead of retrying
+  in a loop.
+- Run all the contenders of a comparison interleaved inside one `benchlock`
+  call, not one call per contender.
+- Launch long runs detached so they survive the ssh session:
+  `ssh -f HOST 'cd DIR && nohup benchlock --tag "..." all -- ./run.sh > run.log 2>&1 < /dev/null &'`.
+  To stop one, kill the run script and its Python processes as well as
+  `benchlock`; killing only `benchlock` leaves the tree running.
+- Append one JSON line per measurement as soon as it finishes, with the
+  library versions, so a stopped or crashed run keeps what it measured.
+- Keep one-time costs (imports, data loading, compilation, warm-up) out of the
+  timed region, and set the same thread counts and precision settings for all
+  contenders.
+- Check that the contenders do the same work: log the number of iterations and
+  a quality metric next to each time. A faster run that stops earlier is not
+  faster.
+- Estimate the total duration from the first measured fits before announcing
+  it, and ask the user before starting anything longer than ~1 hour.
+- If ssh reports a changed host key, stop and ask the user before accepting
+  the new key.
