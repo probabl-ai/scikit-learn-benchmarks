@@ -1,4 +1,5 @@
 from importlib.resources import files
+from urllib.parse import quote
 
 from jinja2 import Template
 from plotly.offline import get_plotlyjs_version
@@ -15,12 +16,17 @@ BASE_CSS = (
     .joinpath("base.css")
     .read_text(encoding="utf-8")
 )
+# Inlined so that every page gets it, wherever it is published.
+FAVICON_HREF = "data:image/svg+xml," + quote(
+    files("sklbench.reporting.html").joinpath("favicon.svg").read_text(encoding="utf-8")
+)
 
 BASE_TEMPLATE = Template("""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>{{ title|default("sklbench dashboard") }}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ favicon_href }}">
   <link href="{{ tabulator_css }}" rel="stylesheet">
   <script src="{{ plotly_cdn }}"></script>
   <script src="{{ tabulator_js }}"></script>
@@ -435,6 +441,7 @@ BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
 BASE_TEMPLATE.globals["expand_terms"] = expand_terms
 BASE_TEMPLATE.globals["repository_url"] = RESULTS_REPOSITORY_URL
+BASE_TEMPLATE.globals["favicon_href"] = FAVICON_HREF
 
 SOURCE_CELL = """            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
             {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
