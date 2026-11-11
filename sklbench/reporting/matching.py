@@ -20,6 +20,7 @@ RESULT_FILE_RE = re.compile(r"^(?:.+_)?(\d{8}T\d{6}(?:\d{6})?Z)\.json$")
 # versions, so a driver update alone mints a new hash.
 HARDWARE_HASH_ALIASES = {
     "37bc7b": "3b5e61",  # Intel Core Ultra laptop, Level Zero 1.15 -> 1.17
+    "51bec0": "d189c4",  # NVIDIA L4 VM (aws-l4-3), driver 595.91.07 -> 595.112.07
 }
 METRIC_ABS_TOLERANCE_FLOOR = 0.01
 METRIC_REL_TOLERANCE_FLOOR = 0.01
