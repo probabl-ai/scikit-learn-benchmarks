@@ -25,6 +25,8 @@ import os
 
 import joblib
 
+from _utils.numa import cpu_affinity_spread_over_numa_nodes
+
 DATASETS = [
     "glove_200",
     "sift_128",
@@ -43,11 +45,15 @@ N_FEATURES = {
 }
 N_CLUSTERS = [256, 1024]
 
-# At 86 threads (one socket of the Xeon), some libraries slow down for reasons specific
-# to such a large socket: a 1,024-row MiniBatchKMeans step is ~9x slower than at 8
-# threads, and FAISS Lloyd iterations ~2x slower than at 43.
-MAX_THREADS = 43
+# Above 64 OpenMP threads, scikit-learn's KMeans crashes with OpenBLAS (see
+# _real_datasets.py). Bigger machines run on 64 of their physical cores.
+MAX_THREADS = 64
 N_THREADS = min(joblib.cpu_count(only_physical_cores=True), MAX_THREADS)
+CPU_AFFINITY = (
+    cpu_affinity_spread_over_numa_nodes(MAX_THREADS)
+    if joblib.cpu_count(only_physical_cores=True) > MAX_THREADS
+    else None
+)
 
 _BUDGET = [3, 10, 30, 100, 300]
 _EPOCHS = [0.5, 1, 2, 5, 10]
@@ -234,7 +240,7 @@ def _case(name, params, dataset, n_clusters, *, n_runs, time_limit, split_kwargs
         "data": data,
         "implementation": spec["implementation"],
         "runner_module": "sklbench.runners.clustering",
-        "bench": {"n_runs": n_runs, "time_limit": time_limit, "env": env},
+        "bench": {"n_runs": n_runs, "time_limit": time_limit, "env": env, "cpu_affinity": CPU_AFFINITY},
     }
 
 
