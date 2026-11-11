@@ -60,9 +60,10 @@ IMPLEMENTATIONS = {
 }
 MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
 MACHINE_DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
-# Lowest floor of the y-axis. Each plot puts its floor one decade below its smallest
-# positive relative inertia, and draws the runs at the best known inertia there.
-MIN_FLOOR = 1e-7
+# Relative inertias below this tie with the best: runs that reach the same centers on
+# two machines differ by ~1e-7 from floating-point rounding. Each plot draws them on
+# a line one decade below its smallest relative inertia above this.
+TIED_WITH_BEST = 1e-6
 # Parameters that pick the implementation rather than a setting.
 IMPLEMENTATION_PARAMS = {"algorithm", "fused", "gpu", "n_clusters"}
 
@@ -94,8 +95,9 @@ ABOUT_HTML = """<section class="panel">
     CPU implementations get the same number of threads: one per physical core, at
     most 64. Machines with more cores run on their first 64 physical cores.</p>
     <p>The best known inertia of a dataset and number of clusters is the lowest of any
-    run on any machine, including long reference runs that are not plotted. Points at
-    the bottom of the y-axis reached it.</p>
+    run on any machine, including long reference runs that are not plotted. Points on
+    the dotted line at the bottom are within 1e-6 of it (rounding differences between
+    machines are ~1e-7).</p>
   </details>
 </section>"""
 
@@ -202,6 +204,10 @@ def pareto_front(points: list[dict]) -> list[dict]:
     return front
 
 
+def _relative(value: float) -> str:
+    return "best" if value < TIED_WITH_BEST else f"{value:.2e}"
+
+
 def _hover(point: dict, name: str) -> str:
     record = point["record"]
     attributes = [run.get("attributes", {}) for run in record.runs]
@@ -209,7 +215,8 @@ def _hover(point: dict, name: str) -> str:
         f"<b>{escape(name)}</b>",
         escape(_settings(record.case)),
         f"fit time: {point['fit_s']:.3g} s ({point['fit_s_min']:.3g} to {point['fit_s_max']:.3g})",
-        f"relative inertia: {point['rel']:.2e} ({point['rel_min']:.2e} to {point['rel_max']:.2e})",
+        f"relative inertia: {_relative(point['rel'])} "
+        f"({_relative(point['rel_min'])} to {_relative(point['rel_max'])})",
     ]
     n_iter = [a["n_iter"] for a in attributes if isinstance(a.get("n_iter"), (int, float))]
     epochs = [a["epochs"] for a in attributes if a.get("epochs") is not None]
@@ -264,13 +271,12 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
     by_series = defaultdict(list)
     for record in records:
         by_series[_series_key(record)].append(_point(record, best))
-    positive = [
-        v for points in by_series.values() for p in points for v in (p["rel"], p["rel_min"]) if v > 0
-    ]
-    floor = max(MIN_FLOOR, 10 ** math.floor(math.log10(min(positive))) / 10) if positive else 1e-6
+    values = [v for points in by_series.values() for p in points for v in (p["rel"], p["rel_min"])]
+    above = [v for v in values if v >= TIED_WITH_BEST]
+    floor = 10 ** math.floor(math.log10(min(above))) / 10 if above else TIED_WITH_BEST / 10
 
     def clip(value):
-        return max(value, floor)
+        return floor if value < TIED_WITH_BEST else value
 
     names = _series_names(list(by_series))
     order = list(IMPLEMENTATIONS)
@@ -315,6 +321,16 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
             hoverinfo="text",
             meta=meta,
         ))
+    if any(v < TIED_WITH_BEST for v in values):
+        fig.add_hline(y=floor, line={"color": "#48566b", "width": 1, "dash": "dot"})
+        # Annotations take log10 coordinates on a log axis, lines don't.
+        fig.add_annotation(
+            text="best known inertia (within 1e-6)",
+            x=0, xref="paper", xanchor="left",
+            y=math.log10(floor), yref="y", yanchor="bottom",
+            showarrow=False,
+            font={"size": 11, "color": "#48566b"},
+        )
     fig.update_layout(
         template=PLOT_TEMPLATE,
         height=560,
