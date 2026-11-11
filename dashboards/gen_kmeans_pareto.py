@@ -22,11 +22,16 @@ from sklbench.reporting.matching import (
     matches_source_configs,
     read_benchmark_records,
 )
-from sklbench.reporting.utils import stable_json
+from sklbench.reporting.utils import stable_json, without_keys
 
 
 TITLE = "k-means: fit time against inertia"
-SOURCE_CONFIGS = ["configs/kmeans_pareto.py", "configs/kmeans_pareto_reference.py"]
+SOURCE_CONFIGS = [
+    "configs/kmeans_pareto.py",
+    "configs/kmeans_pareto_reference.py",
+    # Temporary, until the full sweep runs.
+    "configs/kmeans_pareto_fast.py",
+]
 REFERENCE_CONFIG = "configs/kmeans_pareto_reference.py"
 SOURCE_ENVS = ["sklearn-dev", "faiss-cpu", "faiss-gpu", "cuml", "skl-nvidia"]
 OUTPUT = "kmeans_pareto.html"
@@ -144,10 +149,11 @@ def read_records() -> list[BenchmarkRecord]:
     for record in read_benchmark_records():
         if not record.runs or not matches_source_configs(record.case, SOURCE_CONFIGS):
             continue
+        # A case of a subset config (kmeans_pareto_fast.py) is the same case.
         key = (
             record.hardware_hash,
             software_build_name(record.software_hash),
-            stable_json(record.case),
+            stable_json(without_keys(record.case, excluded_names={"source_config"})),
         )
         if key not in latest or record.timestamp_recorded > latest[key].timestamp_recorded:
             latest[key] = record
