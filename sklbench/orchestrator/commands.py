@@ -14,6 +14,7 @@ from ..config import Case, EstimatorCase, HPTuningCase
 RUNNER_MODULES = {
     "estimator": "sklbench.runners.estimator",
     "hptuning": "sklbench.runners.hptuning",
+    "clustering": "sklbench.runners.clustering",
 }
 PY_SPY_NO_CHILD_PROCESS_ERROR = "Error: No child process (os error 10)"
 

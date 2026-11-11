@@ -1072,6 +1072,97 @@ def load_nytimes_256_l2_normalized(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": data["y"]}, data_desc
 
 
+"""
+k-means datasets (configs/kmeans_pareto.py): all rows, float32, no target.
+"""
+
+
+def _ann_train_only(url, raw_data_cache):
+    import h5py
+
+    local_path = os.path.join(raw_data_cache, os.path.basename(url))
+    retrieve(url, local_path)
+    with h5py.File(local_path, "r") as f:
+        x = np.asarray(f["train"], dtype=np.float32)
+    return {"x": x, "y": np.zeros(x.shape[0])}, {}
+
+
+def load_sift_128(raw_data_cache: str) -> tuple[dict, dict]:
+    """The 1,000,000 x 128 SIFT1M descriptors (train set of ann-benchmarks'
+    sift-128-euclidean), as published: norms are ~509."""
+    return _ann_train_only("http://ann-benchmarks.com/sift-128-euclidean.hdf5", raw_data_cache)
+
+
+def load_glove_200(raw_data_cache: str) -> tuple[dict, dict]:
+    """The 1,183,514 x 200 GloVe word vectors (train set of ann-benchmarks'
+    glove-200-angular). Unlike `glove_100`, not normalized: norms are 6.2 +- 1.1."""
+    return _ann_train_only("http://ann-benchmarks.com/glove-200-angular.hdf5", raw_data_cache)
+
+
+def load_clip_512(raw_data_cache: str) -> tuple[dict, dict]:
+    """The first 1,000,000 CLIP ViT-B/32 image embeddings of
+    Qdrant/wolt-food-clip-ViT-B-32-embeddings (parts 00 to 19, 4.6 GB of parquet).
+
+    L2-normalized. ~23% of the rows are exact duplicates, kept on purpose: random init
+    can then pick identical centers and leave empty clusters.
+    """
+    import pyarrow.parquet as pq
+
+    url = (
+        "https://huggingface.co/datasets/Qdrant/wolt-food-clip-ViT-B-32-embeddings/"
+        "resolve/main/data/part-{:02d}-wolt-clip-ViT-B-32.parquet"
+    )
+    parts = []
+    for i in range(20):
+        local_path = os.path.join(raw_data_cache, os.path.basename(url.format(i)))
+        retrieve(url.format(i), local_path)
+        # The vectors are JSON strings, "[x0,x1,...]".
+        column = pq.read_table(local_path, columns=["vector"]).column("vector")
+        strings = column.cast(column.type.storage_type).to_pylist()
+        text = ",".join(s.strip()[1:-1] for s in strings)
+        parts.append(np.array(text.split(","), dtype=np.float32).reshape(len(strings), -1))
+    x = np.concatenate(parts)
+    return {"x": x, "y": np.zeros(x.shape[0])}, {}
+
+
+def load_year_prediction_msd_standardized(raw_data_cache: str) -> tuple[dict, dict]:
+    """The 90 features of `year_prediction_msd`, each standardized over all rows:
+    their raw std ranges from 4.4 to 1,750, so raw Euclidean distances would only
+    depend on a few timbre covariance features."""
+    data, _ = load_year_prediction_msd(raw_data_cache)
+    x = data["x"].to_numpy(dtype=np.float64)
+    std = x.std(axis=0)
+    std[std == 0] = 1
+    x = ((x - x.mean(axis=0)) / std).astype(np.float32)
+    return {"x": x, "y": np.zeros(x.shape[0])}, {}
+
+
+def load_road_network_km_x10(raw_data_cache: str) -> tuple[dict, dict]:
+    """The 434,874 points of `road_network_points` in kilometers, oversampled 10x.
+
+    Longitude and latitude are projected to local kilometers (equirectangular around
+    the mean latitude) and the altitude converted to kilometers, so that distances are
+    physical: in raw units, a meter of altitude weighs ~30x more than a degree of
+    longitude. Each point then comes with 9 copies jittered by isotropic Gaussian noise
+    of 5 m (about half a road's width; the median nearest-neighbor spacing is 16 m),
+    seed 0: 4,348,740 x 3.
+    """
+    data, _ = load_road_network_points(raw_data_cache)
+    lon, lat, alt = data["x"].T
+    earth_km = 6371.0088
+    lat0 = np.deg2rad(lat.mean())
+    km = np.column_stack([
+        np.deg2rad(lon - lon.mean()) * earth_km * np.cos(lat0),
+        np.deg2rad(lat - lat.mean()) * earth_km,
+        (alt - alt.mean()) / 1000,
+    ])
+    copies, jitter_km = 10, 0.005
+    x = np.repeat(km[:, None, :], copies, axis=1)
+    x[:, 1:] += np.random.default_rng(0).normal(scale=jitter_km, size=(len(km), copies - 1, 3))
+    x = x.reshape(-1, 3).astype(np.float32)
+    return {"x": x, "y": np.zeros(x.shape[0])}, {}
+
+
 dataset_loading_functions = {
     # used by configs/*.py
     "ames_housing": load_ames_housing,
@@ -1125,4 +1216,10 @@ dataset_loading_functions = {
     "glove_100": load_glove_100_l2_normalized,
     "fashion_mnist_784": load_fashion_mnist_784_euclidean,
     "nytimes_256": load_nytimes_256_l2_normalized,
+    # k-means
+    "sift_128": load_sift_128,
+    "glove_200": load_glove_200,
+    "clip_512": load_clip_512,
+    "year_prediction_msd_standardized": load_year_prediction_msd_standardized,
+    "road_network_km_x10": load_road_network_km_x10,
 }
