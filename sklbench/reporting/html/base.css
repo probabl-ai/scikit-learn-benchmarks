@@ -56,7 +56,15 @@ main {
   font-size: 14px;
   text-shadow: 0 0 6px var(--sk-cyan-shades-3);
 }
-.site-header .site-home:hover {
+.site-header .site-repo {
+  float: right;
+  margin-left: 16px;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 0 6px var(--sk-cyan-shades-3);
+}
+.site-header .site-home:hover,
+.site-header .site-repo:hover {
   text-decoration: underline;
 }
 h1, h2, h3 { font-weight: 500; line-height: 1.25; }

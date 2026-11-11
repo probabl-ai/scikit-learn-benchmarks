@@ -3,6 +3,8 @@ from importlib.resources import files
 from jinja2 import Template
 from plotly.offline import get_plotlyjs_version
 
+from sklbench.reporting.provenance import RESULTS_REPOSITORY_URL
+
 from .glossary import expand_terms
 
 
@@ -410,6 +412,7 @@ BASE_TEMPLATE = Template("""<!doctype html>
 </head>
 <body>
   <header class="site-header">
+    <a class="site-repo" href="{{ repo_url }}">View on GitHub &#8599;</a>
     {% set home = home_url if home_url is defined else "index.html" %}
     {% if home %}<a class="site-home" href="{{ home }}">&larr; All dashboards</a>{% endif %}
     <h1>{{ title|default("sklbench dashboard") }}</h1>
@@ -427,6 +430,7 @@ BASE_TEMPLATE.globals["tabulator_css"] = TABULATOR_CSS
 BASE_TEMPLATE.globals["tabulator_js"] = TABULATOR_JS
 BASE_TEMPLATE.globals["base_css"] = BASE_CSS
 BASE_TEMPLATE.globals["expand_terms"] = expand_terms
+BASE_TEMPLATE.globals["repo_url"] = RESULTS_REPOSITORY_URL
 
 SOURCE_CELL = """            {% if source.run_url %}<a href="{{ source.run_url }}">CI run</a>{% elif source.from_ci %}CI run{% elif source.commit_sha %}Manual run{% else %}Not committed{% endif %}
             {% if source.pr_url %} &middot; <a href="{{ source.pr_url }}">PR #{{ source.pr_number }}</a>{% endif %}
