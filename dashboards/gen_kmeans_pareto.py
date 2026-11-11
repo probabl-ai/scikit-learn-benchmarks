@@ -92,8 +92,7 @@ ABOUT_HTML = """<section class="panel">
     sample to its nearest center, computed in float64 from the returned centers by the
     same code for every implementation. Everything runs in float32 with TF32 off, and
     CPU implementations get the same number of threads: one per physical core, at
-    most 64. Machines with more cores run on 64 of them, spread over their
-    <dfn>NUMA nodes</dfn>.</p>
+    most 64. Machines with more cores run on their first 64 physical cores.</p>
     <p>The best known inertia of a dataset and number of clusters is the lowest of any
     run on any machine, including long reference runs that are not plotted. Points at
     the bottom of the y-axis reached it.</p>

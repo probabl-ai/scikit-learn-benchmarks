@@ -74,32 +74,3 @@ def cpu_affinity_for_socket(socket: int = 0, with_siblings: bool = True) -> list
         if package_id == socket
         for cpu_id in (sorted(cpu_ids) if with_siblings else [min(cpu_ids)])
     )
-
-
-def cpu_affinity_spread_over_numa_nodes(n_cores: int) -> list[int] | None:
-    """One logical CPU on each of `n_cores` physical cores, taken round-robin over
-    the NUMA nodes, or None on a single-node host.
-
-    Masks that fill the lowest CPU ids first pack pairs of nodes that share a memory
-    bottleneck on intel-xeon (nodes 0 and 1: 43 cores there are ~1.8x slower than on
-    nodes 0 and 2 on memory-heavy work), so this spreads the cores instead.
-    """
-    if numa_node_count() <= 1:
-        return None
-    first_cpu_of_core = {}
-    for topology in CPUS_SYSFS.glob("cpu[0-9]*/topology"):
-        cpu_id = int(topology.parent.name.removeprefix("cpu"))
-        key = (
-            (topology / "physical_package_id").read_text().strip(),
-            (topology / "core_id").read_text().strip(),
-        )
-        first_cpu_of_core[key] = min(cpu_id, first_cpu_of_core.get(key, cpu_id))
-    first_cpus = set(first_cpu_of_core.values())
-    per_node = [
-        [cpu for cpu in cpu_affinity_for_numa_node(node) if cpu in first_cpus]
-        for node in range(numa_node_count())
-    ]
-    cpus = []
-    for rank in range(max(map(len, per_node))):
-        cpus += [node_cpus[rank] for node_cpus in per_node if rank < len(node_cpus)]
-    return sorted(cpus[:n_cores])

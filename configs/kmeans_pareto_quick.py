@@ -1,6 +1,7 @@
 """A few minutes per environment: a handful of settings of every implementation of
-`kmeans_pareto.py`, on a 100,000-row subset of year_prediction_msd_standardized with 64
-clusters. To check an environment before the full sweep:
+`kmeans_pareto.py`, on 100,000-row subsets with 64 clusters: year_prediction_msd_standardized,
+and road_network_km_x10 for Elkan (3 features). To check an environment before the full
+sweep:
 
     ./run.sh sklearn-dev faiss-cpu --config configs/kmeans_pareto_quick.py
 """
@@ -13,7 +14,7 @@ _LLOYD = [{"init": ["random", "k-means++"], "max_iter": [2, 5, 20, 100], "tol": 
 _EMEANS = [{"n_epochs": [0.5, 1, 2, 5]}]
 GRIDS = {
     "sklearn-lloyd": _LLOYD,
-    "sklearn-elkan": [],
+    "sklearn-elkan": [{"init": "k-means++", "max_iter": [5, 100], "tol": 1e-9}],
     "sklearn-emeans": _EMEANS,
     "faiss-cpu": [{"niter": [2, 5, 20, 100]}],
     "emeans-cpu": _EMEANS,
@@ -30,11 +31,13 @@ assert set(GRIDS) | {"sklearn-minibatch"} == set(IMPLEMENTATIONS)
 
 def generate_cases() -> list[dict]:
     names = env_implementations(os.environ.get("PIXI_ENVIRONMENT_NAME"))
+    kwargs = {
+        "grids": GRIDS,
+        "time_limit": 600,
+        "split_kwargs": {"train_size": 100_000, "random_state": 0},
+    }
     return interleaved_cases(
-        [name for name in names if GRIDS[name]],
-        ["year_prediction_msd_standardized"],
-        [64],
-        grids=GRIDS,
-        time_limit=600,
-        split_kwargs={"train_size": 100_000, "random_state": 0},
+        names, ["year_prediction_msd_standardized"], [64], **kwargs
+    ) + interleaved_cases(
+        [name for name in names if name == "sklearn-elkan"], ["road_network_km_x10"], [64], **kwargs
     )

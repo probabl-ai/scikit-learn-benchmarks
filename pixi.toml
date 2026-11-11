@@ -238,6 +238,8 @@ cuml = "*"
 # FAISS k-means and e-means (`faiss.contrib.e_means`) on the CPU, for
 # configs/kmeans_pareto.py. The compilers build the OpenMP kernel of its
 # FastNumpyEmeans: `pixi run -e faiss-cpu build-emeans-kernel`.
+# Linux only: the macOS wheels need macOS 15, which pixi only takes as an extra
+# platform for every environment.
 [feature.faiss-cpu]
 platforms = ["linux-64"]
 

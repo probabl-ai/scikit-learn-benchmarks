@@ -25,7 +25,7 @@ import os
 
 import joblib
 
-from _utils.numa import cpu_affinity_spread_over_numa_nodes
+from _utils.scaling import cpu_affinity_for_physical_cores
 
 DATASETS = [
     "glove_200",
@@ -46,11 +46,12 @@ N_FEATURES = {
 N_CLUSTERS = [256, 1024]
 
 # Above 64 OpenMP threads, scikit-learn's KMeans crashes with OpenBLAS (see
-# _real_datasets.py). Bigger machines run on 64 of their physical cores.
+# _real_datasets.py). Bigger machines run on their first 64 physical cores, both SMT
+# siblings included.
 MAX_THREADS = 64
 N_THREADS = min(joblib.cpu_count(only_physical_cores=True), MAX_THREADS)
 CPU_AFFINITY = (
-    cpu_affinity_spread_over_numa_nodes(MAX_THREADS)
+    cpu_affinity_for_physical_cores(MAX_THREADS, with_siblings=True)
     if joblib.cpu_count(only_physical_cores=True) > MAX_THREADS
     else None
 )
