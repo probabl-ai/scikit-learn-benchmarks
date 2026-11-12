@@ -86,8 +86,7 @@ ABOUT_HTML = """<section class="panel">
   quality (random, <dfn>k-means++</dfn>, <dfn>k-means||</dfn>), and
   <dfn>e-means</dfn> trades iterations for quality differently. The settings of each
   implementation (init, number of inits, iterations or epochs, tolerance) sweep the
-  time budget. This is a port of
-  <a href="https://github.com/cakedev0/kmeans-benchmarks">cakedev0/kmeans-benchmarks</a>.</p>
+  time budget.</p>
   <details class="about-section">
     <summary>How to read</summary>
     <p>A point is one setting of one implementation: the median over 3 seeds of the
@@ -106,6 +105,48 @@ ABOUT_HTML = """<section class="panel">
     run on any machine, including long reference runs that are not plotted. Points on
     the dotted line at the bottom are within 1e-6 of it (rounding differences between
     machines are ~1e-7).</p>
+  </details>
+  <details class="about-section">
+    <summary>Implementations</summary>
+    <ul>
+      <li>scikit-learn Lloyd: <code>KMeans(algorithm="lloyd")</code> of scikit-learn
+      main, which includes the faster k-means++ of
+      <a href="https://github.com/scikit-learn/scikit-learn/pull/35140">#35140</a>.</li>
+      <li>scikit-learn Elkan: <code>KMeans(algorithm="elkan")</code>, only on the 3D
+      Road Network, since it only pays off in low dimension.</li>
+      <li>scikit-learn EMeans: <code>EMeans</code> of
+      <a href="https://github.com/cakedev0/scikit-learn/pull/46">cakedev0/scikit-learn#46</a>,
+      e-means in Cython, with a random or k-means++ init. Its fit ends with a pass over
+      the data to compute the labels of the final centers (about one more epoch).</li>
+      <li>FAISS Lloyd (CPU and GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
+      init and a fixed number of iterations (<code>niter</code>). By default FAISS
+      subsamples to 256 samples per cluster: here it trains on all the samples, unless
+      the settings show <code>max_points_per_centroid=256</code>. On the GPU, its
+      training loop runs on the host and only the nearest center search runs on the
+      GPU, so its time includes the transfers of every iteration.</li>
+      <li>FAISS e-means (NumPy): <code>NumpyEmeans</code> of
+      <code>faiss.contrib.e_means</code> 1.16, the reference implementation of the
+      paper, in NumPy with FAISS's nearest neighbor search.</li>
+      <li>FAISS e-means (Cython kernel): the same <code>NumpyEmeans</code>, with its
+      accumulation step (assignment, per-cluster sums and counts) in an OpenMP Cython
+      kernel written for this benchmark. The rest is FAISS's code, unchanged.</li>
+      <li>FAISS e-means (Triton, FP32): <code>QuantizedEmeans(quantizer=None)</code>,
+      e-means on PyTorch tensors with FAISS's Triton kernels, in float32.</li>
+      <li>FAISS e-means (BF16): <code>Emeans</code> with its defaults, which turn the
+      float32 input into bfloat16 operands (reduced precision).</li>
+      <li>cuML KMeans: RAPIDS cuML <code>KMeans</code>. Its <code>"k-means++"</code>
+      init is greedy k-means++, and <code>"scalable-k-means++"</code> is k-means||.</li>
+      <li>CuPy k-means, with or without fused kernels: the CuPy Lloyd of
+      <a href="https://github.com/ogrisel/cursor-sandbox/pull/22">ogrisel/cursor-sandbox#22</a>,
+      at a pinned commit.</li>
+    </ul>
+    <p>Settings don't mean the same thing everywhere, which is why the hover shows the
+    iterations next to the time. <code>tol</code> is relative to the mean feature
+    variance in scikit-learn and the CuPy code, and an absolute change of the inertia in
+    cuML. FAISS Lloyd and e-means have no tolerance: their budget is
+    <code>niter</code> or <code>n_epochs</code> (passes over the data, fractional
+    allowed). The batch size and step size of e-means come from the paper's scaling
+    laws, and <code>batch_law="quality"</code> uses 8x smaller batches.</p>
   </details>
 </section>"""
 
