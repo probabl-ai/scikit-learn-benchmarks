@@ -80,6 +80,8 @@ def _epochs(estimator, params: dict, n_samples: int) -> float | None:
             return float(estimator.n_steps_ * batch_size / n_samples)
     if params.get("n_init") == 1 and hasattr(estimator, "n_iter_"):
         return float(estimator.n_iter_)
+    if params.get("n_epochs") is not None:  # EMeans without n_steps_: no early stopping
+        return float(params["n_epochs"])
     return None
 
 
