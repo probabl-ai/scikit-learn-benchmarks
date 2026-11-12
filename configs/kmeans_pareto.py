@@ -43,7 +43,7 @@ N_FEATURES = {
     "year_prediction_msd_standardized": 90,
     "road_network_km_x10": 3,
 }
-N_CLUSTERS = [256, 1024]
+N_CLUSTERS = [64, 256, 1024]
 
 # Above 64 OpenMP threads, scikit-learn's KMeans crashes with OpenBLAS (see
 # _real_datasets.py). Bigger machines run on their first 64 physical cores, both SMT
