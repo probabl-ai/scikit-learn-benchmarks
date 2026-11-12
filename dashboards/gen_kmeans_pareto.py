@@ -75,7 +75,6 @@ IMPLEMENTATIONS = {
     "FAISS e-means (BF16)": ("#8045e5", "GPU"),
 }
 MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
-MACHINE_DASHES = ["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
 # Relative inertias below this tie with the best: runs that reach the same centers on
 # two machines differ by ~1e-7 from floating-point rounding. Each plot draws them on
 # a line one decade below its smallest relative inertia above this.
@@ -349,14 +348,17 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
         points = sorted(by_series[key], key=lambda p: p["fit_s"])
         front = pareto_front(points)
         color = IMPLEMENTATIONS.get(label, ("#48566b",))[0]
-        machine_index = machines.index(machine)
+        symbol = MACHINE_SYMBOLS[machines.index(machine) % len(MACHINE_SYMBOLS)]
         meta = {"implementation": label, "machine": machine}
         fig.add_trace(go.Scatter(
             x=[p["fit_s"] for p in front],
             y=[clip(p["rel"]) for p in front],
-            mode="lines",
-            line={"color": color, "width": 2, "shape": "hv",
-                  "dash": MACHINE_DASHES[machine_index % len(MACHINE_DASHES)]},
+            # The markers duplicate the front points of the next trace, so that the
+            # legend tells the machines apart.
+            mode="lines+markers",
+            line={"color": color, "width": 2, "shape": "hv"},
+            marker={"color": color, "size": 8, "symbol": symbol,
+                    "line": {"color": "white", "width": 0.8}},
             name=names[key],
             legendgroup=names[key],
             hoverinfo="skip",
@@ -374,7 +376,7 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
                      "arrayminus": [clip(p["rel"]) - clip(p["rel_min"]) for p in points]},
             mode="markers",
             marker={"color": color, "size": 8,
-                    "symbol": MACHINE_SYMBOLS[machine_index % len(MACHINE_SYMBOLS)],
+                    "symbol": symbol,
                     "opacity": [1.0 if id(p) in on_front else 0.3 for p in points],
                     "line": {"color": "white", "width": 0.8}},
             name=names[key],
