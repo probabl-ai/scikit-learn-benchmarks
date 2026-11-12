@@ -110,7 +110,7 @@ IMPLEMENTATIONS = {
     "sklearn-emeans": {
         "implementation": _SKLEARN,
         "estimator": "EMeans",
-        "defaults": {"init": "random", "n_epochs": 5, "batch_size": "auto"},
+        "defaults": {"init": "random", "n_epochs": 5},
         "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means++"]}],
     },
     "faiss-cpu": {
