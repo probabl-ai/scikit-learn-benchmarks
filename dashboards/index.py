@@ -122,6 +122,8 @@ def _hardware_overview_html() -> str:
 
 if __name__ == "__main__":
     output_dir = dashboard_output_dir()
+    # Temporary, to keep this branch's PR preview to the k-means dashboard: drop before merging.
+    DASHBOARDS = [entry for entry in DASHBOARDS if entry[1] is gen_kmeans_pareto]
 
     for _, module, _ in DASHBOARDS:
         module.generate(output_dir)
