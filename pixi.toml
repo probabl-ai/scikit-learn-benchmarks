@@ -267,7 +267,7 @@ torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
 # EMeans of sklearn-contrib-emeans (the PyPI package of cakedev0/scikit-learn#46),
 # for configs/kmeans_pareto.py.
 [feature.sklearn-contrib-emeans.pypi-dependencies]
-sklearn-contrib-emeans = "==0.2.0"
+sklearn-contrib-emeans = "==0.2.1"
 
 [feature.skl-intel]
 # The XPU torch/triton builds and dpnp's oneAPI stack are Linux-only.

@@ -127,7 +127,7 @@ ABOUT_HTML = """<section class="panel">
       the data to compute the labels of the final centers (about one more epoch).</li>
       <li>sklearn-contrib-emeans: <code>EMeans</code> of
       <a href="https://pypi.org/project/sklearn-contrib-emeans/">sklearn-contrib-emeans</a>
-      0.2.0, the PyPI package of the same e-means, with a random or k-means|| init.</li>
+      0.2.1, the PyPI package of the same e-means, with a random or k-means|| init.</li>
       <li>FAISS Lloyd (CPU and GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
       init and a fixed number of iterations (<code>niter</code>). By default FAISS
       subsamples to 256 samples per cluster: here it trains on all the samples, unless

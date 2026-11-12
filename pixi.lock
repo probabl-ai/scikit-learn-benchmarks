@@ -7102,8 +7102,8 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/b6/25/564f3fc5b70c1398d706c51f2b1470d0ea0b1b2f96fee67877b6f5bdf3b6/pytz-2026.6-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b6/ae/315bbeee126a769cbde43cf4908acb4b40408d8bf8bbf334dd7368d8dadf/pycparser-3.12-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b7/67/e9f2eb2aed41d4ed251a3c6f66e104685f0a03d8ded7ed87f1f0fc63898c/fonttools-4.68.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/b8/f0/17875c7e9d318b9838a8b436904901fa478e91bd7747220cf8a6ee948ca8/sklearn_contrib_emeans-0.2.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c3/a6/6c58f2115802dd3ef538d2bd5d4ec5559b6b4ffeab27d3b72ff1422ea3e1/cramjam-2.14.0-cp314-cp314-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/c6/0e/e55a6165c95ee6e85e0fabdf248ada4b3fc40a6a2c89f9625150012f26dc/sklearn_contrib_emeans-0.2.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/cf/82/8ef9c7e0f50493307a49c09cfa7f00c5a778b6d1921f7b2dabe1d3a5809e/narwhals-2.28.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/cf/8c/9677dad226e5aaac5b823d5b09d881ebc32ff1648af417597649841e516c/contourpy-1.4.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl
@@ -7223,8 +7223,8 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/b6/25/564f3fc5b70c1398d706c51f2b1470d0ea0b1b2f96fee67877b6f5bdf3b6/pytz-2026.6-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b6/ae/315bbeee126a769cbde43cf4908acb4b40408d8bf8bbf334dd7368d8dadf/pycparser-3.12-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b7/67/e9f2eb2aed41d4ed251a3c6f66e104685f0a03d8ded7ed87f1f0fc63898c/fonttools-4.68.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/b8/f0/17875c7e9d318b9838a8b436904901fa478e91bd7747220cf8a6ee948ca8/sklearn_contrib_emeans-0.2.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c3/a6/6c58f2115802dd3ef538d2bd5d4ec5559b6b4ffeab27d3b72ff1422ea3e1/cramjam-2.14.0-cp314-cp314-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/c6/0e/e55a6165c95ee6e85e0fabdf248ada4b3fc40a6a2c89f9625150012f26dc/sklearn_contrib_emeans-0.2.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/cf/82/8ef9c7e0f50493307a49c09cfa7f00c5a778b6d1921f7b2dabe1d3a5809e/narwhals-2.28.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/cf/8c/9677dad226e5aaac5b823d5b09d881ebc32ff1648af417597649841e516c/contourpy-1.4.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/e7/05/c19819d5e3d95294a6f5947fb9b9629efb316b96de511b418c53d245aae6/cycler-0.12.1-py3-none-any.whl
@@ -7315,7 +7315,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hf451053_7.conda
       - pypi: ./
       - pypi: https://files.pythonhosted.org/packages/04/5a/513484208742f65af2648c519f0b7ab034616e183c4403538024c136a1ab/contourpy-1.4.0-cp314-cp314-macosx_11_0_arm64.whl
-      - pypi: https://files.pythonhosted.org/packages/18/4b/9dd96b924b598f0057c21bfd75a12d6107e5a1d5f4f3b8a5948796cfa596/sklearn_contrib_emeans-0.2.0-cp314-cp314-macosx_12_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/18/53/84099323c2ec4be98d935f63c033ac4151ee83836ca1050ede3b3aadf155/joblib-1.6.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1a/70/ee6655887166a111d0c4d7ca61f03c90b141cdc6f70c85138fd0b8bfa2e3/fonttools-4.68.0-cp314-cp314-macosx_10_15_universal2.whl
       - pypi: https://files.pythonhosted.org/packages/21/00/266d6b357ad5e6d3ad55093a7e8efc7dd245f5a842b584db9f30b0f0a287/pandas-2.3.3-cp314-cp314-macosx_11_0_arm64.whl
@@ -7333,6 +7332,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/6e/43/73944aa5ad2b3185c0f0ba0ee6f73277f2eb51782ca6ccf3e6793caf209a/liac-arff-2.5.0.tar.gz
       - pypi: https://files.pythonhosted.org/packages/75/45/df0656b567d4b0f0f3646e80ff27ea6061978d2a604fe8523a3e31c07973/cramjam-2.14.0-cp314-cp314-macosx_11_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/83/94/ddba206772ae9b6d788ae7df3f5e55899a2e306b6958f9ac055136639a4e/sklearn_contrib_emeans-0.2.1-cp314-cp314-macosx_12_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/9b/ed/d68115577c8b42b0442ebd8180945d4008880a33176094640e00b585128e/scikit_learn-1.9.1-cp314-cp314-macosx_12_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/b3/a9/9db617d05d7367c1ad0ab00b3aa6e6f9281edd689b4ee9ea0e5a84e89c97/cffi-2.1.1-cp314-cp314-macosx_11_0_arm64.whl
@@ -7432,11 +7432,11 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/15/41/3df8cc14bb572c8b447f9dfbc876703f0f2f2896058285b5c87a1d4a638d/contourpy-1.4.0-cp314-cp314-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/18/53/84099323c2ec4be98d935f63c033ac4151ee83836ca1050ede3b3aadf155/joblib-1.6.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1c/18/2cd453cc2e282d465e9c9b60834d6ca17601dc08e2d402751cb40af92356/pyarrow-26.0.1-cp314-cp314-win_amd64.whl
-      - pypi: https://files.pythonhosted.org/packages/30/a0/1c2c92899aeb2e56d9830ee8f2c100173048af0ba0e56928352ca616e8be/sklearn_contrib_emeans-0.2.0-cp314-cp314-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/38/34/98a2f52245f4d47be93b580dae5f9861ef58977d73a79eb47c58f1ad1f3a/xmltodict-1.0.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/38/bb/d215ee7c73b61497b28a5503f9f53523f294fcc936762b7caf90e0c1c2b5/pyparsing-3.3.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3e/14/615a450205e1b56d16c6783f5ccd116cde05550faad70ae077c955654a75/h5py-3.16.0-cp314-cp314-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/3e/9a/b697530a882588a84db616580f2ba5d1d515c815e11c30d219145afeec87/minio-7.2.20-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/42/fc/5908bb238fe8878fbc7346d826ed5f1ba3f28e728c507e6a42574093434e/sklearn_contrib_emeans-0.2.1-cp314-cp314-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/46/d6/6653d96cce174d78c969de0dc2234407794b2394b96c0fad73fb00c247e6/fastparquet-2026.9.0-cp314-cp314-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/4a/f3/462c16d9e80177d22a036abd3df0f114bf311e566ff906adbb3d82790c20/openml-0.15.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/4e/0e/49522e1ab5788cbaf63a26fbd3b851f9028616828c961b8a31b35cb96df8/kiwisolver-1.5.1-cp314-cp314-win_amd64.whl
@@ -25568,18 +25568,6 @@ packages:
   version: 2.5.4
   sha256: d549420b8858885cea8838a727842249218b9c1da24dd517e25c9c7a948310a3
   requires_python: '>=3.12'
-- pypi: https://files.pythonhosted.org/packages/18/4b/9dd96b924b598f0057c21bfd75a12d6107e5a1d5f4f3b8a5948796cfa596/sklearn_contrib_emeans-0.2.0-cp314-cp314-macosx_12_0_arm64.whl
-  name: sklearn-contrib-emeans
-  version: 0.2.0
-  sha256: f82553d476478569183320c6512640e0e9844cd3cfed6f5a356d8e183d37a055
-  requires_dist:
-  - joblib>=1.4.0
-  - numpy>=1.26.0
-  - scipy>=1.11.4
-  - scikit-learn>=1.6
-  - threadpoolctl>=3.5.0
-  - pytest>=7 ; extra == 'test'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/18/53/84099323c2ec4be98d935f63c033ac4151ee83836ca1050ede3b3aadf155/joblib-1.6.0-py3-none-any.whl
   name: joblib
   version: 1.6.0
@@ -25949,18 +25937,6 @@ packages:
   - pytest-benchmark>=3.4.1 ; extra == 'test'
   - pytest-subtests>=0.11.0 ; extra == 'test'
   - pyglet>=2.1.9 ; extra == 'test'
-- pypi: https://files.pythonhosted.org/packages/30/a0/1c2c92899aeb2e56d9830ee8f2c100173048af0ba0e56928352ca616e8be/sklearn_contrib_emeans-0.2.0-cp314-cp314-win_amd64.whl
-  name: sklearn-contrib-emeans
-  version: 0.2.0
-  sha256: cd50557e4c439c403f73e5913e77c41d00b0f4c7068e22931d0749e2c461eaa8
-  requires_dist:
-  - joblib>=1.4.0
-  - numpy>=1.26.0
-  - scipy>=1.11.4
-  - scikit-learn>=1.6
-  - threadpoolctl>=3.5.0
-  - pytest>=7 ; extra == 'test'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/31/1e/9e366f36efc550f07d6737f199e3f6bffafdf28795d007f10a77dd274f5c/nvidia_nccl_cu12-2.29.7-py3-none-manylinux_2_18_x86_64.whl
   name: nvidia-nccl-cu12
   version: 2.29.7
@@ -26102,6 +26078,18 @@ packages:
   name: kiwisolver
   version: 1.5.1
   sha256: 43844c1a7ad6d723d5b5b4c4fc7f5bd399c40e288120d16257c7c9e8765c6e85
+  requires_python: '>=3.10'
+- pypi: https://files.pythonhosted.org/packages/42/fc/5908bb238fe8878fbc7346d826ed5f1ba3f28e728c507e6a42574093434e/sklearn_contrib_emeans-0.2.1-cp314-cp314-win_amd64.whl
+  name: sklearn-contrib-emeans
+  version: 0.2.1
+  sha256: 8881d62e6fdd16eab8657052b716cfa63971dec8dfaedd26942d62dbca96e3e4
+  requires_dist:
+  - joblib>=1.4.0
+  - numpy>=1.26.0
+  - scipy>=1.11.4
+  - scikit-learn>=1.6
+  - threadpoolctl>=3.5.0
+  - pytest>=7 ; extra == 'test'
   requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/43/3f/f88a53f60a472b46f4023f56d204dd7de33d34c5d2acbfa0d70a674e639e/threadpoolctl-3.7.0-py3-none-any.whl
   name: threadpoolctl
@@ -26915,6 +26903,18 @@ packages:
   sha256: b27207f3b42d12ce88cd53ca8b3b7a7e79755aa07a84eccf1c209fcbefe468bf
   requires_dist:
   - umf==1.1.*
+- pypi: https://files.pythonhosted.org/packages/83/94/ddba206772ae9b6d788ae7df3f5e55899a2e306b6958f9ac055136639a4e/sklearn_contrib_emeans-0.2.1-cp314-cp314-macosx_12_0_arm64.whl
+  name: sklearn-contrib-emeans
+  version: 0.2.1
+  sha256: 1fdf9106a51cdd767f60a8cbfd7bf577f91c5eedea98edb8f23d24e4c689b56d
+  requires_dist:
+  - joblib>=1.4.0
+  - numpy>=1.26.0
+  - scipy>=1.11.4
+  - scikit-learn>=1.6
+  - threadpoolctl>=3.5.0
+  - pytest>=7 ; extra == 'test'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/83/af/416bc19b3488129975a9bd1dbdb8bbe9340a49a802c1e24db6728e233359/onemkl_sycl_sparse-2026.1.0-py2.py3-none-manylinux_2_28_x86_64.whl
   name: onemkl-sycl-sparse
   version: 2026.1.0
@@ -27729,18 +27729,6 @@ packages:
   version: 12.9.86
   sha256: 210cf05005a447e29214e9ce50851e83fc5f4358df8b453155d5e1918094dcb4
   requires_python: '>=3'
-- pypi: https://files.pythonhosted.org/packages/b8/f0/17875c7e9d318b9838a8b436904901fa478e91bd7747220cf8a6ee948ca8/sklearn_contrib_emeans-0.2.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
-  name: sklearn-contrib-emeans
-  version: 0.2.0
-  sha256: 7064d97eca3b270988090a3c1350836cc143a342a7ae515a9cc207e597996300
-  requires_dist:
-  - joblib>=1.4.0
-  - numpy>=1.26.0
-  - scipy>=1.11.4
-  - scikit-learn>=1.6
-  - threadpoolctl>=3.5.0
-  - pytest>=7 ; extra == 'test'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/bb/14/e46964290aa587cb9fb7df20efdc60528ddd00d291ccffec47617fb06ca3/nvidia_cusparselt_cu12-0.8.1-py3-none-manylinux2014_x86_64.whl
   name: nvidia-cusparselt-cu12
   version: 0.8.1
@@ -27819,6 +27807,18 @@ packages:
   - pytest-xdist ; extra == 'test-no-images'
   - wurlitzer ; extra == 'test-no-images'
   requires_python: '>=3.12'
+- pypi: https://files.pythonhosted.org/packages/c6/0e/e55a6165c95ee6e85e0fabdf248ada4b3fc40a6a2c89f9625150012f26dc/sklearn_contrib_emeans-0.2.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
+  name: sklearn-contrib-emeans
+  version: 0.2.1
+  sha256: 96861964193175bf73a37a2850b380c45c31c7432a97835ba31d546f3bba8149
+  requires_dist:
+  - joblib>=1.4.0
+  - numpy>=1.26.0
+  - scipy>=1.11.4
+  - scikit-learn>=1.6
+  - threadpoolctl>=3.5.0
+  - pytest>=7 ; extra == 'test'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/c7/da/32c752228ae345f489e3a42499d817b6c3996da7e8a3bc7a04fc806b243b/pillow-12.3.0-cp314-cp314-macosx_11_0_arm64.whl
   name: pillow
   version: 12.3.0
