@@ -264,6 +264,11 @@ platforms = ["linux-64-cuda-12-9"]
 faiss-gpu = "==1.16.0"
 torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
 
+# EMeans of sklearn-contrib-emeans (the PyPI package of cakedev0/scikit-learn#46),
+# for configs/kmeans_pareto.py.
+[feature.sklearn-contrib-emeans.pypi-dependencies]
+sklearn-contrib-emeans = "==0.2.0"
+
 [feature.skl-intel]
 # The XPU torch/triton builds and dpnp's oneAPI stack are Linux-only.
 platforms = ["linux-64"]
@@ -353,3 +358,4 @@ reporting = ["py314", "reporting", "numpy-conda"]
 cuml = ["py314", "sklearn-conda", "cuml", "numpy-conda"]
 faiss-cpu = ["py314", "sklearn-pypi", "faiss-cpu"]
 faiss-gpu = ["py314", "sklearn-pypi", "faiss-gpu"]
+sklearn-contrib-emeans = ["py314", "sklearn-pypi", "sklearn-contrib-emeans"]

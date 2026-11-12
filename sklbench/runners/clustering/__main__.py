@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 WARMUP_OVERRIDES = {"max_iter": 2, "n_init": 1, "niter": 2, "nredo": 1, "n_epochs": 0.1}
 # scikit-learn has no JIT, so a subset of rows pays for imports and first calls.
 SKLEARN_WARMUP_ROWS = 100_000
+SUBSET_WARMUP_LIBRARIES = {"sklearn", "sklearn_emeans"}
 
 
 def warmup_params(case: EstimatorCase, params: dict) -> dict:
@@ -104,7 +105,7 @@ def run_case_to_jsonl(case: EstimatorCase, n_runs: int, output_jsonl: Path):
     params = dict(case.algorithm.estimator_params)
     t0 = perf_counter()
     rows = X_device.shape[0]
-    if case.implementation.library == "sklearn":
+    if case.implementation.library in SUBSET_WARMUP_LIBRARIES:
         rows = min(rows, max(SKLEARN_WARMUP_ROWS, 4 * params.get("n_clusters", 8)))
     estimator_class(
         **estimator_params_for_repeat(estimator_class, warmup_params(case, params), 0)

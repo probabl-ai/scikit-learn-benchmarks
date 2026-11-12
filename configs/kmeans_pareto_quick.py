@@ -16,6 +16,7 @@ GRIDS = {
     "sklearn-lloyd": _LLOYD,
     "sklearn-elkan": [{"init": "k-means++", "max_iter": [5, 100], "tol": 1e-9}],
     "sklearn-emeans": _EMEANS,
+    "sklearn-contrib-emeans": _EMEANS,
     "faiss-cpu": [{"niter": [2, 5, 20, 100]}],
     "emeans-cpu": _EMEANS,
     "emeans-cpu-cython": _EMEANS,

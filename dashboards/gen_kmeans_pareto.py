@@ -36,7 +36,14 @@ SOURCE_CONFIGS = [
     "configs/kmeans_pareto_fast.py",
 ]
 REFERENCE_CONFIG = "configs/kmeans_pareto_reference.py"
-SOURCE_ENVS = ["sklearn-dev", "faiss-cpu", "faiss-gpu", "cuml", "skl-nvidia"]
+SOURCE_ENVS = [
+    "sklearn-dev",
+    "faiss-cpu",
+    "faiss-gpu",
+    "cuml",
+    "skl-nvidia",
+    "sklearn-contrib-emeans",
+]
 OUTPUT = "kmeans_pareto.html"
 
 DATASET_NAMES = {
@@ -56,6 +63,7 @@ IMPLEMENTATIONS = {
     "scikit-learn Elkan": ("#2e9e5b", "CPU"),
     "scikit-learn MiniBatchKMeans": ("#f7931e", "CPU"),
     "scikit-learn EMeans": ("#15688c", "CPU"),
+    "sklearn-contrib-emeans": ("#d62728", "CPU"),
     "FAISS Lloyd (CPU)": ("#b76c13", "CPU"),
     "FAISS e-means (NumPy)": ("#e377c2", "CPU"),
     "FAISS e-means (Cython kernel)": ("#8045e5", "CPU"),
@@ -118,6 +126,9 @@ ABOUT_HTML = """<section class="panel">
       <a href="https://github.com/cakedev0/scikit-learn/pull/46">cakedev0/scikit-learn#46</a>,
       e-means in Cython, with a random or k-means++ init. Its fit ends with a pass over
       the data to compute the labels of the final centers (about one more epoch).</li>
+      <li>sklearn-contrib-emeans: <code>EMeans</code> of
+      <a href="https://pypi.org/project/sklearn-contrib-emeans/">sklearn-contrib-emeans</a>
+      0.2.0, the PyPI package of the same e-means, with a random or k-means|| init.</li>
       <li>FAISS Lloyd (CPU and GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
       init and a fixed number of iterations (<code>niter</code>). By default FAISS
       subsamples to 256 samples per cluster: here it trains on all the samples, unless
@@ -167,6 +178,8 @@ def implementation_label(case: dict) -> str:
             "QuantizedEmeans": "FAISS e-means (Triton, FP32)",
             "Emeans": "FAISS e-means (BF16)",
         }[estimator]
+    if library == "sklearn_emeans":
+        return "sklearn-contrib-emeans"
     if library == "cuml":
         return "cuML KMeans"
     if library == "kmeans_lloyd":
