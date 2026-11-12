@@ -2,13 +2,16 @@
 Pareto front per implementation and machine, one plot per (dataset, n_clusters).
 
 Every trace carries its implementation and machine in `meta`, and the checkboxes above
-the plots hide the traces of the unchecked ones in the browser.
+the plots hide the traces of the unchecked ones in the browser. The URL hash records
+the checked boxes of each group that is not fully checked, so filtered views can be
+shared.
 """
 
 from collections import defaultdict
 from html import escape
 import math
 from pathlib import Path
+import re
 import statistics
 
 from plotly import graph_objects as go
@@ -348,9 +351,14 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
     return fig.to_html(full_html=False, include_plotlyjs=False, config={"responsive": True})
 
 
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
 def _checkboxes(name: str, legend: str, values: list[tuple[str, str]]) -> str:
     boxes = "".join(
-        f'<label><input type="checkbox" checked data-{name}="{escape(value)}"> {escape(text)}</label>'
+        f'<label><input type="checkbox" checked data-{name}="{escape(value)}"'
+        f' data-slug="{_slug(text)}"> {escape(text)}</label>'
         for value, text in values
     )
     return (
@@ -376,10 +384,36 @@ FILTER_SCRIPT = """<script>
       Plotly.restyle(chart, {visible: visible});
     });
   }
+  const GROUPS = ["implementation", "machine"];
+  function boxes(name) {
+    return Array.from(document.querySelectorAll(`input[data-${name}]`));
+  }
+  function writeHash() {
+    const parts = GROUPS.flatMap((name) => {
+      const all = boxes(name);
+      const on = all.filter((box) => box.checked);
+      return on.length === all.length ? [] : [`${name}=${on.map((box) => box.dataset.slug).join(",")}`];
+    });
+    const url = window.location.pathname + window.location.search;
+    history.replaceState(null, "", parts.length ? `${url}#${parts.join("&")}` : url);
+  }
+  function readHash() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    GROUPS.forEach((name) => {
+      const on = new Set((params.get(name) ?? boxes(name).map((box) => box.dataset.slug).join(",")).split(","));
+      boxes(name).forEach((box) => { box.checked = on.has(box.dataset.slug); });
+    });
+    applyFilters();
+  }
   document.addEventListener("change", (event) => {
     if (event.target.matches("input[data-implementation], input[data-machine]")) {
       applyFilters();
+      writeHash();
     }
+  });
+  window.addEventListener("hashchange", readHash);
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.location.hash) readHash();
   });
 })();
 </script>"""
@@ -431,6 +465,9 @@ def render(records: list[BenchmarkRecord]) -> str:
         + _checkboxes("machine", "Machines", [(h, _machine_name(h)) for h in machines])
         + "</section>"
     )
+    for name, values in (("implementation", labels), ("machine", [_machine_name(h) for h in machines])):
+        slugs = [_slug(value) for value in values]
+        assert len(set(slugs)) == len(slugs), f"{name} checkboxes share a URL slug: {slugs}"
     return BASE_TEMPLATE.render(
         title=TITLE,
         rows=[
