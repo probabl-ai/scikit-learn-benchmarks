@@ -157,6 +157,18 @@ class FastNumpyEmeans(_Emeans):
             return self._train(em, X)
 
 
+class RustEmeans(_Emeans):
+    """``Emeans`` of the `emeans <https://pypi.org/project/emeans/>`_ package: a Rust
+    port of ``NumpyEmeans``, threaded with rayon."""
+
+    def fit(self, X, y=None):
+        # rayon sizes its global pool once, at the first call.
+        os.environ.setdefault("RAYON_NUM_THREADS", str(_threads()))
+        from emeans import Emeans
+
+        return self._train(Emeans(X.shape[1], self.n_clusters, **self._kwargs()), X)
+
+
 def _disable_tf32():
     import torch
 

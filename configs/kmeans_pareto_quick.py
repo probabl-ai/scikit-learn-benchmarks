@@ -20,6 +20,7 @@ GRIDS = {
     "faiss-cpu": [{"niter": [2, 5, 20, 100]}],
     "emeans-cpu": _EMEANS,
     "emeans-cpu-cython": _EMEANS,
+    "emeans-rs": _EMEANS,
     "faiss-gpu": [{"niter": [2, 5, 20, 100]}],
     "emeans-gpu": _EMEANS,
     "emeans-gpu-bf16": _EMEANS,

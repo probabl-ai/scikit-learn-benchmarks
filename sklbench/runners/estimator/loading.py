@@ -176,6 +176,7 @@ wrapped_estimators = {
     ("faiss", "FastNumpyEmeans"): "faiss_kmeans.FastNumpyEmeans",
     ("faiss", "QuantizedEmeans"): "faiss_kmeans.QuantizedEmeans",
     ("faiss", "Emeans"): "faiss_kmeans.Emeans",
+    ("emeans", "Emeans"): "faiss_kmeans.RustEmeans",
     ("kmeans_lloyd", "KMeans"): "cupy_kmeans.KMeans",
 }
 

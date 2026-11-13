@@ -6,7 +6,7 @@ Each case is one setting of one implementation, fitted 3 times (random_state 0 t
 on all the rows of a dataset, by `sklbench.runners.clustering`. Each pixi environment
 runs its own implementations:
 
-    ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans --config configs/kmeans_pareto.py  # CPU
+    ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans emeans-rs --config configs/kmeans_pareto.py  # CPU
     ./run.sh faiss-gpu cuml skl-nvidia --config configs/kmeans_pareto.py   # CUDA GPU
 
 The EMeans of cakedev0/scikit-learn#46 runs in a sklearn-dev build of that branch:
@@ -138,6 +138,12 @@ IMPLEMENTATIONS = {
         "defaults": _EMEANS_DEFAULTS,
         "grids": _EMEANS_CPU_GRID,
     },
+    "emeans-rs": {
+        "implementation": {"library": "emeans"},
+        "estimator": "Emeans",
+        "defaults": _EMEANS_DEFAULTS,
+        "grids": _EMEANS_CPU_GRID,
+    },
     "faiss-gpu": {
         "implementation": {"library": "faiss", "device": "cuda"},
         "estimator": "Kmeans",
@@ -215,6 +221,7 @@ def env_implementations(pixi_env: str | None) -> list[str]:
         "cuml": ["cuml"],
         "skl-nvidia": ["cupy", "cupy-fused"],
         "sklearn-contrib-emeans": ["sklearn-contrib-emeans"],
+        "emeans-rs": ["emeans-rs"],
     }.get(pixi_env, [])
 
 
@@ -238,6 +245,8 @@ def _case(name, params, dataset, n_clusters, *, n_runs, time_limit, split_kwargs
     env = {f"{lib}_NUM_THREADS": str(N_THREADS) for lib in ("OMP", "OPENBLAS", "MKL")}
     if spec["implementation"].get("device") == "cuda":
         env |= {"NVIDIA_TF32_OVERRIDE": "0", "CUPY_TF32": "0"}
+    if spec["implementation"]["library"] == "emeans":
+        env["RAYON_NUM_THREADS"] = str(N_THREADS)
     data = {"dataset": dataset, "dtype": "float32"}
     if split_kwargs:
         data["split_kwargs"] = split_kwargs

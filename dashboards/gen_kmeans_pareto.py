@@ -43,6 +43,7 @@ SOURCE_ENVS = [
     "cuml",
     "skl-nvidia",
     "sklearn-contrib-emeans",
+    "emeans-rs",
 ]
 OUTPUT = "kmeans_pareto.html"
 
@@ -64,6 +65,7 @@ IMPLEMENTATIONS = {
     "scikit-learn Elkan": ("#15688c", "CPU"),
     "sklearn-contrib-emeans": ("#f7931e", "CPU"),
     "FAISS e-means (NumPy)": ("#2e9e5b", "CPU"),
+    "emeans (Rust)": ("#9aa500", "CPU"),
     "cuML KMeans": ("#8045e5", "GPU"),
     "FAISS Lloyd (GPU)": ("#d1495b", "GPU"),
     "FAISS e-means (Triton, FP32)": ("#b76c13", "GPU"),
@@ -137,6 +139,9 @@ ABOUT_HTML = """<section class="panel">
       <li>FAISS e-means (NumPy): <code>NumpyEmeans</code> of
       <code>faiss.contrib.e_means</code> 1.16, the reference implementation of the
       paper, in NumPy with FAISS's nearest neighbor search.</li>
+      <li>emeans (Rust): <code>Emeans</code> of
+      <a href="https://pypi.org/project/emeans/">emeans</a> 0.1.1, a Rust port of
+      <code>NumpyEmeans</code> threaded with rayon.</li>
       <li>FAISS e-means (Triton, FP32): <code>QuantizedEmeans(quantizer=None)</code>,
       e-means on PyTorch tensors with FAISS's Triton kernels, in float32.</li>
       <li>FAISS e-means (BF16): <code>Emeans</code> with its defaults, which turn the
@@ -173,6 +178,8 @@ def implementation_label(case: dict) -> str:
         }[estimator]
     if library == "sklearn_emeans":
         return "sklearn-contrib-emeans"
+    if library == "emeans":
+        return "emeans (Rust)"
     if library == "cuml":
         return "cuML KMeans"
     if library == "kmeans_lloyd":
