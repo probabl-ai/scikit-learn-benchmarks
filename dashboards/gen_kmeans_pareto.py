@@ -88,6 +88,10 @@ TIED_WITH_BEST = 1e-6
 # Relative inertias below this are drawn on a "best known inertia" line at this
 # value, the same on every plot.
 BEST_LINE = 1e-5
+PLOT_FOOTNOTE = (
+    "median over seeds; whiskers: min to max over seeds; faded: off the front; "
+    "hover a point for its settings"
+)
 # Parameters that pick the implementation rather than a setting.
 IMPLEMENTATION_PARAMS = {"algorithm", "fused", "gpu", "n_clusters"}
 
@@ -370,8 +374,8 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
             # The markers duplicate the front points of the next trace, so that the
             # legend tells the machines apart.
             mode="lines+markers",
-            line={"color": color, "width": 2, "shape": "hv"},
-            marker={"color": color, "size": 8, "symbol": symbol,
+            line={"color": color, "width": 2.5, "shape": "hv"},
+            marker={"color": color, "size": 10, "symbol": symbol,
                     "line": {"color": "white", "width": 0.8}},
             name=names[key],
             legendgroup=names[key],
@@ -382,14 +386,14 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
         fig.add_trace(go.Scatter(
             x=[p["fit_s"] for p in points],
             y=[clip(p["rel"]) for p in points],
-            error_x={"type": "data", "symmetric": False, "thickness": 0.8, "width": 0,
+            error_x={"type": "data", "symmetric": False, "thickness": 1, "width": 0,
                      "array": [p["fit_s_max"] - p["fit_s"] for p in points],
                      "arrayminus": [p["fit_s"] - p["fit_s_min"] for p in points]},
-            error_y={"type": "data", "symmetric": False, "thickness": 0.8, "width": 0,
+            error_y={"type": "data", "symmetric": False, "thickness": 1, "width": 0,
                      "array": [clip(p["rel_max"]) - clip(p["rel"]) for p in points],
                      "arrayminus": [clip(p["rel"]) - clip(p["rel_min"]) for p in points]},
             mode="markers",
-            marker={"color": color, "size": 8,
+            marker={"color": color, "size": 10,
                     "symbol": symbol,
                     "opacity": [1.0 if id(p) in on_front else 0.3 for p in points],
                     "line": {"color": "white", "width": 0.8}},
@@ -522,7 +526,8 @@ def render(records: list[BenchmarkRecord]) -> str:
         cells.append(
             f'<section class="plot-cell kmeans-plot"><h3>{escape(title)}</h3>'
             f'<p class="plot-subtitle">{escape(subtitle)}</p>'
-            f"{_plot_html(plot_records, best[dataset, n_clusters], machines)}</section>"
+            f"{_plot_html(plot_records, best[dataset, n_clusters], machines)}"
+            f'<p class="plot-footnote">{PLOT_FOOTNOTE}</p></section>'
         )
 
     filters = (
