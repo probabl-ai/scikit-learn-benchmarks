@@ -128,12 +128,13 @@ IMPLEMENTATIONS = {
         "defaults": {"init": "random", "n_epochs": 5},
         "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means++"]}],
     },
-    # The same e-means, packaged on PyPI. "k-means||" is its recommended non-random init.
+    # The same e-means, packaged on PyPI. "k-means||" is its recommended non-random init,
+    # the slower greedy "k-means++" extends the front to lower inertias.
     "sklearn-contrib-emeans": {
         "implementation": {"library": "sklearn_emeans"},
         "estimator": "EMeans",
         "defaults": {"init": "random", "n_epochs": 5},
-        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||"]}],
+        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||", "k-means++"]}],
         "sparse": True,
     },
     # The same, on PyTorch tensors on the GPU, through the array API (0.3.0).
