@@ -3,8 +3,8 @@ Pareto front per implementation and machine, one plot per (dataset, n_clusters).
 
 Every trace carries its implementation and machine in `meta`, and the checkboxes above
 the plots hide the traces of the unchecked ones in the browser. The URL hash records
-the checked boxes of each group that is not fully checked, so filtered views can be
-shared.
+the checked boxes of each group that differs from the defaults, so filtered views can
+be shared.
 """
 
 from collections import defaultdict
@@ -82,6 +82,15 @@ HIDDEN_IMPLEMENTATIONS = {
     "CuPy k-means (fused kernels)",
     "emeans (Rust)",
 }
+# The boxes checked when the URL doesn't say otherwise.
+DEFAULT_IMPLEMENTATIONS = {
+    "scikit-learn Lloyd",
+    "sklearn-contrib-emeans",
+    "FAISS e-means (NumPy)",
+    "cuML KMeans",
+    "FAISS e-means (Triton, FP32)",
+}
+DEFAULT_MACHINES = {"332097", "d189c4"}  # Intel Core Ultra desktop, NVIDIA L4 VM
 MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
 # Relative inertias below this tie with the best in the hover: runs that reach the
 # same centers on two machines differ by ~1e-7 from floating-point rounding.
@@ -372,6 +381,7 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
         color = IMPLEMENTATIONS.get(label, ("#48566b",))[0]
         symbol = MACHINE_SYMBOLS[machines.index(machine) % len(MACHINE_SYMBOLS)]
         meta = {"implementation": label, "machine": machine}
+        visible = label in DEFAULT_IMPLEMENTATIONS and machine in DEFAULT_MACHINES
         fig.add_trace(go.Scatter(
             x=[p["fit_s"] for p in front],
             y=[clip(p["rel"]) for p in front],
@@ -385,6 +395,7 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
             legendgroup=names[key],
             hoverinfo="skip",
             meta=meta,
+            visible=visible,
         ))
         on_front = {id(p) for p in front}
         fig.add_trace(go.Scatter(
@@ -407,6 +418,7 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
             hovertext=[_hover(p, names[key]) for p in points],
             hoverinfo="text",
             meta=meta,
+            visible=visible,
         ))
     if any(v < BEST_LINE for v in values):
         fig.add_hline(y=BEST_LINE, line={"color": "#48566b", "width": 1, "dash": "dot"})
@@ -433,10 +445,10 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-def _checkboxes(name: str, legend: str, values: list[tuple[str, str]]) -> str:
+def _checkboxes(name: str, legend: str, values: list[tuple[str, str]], checked: set[str]) -> str:
     boxes = "".join(
-        f'<label><input type="checkbox" checked data-{name}="{escape(value)}"'
-        f' data-slug="{_slug(text)}"> {escape(text)}</label>'
+        f'<label><input type="checkbox"{" checked" if value in checked else ""}'
+        f' data-{name}="{escape(value)}" data-slug="{_slug(text)}"> {escape(text)}</label>'
         for value, text in values
     )
     return (
@@ -470,7 +482,8 @@ FILTER_SCRIPT = """<script>
     const parts = GROUPS.flatMap((name) => {
       const all = boxes(name);
       const on = all.filter((box) => box.checked);
-      return on.length === all.length ? [] : [`${name}=${on.map((box) => box.dataset.slug).join(",")}`];
+      return all.every((box) => box.checked === box.defaultChecked)
+        ? [] : [`${name}=${on.map((box) => box.dataset.slug).join(",")}`];
     });
     const url = window.location.pathname + window.location.search;
     history.replaceState(null, "", parts.length ? `${url}#${parts.join("&")}` : url);
@@ -478,8 +491,10 @@ FILTER_SCRIPT = """<script>
   function readHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
     GROUPS.forEach((name) => {
-      const on = new Set((params.get(name) ?? boxes(name).map((box) => box.dataset.slug).join(",")).split(","));
-      boxes(name).forEach((box) => { box.checked = on.has(box.dataset.slug); });
+      const on = params.has(name) ? new Set(params.get(name).split(",")) : null;
+      boxes(name).forEach((box) => {
+        box.checked = on ? on.has(box.dataset.slug) : box.defaultChecked;
+      });
     });
     applyFilters();
   }
@@ -490,9 +505,7 @@ FILTER_SCRIPT = """<script>
     }
   });
   window.addEventListener("hashchange", readHash);
-  document.addEventListener("DOMContentLoaded", () => {
-    if (window.location.hash) readHash();
-  });
+  document.addEventListener("DOMContentLoaded", readHash);
 })();
 </script>"""
 
@@ -542,11 +555,12 @@ def render(records: list[BenchmarkRecord]) -> str:
                 "implementation",
                 f"{device} implementations",
                 [(label, label) for label in labels if _device(label) == device],
+                DEFAULT_IMPLEMENTATIONS,
             )
             for device in ("CPU", "GPU")
             if any(_device(label) == device for label in labels)
         )
-        + _checkboxes("machine", "Machines", [(h, _machine_name(h)) for h in machines])
+        + _checkboxes("machine", "Machines", [(h, _machine_name(h)) for h in machines], DEFAULT_MACHINES)
         + "</section>"
     )
     for name, values in (("implementation", labels), ("machine", [_machine_name(h) for h in machines])):
