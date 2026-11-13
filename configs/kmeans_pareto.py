@@ -6,7 +6,7 @@ Each case is one setting of one implementation, fitted 3 times (random_state 0 t
 on all the rows of a dataset, by `sklbench.runners.clustering`. Each pixi environment
 runs its own implementations:
 
-    ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans emeans-rs --config configs/kmeans_pareto.py  # CPU
+    ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans sklearn-contrib-emeans-mkl emeans-rs --config configs/kmeans_pareto.py  # CPU
     ./run.sh faiss-gpu cuml skl-nvidia --config configs/kmeans_pareto.py   # CUDA GPU
 
 The EMeans of cakedev0/scikit-learn#46 runs in a sklearn-dev build of that branch:
@@ -221,6 +221,7 @@ def env_implementations(pixi_env: str | None) -> list[str]:
         "cuml": ["cuml"],
         "skl-nvidia": ["cupy", "cupy-fused"],
         "sklearn-contrib-emeans": ["sklearn-contrib-emeans"],
+        "sklearn-contrib-emeans-mkl": ["sklearn-contrib-emeans"],
         "emeans-rs": ["emeans-rs"],
     }.get(pixi_env, [])
 

@@ -363,4 +363,6 @@ cuml = ["py314", "sklearn-conda", "cuml", "numpy-conda"]
 faiss-cpu = ["py314", "sklearn-pypi", "faiss-cpu"]
 faiss-gpu = ["py314", "sklearn-pypi", "faiss-gpu"]
 sklearn-contrib-emeans = ["py314", "sklearn-pypi", "sklearn-contrib-emeans"]
+# The same wheel on conda-forge's MKL: its GEMMs go through scipy.linalg.cython_blas.
+sklearn-contrib-emeans-mkl = ["py314", "sklearn-mkl", "numpy-conda", "sklearn-contrib-emeans"]
 emeans-rs = ["py314", "sklearn-pypi", "emeans-rs"]

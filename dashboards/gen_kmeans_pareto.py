@@ -43,6 +43,7 @@ SOURCE_ENVS = [
     "cuml",
     "skl-nvidia",
     "sklearn-contrib-emeans",
+    "sklearn-contrib-emeans-mkl",
     "emeans-rs",
 ]
 OUTPUT = "kmeans_pareto.html"
@@ -64,6 +65,7 @@ IMPLEMENTATIONS = {
     "scikit-learn Lloyd": ("#2294c4", "CPU"),
     "scikit-learn Elkan": ("#15688c", "CPU"),
     "sklearn-contrib-emeans": ("#f7931e", "CPU"),
+    "sklearn-contrib-emeans (MKL)": ("#7ac5ec", "CPU"),
     "FAISS e-means (NumPy)": ("#2e9e5b", "CPU"),
     "emeans (Rust)": ("#9aa500", "CPU"),
     "cuML KMeans": ("#8045e5", "GPU"),
@@ -129,7 +131,9 @@ ABOUT_HTML = """<section class="panel">
       Road Network, since it only pays off in low dimension.</li>
       <li>sklearn-contrib-emeans: <code>EMeans</code> of
       <a href="https://pypi.org/project/sklearn-contrib-emeans/">sklearn-contrib-emeans</a>
-      0.2.1, e-means in Cython, with a random or k-means|| init.</li>
+      0.2.1, e-means in Cython, with a random or k-means|| init. Its GEMMs go
+      through SciPy's BLAS: OpenBLAS with the PyPI wheels of NumPy and SciPy, and MKL
+      with the conda-forge ones in the "(MKL)" variant.</li>
       <li>FAISS Lloyd (GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
       init and a fixed number of iterations (<code>niter</code>). By default FAISS
       subsamples to 256 samples per cluster: here it trains on all the samples, unless
@@ -187,13 +191,22 @@ def implementation_label(case: dict) -> str:
     return f"{library} {estimator}"
 
 
+# Builds that are plotted as their own implementation.
+BUILD_LABEL_SUFFIXES = {"sklearn-contrib-emeans-mkl": " (MKL)"}
+
+
+def record_label(record: BenchmarkRecord) -> str:
+    build = software_build_name(record.software_hash)
+    return implementation_label(record.case) + BUILD_LABEL_SUFFIXES.get(build, "")
+
+
 def _threads(record: BenchmarkRecord) -> str | None:
     return (record.case.get("env") or {}).get("OMP_NUM_THREADS")
 
 
 def _series_key(record: BenchmarkRecord) -> tuple:
     return (
-        implementation_label(record.case),
+        record_label(record),
         record.hardware_hash,
         software_build_name(record.software_hash),
         _threads(record),
@@ -483,11 +496,11 @@ def render(records: list[BenchmarkRecord]) -> str:
     plotted = [
         r for r in records
         if r.case["metadata"].get("source_config") != REFERENCE_CONFIG
-        and implementation_label(r.case) not in HIDDEN_IMPLEMENTATIONS
+        and record_label(r) not in HIDDEN_IMPLEMENTATIONS
     ]
     hashes = {r.hardware_hash for r in plotted}
     machines = [h for h in HARDWARE_NAMES if h in hashes] + sorted(hashes - set(HARDWARE_NAMES))
-    labels = {implementation_label(r.case) for r in plotted}
+    labels = {record_label(r) for r in plotted}
     order = list(IMPLEMENTATIONS)
     labels = sorted(labels, key=lambda label: (order.index(label) if label in order else len(order), label))
 
