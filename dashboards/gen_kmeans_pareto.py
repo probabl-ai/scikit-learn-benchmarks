@@ -92,6 +92,7 @@ DEFAULT_IMPLEMENTATIONS = {
     "scikit-learn Lloyd",
     "sklearn-contrib-emeans",
     "FAISS e-means (NumPy)",
+    "sklearn-contrib-emeans (PyTorch)",
     "cuML KMeans",
     "FAISS e-means (Triton, FP32)",
 }
