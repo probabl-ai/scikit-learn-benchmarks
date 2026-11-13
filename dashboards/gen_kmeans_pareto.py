@@ -80,6 +80,7 @@ HIDDEN_IMPLEMENTATIONS = {
     "FAISS e-means (Cython kernel)",
     "CuPy k-means",
     "CuPy k-means (fused kernels)",
+    "emeans (Rust)",
 }
 MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
 # Relative inertias below this tie with the best in the hover: runs that reach the
@@ -149,9 +150,6 @@ ABOUT_HTML = """<section class="panel">
       <li>FAISS e-means (NumPy): <code>NumpyEmeans</code> of
       <code>faiss.contrib.e_means</code> 1.16, the reference implementation of the
       paper, in NumPy with FAISS's nearest neighbor search.</li>
-      <li>emeans (Rust): <code>Emeans</code> of
-      <a href="https://pypi.org/project/emeans/">emeans</a> 0.1.1, a Rust port of
-      <code>NumpyEmeans</code> threaded with rayon.</li>
       <li>FAISS e-means (Triton, FP32): <code>QuantizedEmeans(quantizer=None)</code>,
       e-means on PyTorch tensors with FAISS's Triton kernels, in float32.</li>
       <li>FAISS e-means (BF16): <code>Emeans</code> with its defaults, which turn the
