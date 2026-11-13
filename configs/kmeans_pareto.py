@@ -39,8 +39,12 @@ DATASETS = [
     "20newsgroups",
     "rcv1",
 ]
-# Text as CSR matrices: only the implementations with "sparse": True run on them.
+# Text as CSR matrices: only the implementations with "sparse": True run on them, with
+# their "sparse_grids" if any.
 SPARSE_DATASETS = {"20newsgroups", "rcv1"}
+# scikit-learn's sparse Lloyd slows down with many features and clusters: ~50 s per
+# iteration on rcv1 at k=1024 on 24 cores (7 s on 20newsgroups).
+SKIPPED = {("sklearn-lloyd", "rcv1", 1024)}
 N_FEATURES = {
     "glove_200": 200,
     "sift_128": 128,
@@ -87,6 +91,7 @@ IMPLEMENTATIONS = {
             {"init": ["random", "k-means++"], "n_init": [1, 3]},
         ],
         "sparse": True,
+        "sparse_grids": [{"init": ["random", "k-means++"], "max_iter": [3, 10, 30], "tol": 1e-9}],
     },
     # Elkan only pays off in low dimension.
     "sklearn-elkan": {
@@ -304,11 +309,17 @@ def interleaved_cases(
     a GPU's power cap) spread over all of them."""
     cases = []
     for dataset, k in product(datasets, n_clusters):
+        sparse = dataset in SPARSE_DATASETS
         per_name = {
-            name: settings(name, (grids or {}).get(name))
+            name: settings(
+                name,
+                (grids or {}).get(name)
+                or (IMPLEMENTATIONS[name].get("sparse_grids") if sparse else None),
+            )
             for name in names
             if N_FEATURES.get(dataset, 0) <= IMPLEMENTATIONS[name].get("max_features", float("inf"))
-            and (dataset not in SPARSE_DATASETS or IMPLEMENTATIONS[name].get("sparse"))
+            and (not sparse or IMPLEMENTATIONS[name].get("sparse"))
+            and (name, dataset, k) not in SKIPPED
         }
         order = list(per_name)
         for round_ in range(max(map(len, per_name.values()), default=0)):
