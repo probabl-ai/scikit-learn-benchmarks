@@ -60,6 +60,11 @@ encoding.
 | `gist` | 1,001,000 | 960 | Index / nearest-neighbor search | Numerical |
 | `20newsgroups` | 18,846 | 130,107 | Classification, clustering | Sparse (CSR) token counts |
 | `rcv1` | 804,414 | 47,236 | Clustering | Sparse (CSR) TF-IDF |
+| `sift_128` | 1,000,000 | 128 | Clustering | Numerical (train set of `sift`) |
+| `glove_200` | 1,183,514 | 200 | Clustering | Numerical, not normalized |
+| `clip_512` | 1,000,000 | 512 | Clustering | Numerical, L2-normalized, ~23% duplicates |
+| `year_prediction_msd_standardized` | 515,345 | 90 | Clustering | Numerical, standardized |
+| `road_network_km_x10` | 4,348,740 | 3 | Clustering | Numerical, km, oversampled 10x |
 
 ## Data Caching
 

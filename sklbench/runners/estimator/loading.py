@@ -170,6 +170,14 @@ wrapped_estimators = {
     ("cuml", "RandomForestRegressor"): "cuml_estimators.RandomForestRegressor",
     ("cuml", "KMeans"): "cuml_estimators.KMeans",
     ("sklearn", "KMeans"): "instrumented_kmeans.KMeans",
+    # k-means implementations of configs/kmeans_pareto.py.
+    ("faiss", "Kmeans"): "faiss_kmeans.Kmeans",
+    ("faiss", "NumpyEmeans"): "faiss_kmeans.NumpyEmeans",
+    ("faiss", "FastNumpyEmeans"): "faiss_kmeans.FastNumpyEmeans",
+    ("faiss", "QuantizedEmeans"): "faiss_kmeans.QuantizedEmeans",
+    ("faiss", "Emeans"): "faiss_kmeans.Emeans",
+    ("emeans", "Emeans"): "faiss_kmeans.RustEmeans",
+    ("kmeans_lloyd", "KMeans"): "cupy_kmeans.KMeans",
 }
 
 

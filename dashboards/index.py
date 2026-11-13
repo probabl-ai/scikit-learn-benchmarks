@@ -18,6 +18,7 @@ from dashboards import (
     gen_hptuning_scalability,
     gen_hptuning_strong_scaling,
     gen_hptuning_taskset,
+    gen_kmeans_pareto,
     gen_models_scalability,
 )
 from sklbench.reporting.envs import read_env, summarize_hardware_env
@@ -85,6 +86,7 @@ DASHBOARDS = [
         (gen_hptuning_taskset, "hptuning_taskset.html"),
         (gen_hptuning_strong_scaling, "hptuning_strong_scaling.html"),
         (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
+        (gen_kmeans_pareto, gen_kmeans_pareto.OUTPUT),
     ]
 ]
 
@@ -95,6 +97,7 @@ DASHBOARD_DESCRIPTIONS = {
     "hptuning_scalability.html": "<dfn>Speed-up</dfn> from evaluating search <dfn>candidates</dfn> in parallel.",
     "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
     "hptuning_strong_scaling.html": "How much extra CPUs shorten a search with a fixed number of fits.",
+    gen_kmeans_pareto.OUTPUT: "Which k-means implementation and settings give the lowest <dfn>inertia</dfn> for a given time budget, on CPUs and GPUs.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
 }
 
@@ -119,6 +122,8 @@ def _hardware_overview_html() -> str:
 
 if __name__ == "__main__":
     output_dir = dashboard_output_dir()
+    # Temporary, to keep this branch's PR preview to the k-means dashboard: drop before merging.
+    DASHBOARDS = [entry for entry in DASHBOARDS if entry[1] is gen_kmeans_pareto]
 
     for _, module, _ in DASHBOARDS:
         module.generate(output_dir)
