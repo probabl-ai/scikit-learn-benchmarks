@@ -97,6 +97,15 @@ for env_spec in "${envs[@]}"; do
         fi
     fi
 
+    case "$env" in
+        sklearn-cf-develop-openblas|sklearn-cf-optimized-openblas)
+            if ! "$script_dir/scripts/setup_custom_openblas.sh" "$env"; then
+                status=1
+                continue
+            fi
+            ;;
+    esac
+
     echo "=== pixi run --frozen -e $env python -m sklbench ${args[*]} ===" >&2
     if ! pixi run --frozen -e "$env" python -m sklbench "${args[@]}"; then
         status=1
