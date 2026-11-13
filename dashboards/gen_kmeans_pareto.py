@@ -55,24 +55,27 @@ DATASET_NAMES = {
     "road_network_km_x10": "3D Road Network (10x oversampled)",
 }
 
-# One color per implementation, the same on every plot. CPU and GPU implementations
-# of the same family share a color: they rarely appear on the same machine.
+# One color per implementation, the same on every plot, from the site palette. Its
+# pairs that red-blind readers can't tell apart (cyan/pink, green/red) are split
+# between a CPU and a GPU implementation.
 IMPLEMENTATIONS = {
     # label: (color, device)
     "scikit-learn Lloyd": ("#2294c4", "CPU"),
-    "scikit-learn Elkan": ("#2e9e5b", "CPU"),
-    "scikit-learn MiniBatchKMeans": ("#f7931e", "CPU"),
-    "scikit-learn EMeans": ("#15688c", "CPU"),
-    "sklearn-contrib-emeans": ("#d62728", "CPU"),
-    "FAISS Lloyd (CPU)": ("#b76c13", "CPU"),
-    "FAISS e-means (NumPy)": ("#e377c2", "CPU"),
-    "FAISS e-means (Cython kernel)": ("#8045e5", "CPU"),
-    "cuML KMeans": ("#2294c4", "GPU"),
-    "CuPy k-means": ("#f7931e", "GPU"),
-    "CuPy k-means (fused kernels)": ("#2e9e5b", "GPU"),
-    "FAISS Lloyd (GPU)": ("#b76c13", "GPU"),
-    "FAISS e-means (Triton, FP32)": ("#e377c2", "GPU"),
-    "FAISS e-means (BF16)": ("#8045e5", "GPU"),
+    "scikit-learn Elkan": ("#15688c", "CPU"),
+    "sklearn-contrib-emeans": ("#f7931e", "CPU"),
+    "FAISS e-means (NumPy)": ("#2e9e5b", "CPU"),
+    "cuML KMeans": ("#8045e5", "GPU"),
+    "FAISS Lloyd (GPU)": ("#d1495b", "GPU"),
+    "FAISS e-means (Triton, FP32)": ("#b76c13", "GPU"),
+    "FAISS e-means (BF16)": ("#e377c2", "GPU"),
+}
+# Still benchmarked, and their runs count for the best known inertia, but not plotted.
+HIDDEN_IMPLEMENTATIONS = {
+    "scikit-learn EMeans",
+    "FAISS Lloyd (CPU)",
+    "FAISS e-means (Cython kernel)",
+    "CuPy k-means",
+    "CuPy k-means (fused kernels)",
 }
 MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
 # Relative inertias below this tie with the best: runs that reach the same centers on
@@ -109,7 +112,8 @@ ABOUT_HTML = """<section class="panel">
     CPU implementations get the same number of threads: one per physical core, at
     most 64. Machines with more cores run on their first 64 physical cores.</p>
     <p>The best known inertia of a dataset and number of clusters is the lowest of any
-    run on any machine, including long reference runs that are not plotted. Points on
+    run on any machine, including long reference runs and implementations that are not
+    plotted. Points on
     the dotted line at the bottom are within 1e-6 of it (rounding differences between
     machines are ~1e-7).</p>
   </details>
@@ -121,38 +125,28 @@ ABOUT_HTML = """<section class="panel">
       <a href="https://github.com/scikit-learn/scikit-learn/pull/35140">#35140</a>.</li>
       <li>scikit-learn Elkan: <code>KMeans(algorithm="elkan")</code>, only on the 3D
       Road Network, since it only pays off in low dimension.</li>
-      <li>scikit-learn EMeans: <code>EMeans</code> of
-      <a href="https://github.com/cakedev0/scikit-learn/pull/46">cakedev0/scikit-learn#46</a>,
-      e-means in Cython, with a random or k-means++ init. Its fit ends with a pass over
-      the data to compute the labels of the final centers (about one more epoch).</li>
       <li>sklearn-contrib-emeans: <code>EMeans</code> of
       <a href="https://pypi.org/project/sklearn-contrib-emeans/">sklearn-contrib-emeans</a>
-      0.2.1, the PyPI package of the same e-means, with a random or k-means|| init.</li>
-      <li>FAISS Lloyd (CPU and GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
+      0.2.1, e-means in Cython, with a random or k-means|| init.</li>
+      <li>FAISS Lloyd (GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
       init and a fixed number of iterations (<code>niter</code>). By default FAISS
       subsamples to 256 samples per cluster: here it trains on all the samples, unless
-      the settings show <code>max_points_per_centroid=256</code>. On the GPU, its
-      training loop runs on the host and only the nearest center search runs on the
-      GPU, so its time includes the transfers of every iteration.</li>
+      the settings show <code>max_points_per_centroid=256</code>. Its training loop
+      runs on the host and only the nearest center search runs on the GPU, so its time
+      includes the transfers of every iteration.</li>
       <li>FAISS e-means (NumPy): <code>NumpyEmeans</code> of
       <code>faiss.contrib.e_means</code> 1.16, the reference implementation of the
       paper, in NumPy with FAISS's nearest neighbor search.</li>
-      <li>FAISS e-means (Cython kernel): the same <code>NumpyEmeans</code>, with its
-      accumulation step (assignment, per-cluster sums and counts) in an OpenMP Cython
-      kernel written for this benchmark. The rest is FAISS's code, unchanged.</li>
       <li>FAISS e-means (Triton, FP32): <code>QuantizedEmeans(quantizer=None)</code>,
       e-means on PyTorch tensors with FAISS's Triton kernels, in float32.</li>
       <li>FAISS e-means (BF16): <code>Emeans</code> with its defaults, which turn the
       float32 input into bfloat16 operands (reduced precision).</li>
       <li>cuML KMeans: RAPIDS cuML <code>KMeans</code>. Its <code>"k-means++"</code>
       init is greedy k-means++, and <code>"scalable-k-means++"</code> is k-means||.</li>
-      <li>CuPy k-means, with or without fused kernels: the CuPy Lloyd of
-      <a href="https://github.com/ogrisel/cursor-sandbox/pull/22">ogrisel/cursor-sandbox#22</a>,
-      at a pinned commit.</li>
     </ul>
     <p>Settings don't mean the same thing everywhere, which is why the hover shows the
     iterations next to the time. <code>tol</code> is relative to the mean feature
-    variance in scikit-learn and the CuPy code, and an absolute change of the inertia in
+    variance in scikit-learn, and an absolute change of the inertia in
     cuML. FAISS Lloyd and e-means have no tolerance: their budget is
     <code>niter</code> or <code>n_epochs</code> (passes over the data, fractional
     allowed). The batch size and step size of e-means come from the paper's scaling
@@ -479,7 +473,11 @@ def render(records: list[BenchmarkRecord]) -> str:
     best = defaultdict(lambda: math.inf)
     for record in records:
         best[_plot_key(record)] = min(best[_plot_key(record)], *_inertias(record))
-    plotted = [r for r in records if r.case["metadata"].get("source_config") != REFERENCE_CONFIG]
+    plotted = [
+        r for r in records
+        if r.case["metadata"].get("source_config") != REFERENCE_CONFIG
+        and implementation_label(r.case) not in HIDDEN_IMPLEMENTATIONS
+    ]
     hashes = {r.hardware_hash for r in plotted}
     machines = [h for h in HARDWARE_NAMES if h in hashes] + sorted(hashes - set(HARDWARE_NAMES))
     labels = {implementation_label(r.case) for r in plotted}
