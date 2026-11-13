@@ -82,10 +82,12 @@ HIDDEN_IMPLEMENTATIONS = {
     "CuPy k-means (fused kernels)",
 }
 MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
-# Relative inertias below this tie with the best: runs that reach the same centers on
-# two machines differ by ~1e-7 from floating-point rounding. Each plot draws them on
-# a line one decade below its smallest relative inertia above this.
+# Relative inertias below this tie with the best in the hover: runs that reach the
+# same centers on two machines differ by ~1e-7 from floating-point rounding.
 TIED_WITH_BEST = 1e-6
+# Relative inertias below this are drawn on a "best known inertia" line at this
+# value, the same on every plot.
+BEST_LINE = 1e-5
 # Parameters that pick the implementation rather than a setting.
 IMPLEMENTATION_PARAMS = {"algorithm", "fused", "gpu", "n_clusters"}
 
@@ -117,9 +119,9 @@ ABOUT_HTML = """<section class="panel">
     most 64. Machines with more cores run on their first 64 physical cores.</p>
     <p>The best known inertia of a dataset and number of clusters is the lowest of any
     run on any machine, including long reference runs and implementations that are not
-    plotted. Points on
-    the dotted line at the bottom are within 1e-6 of it (rounding differences between
-    machines are ~1e-7).</p>
+    plotted. Points and whiskers on the dotted line at 1e-5 are within 1e-5 of it, and
+    the hover gives their exact relative inertia, or "best" below 1e-6 (rounding
+    differences between machines are ~1e-7).</p>
   </details>
   <details class="about-section">
     <summary>Implementations</summary>
@@ -348,11 +350,9 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
     for record in records:
         by_series[_series_key(record)].append(_point(record, best))
     values = [v for points in by_series.values() for p in points for v in (p["rel"], p["rel_min"])]
-    above = [v for v in values if v >= TIED_WITH_BEST]
-    floor = 10 ** math.floor(math.log10(min(above))) / 10 if above else TIED_WITH_BEST / 10
 
     def clip(value):
-        return floor if value < TIED_WITH_BEST else value
+        return max(value, BEST_LINE)
 
     names = _series_names(list(by_series))
     order = list(IMPLEMENTATIONS)
@@ -400,13 +400,13 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
             hoverinfo="text",
             meta=meta,
         ))
-    if any(v < TIED_WITH_BEST for v in values):
-        fig.add_hline(y=floor, line={"color": "#48566b", "width": 1, "dash": "dot"})
+    if any(v < BEST_LINE for v in values):
+        fig.add_hline(y=BEST_LINE, line={"color": "#48566b", "width": 1, "dash": "dot"})
         # Annotations take log10 coordinates on a log axis, lines don't.
         fig.add_annotation(
-            text="best known inertia (within 1e-6)",
+            text="best known inertia (within 1e-5)",
             x=0, xref="paper", xanchor="left",
-            y=math.log10(floor), yref="y", yanchor="bottom",
+            y=math.log10(BEST_LINE), yref="y", yanchor="bottom",
             showarrow=False,
             font={"size": 11, "color": "#48566b"},
         )
