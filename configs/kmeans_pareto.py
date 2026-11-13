@@ -8,6 +8,8 @@ runs its own implementations:
 
     ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans sklearn-contrib-emeans-mkl emeans-rs --config configs/kmeans_pareto.py  # CPU
     ./run.sh faiss-gpu cuml skl-nvidia --config configs/kmeans_pareto.py   # CUDA GPU
+    ./run.sh sklearn-contrib-emeans-xpu --config configs/kmeans_pareto.py  # Intel GPU
+    ./run.sh sklearn-contrib-emeans-mps --config configs/kmeans_pareto.py  # Apple GPU
 
 The EMeans of cakedev0/scikit-learn#46 runs in a sklearn-dev build of that branch:
 
@@ -34,7 +36,11 @@ DATASETS = [
     "susy",
     "year_prediction_msd_standardized",
     "road_network_km_x10",
+    "20newsgroups",
+    "rcv1",
 ]
+# Text as CSR matrices: only the implementations with "sparse": True run on them.
+SPARSE_DATASETS = {"20newsgroups", "rcv1"}
 N_FEATURES = {
     "glove_200": 200,
     "sift_128": 128,
@@ -42,6 +48,8 @@ N_FEATURES = {
     "susy": 18,
     "year_prediction_msd_standardized": 90,
     "road_network_km_x10": 3,
+    "20newsgroups": 130107,
+    "rcv1": 47236,
 }
 N_CLUSTERS = [64, 256, 1024]
 
@@ -67,7 +75,8 @@ _CUDA_TORCH = {"library": "faiss", "device": "cuda", "data_library": "torch"}
 _CUDA_CUPY = {"device": "cuda", "data_library": "cupy"}
 
 # name: implementation, estimator, default parameters, grids (each a cartesian
-# product over the defaults), and optionally the largest number of features it runs on.
+# product over the defaults), and optionally the largest number of features it runs on
+# and whether it takes sparse input.
 IMPLEMENTATIONS = {
     "sklearn-lloyd": {
         "implementation": _SKLEARN,
@@ -77,6 +86,7 @@ IMPLEMENTATIONS = {
             {"init": ["random", "k-means++"], "max_iter": _BUDGET, "tol": 1e-9},
             {"init": ["random", "k-means++"], "n_init": [1, 3]},
         ],
+        "sparse": True,
     },
     # Elkan only pays off in low dimension.
     "sklearn-elkan": {
@@ -116,6 +126,20 @@ IMPLEMENTATIONS = {
     # The same e-means, packaged on PyPI. "k-means||" is its recommended non-random init.
     "sklearn-contrib-emeans": {
         "implementation": {"library": "sklearn_emeans"},
+        "estimator": "EMeans",
+        "defaults": {"init": "random", "n_epochs": 5},
+        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||"]}],
+        "sparse": True,
+    },
+    # The same, on PyTorch tensors on the GPU, through the array API (0.3.0).
+    "sklearn-contrib-emeans-xpu": {
+        "implementation": {"library": "sklearn_emeans", "device": "xpu", "data_library": "torch"},
+        "estimator": "EMeans",
+        "defaults": {"init": "random", "n_epochs": 5},
+        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||"]}],
+    },
+    "sklearn-contrib-emeans-mps": {
+        "implementation": {"library": "sklearn_emeans", "device": "mps", "data_library": "torch"},
         "estimator": "EMeans",
         "defaults": {"init": "random", "n_epochs": 5},
         "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||"]}],
@@ -222,6 +246,8 @@ def env_implementations(pixi_env: str | None) -> list[str]:
         "skl-nvidia": ["cupy", "cupy-fused"],
         "sklearn-contrib-emeans": ["sklearn-contrib-emeans"],
         "sklearn-contrib-emeans-mkl": ["sklearn-contrib-emeans"],
+        "sklearn-contrib-emeans-xpu": ["sklearn-contrib-emeans-xpu"],
+        "sklearn-contrib-emeans-mps": ["sklearn-contrib-emeans-mps"],
         "emeans-rs": ["emeans-rs"],
     }.get(pixi_env, [])
 
@@ -282,6 +308,7 @@ def interleaved_cases(
             name: settings(name, (grids or {}).get(name))
             for name in names
             if N_FEATURES.get(dataset, 0) <= IMPLEMENTATIONS[name].get("max_features", float("inf"))
+            and (dataset not in SPARSE_DATASETS or IMPLEMENTATIONS[name].get("sparse"))
         }
         order = list(per_name)
         for round_ in range(max(map(len, per_name.values()), default=0)):

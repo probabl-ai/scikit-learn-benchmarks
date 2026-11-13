@@ -45,6 +45,8 @@ SOURCE_ENVS = [
     "skl-nvidia",
     "sklearn-contrib-emeans",
     "sklearn-contrib-emeans-mkl",
+    "sklearn-contrib-emeans-xpu",
+    "sklearn-contrib-emeans-mps",
     "emeans-rs",
 ]
 OUTPUT = "kmeans_pareto.html"
@@ -56,6 +58,8 @@ DATASET_NAMES = {
     "susy": "SUSY",
     "year_prediction_msd_standardized": "YearPredictionMSD (standardized)",
     "road_network_km_x10": "3D Road Network (10x oversampled)",
+    "20newsgroups": "20 Newsgroups (sparse)",
+    "rcv1": "RCV1 (sparse)",
 }
 
 # One color per implementation, the same on every plot: scikit-learn's cyan and orange
@@ -68,6 +72,7 @@ IMPLEMENTATIONS = {
     "sklearn-contrib-emeans": ("#f7931e", "CPU"),
     "FAISS e-means (NumPy)": ("#089868", "CPU"),
     "emeans (Rust)": ("#805bd5", "CPU"),
+    "sklearn-contrib-emeans (PyTorch)": ("#b35806", "GPU"),
     "cuML KMeans": ("#9c0451", "GPU"),
     "FAISS Lloyd (GPU)": ("#ea5974", "GPU"),
     "FAISS e-means (Triton, FP32)": ("#4041b6", "GPU"),
@@ -150,6 +155,10 @@ ABOUT_HTML = """<section class="panel">
       0.2.1, e-means in Cython, with a random or k-means|| init. Its GEMMs go
       through SciPy's BLAS: MKL (conda-forge NumPy and SciPy) on the Intel CPUs, and
       OpenBLAS (PyPI wheels) on the others.</li>
+      <li>sklearn-contrib-emeans (PyTorch): the same <code>EMeans</code> (0.3.0) on
+      PyTorch tensors on the GPU, through the array API
+      (<code>array_api_dispatch=True</code>): XPU on the Intel GPUs, MPS on the Apple
+      M2. The k-means|| init ends with a k-means++ on the host.</li>
       <li>FAISS Lloyd (GPU): <code>faiss.Kmeans</code> 1.16, Lloyd with a random
       init and a fixed number of iterations (<code>niter</code>). By default FAISS
       subsamples to 256 samples per cluster: here it trains on all the samples, unless
@@ -173,6 +182,9 @@ ABOUT_HTML = """<section class="panel">
     <code>niter</code> or <code>n_epochs</code> (passes over the data, fractional
     allowed). The batch size and step size of e-means come from the paper's scaling
     laws, and <code>batch_law="quality"</code> uses 8x smaller batches.</p>
+    <p>20 Newsgroups and RCV1 are text, as sparse CSR matrices with 130k and 47k
+    features. Only scikit-learn Lloyd and sklearn-contrib-emeans take sparse input, so
+    they are the only ones on these plots.</p>
   </details>
 </section>"""
 
@@ -194,6 +206,8 @@ def implementation_label(case: dict) -> str:
             "Emeans": "FAISS e-means (BF16)",
         }[estimator]
     if library == "sklearn_emeans":
+        if case["implementation"].get("data_library") == "torch":
+            return "sklearn-contrib-emeans (PyTorch)"
         return "sklearn-contrib-emeans"
     if library == "emeans":
         return "emeans (Rust)"

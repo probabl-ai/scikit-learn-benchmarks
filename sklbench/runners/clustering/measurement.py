@@ -6,11 +6,12 @@ import threading
 
 
 class Device:
-    """Where the fits read the data: host memory (``data_library`` None), or a CUDA
-    device through CuPy or PyTorch."""
+    """Where the fits read the data: host memory (``data_library`` None), a CUDA device
+    through CuPy, or any PyTorch device (``cuda``, ``xpu``, ``mps``)."""
 
-    def __init__(self, data_library: str | None):
+    def __init__(self, data_library: str | None, device: str | None = None):
         self.data_library = data_library
+        self.name = device if device not in (None, "cpu") else "cuda"
         if data_library == "cupy":
             import cupy
 
@@ -19,6 +20,7 @@ class Device:
             import torch
 
             self.torch = torch
+            self.backend = getattr(torch, self.name)
         elif data_library is not None:
             raise ValueError(f"unsupported data_library {data_library!r}")
 
@@ -26,18 +28,22 @@ class Device:
     def is_gpu(self) -> bool:
         return self.data_library is not None
 
+    @property
+    def is_cuda(self) -> bool:
+        return self.is_gpu and self.name == "cuda"
+
     def put(self, X):
         if self.data_library == "cupy":
             return self.cupy.asarray(X)
         if self.data_library == "torch":
-            return self.torch.from_numpy(X).to("cuda")
+            return self.torch.from_numpy(X).to(self.name)
         return X
 
     def sync(self):
         if self.data_library == "cupy":
             self.cupy.cuda.Device().synchronize()
         elif self.data_library == "torch":
-            self.torch.cuda.synchronize()
+            self.backend.synchronize()
 
     def release(self):
         """Empty the memory pools, so that the peak memory of a fit starts from
@@ -45,7 +51,7 @@ class Device:
         if self.data_library == "cupy":
             self.cupy.get_default_memory_pool().free_all_blocks()
         elif self.data_library == "torch":
-            self.torch.cuda.empty_cache()
+            self.backend.empty_cache()
 
 
 def reset_peak_rss() -> bool:

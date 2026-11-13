@@ -269,6 +269,10 @@ torch = { version = "*", index = "https://download.pytorch.org/whl/cu129" }
 [feature.sklearn-contrib-emeans.pypi-dependencies]
 sklearn-contrib-emeans = "==0.2.1"
 
+# 0.3.0 fits on array API inputs: PyTorch tensors on Intel and Apple GPUs.
+[feature.sklearn-contrib-emeans-array-api.pypi-dependencies]
+sklearn-contrib-emeans = "==0.3.0"
+
 # Rust port of faiss's NumpyEmeans, for configs/kmeans_pareto.py.
 [feature.emeans-rs.pypi-dependencies]
 emeans = "==0.1.1"
@@ -366,3 +370,5 @@ sklearn-contrib-emeans = ["py314", "sklearn-pypi", "sklearn-contrib-emeans"]
 # The same wheel on conda-forge's MKL: its GEMMs go through scipy.linalg.cython_blas.
 sklearn-contrib-emeans-mkl = ["py314", "sklearn-mkl", "numpy-conda", "sklearn-contrib-emeans"]
 emeans-rs = ["py314", "sklearn-pypi", "emeans-rs"]
+sklearn-contrib-emeans-xpu = ["py314", "sklearn-pypi", "skl-intel", "sklearn-contrib-emeans-array-api"]
+sklearn-contrib-emeans-mps = ["py314", "sklearn-pypi", "skl-mps", "sklearn-contrib-emeans-array-api"]

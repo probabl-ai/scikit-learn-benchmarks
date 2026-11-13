@@ -38,6 +38,16 @@ def test_inertia_skips_nonfinite_centers_and_counts_empty_ones():
     assert result.n_empty >= 3
 
 
+def test_inertia_on_sparse_matches_dense():
+    sp = pytest.importorskip("scipy.sparse")
+    X, C = _data(n=5000, k=30)
+    X[np.abs(X) < 1] = 0  # ~70% zeros
+    expected = evaluate_inertia(X, C)
+    result = evaluate_inertia(sp.csr_matrix(X), C)
+    assert result.inertia == pytest.approx(expected.inertia, rel=1e-9)
+    assert result.n_empty == expected.n_empty
+
+
 @pytest.mark.parametrize("backend", ["cupy", "torch"])
 def test_inertia_on_gpu_matches_numpy(backend):
     X, C = _data(offset=100.0, scale=10.0)

@@ -17,6 +17,8 @@ GRIDS = {
     "sklearn-elkan": [{"init": "k-means++", "max_iter": [5, 100], "tol": 1e-9}],
     "sklearn-emeans": _EMEANS,
     "sklearn-contrib-emeans": _EMEANS,
+    "sklearn-contrib-emeans-xpu": _EMEANS,
+    "sklearn-contrib-emeans-mps": _EMEANS,
     "faiss-cpu": [{"niter": [2, 5, 20, 100]}],
     "emeans-cpu": _EMEANS,
     "emeans-cpu-cython": _EMEANS,

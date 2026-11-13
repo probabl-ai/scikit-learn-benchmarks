@@ -10,7 +10,9 @@ only pick a wrong center when two centers are within its rounding error (about
 so the result ranks runs exactly. ``exact=True`` searches in float64 too (for tests).
 
 The same code runs on NumPy, CuPy and PyTorch arrays, so GPU cases are scored on
-the device that already holds the data.
+the device that already holds the data. SciPy sparse matrices get their nearest centers
+from scikit-learn's ``pairwise_distances_argmin`` (threaded, sparse-aware), and their
+distances in float64 from the nonzeros: ``|x|^2 - 2 x.c + |c|^2``.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+import scipy.sparse as sp
 
 
 @dataclass
@@ -121,6 +124,8 @@ def evaluate_inertia(X, centers, *, exact=False, chunk_bytes=256 << 20) -> Inert
     shape (k, d). Centers with non-finite coordinates are left out (and counted)
     instead of making the result NaN.
     """
+    if sp.issparse(X):
+        return _evaluate_sparse_inertia(sp.csr_matrix(X), to_numpy(centers))
     be = _backend(X)
     centers = to_numpy(centers)
     if centers.ndim != 2 or centers.shape[1] != X.shape[1]:
@@ -149,4 +154,31 @@ def evaluate_inertia(X, centers, *, exact=False, chunk_bytes=256 << 20) -> Inert
         c = be.bincount(labels, k)
         counts = c if counts is None else counts + c
     n_empty = int((be.to_numpy(counts) == 0).sum()) + n_nonfinite
+    return InertiaResult(inertia=total / n_samples, n_empty=n_empty, n_nonfinite=n_nonfinite)
+
+
+def _evaluate_sparse_inertia(X, centers, chunk_rows=1 << 16) -> InertiaResult:
+    from sklearn.metrics import pairwise_distances_argmin
+
+    if centers.ndim != 2 or centers.shape[1] != X.shape[1]:
+        raise ValueError(f"centers of shape {centers.shape} don't match X of shape {X.shape}")
+    finite = np.isfinite(centers).all(axis=1)
+    n_nonfinite = int((~finite).sum())
+    C64 = centers[finite].astype(np.float64)
+    C_search = C64.astype(np.float32)
+    C_norm = (C64 * C64).sum(1)
+    n_samples, k = X.shape[0], C64.shape[0]
+    total, counts = 0.0, np.zeros(k, dtype=np.int64)
+    for start in range(0, n_samples, chunk_rows):
+        Xc = X[start : start + chunk_rows]
+        labels = pairwise_distances_argmin(Xc, C_search)
+        rows = np.repeat(np.arange(Xc.shape[0]), np.diff(Xc.indptr))
+        data = Xc.data.astype(np.float64)
+        x_norm = np.bincount(rows, weights=data * data, minlength=Xc.shape[0])
+        x_dot_c = np.bincount(
+            rows, weights=data * C64[labels[rows], Xc.indices], minlength=Xc.shape[0]
+        )
+        total += float((x_norm - 2 * x_dot_c + C_norm[labels]).sum())
+        counts += np.bincount(labels, minlength=k)
+    n_empty = int((counts == 0).sum()) + n_nonfinite
     return InertiaResult(inertia=total / n_samples, n_empty=n_empty, n_nonfinite=n_nonfinite)

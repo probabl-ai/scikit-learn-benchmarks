@@ -5,8 +5,10 @@ Cases are `EstimatorCase`s with ``runner_module="sklbench.runners.clustering"``.
 `sklbench.runners.estimator`, a case fits on all the rows of its dataset (no split, no
 predict), and the timed part only covers ``fit``:
 
-1. load the dataset into host memory as float32, then copy it to the device
-   (``implementation.data_library``: ``cupy`` or ``torch`` on CUDA);
+1. load the dataset into host memory as float32 (a CSR matrix for sparse datasets),
+   then copy it to the device (``implementation.data_library``: ``cupy`` on CUDA, or
+   ``torch`` on ``implementation.device``). scikit-learn estimators fit on device
+   arrays through the array API (``array_api_dispatch=True``);
 2. run one untimed warm-up fit with a small budget (see `warmup_params`), so that
    module loading and JIT compilation (CuPy kernels, Triton) stay out of the fit time;
 3. for each repeat ``r``, fit with ``random_state=r``, the device synchronized before
@@ -17,6 +19,7 @@ predict), and the timed part only covers ``fit``:
 """
 
 import argparse
+import contextlib
 import gc
 import json
 import logging
@@ -26,6 +29,7 @@ from pathlib import Path
 from time import perf_counter
 
 import numpy as np
+import scipy.sparse as sp
 
 from ...config import EstimatorCase
 from ..datasets import load_raw_data
@@ -46,7 +50,7 @@ logger = logging.getLogger(__name__)
 WARMUP_OVERRIDES = {"max_iter": 2, "n_init": 1, "niter": 2, "nredo": 1, "n_epochs": 0.1}
 # scikit-learn has no JIT, so a subset of rows pays for imports and first calls.
 SKLEARN_WARMUP_ROWS = 100_000
-SUBSET_WARMUP_LIBRARIES = {"sklearn", "sklearn_emeans"}
+SKLEARN_LIBRARIES = {"sklearn", "sklearn_emeans"}
 
 
 def warmup_params(case: EstimatorCase, params: dict) -> dict:
@@ -56,15 +60,27 @@ def warmup_params(case: EstimatorCase, params: dict) -> dict:
     return {**params, **{k: v for k, v in overrides.items() if k in params}}
 
 
-def load_x(case: EstimatorCase) -> np.ndarray:
+def load_x(case: EstimatorCase):
     raw_data, _ = load_raw_data(case)
     x = raw_data["x"]
-    x = np.ascontiguousarray(x.to_numpy() if hasattr(x, "to_numpy") else x, dtype=np.float32)
+    if sp.issparse(x):
+        x = sp.csr_matrix(x, dtype=np.float32)
+    else:
+        x = np.ascontiguousarray(x.to_numpy() if hasattr(x, "to_numpy") else x, dtype=np.float32)
     n_rows = case.data.split_kwargs.get("train_size")
     if n_rows is not None and n_rows < x.shape[0]:
         rng = np.random.default_rng(case.data.split_kwargs.get("random_state", 0))
-        x = np.ascontiguousarray(x[np.sort(rng.choice(x.shape[0], n_rows, replace=False))])
+        x = x[np.sort(rng.choice(x.shape[0], n_rows, replace=False))]
+        x = x if sp.issparse(x) else np.ascontiguousarray(x)
     return x
+
+
+def array_api_context(case: EstimatorCase):
+    if case.implementation.data_library and case.implementation.library in SKLEARN_LIBRARIES:
+        import sklearn
+
+        return sklearn.config_context(array_api_dispatch=True)
+    return contextlib.nullcontext()
 
 
 def _epochs(estimator, params: dict, n_samples: int) -> float | None:
@@ -89,7 +105,7 @@ def _epochs(estimator, params: dict, n_samples: int) -> float | None:
 def run_case_to_jsonl(case: EstimatorCase, n_runs: int, output_jsonl: Path):
     t0 = perf_counter()
     estimator_class = get_estimator(case.implementation.library, case.algorithm.estimator)
-    device = Device(case.implementation.data_library)
+    device = Device(case.implementation.data_library, case.implementation.device)
     import_s = perf_counter() - t0
 
     t0 = perf_counter()
@@ -105,11 +121,14 @@ def run_case_to_jsonl(case: EstimatorCase, n_runs: int, output_jsonl: Path):
     params = dict(case.algorithm.estimator_params)
     t0 = perf_counter()
     rows = X_device.shape[0]
-    if case.implementation.library in SUBSET_WARMUP_LIBRARIES:
+    # On a device, the kernels are compiled for the shapes of the fit, so the warm-up
+    # runs on all the rows.
+    if case.implementation.library in SKLEARN_LIBRARIES and not device.is_gpu:
         rows = min(rows, max(SKLEARN_WARMUP_ROWS, 4 * params.get("n_clusters", 8)))
-    estimator_class(
-        **estimator_params_for_repeat(estimator_class, warmup_params(case, params), 0)
-    ).fit(X_device[:rows])
+    with array_api_context(case):
+        estimator_class(
+            **estimator_params_for_repeat(estimator_class, warmup_params(case, params), 0)
+        ).fit(X_device[:rows])
     device.sync()
     warmup_s = perf_counter() - t0
 
@@ -133,19 +152,21 @@ def run_case_to_jsonl(case: EstimatorCase, n_runs: int, output_jsonl: Path):
             peak_reset = reset_peak_rss()
             if sampler is not None:
                 sampler.start()
-            t0 = perf_counter()
-            estimator.fit(X_device)
-            device.sync()
-            fit_ms = 1000 * (perf_counter() - t0)
+            with array_api_context(case):
+                t0 = perf_counter()
+                estimator.fit(X_device)
+                device.sync()
+                fit_ms = 1000 * (perf_counter() - t0)
             if sampler is not None:
                 measures.update(sampler.stop())
-            elif peak_reset and rss_before is not None:
+            elif peak_reset and rss_before is not None and not device.is_gpu:
                 measures["peak_memory_bytes"] = max(peak_rss_bytes() - rss_before, 0)
 
             centers = to_numpy(estimator.cluster_centers_)
             if centers.shape != (repeat_params.get("n_clusters", 8), n_features):
                 raise ValueError(f"centers of unexpected shape {centers.shape}")
-            score = evaluate_inertia(X_device if device.is_gpu else X, centers)
+            # Apple GPUs have no float64.
+            score = evaluate_inertia(X_device if device.is_cuda else X, centers)
             library_inertia = getattr(estimator, "inertia_", None)
             attributes = _collect_model_attributes(estimator)
             attributes["epochs"] = _epochs(estimator, repeat_params, n_samples)
