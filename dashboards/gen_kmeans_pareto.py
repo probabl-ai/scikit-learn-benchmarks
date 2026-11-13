@@ -103,7 +103,7 @@ MACHINE_SYMBOLS = ["circle", "square", "diamond", "triangle-up", "x", "star"]
 TIED_WITH_BEST = 1e-6
 # Relative inertias below this are drawn on a "best known inertia" line at this
 # value, the same on every plot.
-BEST_LINE = 1e-5
+BEST_LINE = 1e-4
 PLOT_FOOTNOTE = (
     "median over seeds; whiskers: min to max over seeds; faded: off the front; "
     "hover a point for its settings"
@@ -139,7 +139,7 @@ ABOUT_HTML = """<section class="panel">
     most 64. Machines with more cores run on their first 64 physical cores.</p>
     <p>The best known inertia of a dataset and number of clusters is the lowest of any
     run on any machine, including long reference runs, implementations and builds that are not
-    plotted. Points and whiskers on the dotted line at 1e-5 are within 1e-5 of it, and
+    plotted. Points and whiskers on the dotted line at 1e-4 are within 1e-4 of it, and
     the hover gives their exact relative inertia, or "best" below 1e-6 (rounding
     differences between machines are ~1e-7).</p>
   </details>
@@ -309,12 +309,13 @@ def _point(record: BenchmarkRecord, best: float) -> dict:
 
 
 def pareto_front(points: list[dict]) -> list[dict]:
-    """The points that no faster point beats on relative inertia."""
+    """The points that no faster point beats on relative inertia, all values below
+    BEST_LINE counting as equal, as they are drawn."""
     front, best = [], math.inf
     for point in sorted(points, key=lambda p: (p["fit_s"], p["rel"])):
-        if point["rel"] < best:
+        if max(point["rel"], BEST_LINE) < best:
             front.append(point)
-            best = point["rel"]
+            best = max(point["rel"], BEST_LINE)
     return front
 
 
@@ -441,7 +442,7 @@ def _plot_html(records: list[BenchmarkRecord], best: float, machines: list[str])
         fig.add_hline(y=BEST_LINE, line={"color": "#48566b", "width": 1, "dash": "dot"})
         # Annotations take log10 coordinates on a log axis, lines don't.
         fig.add_annotation(
-            text="best known inertia (within 1e-5)",
+            text="best known inertia (within 1e-4)",
             x=0, xref="paper", xanchor="left",
             y=math.log10(BEST_LINE), yref="y", yanchor="bottom",
             showarrow=False,
