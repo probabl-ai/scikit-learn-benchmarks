@@ -57,21 +57,21 @@ DATASET_NAMES = {
     "road_network_km_x10": "3D Road Network (10x oversampled)",
 }
 
-# One color per implementation, the same on every plot, from the site palette. Its
-# pairs that red-blind readers can't tell apart (cyan/pink, green/red) are split
-# between a CPU and a GPU implementation.
+# One color per implementation, the same on every plot. Builds of the same code share
+# a hue (scikit-learn KMeans in blues, sklearn-contrib-emeans in oranges, scikit-learn's
+# colors), the others are picked to stay apart for color-blind readers too.
 IMPLEMENTATIONS = {
     # label: (color, device)
     "scikit-learn Lloyd": ("#2294c4", "CPU"),
     "scikit-learn Elkan": ("#15688c", "CPU"),
     "sklearn-contrib-emeans": ("#f7931e", "CPU"),
-    "sklearn-contrib-emeans (MKL)": ("#7ac5ec", "CPU"),
-    "FAISS e-means (NumPy)": ("#2e9e5b", "CPU"),
-    "emeans (Rust)": ("#9aa500", "CPU"),
-    "cuML KMeans": ("#8045e5", "GPU"),
-    "FAISS Lloyd (GPU)": ("#d1495b", "GPU"),
-    "FAISS e-means (Triton, FP32)": ("#b76c13", "GPU"),
-    "FAISS e-means (BF16)": ("#e377c2", "GPU"),
+    "sklearn-contrib-emeans (MKL)": ("#a85a00", "CPU"),
+    "FAISS e-means (NumPy)": ("#089868", "CPU"),
+    "emeans (Rust)": ("#805bd5", "CPU"),
+    "cuML KMeans": ("#9c0451", "GPU"),
+    "FAISS Lloyd (GPU)": ("#ea5974", "GPU"),
+    "FAISS e-means (Triton, FP32)": ("#4041b6", "GPU"),
+    "FAISS e-means (BF16)": ("#c075eb", "GPU"),
 }
 # Still benchmarked, and their runs count for the best known inertia, but not plotted.
 HIDDEN_IMPLEMENTATIONS = {
