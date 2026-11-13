@@ -17,7 +17,7 @@ import statistics
 
 from plotly import graph_objects as go
 
-from dashboards import GPU_NAMES, HARDWARE_NAMES
+from dashboards import HARDWARE_NAMES
 from sklbench.reporting.envs import read_env, software_build_name
 from sklbench.reporting.html import BASE_TEMPLATE, DATE_RANGE_TEMPLATE, PLOT_TEMPLATE
 from sklbench.reporting.matching import (
@@ -336,7 +336,7 @@ def _series_names(series_keys: list[tuple]) -> dict[tuple, str]:
     names = {}
     for key in series_keys:
         label, machine, build, n_threads = key
-        name = f"{label} · {_machine_name(machine, label)}"
+        name = f"{label} · {_machine_name(machine)}"
         if len(builds[label, machine]) > 1:
             name += f" · {build}"
         if len(threads[label, machine]) > 1:
@@ -349,9 +349,7 @@ def _device(label: str) -> str:
     return IMPLEMENTATIONS.get(label, (None, "CPU"))[1]
 
 
-def _machine_name(hardware_hash: str, label: str | None = None) -> str:
-    if label is not None and _device(label) == "GPU":
-        return GPU_NAMES.get(hardware_hash, HARDWARE_NAMES.get(hardware_hash, hardware_hash))
+def _machine_name(hardware_hash: str) -> str:
     return HARDWARE_NAMES.get(hardware_hash, hardware_hash)
 
 
