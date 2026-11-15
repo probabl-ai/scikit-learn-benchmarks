@@ -72,6 +72,10 @@ _BUDGET = [3, 10, 30, 100, 300]
 _EPOCHS = [0.5, 1, 2, 5, 10]
 _FAISS_GRID = [{"niter": [3, 10, 25, 100]}, {"niter": 25, "max_points_per_centroid": 256}]
 _EMEANS_CPU_GRID = [{"n_epochs": _EPOCHS}, {"n_epochs": [2, 5], "batch_law": "quality"}]
+_CONTRIB_EMEANS_GRID = [
+    {"n_epochs": _EPOCHS, "init": ["random", "k-means||"]},
+    {"n_epochs": _EPOCHS, "init": "k-means||", "revival": "greedy"},
+]
 _EMEANS_DEFAULTS = {"n_epochs": 5, "batch_law": "auto", "batch_size": None, "alpha0": None}
 _SKLEARN = {"library": "sklearn"}
 _FAISS_CPU = {"library": "faiss", "device": "cpu"}
@@ -129,26 +133,26 @@ IMPLEMENTATIONS = {
         "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means++"]}],
     },
     # The same e-means, packaged on PyPI. "k-means||" is its recommended non-random init,
-    # the slower greedy "k-means++" extends the front to lower inertias.
+    # the slower greedy revival extends the front to lower inertias.
     "sklearn-contrib-emeans": {
         "implementation": {"library": "sklearn_emeans"},
         "estimator": "EMeans",
         "defaults": {"init": "random", "n_epochs": 5},
-        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||", "k-means++"]}],
+        "grids": _CONTRIB_EMEANS_GRID,
         "sparse": True,
     },
-    # The same, on PyTorch tensors on the GPU, through the array API (0.3.0).
+    # The same, on PyTorch tensors on the GPU, through the array API.
     "sklearn-contrib-emeans-xpu": {
         "implementation": {"library": "sklearn_emeans", "device": "xpu", "data_library": "torch"},
         "estimator": "EMeans",
         "defaults": {"init": "random", "n_epochs": 5},
-        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||"]}],
+        "grids": _CONTRIB_EMEANS_GRID,
     },
     "sklearn-contrib-emeans-mps": {
         "implementation": {"library": "sklearn_emeans", "device": "mps", "data_library": "torch"},
         "estimator": "EMeans",
         "defaults": {"init": "random", "n_epochs": 5},
-        "grids": [{"n_epochs": _EPOCHS, "init": ["random", "k-means||"]}],
+        "grids": _CONTRIB_EMEANS_GRID,
     },
     "faiss-cpu": {
         "implementation": _FAISS_CPU,

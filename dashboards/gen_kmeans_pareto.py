@@ -153,10 +153,13 @@ ABOUT_HTML = """<section class="panel">
       Road Network, since it only pays off in low dimension.</li>
       <li>sklearn-contrib-emeans: <code>EMeans</code> of
       <a href="https://pypi.org/project/sklearn-contrib-emeans/">sklearn-contrib-emeans</a>
-      0.2.1, e-means in Cython, with a random, k-means|| or greedy k-means++ init. Its GEMMs go
+      0.2.1, e-means in Cython, with a random, k-means|| or greedy k-means++ init. The runs
+      with <code>revival="greedy"</code> use 0.4.0: a cluster is replaced by half of another
+      one only when this is estimated to lower the inertia, for a longer fit. Its GEMMs go
       through SciPy's BLAS: MKL (conda-forge NumPy and SciPy) on the Intel CPUs, and
       OpenBLAS (PyPI wheels) on the others.</li>
-      <li>sklearn-contrib-emeans (PyTorch): the same <code>EMeans</code> (0.3.0) on
+      <li>sklearn-contrib-emeans (PyTorch): the same <code>EMeans</code> (0.3.0, 0.4.0
+      with <code>revival="greedy"</code>) on
       PyTorch tensors on the GPU, through the array API
       (<code>array_api_dispatch=True</code>): XPU on the Intel GPUs, MPS on the Apple
       M2. The k-means|| init ends with a k-means++ on the host.</li>

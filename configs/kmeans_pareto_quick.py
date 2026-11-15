@@ -12,13 +12,14 @@ from kmeans_pareto import IMPLEMENTATIONS, env_implementations, interleaved_case
 
 _LLOYD = [{"init": ["random", "k-means++"], "max_iter": [2, 5, 20, 100], "tol": 1e-9}]
 _EMEANS = [{"n_epochs": [0.5, 1, 2, 5]}]
+_CONTRIB_EMEANS = _EMEANS + [{"n_epochs": 1, "init": "k-means||", "revival": "greedy"}]
 GRIDS = {
     "sklearn-lloyd": _LLOYD,
     "sklearn-elkan": [{"init": "k-means++", "max_iter": [5, 100], "tol": 1e-9}],
     "sklearn-emeans": _EMEANS,
-    "sklearn-contrib-emeans": _EMEANS,
-    "sklearn-contrib-emeans-xpu": _EMEANS,
-    "sklearn-contrib-emeans-mps": _EMEANS,
+    "sklearn-contrib-emeans": _CONTRIB_EMEANS,
+    "sklearn-contrib-emeans-xpu": _CONTRIB_EMEANS,
+    "sklearn-contrib-emeans-mps": _CONTRIB_EMEANS,
     "faiss-cpu": [{"niter": [2, 5, 20, 100]}],
     "emeans-cpu": _EMEANS,
     "emeans-cpu-cython": _EMEANS,
