@@ -153,7 +153,7 @@ ABOUT_HTML = """<section class="panel">
       Road Network, since it only pays off in low dimension.</li>
       <li>sklearn-contrib-emeans: <code>EMeans</code> of
       <a href="https://pypi.org/project/sklearn-contrib-emeans/">sklearn-contrib-emeans</a>
-      0.2.1, e-means in Cython, with a random, k-means|| or greedy k-means++ init. The runs
+      0.2.1, e-means in Cython, with a random or k-means|| init. The runs
       with <code>revival="greedy"</code> use 0.4.0: a cluster is replaced by half of another
       one only when this is estimated to lower the inertia, for a longer fit. Its GEMMs go
       through SciPy's BLAS: MKL (conda-forge NumPy and SciPy) on the Intel CPUs, and
