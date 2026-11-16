@@ -12,6 +12,7 @@ from pathlib import Path
 HARDWARE_NAMES = {
     "3b5e61": "Intel Core Ultra laptop",
     "b281b2": "Apple M4 laptop",
+    "3dd14d": "Apple M2 laptop",
     "be1055": "Low-end Intel laptop",
     "332097": "Intel Core Ultra desktop",
     "5dcf30": "AMD Workstation",
@@ -24,6 +25,7 @@ HARDWARE_NAMES = {
 HARDWARE_COLORS = {
     "3b5e61": "#2294c4",
     "b281b2": "#f7931e",
+    "3dd14d": "#7a8b1f",
     "be1055": "#15688c",
     "332097": "#8045e5",
     "5dcf30": "#b76c13",
@@ -53,6 +55,7 @@ HARDWARE_PLATFORMS = {
     "534824": {"linux-64"},
     "be1055": {"linux-64"},
     "b281b2": {"osx-arm64"},
+    "3dd14d": {"osx-arm64"},
     "5dcf30": {"win-64"},
     "332097": {"linux-64"},
     "d189c4": {"linux-64", "linux-64-cuda-12-9"},
