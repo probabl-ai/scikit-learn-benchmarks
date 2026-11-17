@@ -48,6 +48,7 @@ SOURCE_ENVS = [
     "sklearn-contrib-emeans-xpu",
     "sklearn-contrib-emeans-mps",
     "emeans-rs",
+    "intel",
 ]
 OUTPUT = "kmeans_pareto.html"
 
@@ -69,6 +70,7 @@ IMPLEMENTATIONS = {
     # label: (color, device)
     "scikit-learn Lloyd": ("#2294c4", "CPU"),
     "scikit-learn Elkan": ("#15688c", "CPU"),
+    "scikit-learn-intelex KMeans": ("#7a8a00", "CPU"),
     "sklearn-contrib-emeans": ("#f7931e", "CPU"),
     "FAISS e-means (NumPy)": ("#089868", "CPU"),
     "emeans (Rust)": ("#805bd5", "CPU"),
@@ -90,6 +92,7 @@ HIDDEN_IMPLEMENTATIONS = {
 # The boxes checked when the URL doesn't say otherwise.
 DEFAULT_IMPLEMENTATIONS = {
     "scikit-learn Lloyd",
+    "scikit-learn-intelex KMeans",
     "sklearn-contrib-emeans",
     "FAISS e-means (NumPy)",
     "sklearn-contrib-emeans (PyTorch)",
@@ -149,6 +152,11 @@ ABOUT_HTML = """<section class="panel">
       <li>scikit-learn Lloyd: <code>KMeans(algorithm="lloyd")</code> of scikit-learn
       main, which includes the faster k-means++ of
       <a href="https://github.com/scikit-learn/scikit-learn/pull/35140">#35140</a>.</li>
+      <li>scikit-learn-intelex KMeans: <code>KMeans</code> of
+      <a href="https://github.com/uxlfoundation/scikit-learn-intelex">scikit-learn-intelex</a>
+      2026.1, Lloyd in oneDAL, with the same greedy k-means++ and <code>tol</code> as
+      scikit-learn. Only on the x86 CPUs, and a fit that falls back to scikit-learn
+      fails the case.</li>
       <li>scikit-learn Elkan: <code>KMeans(algorithm="elkan")</code>, only on the 3D
       Road Network, since it only pays off in low dimension.</li>
       <li>sklearn-contrib-emeans: <code>EMeans</code> of
@@ -188,9 +196,10 @@ ABOUT_HTML = """<section class="panel">
     laws, and <code>batch_law="quality"</code> uses 8x smaller batches.</p>
     <p>20 Newsgroups and RCV1 are text, as sparse CSR matrices with 130k and 47k
     features. Only scikit-learn Lloyd and sklearn-contrib-emeans take sparse input, so
-    they are the only ones on these plots. Lloyd gets slow there (~50 s per iteration
-    on RCV1 with 1024 clusters on 24 cores), so it only runs up to 30 iterations, and
-    not on RCV1 with 1024 clusters.</p>
+    they are the only ones on these plots. scikit-learn-intelex accepts CSR input but
+    makes it dense during the fit (151 GB on RCV1), so it doesn't run there. Lloyd gets
+    slow there (~50 s per iteration on RCV1 with 1024 clusters on 24 cores), so it only
+    runs up to 30 iterations, and not on RCV1 with 1024 clusters.</p>
   </details>
 </section>"""
 
@@ -215,6 +224,8 @@ def implementation_label(case: dict) -> str:
         if case["implementation"].get("data_library") == "torch":
             return "sklearn-contrib-emeans (PyTorch)"
         return "sklearn-contrib-emeans"
+    if library == "sklearnex":
+        return "scikit-learn-intelex KMeans"
     if library == "emeans":
         return "emeans (Rust)"
     if library == "cuml":

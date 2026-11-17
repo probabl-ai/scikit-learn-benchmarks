@@ -97,7 +97,8 @@ IMPLEMENTATIONS = {
         "sparse": True,
         "sparse_grids": [{"init": ["random", "k-means++"], "max_iter": [3, 10, 30], "tol": 1e-9}],
     },
-    # Lloyd of oneDAL, with the same greedy k-means++ and tol semantics.
+    # Lloyd of oneDAL, with the same greedy k-means++ and tol semantics. Not on sparse
+    # data: its fit densifies CSR input (151 GB on rcv1).
     "sklearnex": {
         "implementation": {"library": "sklearnex", "device": "cpu"},
         "estimator": "KMeans",
@@ -106,8 +107,6 @@ IMPLEMENTATIONS = {
             {"init": ["random", "k-means++"], "max_iter": _BUDGET, "tol": 1e-9},
             {"init": ["random", "k-means++"], "n_init": [1, 3]},
         ],
-        "sparse": True,
-        "sparse_grids": [{"init": ["random", "k-means++"], "max_iter": [3, 10, 30], "tol": 1e-9}],
     },
     # Elkan only pays off in low dimension.
     "sklearn-elkan": {
