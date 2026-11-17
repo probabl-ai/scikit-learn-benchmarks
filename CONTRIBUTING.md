@@ -182,7 +182,8 @@ benchlock status --all-hosts
 
 Slot `all` is the whole machine. On intel-xeon, `s0` and `s1` are one socket
 each, with the command bound to that socket's CPUs and memory by `numactl`.
-They are meant for quick A/B tests only: don't publish results from them.
+Records of a socket-slot run carry `available_logical_cpus`, and dashboards
+show them as a separate machine ("1 socket").
 `run-benchmarks.yml` and `pr-comparison.yml` hold `all` for the whole
 benchmark, setup included, so they wait for local runs and the other way
 around. Install or update `benchlock` on every machine with

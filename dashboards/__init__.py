@@ -17,6 +17,8 @@ HARDWARE_NAMES = {
     "332097": "Intel Core Ultra desktop",
     "5dcf30": "AMD Workstation",
     "534824": "High-end Intel Xeon server",
+    # Runs bound to one of its two sockets, see PARTIAL_HARDWARE_HASHES.
+    "534824-1s": "High-end Intel Xeon server (1 socket)",
     "d189c4": "NVIDIA L4 VM",
     "7c42d6": "64-core AMD EPYC VM",
 }
@@ -35,6 +37,7 @@ HARDWARE_COLORS = {
     "332097": "#8045e5",
     "5dcf30": "#b76c13",
     "534824": "#2e9e5b",
+    "534824-1s": "#7cc79a",
     "d189c4": "#d1495b",
     "7c42d6": "#c2379a",
 }
@@ -58,6 +61,7 @@ GPU_NAMES = {
 HARDWARE_PLATFORMS = {
     "3b5e61": {"linux-64"},
     "534824": {"linux-64"},
+    "534824-1s": {"linux-64"},
     "be1055": {"linux-64"},
     "b281b2": {"osx-arm64"},
     "3dd14d": {"osx-arm64"},

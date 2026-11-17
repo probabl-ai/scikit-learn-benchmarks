@@ -99,7 +99,7 @@ DASHBOARD_DESCRIPTIONS = {
 }
 
 # Machines that are benchmarked but not presented on the index page.
-INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30"}
+INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30", "534824-1s"}
 
 
 def _hardware_overview_html() -> str:
