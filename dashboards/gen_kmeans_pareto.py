@@ -197,7 +197,9 @@ ABOUT_HTML = """<section class="panel">
     <p>20 Newsgroups and RCV1 are text, as sparse CSR matrices with 130k and 47k
     features. Only scikit-learn Lloyd and sklearn-contrib-emeans take sparse input, so
     they are the only ones on these plots. scikit-learn-intelex accepts CSR input but
-    makes it dense during the fit (151 GB on RCV1), so it doesn't run there. Lloyd gets
+    makes it dense during the fit when <code>tol</code> isn't 0 (151 GB on RCV1,
+    <a href="https://github.com/uxlfoundation/scikit-learn-intelex/issues/3559">#3559</a>),
+    so it doesn't run there. Lloyd gets
     slow there (~50 s per iteration on RCV1 with 1024 clusters on 24 cores), so it only
     runs up to 30 iterations, and not on RCV1 with 1024 clusters.</p>
   </details>
