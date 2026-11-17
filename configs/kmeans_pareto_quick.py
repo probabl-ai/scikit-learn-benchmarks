@@ -3,7 +3,7 @@
 and road_network_km_x10 for Elkan (3 features). To check an environment before the full
 sweep:
 
-    ./run.sh sklearn-dev faiss-cpu --config configs/kmeans_pareto_quick.py
+    ./run.sh sklearn-dev faiss-cpu intel --config configs/kmeans_pareto_quick.py
 """
 
 import os
@@ -15,6 +15,7 @@ _EMEANS = [{"n_epochs": [0.5, 1, 2, 5]}]
 _CONTRIB_EMEANS = _EMEANS + [{"n_epochs": 1, "init": "k-means||", "revival": "greedy"}]
 GRIDS = {
     "sklearn-lloyd": _LLOYD,
+    "sklearnex": _LLOYD,
     "sklearn-elkan": [{"init": "k-means++", "max_iter": [5, 100], "tol": 1e-9}],
     "sklearn-emeans": _EMEANS,
     "sklearn-contrib-emeans": _CONTRIB_EMEANS,

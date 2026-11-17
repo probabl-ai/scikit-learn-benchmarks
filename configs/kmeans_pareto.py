@@ -6,7 +6,7 @@ Each case is one setting of one implementation, fitted 3 times (random_state 0 t
 on all the rows of a dataset, by `sklbench.runners.clustering`. Each pixi environment
 runs its own implementations:
 
-    ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans sklearn-contrib-emeans-mkl emeans-rs --config configs/kmeans_pareto.py  # CPU
+    ./run.sh sklearn-dev faiss-cpu sklearn-contrib-emeans sklearn-contrib-emeans-mkl emeans-rs intel --config configs/kmeans_pareto.py  # CPU
     ./run.sh faiss-gpu cuml skl-nvidia --config configs/kmeans_pareto.py   # CUDA GPU
     ./run.sh sklearn-contrib-emeans-xpu --config configs/kmeans_pareto.py  # Intel GPU
     ./run.sh sklearn-contrib-emeans-mps --config configs/kmeans_pareto.py  # Apple GPU
@@ -88,6 +88,18 @@ _CUDA_CUPY = {"device": "cuda", "data_library": "cupy"}
 IMPLEMENTATIONS = {
     "sklearn-lloyd": {
         "implementation": _SKLEARN,
+        "estimator": "KMeans",
+        "defaults": {"algorithm": "lloyd", "init": "k-means++", "n_init": 1, "max_iter": 300, "tol": 1e-4},
+        "grids": [
+            {"init": ["random", "k-means++"], "max_iter": _BUDGET, "tol": 1e-9},
+            {"init": ["random", "k-means++"], "n_init": [1, 3]},
+        ],
+        "sparse": True,
+        "sparse_grids": [{"init": ["random", "k-means++"], "max_iter": [3, 10, 30], "tol": 1e-9}],
+    },
+    # Lloyd of oneDAL, with the same greedy k-means++ and tol semantics.
+    "sklearnex": {
+        "implementation": {"library": "sklearnex", "device": "cpu"},
         "estimator": "KMeans",
         "defaults": {"algorithm": "lloyd", "init": "k-means++", "n_init": 1, "max_iter": 300, "tol": 1e-4},
         "grids": [
@@ -259,6 +271,7 @@ def env_implementations(pixi_env: str | None) -> list[str]:
         "sklearn-contrib-emeans-xpu": ["sklearn-contrib-emeans-xpu"],
         "sklearn-contrib-emeans-mps": ["sklearn-contrib-emeans-mps"],
         "emeans-rs": ["emeans-rs"],
+        "intel": ["sklearnex"],
     }.get(pixi_env, [])
 
 

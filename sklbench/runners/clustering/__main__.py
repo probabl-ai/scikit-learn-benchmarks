@@ -38,7 +38,11 @@ from ..estimator.__main__ import (
     _collect_model_attributes,
     estimator_params_for_repeat,
 )
-from ..estimator.loading import get_estimator
+from ..estimator.loading import (
+    capture_sklearnex_dispatch_log,
+    get_estimator,
+    sklearnex_used_onedal,
+)
 from .inertia import evaluate_inertia, to_numpy
 from .measurement import Device, GPUSampler, peak_rss_bytes, reset_peak_rss, rss_bytes
 
@@ -51,6 +55,7 @@ WARMUP_OVERRIDES = {"max_iter": 2, "n_init": 1, "niter": 2, "nredo": 1, "n_epoch
 # scikit-learn has no JIT, so a subset of rows pays for imports and first calls.
 SKLEARN_WARMUP_ROWS = 100_000
 SKLEARN_LIBRARIES = {"sklearn", "sklearn_emeans"}
+NO_JIT_LIBRARIES = SKLEARN_LIBRARIES | {"sklearnex"}
 
 
 def warmup_params(case: EstimatorCase, params: dict) -> dict:
@@ -81,6 +86,19 @@ def array_api_context(case: EstimatorCase):
 
         return sklearn.config_context(array_api_dispatch=True)
     return contextlib.nullcontext()
+
+
+@contextlib.contextmanager
+def dispatch_check(case: EstimatorCase):
+    """Fail the case when sklearnex falls back to scikit-learn: its time would be
+    recorded as sklearnex's."""
+    if case.implementation.library != "sklearnex":
+        yield
+        return
+    with capture_sklearnex_dispatch_log() as messages:
+        yield
+    if not sklearnex_used_onedal(messages):
+        raise RuntimeError(f"sklearnex did not run on oneDAL: {messages}")
 
 
 def _epochs(estimator, params: dict, n_samples: int) -> float | None:
@@ -123,7 +141,7 @@ def run_case_to_jsonl(case: EstimatorCase, n_runs: int, output_jsonl: Path):
     rows = X_device.shape[0]
     # On a device, the kernels are compiled for the shapes of the fit, so the warm-up
     # runs on all the rows.
-    if case.implementation.library in SKLEARN_LIBRARIES and not device.is_gpu:
+    if case.implementation.library in NO_JIT_LIBRARIES and not device.is_gpu:
         rows = min(rows, max(SKLEARN_WARMUP_ROWS, 4 * params.get("n_clusters", 8)))
     with array_api_context(case):
         estimator_class(
@@ -152,7 +170,7 @@ def run_case_to_jsonl(case: EstimatorCase, n_runs: int, output_jsonl: Path):
             peak_reset = reset_peak_rss()
             if sampler is not None:
                 sampler.start()
-            with array_api_context(case):
+            with array_api_context(case), dispatch_check(case):
                 t0 = perf_counter()
                 estimator.fit(X_device)
                 device.sync()
