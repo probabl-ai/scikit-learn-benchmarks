@@ -4,7 +4,7 @@ for every machine and thread setting at once.
 """
 from pathlib import Path
 
-from dashboards import HARDWARE_NAMES
+from dashboards import HARDWARE_NAMES, HIDDEN_HARDWARE
 from dashboards import gen_hgb_dev_scalability_breakdown as hgb_dev
 from dashboards.gen_hgb_scalability_breakdown import SOURCE_CONFIGS
 from dashboards.index_comparison import (
@@ -59,13 +59,15 @@ def generate(output_dir: Path) -> None:
     results = [
         result
         for result in read_all_results()
-        if matches_source_configs(result.case, SOURCE_CONFIGS)
+        if result.hardware_hash not in HIDDEN_HARDWARE
+        and matches_source_configs(result.case, SOURCE_CONFIGS)
         and _is_sklearn_dev_build(_build_name(result))
     ]
     failed_records = [
         record
         for record in read_failed_records()
-        if matches_source_configs(record.case, SOURCE_CONFIGS)
+        if record.hardware_hash not in HIDDEN_HARDWARE
+        and matches_source_configs(record.case, SOURCE_CONFIGS)
         and _is_sklearn_dev_build(_build_name(record))
     ]
 

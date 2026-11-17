@@ -30,7 +30,7 @@ from pathlib import Path
 import re
 from statistics import median
 
-from dashboards import HARDWARE_NAMES
+from dashboards import HARDWARE_NAMES, HIDDEN_HARDWARE
 from sklbench.reporting.envs import (
     active_wait_label_suffix,
     case_proc_bind,
@@ -163,6 +163,8 @@ def _is_instrumented_hgb(record: BenchmarkRecord) -> bool:
     timings too, since `sklbench.runners.estimator.loading.wrapped_estimators`
     instruments every HistGradientBoosting* estimator unconditionally
     regardless of which config ran it."""
+    if record.hardware_hash in HIDDEN_HARDWARE:
+        return False
     if not matches_source_configs(record.case, SOURCE_CONFIGS):
         return False
     estimator = record.case.get("algorithm", {}).get("estimator", "")

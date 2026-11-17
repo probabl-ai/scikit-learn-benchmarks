@@ -11,6 +11,7 @@ from html import escape
 
 from dashboards import (
     HARDWARE_NAMES,
+    HIDDEN_HARDWARE,
     dashboard_output_dir,
     gen_cross_comparison,
     gen_hardware_parallel_fits,
@@ -106,7 +107,7 @@ def _hardware_overview_html() -> str:
         f"<h3>{escape(name)}</h3>"
         + HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hardware_hash)))
         for hardware_hash, name in HARDWARE_NAMES.items()
-        if hardware_hash not in INDEX_HIDDEN_HARDWARE
+        if hardware_hash not in INDEX_HIDDEN_HARDWARE | HIDDEN_HARDWARE
     ]
     return f"""
     <section class="panel">

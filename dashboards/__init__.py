@@ -21,6 +21,11 @@ HARDWARE_NAMES = {
     "7c42d6": "64-core AMD EPYC VM",
 }
 
+# Machines whose results are kept in `results/` but left out of every
+# dashboard for now. The Apple M2 laptop timings were taken while another
+# session was using a core: hidden until they are rerun.
+HIDDEN_HARDWARE = {"3dd14d"}
+
 # So that a machine has the same color on every dashboard.
 HARDWARE_COLORS = {
     "3b5e61": "#2294c4",
