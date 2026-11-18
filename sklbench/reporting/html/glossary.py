@@ -133,6 +133,31 @@ TERMS = {
         "Making predictions with a fitted model.",
         glossary="predict",
     ),
+    # k-means
+    "inertia": Term(
+        "What k-means minimizes: the squared distance of each sample to its nearest "
+        "center, here averaged over all samples. Lower is better.",
+    ),
+    "relative inertia": Term(
+        "Inertia divided by the lowest one any run reached on the same dataset and "
+        "number of clusters, minus 1. 1e-3 means 0.1% above the best known inertia.",
+    ),
+    "k-means++": Term(
+        "Init that picks each new center at random, more likely far from the centers "
+        "already picked (greedy variant: the best of a few candidates). Slower than a "
+        "random init, usually better centers.",
+        url="https://scikit-learn.org/stable/modules/clustering.html#k-means",
+    ),
+    "k-means||": Term(
+        "Parallel variant of k-means++ (scalable k-means++, cuML's default): it "
+        "oversamples candidates in a few rounds, then reduces them to k centers.",
+    ),
+    "e-means": Term(
+        "Mini-batch k-means with an exponential moving average update of the "
+        "centers and a random init (Meta FAIR, 2026). Its budget is a number of "
+        "passes over the data (epochs).",
+        url="https://e-means.github.io/",
+    ),
     "hyperparameters": Term(
         "Parameters set before fit that control how an estimator learns, such "
         "as max_depth or the regularization strength.",
@@ -282,6 +307,10 @@ TERMS = {
         "all threads.",
     ),
     # Reading the plots
+    "pareto front": Term(
+        "The settings that no faster setting beats: each point of the front is the "
+        "best result reachable within its time.",
+    ),
     "speed-up": Term(
         "Baseline time divided by the compared time: 2x is twice as fast as "
         "the baseline, 0.5x twice as slow. In the detailed results, a "

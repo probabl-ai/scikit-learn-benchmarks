@@ -365,6 +365,11 @@ code {
   font-size: 12px;
   color: var(--muted);
 }
+.plot-footnote {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
 .plot-cell-body > .plot-subtitle:first-child {
   margin-top: 2px;
 }

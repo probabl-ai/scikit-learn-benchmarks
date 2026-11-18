@@ -29,3 +29,11 @@ dashboards/*.html
 
 # Local Claude Code settings, skills and worktrees
 .claude/
+
+# CuPy k-means fetched by sklbench/runners/estimator/wrappers/cupy_kmeans.py
+.cache/
+
+# e-means kernel built by `pixi run -e faiss-cpu build-emeans-kernel`
+sklbench/runners/estimator/wrappers/_emeans_kernel.c
+sklbench/runners/estimator/wrappers/_emeans_kernel.*.so
+sklbench/runners/estimator/wrappers/build/
