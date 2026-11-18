@@ -79,6 +79,7 @@ IMPLEMENTATIONS = {
     "FAISS Lloyd (GPU)": ("#ea5974", "GPU"),
     "FAISS e-means (Triton, FP32)": ("#4041b6", "GPU"),
     "FAISS e-means (BF16)": ("#c075eb", "GPU"),
+    "CuPy k-means (fused kernels)": ("#c9a000", "GPU"),
 }
 # Still benchmarked, and their runs count for the best known inertia, but not plotted.
 HIDDEN_IMPLEMENTATIONS = {
@@ -86,7 +87,6 @@ HIDDEN_IMPLEMENTATIONS = {
     "FAISS Lloyd (CPU)",
     "FAISS e-means (Cython kernel)",
     "CuPy k-means",
-    "CuPy k-means (fused kernels)",
     "emeans (Rust)",
 }
 # The boxes checked when the URL doesn't say otherwise.
@@ -186,6 +186,13 @@ ABOUT_HTML = """<section class="panel">
       float32 input into bfloat16 operands (reduced precision).</li>
       <li>cuML KMeans: RAPIDS cuML <code>KMeans</code>. Its <code>"k-means++"</code>
       init is greedy k-means++, and <code>"scalable-k-means++"</code> is k-means||.</li>
+      <li>CuPy k-means (fused kernels): Lloyd of
+      <a href="https://github.com/cakedev0/cursor-sandbox/tree/cupy-kmeans/kmeans_lloyd">kmeans_lloyd</a>,
+      one CUDA kernel per iteration compiled by CuPy: a tiled float32 GEMM with a running
+      argmin over the centers, so the distance matrix is never written, then atomic adds
+      of each sample to the sum of its new center. Greedy k-means++ or random init, and
+      <code>tol</code> as in scikit-learn. Its version with plain CuPy array operations
+      is ~1.7x slower and not plotted.</li>
     </ul>
     <p>Settings don't mean the same thing everywhere, which is why the hover shows the
     iterations next to the time. <code>tol</code> is relative to the mean feature
