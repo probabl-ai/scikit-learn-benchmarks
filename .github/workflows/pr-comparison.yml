@@ -407,14 +407,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           branch="$PAGES_BRANCH"
-          # wrangler@4 requires Node >=22; this step runs on persistent
-          # self-hosted runners (unlike dashboard-preview-deploy.yml's
-          # GitHub-hosted ubuntu-latest, which does have a modern enough
-          # Node) whose Node version isn't managed by this repo - confirmed
-          # live on intel-laptop (Node 18.19.1). wrangler@3 needs only
-          # Node >=16.17.0 and has the identical `pages deploy` flags used
-          # here.
-          npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
+          # Node comes from the reporting env: the self-hosted runners' own
+          # Node is too old for wrangler@4 (18 on intel-laptop) or missing
+          # (aws-nvidia-l4).
+          pixi run --frozen -e reporting npx --yes wrangler@4 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
             --commit-hash="${{ github.event.pull_request.head.sha }}" \
             --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }}, results only)" \
             --commit-dirty=true
@@ -447,8 +443,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           branch="$PAGES_BRANCH"
-          # wrangler@3: see "Deploy results" above.
-          npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
+          # Node from the reporting env: see "Deploy results" above.
+          pixi run --frozen -e reporting npx --yes wrangler@4 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
             --commit-hash="${{ github.event.pull_request.head.sha }}" \
             --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }})" \
             --commit-dirty=true

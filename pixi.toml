@@ -291,6 +291,9 @@ scikit-learn = "1.9.*"
 jupyter = "*"
 matplotlib = "*"
 plotly = "*"
+# wrangler@4 (Cloudflare Pages deploys) needs Node >=22, which the
+# self-hosted runners don't all provide.
+nodejs = ">=22"
 
 [feature.reporting.pypi-dependencies]
 Jinja2 = "*"
