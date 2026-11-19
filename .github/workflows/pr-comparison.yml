@@ -145,8 +145,13 @@ jobs:
   # this is what makes the host's readiness visible. `[skip]` runs rebuild on
   # ubuntu-latest and never touch the host, so they skip both AWS jobs.
   runner_ready:
-    # Named explicitly so aws-provision.sh's `select(.name == "runner-ready")`
-    # still finds it despite the underscore in the job id.
+    # CONTRACT: the job *name* `runner-ready` is matched literally by the waiter
+    # in scripts/ci/aws-provision.sh and by scripts/ci/clear-stale-runner-ready.sh.
+    # Never rename it, and never move this job behind a reusable-workflow `uses:`
+    # call: the jobs API would render it as `<caller> / <job>` and both matchers
+    # would silently stop matching (the waiter would time out after 15 min).
+    # The explicit `name:` keeps the underscore in this job's id from changing
+    # the name both matchers look for.
     name: runner-ready
     needs: gate_and_parse
     if: >-
@@ -195,26 +200,13 @@ jobs:
       actions: write
       contents: read
     steps:
+      # The cleanup shell is shared with run-benchmarks.yml; the checkout only
+      # fetches it.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Clear runner-ready after an unsuccessful provision
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          status="$(gh api \
-            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
-            --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
-            || status="unknown"
-          case "$status" in
-            in_progress|completed)
-              echo "runner-ready is $status; nothing to clear"
-              ;;
-            *)
-              echo "::error::provision failed and runner-ready is $status; cancelling the run to clear it"
-              gh api -X POST \
-                "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
-                >/dev/null || true
-              ;;
-          esac
+        run: scripts/ci/clear-stale-runner-ready.sh --cancel-on-unknown
 
   benchmark-and-publish:
     needs: [gate_and_parse, provision, runner_ready]
