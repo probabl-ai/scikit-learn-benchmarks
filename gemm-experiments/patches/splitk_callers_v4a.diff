@@ -1,0 +1,91 @@
+diff --git a/common_thread.h b/common_thread.h
+index 11c35a9fb..c7f248db5 100644
+--- a/common_thread.h
++++ b/common_thread.h
+@@ -249,6 +249,10 @@ void blas_level3_thread_enter(void);
+ /* Returns 1 with the lock held, as after blas_level3_thread_enter, else 0. */
+ int blas_level3_thread_try_enter(void);
+ void blas_level3_thread_leave(void);
++/* Counts the calls running between enter and leave. enter returns the count,
++   this call included. */
++int blas_level3_callers_enter(void);
++void blas_level3_callers_leave(void);
+ 
+ int blas_level1_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k, void *alpha,
+ 		       void *a, BLASLONG lda,
+diff --git a/driver/level3/level3_thread_lock.c b/driver/level3/level3_thread_lock.c
+index 68adb1f50..67ff23c46 100644
+--- a/driver/level3/level3_thread_lock.c
++++ b/driver/level3/level3_thread_lock.c
+@@ -149,3 +149,23 @@ void blas_level3_thread_leave(void)
+ }
+ 
+ #endif
++
++/* Calls between blas_level3_callers_enter and blas_level3_callers_leave. */
++static volatile BLASULONG callers_lock = 0;
++static volatile int callers = 0;
++
++int blas_level3_callers_enter(void)
++{
++  int n;
++  blas_lock(&callers_lock);
++  n = ++callers;
++  blas_unlock(&callers_lock);
++  return n;
++}
++
++void blas_level3_callers_leave(void)
++{
++  blas_lock(&callers_lock);
++  callers--;
++  blas_unlock(&callers_lock);
++}
+diff --git a/interface/syrk.c b/interface/syrk.c
+index ed1282f32..73365579a 100644
+--- a/interface/syrk.c
++++ b/interface/syrk.c
+@@ -130,6 +130,9 @@ void NAME(char *UPLO, char *TRANS,
+ 
+ #ifdef SMP
+   double NNK;
++#ifdef SYRK_SPLITK
++  int counted = 0;
++#endif
+ #ifdef USE_SIMPLE_THREADED_LEVEL3
+ #ifndef COMPLEX
+ #ifdef XDOUBLE
+@@ -255,6 +258,9 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
+ 
+ #ifdef SMP
+ double NNK;
++#ifdef SYRK_SPLITK
++  int counted = 0;
++#endif
+ 
+ #ifdef USE_SIMPLE_THREADED_LEVEL3
+ #ifndef COMPLEX
+@@ -425,7 +431,11 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
+   }
+ 
+ #ifdef SYRK_SPLITK
+-  if (args.nthreads > 1 && syrk_splitk(&args, uplo, trans, sa, sb)) {
++  /* Concurrent small syrk calls run on one thread each, side by side. A split
++     call running against them would be slower than that, so only split when
++     no other syrk call is running. */
++  counted = args.nthreads > 1;
++  if (counted && blas_level3_callers_enter() == 1 && syrk_splitk(&args, uplo, trans, sa, sb)) {
+   } else
+ #endif
+   if (args.nthreads == 1) {
+@@ -449,6 +459,10 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
+   }
+ #endif
+ 
++#ifdef SYRK_SPLITK
++  if (counted) blas_level3_callers_leave();
++#endif
++
+  blas_memory_free(buffer);
+ 
+   FUNCTION_PROFILE_END(COMPSIZE * COMPSIZE, args.n * args.k + args.n * args.n / 2, args.n * args.n * args.k);

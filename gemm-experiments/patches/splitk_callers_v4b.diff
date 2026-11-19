@@ -1,0 +1,190 @@
+diff --git a/common_thread.h b/common_thread.h
+index 11c35a9fb..c7f248db5 100644
+--- a/common_thread.h
++++ b/common_thread.h
+@@ -249,6 +249,10 @@ void blas_level3_thread_enter(void);
+ /* Returns 1 with the lock held, as after blas_level3_thread_enter, else 0. */
+ int blas_level3_thread_try_enter(void);
+ void blas_level3_thread_leave(void);
++/* Counts the calls running between enter and leave. enter returns the count,
++   this call included. */
++int blas_level3_callers_enter(void);
++void blas_level3_callers_leave(void);
+ 
+ int blas_level1_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k, void *alpha,
+ 		       void *a, BLASLONG lda,
+diff --git a/driver/level3/level3_thread_lock.c b/driver/level3/level3_thread_lock.c
+index 68adb1f50..67ff23c46 100644
+--- a/driver/level3/level3_thread_lock.c
++++ b/driver/level3/level3_thread_lock.c
+@@ -149,3 +149,23 @@ void blas_level3_thread_leave(void)
+ }
+ 
+ #endif
++
++/* Calls between blas_level3_callers_enter and blas_level3_callers_leave. */
++static volatile BLASULONG callers_lock = 0;
++static volatile int callers = 0;
++
++int blas_level3_callers_enter(void)
++{
++  int n;
++  blas_lock(&callers_lock);
++  n = ++callers;
++  blas_unlock(&callers_lock);
++  return n;
++}
++
++void blas_level3_callers_leave(void)
++{
++  blas_lock(&callers_lock);
++  callers--;
++  blas_unlock(&callers_lock);
++}
+diff --git a/interface/gemm.c b/interface/gemm.c
+index 6297342be..d53e53317 100644
+--- a/interface/gemm.c
++++ b/interface/gemm.c
+@@ -259,11 +259,11 @@ static inline int get_gemm_optimal_nthreads(double MNK) {
+ #define GEMM_SPLITK 1
+ #include "splitk.h"
+ 
+-static int gemm_splitk(blas_arg_t *args, int transa, int transb, IFLOAT *sa, IFLOAT *sb) {
++static int gemm_splitk(blas_arg_t *args, int callers, int transa, int transb, IFLOAT *sa, IFLOAT *sb) {
+   BLASLONG i, p;
+   splitk_chunk_t *chunks;
+   if (((FLOAT *)args->alpha)[0] == ZERO) return 0;
+-  p = splitk_nchunks(args->m * args->n, args->k, args->nthreads);
++  p = splitk_nchunks(args->m * args->n, args->k, args->nthreads / callers);
+   chunks = splitk_begin(args, gemm[(transb << 2) | transa], p);
+   if (chunks == NULL) return 0;
+   for (i = 0; i < p; i++) {
+@@ -298,6 +298,9 @@ void NAME(char *TRANSA, char *TRANSB,
+ 
+ #ifdef SMP
+   double MNK;
++#ifdef GEMM_SPLITK
++  int counted = 0;
++#endif
+ #if defined(USE_SIMPLE_THREADED_LEVEL3) || !defined(NO_AFFINITY)
+ #ifndef COMPLEX
+ #ifdef XDOUBLE
+@@ -421,6 +424,9 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_TRANSPOSE TransA, enum CBLAS_TRANS
+ 
+ #ifdef SMP
+   double MNK;
++#ifdef GEMM_SPLITK
++  int counted = 0;
++#endif
+ #if defined(USE_SIMPLE_THREADED_LEVEL3) || !defined(NO_AFFINITY)
+ #ifndef COMPLEX
+ #ifdef XDOUBLE
+@@ -812,7 +818,8 @@ if (*(FLOAT*)args.alpha != 0.0) {
+   args.common = NULL;
+ 
+ #ifdef GEMM_SPLITK
+- if (args.nthreads > 1 && gemm_splitk(&args, transa, transb, sa, sb)) {
++ counted = args.nthreads > 1;
++ if (counted && gemm_splitk(&args, blas_level3_callers_enter(), transa, transb, sa, sb)) {
+  } else
+ #endif
+  if (args.nthreads == 1) {
+@@ -858,6 +865,10 @@ if (*(FLOAT*)args.alpha != 0.0) {
+   }
+ #endif
+ 
++#ifdef GEMM_SPLITK
++ if (counted) blas_level3_callers_leave();
++#endif
++
+  blas_memory_free(buffer);
+ 
+   FUNCTION_PROFILE_END(COMPSIZE * COMPSIZE, args.m * args.k + args.k * args.n + args.m * args.n, 2 * args.m * args.n * args.k);
+diff --git a/interface/splitk.h b/interface/splitk.h
+index 442a73470..ca2a066b3 100644
+--- a/interface/splitk.h
++++ b/interface/splitk.h
+@@ -100,13 +100,10 @@ static splitk_chunk_t *splitk_begin(blas_arg_t *args, splitk_driver_t driver, BL
+   BLASLONG i, k0 = 0, size_c = args->m * args->n;
+   splitk_chunk_t *chunks;
+   FLOAT *buf;
+-  if (p < 2 || !blas_level3_thread_try_enter()) return NULL;
++  if (p < 2) return NULL;
+   chunks = (splitk_chunk_t *)malloc(p * (sizeof(splitk_chunk_t) + sizeof(blas_queue_t)) +
+                                     (p - 1) * size_c * sizeof(FLOAT));
+-  if (chunks == NULL) {
+-    blas_level3_thread_leave();
+-    return NULL;
+-  }
++  if (chunks == NULL) return NULL;
+   buf = SPLITK_BUF(chunks, p);
+   for (i = 0; i < p; i++) {
+     BLASLONG kw = (args->k - k0) / (p - i);
+@@ -151,7 +148,6 @@ static void splitk_finish(blas_arg_t *args, splitk_chunk_t *chunks, BLASLONG p,
+   }
+   splitk_queue(chunks, p, nr, (void *)splitk_reduce, sa, sb);
+   free(chunks);
+-  blas_level3_thread_leave();
+ }
+ 
+ #endif
+diff --git a/interface/syrk.c b/interface/syrk.c
+index ed1282f32..aeeca7f2d 100644
+--- a/interface/syrk.c
++++ b/interface/syrk.c
+@@ -95,12 +95,12 @@ static int (*syrk[])(blas_arg_t *, BLASLONG *, BLASLONG *, FLOAT *, FLOAT *, BLA
+ #define SYRK_SPLITK 1
+ #include "splitk.h"
+ 
+-static int syrk_splitk(blas_arg_t *args, int uplo, int trans, FLOAT *sa, FLOAT *sb) {
++static int syrk_splitk(blas_arg_t *args, int callers, int uplo, int trans, FLOAT *sa, FLOAT *sb) {
+   BLASLONG i, p;
+   splitk_chunk_t *chunks;
+   if (((FLOAT *)args->alpha)[0] == ZERO) return 0;
+   args->m = args->n;
+-  p = splitk_nchunks(args->n * args->n, args->k, args->nthreads);
++  p = splitk_nchunks(args->n * args->n, args->k, args->nthreads / callers);
+   chunks = splitk_begin(args, syrk[(uplo << 1) | trans], p);
+   if (chunks == NULL) return 0;
+   /* N: A is n x k, a chunk is columns k0.. ; T: A is k x n, a chunk is rows k0.. */
+@@ -130,6 +130,9 @@ void NAME(char *UPLO, char *TRANS,
+ 
+ #ifdef SMP
+   double NNK;
++#ifdef SYRK_SPLITK
++  int counted = 0;
++#endif
+ #ifdef USE_SIMPLE_THREADED_LEVEL3
+ #ifndef COMPLEX
+ #ifdef XDOUBLE
+@@ -255,6 +258,9 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo, enum CBLAS_TRANSPOSE Tr
+ 
+ #ifdef SMP
+ double NNK;
++#ifdef SYRK_SPLITK
++  int counted = 0;
++#endif
+ 
+ #ifdef USE_SIMPLE_THREADED_LEVEL3
+ #ifndef COMPLEX
+@@ -425,7 +431,8 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
+   }
+ 
+ #ifdef SYRK_SPLITK
+-  if (args.nthreads > 1 && syrk_splitk(&args, uplo, trans, sa, sb)) {
++  counted = args.nthreads > 1;
++  if (counted && syrk_splitk(&args, blas_level3_callers_enter(), uplo, trans, sa, sb)) {
+   } else
+ #endif
+   if (args.nthreads == 1) {
+@@ -449,6 +456,10 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
+   }
+ #endif
+ 
++#ifdef SYRK_SPLITK
++  if (counted) blas_level3_callers_leave();
++#endif
++
+  blas_memory_free(buffer);
+ 
+   FUNCTION_PROFILE_END(COMPSIZE * COMPSIZE, args.n * args.k + args.n * args.n / 2, args.n * args.n * args.k);

@@ -1039,3 +1039,60 @@ one-chunk cells that were under 0.95x are noise. Median ratio develop/v3:
 d 64x64x20000 86T 1.00, s syrk 32x20000 86T 1.00, s 64x64x5000 24-86T
 0.92-1.15 (min ratio 0.92-1.12). The split cells in the same run: 64x64x20000
 7.5-11.9x and syrk 32x20000 11-19x at 24-64T.
+
+## Exp 30: split-K with concurrent callers (xeon-s1, EPYC 7543)
+
+PR #10 at 8 callers x 16 threads on 16 cores: small syrk 0.41-0.45x of
+develop (one caller holds the level 3 lock and splits over every thread, the
+others run single-threaded next to it). `scripts/run_callers_splitk.sh`
+(gemmbench `--callers`, callers pinned to T cores), builds `cc-*` on develop
+c2fc6cf5f; variants in `patches/splitk_callers_*.diff` on fork `splitk`
+2b66eeb85. Results in `results/xeon-s1/callers/`.
+
+- v4a: syrk splits only when no other syrk call runs. Back to develop
+  (0.8-1.0x by calls completed), no gain with 2-8 callers.
+- v4b: count the gemm/syrk calls with nthreads > 1, split k into
+  nthreads / callers chunks, no level 3 lock. pthreads (`callers2.csv`,
+  4 rounds): syrk 32-100 columns at 16T 8 callers 1.16-1.43x, 4 callers
+  2.3-2.5x, 2 callers 4-5.6x; 86T 8 callers 2.4-3.7x; gemm 64x64x20000 86T
+  8 callers 11x. One caller unchanged.
+- OpenMP: the first "omp" builds were pthreads objects (`make clean` in a
+  built tree leaves them; `git clean -xfd` first). Real OpenMP builds
+  (`callers3_omp.csv`): exec_blas runs MAX_PARALLEL_NUMBER = 1 threaded call
+  at a time, so v4b without the lock is 0.03-0.2x on small syrk with 8
+  callers; v5 (v4b + try_enter) 0.5-0.8x; PR #10 0.5-1.0x.
+- v6 (fork `splitk-callers` 03536cdb): v4b on pthreads; OpenMP splits only
+  when callers == 1, with the lock. `callers4.csv` (f64/f32, 3 rounds),
+  `callers4_omp.csv` (GNU and LLVM runtimes): pthreads as v4b in both
+  precisions (f32 syrk 16T 8 callers 1.18-1.47x), OpenMP 0.85-1.15x with 2-8
+  callers (most cells 0.93-1.05).
+- Exact checks (`src/conc_check.c`: 1, 4, 8 callers, random gemm/syrk on
+  integer inputs vs naive, padding and other triangle included): 0 failures
+  at 8, 16, 86 threads, pthreads and OpenMP (`checks*.txt`).
+
+Metric: calls completed in a 0.4 s window is quantized for long calls
+(7 or 8 calls per caller), which read as 0.67-0.83x. With
+`GEMMBENCH_CALLERS_MEAN=1` (aggregate rate from the mean call time) and a 4 s
+window (`callers3_long.csv`): syrk 200x100000 16T 8 callers 0.99x, gemm
+200x200x50000:TN 0.95x [0.91, 0.99]. The single-shape cells under 0.9x in a
+grid (syrk 64x5000 43T) are 1.0x alone in their process
+(`callers3_alone.csv`): after a split shape the pool spins and the next
+single-threaded shape loses turbo. Concurrent 1000x1000x2000 (never splits)
+moves 0.1-12x between rounds on every build.
+
+Mixed callers (`src/mixbench.c`, `scripts/run_callers_mix.sh`, `mix1.csv`,
+calls/s against develop, 4 s window):
+- 16T, 1 gemm 1000x1000x2000 + 7 syrk 100x20000: v6 syrk 0.88x [0.65, 0.89],
+  gemm 0.85x [0.59, 1.26] (PR #10: 1.09x and 0.63x). The gemm takes 16
+  threads whatever its share, and each syrk now adds a second one.
+- 16T, 4 + 4: syrk 0.80x, gemm 1.52x. 1 + 1: syrk 2.4x, gemm 1.0x.
+- 86T: syrk 1.3-10x, gemm 0.9-1.2x (noisy).
+- 8 syrk 100x20000 starting 0.2 s apart, 16T: 1.96x (PR #10 0.65x).
+- Burst start: when 8 callers enter at once the first ones see 1, 2, ...
+  callers and take too many chunks for one call: syrk 200x100000 0.87x on a
+  0.5 s window, 0.98x on 4 s.
+
+EPYC 7543 (32 cores, Scaleway, no benchlock there, raw files lost with the
+VM): PR #10 0.27-0.45x on small syrk with 8 callers, v4b 1.1-1.5x (16 and
+32T); long window 0.98-0.99x on the two long cells; OpenMP v6 0.93-1.10x
+with 2-8 callers; exact checks 0 failures.

@@ -560,6 +560,14 @@ static void run_callers(struct op *ops, int P, double min_time, int max_reps,
     qsort(all, total, sizeof(double), cmp_double);
     *best = all[0];
     *med = all[total / 2];
+    // GEMMBENCH_CALLERS_MEAN=1: report the mean call time instead of the
+    // median, so that P * flops / time is the aggregate rate even when the
+    // callers run at different speeds.
+    if (getenv("GEMMBENCH_CALLERS_MEAN")) {
+        double sum = 0;
+        for (int i = 0; i < total; i++) sum += all[i];
+        *med = sum / total;
+    }
     *reps = total;
     free(all); free(cs); free(th);
     pthread_barrier_destroy(&bar);
