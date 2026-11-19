@@ -19,13 +19,16 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   Each entry ends with exactly one `configs/<name>.py` path. Before it,
   `runner` and `env` are both optional and can come in any order (their
   values don't overlap, so each token is recognized by its value):
-  - `runner`: `intel-laptop`, `intel-xeon` or `intel-all`, the self-hosted
-    machine(s) that run this entry. Defaults to `intel-all`.
+  - `runner`: `intel-laptop`, `intel-xeon`, `intel-all` or `aws-nvidia-l4`,
+    the self-hosted machine(s) that run this entry. Defaults to `intel-all`,
+    which is the two Intel machines only; the AWS L4 host is started only
+    when an entry names it explicitly.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
-    currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl` or
-    `sklearn-dev-freethreading`. It builds both sides of
-    the `sklearn_ref` vs `main` comparison for this entry. Defaults to
-    `sklearn-dev`.
+    currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
+    `sklearn-dev-freethreading` or `sklearn-dev-nvidia`. It builds both
+    sides of the `sklearn_ref` vs `main` comparison for this entry.
+    Defaults to `sklearn-dev`. `sklearn-dev-nvidia` is the only CUDA-capable
+    one, so use it for `aws-nvidia-l4` entries.
 
   For example, `configs/hgb_scalability.py` alone runs that config on both
   Intel runners with `sklearn-dev`. `intel-xeon#sklearn-dev-libomp#configs/pipeline.py`
@@ -38,6 +41,13 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   entries and generates one dashboard. Results from the same machine always
   land in the same dashboard, with an env/branch column to tell entries apart
   when several envs are involved.
+
+  A GPU comparison needs both the runner and the CUDA env named, e.g.
+  `aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py`. The L4 host is
+  started on demand: the workflow starts the instance and waits for its
+  runner to come online, then leaves it running for the next comparison.
+  Only directives that name `aws-nvidia-l4` start it; Intel-only directives
+  never touch AWS.
 
 The before/after table is always generated. To also publish one of the other
 `dashboards/gen_*.py` dashboards on a run's results, call it from the

@@ -26,11 +26,16 @@ has one trailing `config` token, since that's the only field whose values
 aren't drawn from a fixed set. Omitted `runner` defaults to `intel-all`
 (intel-laptop and intel-xeon); omitted `env` defaults to `sklearn-dev`. So
 `configs/hgb_scalability.py` alone runs that config on both Intel runners
-under sklearn-dev. `env` must be a pixi environment that
-path-depends on `sklearn-src` (see pixi.toml), currently `sklearn-dev`,
-`sklearn-dev-libomp`, `sklearn-dev-mkl` and `sklearn-dev-freethreading`,
+under sklearn-dev. `aws-nvidia-l4` is accepted but never defaulted to: the
+GPU host is provisioned on demand, so it must be named explicitly. `env`
+must be a pixi environment that path-depends on `sklearn-src` (see
+pixi.toml), currently `sklearn-dev`, `sklearn-dev-libomp`,
+`sklearn-dev-mkl`, `sklearn-dev-freethreading` and `sklearn-dev-nvidia`,
 since run.sh's
 `env@owner:ref` spec (used to run each tuple) only makes sense for those.
+`sklearn-dev-nvidia` is the only one of them that is CUDA-capable (see
+feature.sklearn-dev-nvidia), so a GPU comparison needs it named explicitly
+too.
 
 Publishing one of this repo's other dashboards/gen_*.py dashboards
 alongside the always-generated pr_comparison.html table is a code change to
@@ -58,7 +63,10 @@ FENCE_RE = re.compile(
 # module docstring), just catches typos with a clear error early.
 GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
-VALID_RUNNERS = {"intel-laptop", "intel-xeon"}
+# The Intel machines are the default set: a bare run entry must never pull in
+# the AWS L4 host, which is only provisioned when a directive asks for it.
+INTEL_RUNNERS = ("intel-laptop", "intel-xeon")
+VALID_RUNNERS = {*INTEL_RUNNERS, "aws-nvidia-l4"}
 DEFAULT_RUNNER_TOKEN = "intel-all"
 # Pixi envs that path-depend on sklearn-src (see pixi.toml) - the only ones
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.
@@ -67,6 +75,7 @@ VALID_SKLEARN_SRC_ENVS = {
     "sklearn-dev-libomp",
     "sklearn-dev-mkl",
     "sklearn-dev-freethreading",
+    "sklearn-dev-nvidia",
 }
 DEFAULT_SKLEARN_SRC_ENV = "sklearn-dev"
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
@@ -145,8 +154,10 @@ def parse_fields(block: str) -> dict:
 
         runner_token = runner_token or DEFAULT_RUNNER_TOKEN
         env = env or DEFAULT_SKLEARN_SRC_ENV
+        # `intel-all` expands to the Intel machines only, not every accepted
+        # runner: the default must not start the AWS host.
         entry_runners = (
-            tuple(sorted(VALID_RUNNERS)) if runner_token == DEFAULT_RUNNER_TOKEN else (runner_token,)
+            tuple(sorted(INTEL_RUNNERS)) if runner_token == DEFAULT_RUNNER_TOKEN else (runner_token,)
         )
 
         for runner in entry_runners:

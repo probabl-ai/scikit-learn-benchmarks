@@ -139,9 +139,95 @@ jobs:
         if: steps.parse.outputs.directive_present == 'true' && steps.parse.outputs.ok != 'true'
         run: exit 1
 
-  benchmark-and-publish:
+  # The AWS L4 host is started only when a directive names it. This job is
+  # queued from the start in parallel with `provision`; `provision` waits
+  # until the runner picks this job up (scripts/ci/aws-provision.sh), so
+  # this is what makes the host's readiness visible. `[skip]` runs rebuild on
+  # ubuntu-latest and never touch the host, so they skip both AWS jobs.
+  runner_ready:
+    # Named explicitly so aws-provision.sh's `select(.name == "runner-ready")`
+    # still finds it despite the underscore in the job id.
+    name: runner-ready
     needs: gate_and_parse
-    if: needs.gate_and_parse.outputs.parse_ok == 'true'
+    if: >-
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      needs.gate_and_parse.outputs.skip_bench != 'true' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4')
+    runs-on:
+      group: aws-gpu-runners
+    # Execution timeout only; `provision` decides when to give up waiting.
+    timeout-minutes: 5
+    # Runs on the GPU box; no repository access needed.
+    permissions: {}
+    steps:
+      - name: Confirm the runner is online
+        run: |
+          echo "runner online on $(hostname)"
+          nvidia-smi -L
+
+  provision:
+    # Reuses run-benchmarks.yml's reusable workflow so the AWS credentials
+    # and role stay in aws-provision.yml instead of being duplicated here.
+    # Only this job gets the AWS permissions.
+    needs: gate_and_parse
+    if: >-
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      needs.gate_and_parse.outputs.skip_bench != 'true' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4')
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    uses: ./.github/workflows/aws-provision.yml
+
+  cleanup-aws:
+    # A failed provision leaves runner_ready queued indefinitely, so cancel
+    # the run to clear it - same cleanup as run-benchmarks.yml. Skipped for
+    # Intel-only directives (provision is skipped) and when provision worked.
+    needs: [gate_and_parse, provision, benchmark-and-publish]
+    if: >-
+      always() &&
+      needs.provision.result != 'success' &&
+      needs.provision.result != 'skipped' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Clear runner-ready after an unsuccessful provision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
+            || status="unknown"
+          case "$status" in
+            in_progress|completed)
+              echo "runner-ready is $status; nothing to clear"
+              ;;
+            *)
+              echo "::error::provision failed and runner-ready is $status; cancelling the run to clear it"
+              gh api -X POST \
+                "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
+                >/dev/null || true
+              ;;
+          esac
+
+  benchmark-and-publish:
+    needs: [gate_and_parse, provision, runner_ready]
+    # always() so the two AWS jobs being skipped on an Intel-only directive
+    # does not skip this job too. The explicit result check keeps a failed
+    # GPU provision from leaving the matrix queued for a host that was never
+    # started; `skipped` is the normal Intel-only case.
+    if: >-
+      always() &&
+      needs.gate_and_parse.result == 'success' &&
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      (needs.provision.result == 'skipped' ||
+       (needs.provision.result == 'success' && needs.runner_ready.result == 'success'))
     strategy:
       fail-fast: false
       matrix:
@@ -156,10 +242,14 @@ jobs:
     concurrency:
       group: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && format('pr-compare-rebuild-{0}-{1}', github.event.pull_request.number, matrix.runner) || format('benchmark-{0}', matrix.runner) }}
       cancel-in-progress: false
+    # aws-nvidia-l4 uses the SAME runner group run-benchmarks.yml uses, so a
+    # comparison queues behind a running benchmark instead of starting a
+    # second one on the single-slot host.
     runs-on: ${{ fromJSON(
       needs.gate_and_parse.outputs.skip_bench == 'true' && '"ubuntu-latest"' ||
       matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
       matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
+      matrix.runner == 'aws-nvidia-l4' && '{"group":"aws-gpu-runners"}' ||
       '[]') }}
     timeout-minutes: 1440
     env:
@@ -221,8 +311,11 @@ jobs:
 
       - name: Lock the benchmark machine
         # Same as in run-benchmarks.yml: waits for agents' runs on this box,
-        # then holds it until the release step below.
-        if: env.SKIP_BENCH != 'true'
+        # then holds it until the release step below. The AWS host has a
+        # single job slot and no scripts/benchlock, so it is already
+        # serialized and must not try to take the lock (same exemption as
+        # benchmark-run.yml).
+        if: env.SKIP_BENCH != 'true' && matrix.runner != 'aws-nvidia-l4'
         run: |
           pid=$(scripts/benchlock hold --tag "${{ github.workflow }} PR ${{ github.event.pull_request.number }} run ${{ github.run_id }}" all)
           echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
