@@ -72,20 +72,29 @@ def test_non_source_built_env_is_rejected_with_accepted_values():
         assert env in message
 
 
-def test_bare_entry_defaults_to_every_machine_with_its_own_env():
+def test_bare_entry_defaults_to_the_intel_pair_with_its_own_env():
     parsed = parser.parse_fields(_directive("configs/all_models.py"))
+    assert parsed["runners"] == ["intel-laptop", "intel-xeon"]
+    assert parsed["runs"] == [
+        {"runner": "intel-laptop", "env": "sklearn-dev", "config": "configs/all_models.py"},
+        {"runner": "intel-xeon", "env": "sklearn-dev", "config": "configs/all_models.py"},
+    ]
+
+
+def test_bare_entry_matches_explicit_intel_all():
+    assert parser.parse_fields(_directive("configs/all_models.py")) == parser.parse_fields(
+        _directive("intel-all#configs/all_models.py")
+    )
+
+
+def test_explicit_all_runner_covers_every_machine():
+    parsed = parser.parse_fields(_directive("all#configs/all_models.py"))
     assert parsed["runners"] == ["intel-laptop", "intel-xeon", "aws-nvidia-l4"]
     assert parsed["runs"] == [
         {"runner": "intel-laptop", "env": "sklearn-dev", "config": "configs/all_models.py"},
         {"runner": "intel-xeon", "env": "sklearn-dev", "config": "configs/all_models.py"},
         {"runner": "aws-nvidia-l4", "env": "sklearn-dev-nvidia", "config": "configs/all_models.py"},
     ]
-
-
-def test_explicit_all_runner_matches_the_default():
-    assert parser.parse_fields(_directive("all#configs/all_models.py")) == parser.parse_fields(
-        _directive("configs/all_models.py")
-    )
 
 
 def test_explicit_auto_env_resolves_per_machine():
@@ -108,7 +117,7 @@ def test_explicit_env_wins_over_the_auto_default():
             "env": "sklearn-dev-freethreading",
             "config": "configs/all_models.py",
         }
-        for runner in ("intel-laptop", "intel-xeon", "aws-nvidia-l4")
+        for runner in ("intel-laptop", "intel-xeon")
     ]
 
 

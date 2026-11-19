@@ -23,17 +23,16 @@ product. `runner` and `env` are each optional and can appear in either
 order before `config` (their vocabularies don't overlap, so a bare token is
 classified by set membership, not position); a `#`-joined entry only ever
 has one trailing `config` token, since that's the only field whose values
-aren't drawn from a fixed set. Omitted `runner` defaults to `all`, every
-machine: intel-laptop, intel-xeon and aws-nvidia-l4; `intel-all` names the
-two Intel machines. Omitted `env` defaults to `auto`, a token that resolves
+aren't drawn from a fixed set. Omitted `runner` defaults to `intel-all`, the
+two Intel machines: intel-laptop and intel-xeon. `all` names every machine,
+adding aws-nvidia-l4. Omitted `env` defaults to `auto`, a token that resolves
 per machine when a runner token expands into machines: sklearn-dev on each
 Intel machine, sklearn-dev-nvidia on aws-nvidia-l4. `auto` may also be
 written explicitly, a concrete `env` takes precedence over it, and a machine
 with no mapping is a hard error naming it. So `configs/hgb_scalability.py`
-alone runs that config on every machine, each under the environment that
-machine builds with, which means a default comparison provisions the GPU
-host; an Intel-only comparison names the Intel machines (or `intel-all`)
-explicitly and produces runs on those machines alone. `env` must be a pixi
+alone runs that config on the two Intel machines, each under the environment
+that machine builds with; a comparison that reaches the GPU host names `all`
+or `aws-nvidia-l4` in its run entry. `env` must be a pixi
 environment that path-depends on `sklearn-src` (see pixi.toml), currently
 `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
 `sklearn-dev-freethreading` and `sklearn-dev-nvidia`, since run.sh's
@@ -67,14 +66,14 @@ FENCE_RE = re.compile(
 # module docstring), just catches typos with a clear error early.
 GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
-# Runner vocabularies. `all` is every machine and the default for a bare run
-# entry; `intel-all` expands to the two Intel machines.
+# Runner vocabularies. `intel-all` is the two Intel machines and the default
+# for a bare run entry; `all` is every machine, adding the GPU host.
 INTEL_RUNNERS = ("intel-laptop", "intel-xeon")
 GPU_RUNNERS = ("aws-nvidia-l4",)
 ALL_RUNNERS = (*INTEL_RUNNERS, *GPU_RUNNERS)
 RUNNER_GROUPS = {"intel-all": INTEL_RUNNERS, "all": ALL_RUNNERS}
 VALID_RUNNERS = {*ALL_RUNNERS, *RUNNER_GROUPS}
-DEFAULT_RUNNER_TOKEN = "all"
+DEFAULT_RUNNER_TOKEN = "intel-all"
 # Pixi envs that path-depend on sklearn-src (see pixi.toml) - the only ones
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.
 VALID_SKLEARN_SRC_ENVS = {
@@ -188,8 +187,7 @@ def parse_fields(block: str) -> dict:
         runner_token = runner_token or DEFAULT_RUNNER_TOKEN
         env = env or DEFAULT_ENV_TOKEN
         # A runner group expands to its machines; an individual machine to
-        # itself. `all` is every machine (the default), `intel-all` the Intel
-        # pair only.
+        # itself. `intel-all` covers the Intel pair, `all` every machine.
         entry_runners = RUNNER_GROUPS.get(runner_token, (runner_token,))
 
         for runner in entry_runners:

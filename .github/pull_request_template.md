@@ -18,8 +18,9 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
 
 - `sklearn_ref`: `<fork owner>:<branch or ref>`.
 - `runs`: comma-separated `[runner#][env#]configs/<name>.py` entries.
-  runner: `intel-laptop`, `intel-xeon`, `aws-nvidia-l4` or `all` (every
-  machine, default `all`);
+  runner: `intel-laptop`, `intel-xeon`, `intel-all`, `aws-nvidia-l4` or
+  `all` (default `intel-all`, the two Intel machines; `all` is every
+  machine);
   env: `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
   `sklearn-dev-freethreading`, `sklearn-dev-nvidia` or `auto` (default
   `auto`, resolved per machine: `sklearn-dev` on each Intel machine,

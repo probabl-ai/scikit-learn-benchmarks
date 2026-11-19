@@ -21,8 +21,8 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   values don't overlap, so each token is recognized by its value):
   - `runner`: `intel-laptop`, `intel-xeon`, `intel-all`, `aws-nvidia-l4` or
     `all`, the self-hosted machine(s) that run this entry. Defaults to
-    `all`, every machine: `intel-laptop`, `intel-xeon` and `aws-nvidia-l4`.
-    `intel-all` is the two Intel machines.
+    `intel-all`, the two Intel machines: `intel-laptop` and `intel-xeon`.
+    `all` is every machine: the two Intel machines plus `aws-nvidia-l4`.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
     currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
     `sklearn-dev-freethreading` or `sklearn-dev-nvidia`, or `auto`. Defaults
@@ -34,9 +34,10 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
     for this entry. A machine with no `auto` mapping is a hard error naming
     the machine.
 
-  For example, `configs/hgb_scalability.py` alone runs that config on all
-  three machines, each with the env it is meant to use - `sklearn-dev` on
-  both Intel hosts, `sklearn-dev-nvidia` on the L4. `intel-xeon#sklearn-dev-libomp#configs/pipeline.py`
+  For example, `configs/hgb_scalability.py` alone runs that config on both
+  Intel hosts, each with the env it is meant to use, `sklearn-dev`.
+  `all#configs/hgb_scalability.py` covers the L4 too, under
+  `sklearn-dev-nvidia`. `intel-xeon#sklearn-dev-libomp#configs/pipeline.py`
   runs only on `intel-xeon` and builds both `main` and the PR ref with
   `sklearn-dev-libomp`, to isolate an OpenMP runtime effect like the `run.sh`
   example in CONTRIBUTING.md.
@@ -47,16 +48,15 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   land in the same dashboard, with an env/branch column to tell entries apart
   when several envs are involved.
 
-  **A default comparison starts the L4 instance on every push.** A bare
-  entry covers every machine, and `auto` gives the L4
-  `sklearn-dev-nvidia`, so the workflow starts the instance on demand,
-  waits for its runner to come online, then leaves it running for the next
-  comparison. To keep a comparison off the GPU host - and off its cost -
-  name the Intel machines explicitly: `intel-all#configs/x.py`, or
-  individual `intel-laptop#...` / `intel-xeon#...` entries. Those
-  directives produce runs on the Intel machines alone. A GPU comparison can
-  also name the runner and env outright, e.g.
-  `aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py`.
+  **A bare entry runs on the two Intel machines and starts no GPU host.** A
+  bare entry covers `intel-laptop` and `intel-xeon`, and `auto` gives both
+  `sklearn-dev`. The workflow runs no provision, runner-ready or cleanup job
+  for it and leaves the L4 instance down. A comparison that includes the GPU
+  host names it in the entry: `all` for every machine, e.g.
+  `all#configs/x.py`, or `aws-nvidia-l4` for the GPU host alone, e.g.
+  `aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py`. A GPU entry
+  starts the instance on demand, waits for its runner to come online, then
+  leaves it running for the next comparison.
 
 The before/after table is always generated. To also publish one of the other
 `dashboards/gen_*.py` dashboards on a run's results, call it from the
@@ -89,10 +89,10 @@ These jobs run on `ubuntu-latest` instead of the self-hosted runners, so they
 don't wait for a benchmark to free the runner. The `sklbench-compare` block
 must still be present and valid, since it selects which runners' sites to
 rebuild, but its `sklearn_ref` and configs are not run. With the default
-runner that means all three runners' sites, built on `ubuntu-latest`: the
+runner that means both Intel runners' sites, built on `ubuntu-latest`: the
 jobs contact no self-hosted machine and start no L4 host. If a runner has no
 published results yet, its job fails: push without `[skip]` first, or narrow
-the directive to the runners that do have results (e.g. `intel-all#...`).
+the directive to the runners that do have results (e.g. `intel-xeon#...`).
 
 A benchmark run publishes its results before it generates the dashboard, so
 if the dashboard step fails, fix it and push a `[skip]` commit: the results
