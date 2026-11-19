@@ -10,10 +10,6 @@ name: PR Comparison benchmark workflow
 # aws-nvidia-l4 matrix job, which must. One copy of the steps is what keeps
 # the two callers' behaviour identical - see the `benchmark-intel` /
 # `benchmark-aws` comments in pr-comparison.yml for which job runs when.
-#
-# `runs_on` is passed in rather than derived here, so the caller keeps
-# pr-comparison.yml's per-runner resolution (and its `[skip]` ->
-# `ubuntu-latest` rebuild override) in one place.
 
 on:
   workflow_call:
@@ -22,12 +18,13 @@ on:
         description: The runner this job compares on, as named in the directive.
         required: true
         type: string
-      runs_on:
+      use_benchlock:
         description: >-
-          JSON `runs-on:` value for that runner, e.g. '["Linux","X64",
-          "intel-xeon"]' or '{"group":"aws-gpu-runners"}'.
+          Whether this job's runner takes the scripts/benchlock machine lock.
+          False for the single-slot AWS host, which has no scripts/benchlock
+          and is serialized by its runner group.
         required: true
-        type: string
+        type: boolean
       runs:
         description: The directive's (runner, env, config) tuples, as a JSON array.
         required: true
@@ -54,16 +51,25 @@ on:
       CLOUDFLARE_ACCOUNT_ID:
         required: true
 
-# Capped by whatever the calling job grants; both callers grant exactly this.
+# A called workflow can only narrow the calling job's grant, never widen it.
+# This body reads the repository and writes PR comments; the Cloudflare
+# deploy authenticates with its own API token.
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 jobs:
   benchmark:
-    # `[skip]` runs rebuild on ubuntu-latest and are passed in that way by the
-    # caller; otherwise this is the self-hosted box named by the directive.
-    runs-on: ${{ fromJSON(inputs.runs_on) }}
+    # `[skip]` runs rebuild the dashboard on a GitHub-hosted runner; every
+    # other run lands on the self-hosted box the directive names. The AWS
+    # host uses the runner group run-benchmarks.yml uses, so a comparison
+    # queues behind a running benchmark and the single-slot host runs one
+    # job at a time.
+    runs-on: ${{ inputs.skip_bench == 'true' && 'ubuntu-latest' ||
+      inputs.runner == 'intel-laptop' && fromJSON('["Linux","X64","intel-gpu","float64-gpu"]') ||
+      inputs.runner == 'intel-xeon' && fromJSON('["Linux","X64","intel-xeon"]') ||
+      inputs.runner == 'aws-nvidia-l4' && fromJSON('{"group":"aws-gpu-runners"}') ||
+      fromJSON('[]') }}
     timeout-minutes: 1440
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -123,12 +129,11 @@ jobs:
         run: git clean -ffdx results/
 
       - name: Lock the benchmark machine
-        # Same as in run-benchmarks.yml: waits for agents' runs on this box,
-        # then holds it until the release step below. The AWS host has a
-        # single job slot and no scripts/benchlock, so it is already
-        # serialized and must not try to take the lock (same exemption as
-        # benchmark-run.yml).
-        if: env.SKIP_BENCH != 'true' && inputs.runner != 'aws-nvidia-l4'
+        # Waits for agents' runs on this box, then holds it until the release
+        # step below. Runners whose runner group already serializes them (the
+        # single-slot AWS host, which has no scripts/benchlock) are called
+        # with `use_benchlock: false`.
+        if: env.SKIP_BENCH != 'true' && inputs.use_benchlock
         run: |
           pid=$(scripts/benchlock hold --tag "${{ github.workflow }} PR ${{ github.event.pull_request.number }} run ${{ github.run_id }}" all)
           echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"

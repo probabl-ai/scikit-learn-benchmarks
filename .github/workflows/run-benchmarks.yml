@@ -92,6 +92,7 @@ jobs:
       runs_on: ${{ matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' || '["Linux","X64","intel-xeon"]' }}
       env: ${{ inputs.env }}
       config: ${{ inputs.config }}
+      use_benchlock: ${{ matrix.runner != 'aws-nvidia-l4' }}
 
   benchmark-aws:
     # Separate caller because it needs `runner-ready`. `provision` can return
@@ -107,6 +108,7 @@ jobs:
       runs_on: '{"group":"aws-gpu-runners"}'
       env: ${{ inputs.env }}
       config: ${{ inputs.config }}
+      use_benchlock: false
 
   cleanup-aws:
     # Clear `runner-ready` after an unsuccessful provision. For `all`, wait

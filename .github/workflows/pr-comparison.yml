@@ -245,19 +245,12 @@ jobs:
       group: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && format('pr-compare-rebuild-{0}-{1}', github.event.pull_request.number, matrix.runner) || format('benchmark-{0}', matrix.runner) }}
       cancel-in-progress: false
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     uses: ./.github/workflows/pr-comparison-benchmark.yml
     with:
       runner: ${{ matrix.runner }}
-      # aws-nvidia-l4 uses the SAME runner group run-benchmarks.yml uses, so a
-      # comparison queues behind a running benchmark and the single-slot host
-      # runs one job at a time.
-      runs_on: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && '"ubuntu-latest"' ||
-        matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-        matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
-        matrix.runner == 'aws-nvidia-l4' && '{"group":"aws-gpu-runners"}' ||
-        '[]' }}
+      use_benchlock: ${{ matrix.runner != 'aws-nvidia-l4' }}
       runs: ${{ needs.gate_and_parse.outputs.runs }}
       sklearn_owner: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
@@ -294,16 +287,12 @@ jobs:
       group: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && format('pr-compare-rebuild-{0}-{1}', github.event.pull_request.number, matrix.runner) || format('benchmark-{0}', matrix.runner) }}
       cancel-in-progress: false
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     uses: ./.github/workflows/pr-comparison-benchmark.yml
     with:
       runner: ${{ matrix.runner }}
-      runs_on: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && '"ubuntu-latest"' ||
-        matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-        matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
-        matrix.runner == 'aws-nvidia-l4' && '{"group":"aws-gpu-runners"}' ||
-        '[]' }}
+      use_benchlock: ${{ matrix.runner != 'aws-nvidia-l4' }}
       runs: ${{ needs.gate_and_parse.outputs.runs }}
       sklearn_owner: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}

@@ -24,6 +24,13 @@ on:
         description: Benchmark config script path.
         required: true
         type: string
+      use_benchlock:
+        description: >-
+          Whether this job's runner takes the scripts/benchlock machine lock.
+          False for the single-slot AWS host, which has no scripts/benchlock
+          and is serialized by its runner group.
+        required: true
+        type: boolean
 
 permissions:
   contents: write
@@ -79,10 +86,10 @@ jobs:
         # sklearn builds included. The `concurrency` group above only
         # serializes GitHub jobs between themselves.
         #
-        # The AWS runner has a single job slot and is already serialized by
-        # it, so benchlock has nothing to coordinate there (and
-        # scripts/benchlock is not installed on it).
-        if: inputs.runner != 'aws-nvidia-l4'
+        # Runners whose runner group already serializes their jobs, or that
+        # do not install scripts/benchlock, are called with
+        # `use_benchlock: false`.
+        if: inputs.use_benchlock
         run: |
           pid=$(scripts/benchlock hold --tag "${{ github.workflow }} run ${{ github.run_id }}" all)
           echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
