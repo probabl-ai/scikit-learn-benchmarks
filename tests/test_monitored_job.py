@@ -8,6 +8,7 @@ appears on a later page, and an unreadable job list.
 
 import json
 import os
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -76,7 +77,9 @@ def _page(tmp_path: Path, page: int, jobs) -> Path:
     return path
 
 
-def _run(script: Path, bin_dir: Path, pages, **overrides):
+def _run(command, bin_dir: Path, pages, **overrides):
+    """Run `command` (a script path, or an argv list) against the stand-in `gh`."""
+    argv = [command] if isinstance(command, (str, Path)) else list(command)
     env = {
         "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
         "GITHUB_REPOSITORY": "probabl-ai/scikit-learn-benchmarks",
@@ -89,8 +92,31 @@ def _run(script: Path, bin_dir: Path, pages, **overrides):
         if value is None:
             env.pop(key, None)
     return subprocess.run(
-        ["bash", str(script)], capture_output=True, text=True, env=env, cwd=REPO_ROOT
+        ["bash", *map(str, argv)], capture_output=True, text=True, env=env, cwd=REPO_ROOT
     )
+
+
+def _cancels(log: Path) -> list:
+    """The cancel calls the stand-in `gh` recorded; empty when it never cancelled."""
+    if not log.exists():
+        return []
+    return [line for line in log.read_text().splitlines() if "cancel" in line]
+
+
+def _cleanup_callers():
+    """Every `cleanup-aws` invocation of the shared script, one per workflow file.
+
+    Read out of the workflow files themselves rather than assumed, so a caller
+    that starts passing an argument again fails here.
+    """
+    callers = {}
+    for workflow in sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml")):
+        for line in workflow.read_text().splitlines():
+            stripped = line.strip()
+            if stripped.startswith("run:") and "clear-stale-runner-ready.sh" in stripped:
+                callers[workflow.name] = shlex.split(stripped[len("run:"):].strip())
+    return callers
+
 
 
 @pytest.fixture
@@ -160,26 +186,84 @@ def test_unreadable_job_list_is_reported(tmp_path, bin_dir):
     assert JOB_NAME in result.stderr
 
 
-def test_cleanup_cancels_when_the_job_is_absent(tmp_path, bin_dir):
-    pages = [_page(tmp_path, 1, [("benchmark-aws", "queued")])]
+# The workflow files' own invocations of the shared cleanup: the four cases below
+# run through these, so both callers are covered by the same expectations.
+CLEANUP_CALLERS = _cleanup_callers()
+
+
+def test_both_workflows_invoke_the_shared_cleanup_identically():
+    assert sorted(CLEANUP_CALLERS) == ["pr-comparison.yml", "run-benchmarks.yml"]
+    for workflow, argv in CLEANUP_CALLERS.items():
+        assert argv == ["scripts/ci/clear-stale-runner-ready.sh"], workflow
+
+
+def test_cleanup_takes_no_arguments(tmp_path, bin_dir):
+    pages = [_page(tmp_path, 1, [(JOB_NAME, "queued")])]
     log = tmp_path / "gh.log"
 
-    result = _run(CLEAR_STALE, bin_dir, pages, FAKE_GH_LOG=str(log))
+    result = _run([CLEAR_STALE, "--some-argument"], bin_dir, pages, FAKE_GH_LOG=str(log))
 
-    assert result.returncode == 0
-    assert "still missing" in result.stdout
-    assert "cancel" in log.read_text()
+    assert result.returncode == 2
+    assert "takes no arguments" in result.stderr
+    assert _cancels(log) == []
 
 
-def test_cleanup_leaves_a_picked_up_job_alone(tmp_path, bin_dir):
+@pytest.mark.parametrize("workflow", sorted(CLEANUP_CALLERS))
+def test_cleanup_warns_and_does_not_cancel_when_the_job_list_is_unreadable(
+    tmp_path, bin_dir, workflow
+):
+    """One policy for both callers: an unreadable job list is never a cancel.
+
+    A queued readiness job is released when the host is next started; a cancel
+    is unrecoverable. Deciding under ignorance takes the reversible one.
+    """
     pages = [_page(tmp_path, 1, [(JOB_NAME, "in_progress")])]
     log = tmp_path / "gh.log"
 
-    result = _run(CLEAR_STALE, bin_dir, pages, FAKE_GH_LOG=str(log))
+    result = _run(CLEANUP_CALLERS[workflow], bin_dir, pages, FAKE_GH_FAIL="1", FAKE_GH_LOG=str(log))
+
+    assert result.returncode == 0
+    assert "::warning::" in result.stdout
+    assert "unreadable" in result.stdout
+    assert _cancels(log) == []
+
+
+@pytest.mark.parametrize("workflow", sorted(CLEANUP_CALLERS))
+def test_cleanup_cancels_when_the_job_is_absent(tmp_path, bin_dir, workflow):
+    pages = [_page(tmp_path, 1, [("benchmark-aws", "queued")])]
+    log = tmp_path / "gh.log"
+
+    result = _run(CLEANUP_CALLERS[workflow], bin_dir, pages, FAKE_GH_LOG=str(log))
+
+    assert result.returncode == 0
+    assert "still missing" in result.stdout
+    assert "::error::" in result.stdout
+    assert len(_cancels(log)) == 1
+
+
+@pytest.mark.parametrize("workflow", sorted(CLEANUP_CALLERS))
+def test_cleanup_cancels_when_several_jobs_share_the_name(tmp_path, bin_dir, workflow):
+    pages = [_page(tmp_path, 1, [(JOB_NAME, "queued"), (JOB_NAME, "queued")])]
+    log = tmp_path / "gh.log"
+
+    result = _run(CLEANUP_CALLERS[workflow], bin_dir, pages, FAKE_GH_LOG=str(log))
+
+    assert result.returncode == 0
+    assert "more than one job" in result.stdout
+    assert len(_cancels(log)) == 1
+
+
+@pytest.mark.parametrize("workflow", sorted(CLEANUP_CALLERS))
+def test_cleanup_leaves_a_picked_up_job_alone(tmp_path, bin_dir, workflow):
+    pages = [_page(tmp_path, 1, [(JOB_NAME, "in_progress")])]
+    log = tmp_path / "gh.log"
+
+    result = _run(CLEANUP_CALLERS[workflow], bin_dir, pages, FAKE_GH_LOG=str(log))
 
     assert result.returncode == 0
     assert "nothing to clear" in result.stdout
-    assert not log.exists() or "cancel" not in log.read_text()
+    assert "::warning::" not in result.stdout
+    assert _cancels(log) == []
 
 
 def test_waiter_returns_once_the_job_is_picked_up(tmp_path):

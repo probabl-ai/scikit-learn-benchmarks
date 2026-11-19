@@ -201,7 +201,7 @@ jobs:
       - name: Clear runner-ready after an unsuccessful provision
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/ci/clear-stale-runner-ready.sh --cancel-on-unknown
+        run: scripts/ci/clear-stale-runner-ready.sh
 
   benchmark-and-publish:
     needs: [gate_and_parse, provision, runner_ready]
