@@ -22,17 +22,17 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   - `runner`: `intel-laptop`, `intel-xeon`, `intel-all`, `aws-nvidia-l4` or
     `all`, the self-hosted machine(s) that run this entry. Defaults to
     `all`, every machine: `intel-laptop`, `intel-xeon` and `aws-nvidia-l4`.
-    `intel-all` is the two Intel machines only.
+    `intel-all` is the two Intel machines.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
     currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
     `sklearn-dev-freethreading` or `sklearn-dev-nvidia`, or `auto`. Defaults
     to `auto`, the environment each machine is meant to build with:
     `sklearn-dev` on `intel-laptop` and `intel-xeon`, `sklearn-dev-nvidia`
-    (the only CUDA-capable one) on `aws-nvidia-l4`. Writing `auto` explicitly
-    means exactly the same as leaving it out. A concrete env always wins over
-    it, and builds both sides of the `sklearn_ref` vs `main` comparison for
-    this entry. A machine with no `auto` mapping is a hard error naming the
-    machine, never a silent fallback.
+    (the CUDA-capable one) on `aws-nvidia-l4`. Writing `auto` explicitly
+    means exactly the same as leaving it out. A concrete env wins over
+    `auto`, and builds both sides of the `sklearn_ref` vs `main` comparison
+    for this entry. A machine with no `auto` mapping is a hard error naming
+    the machine.
 
   For example, `configs/hgb_scalability.py` alone runs that config on all
   three machines, each with the env it is meant to use - `sklearn-dev` on
@@ -47,15 +47,15 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   land in the same dashboard, with an env/branch column to tell entries apart
   when several envs are involved.
 
-  **The default comparison now starts the L4 instance on every push.** A
-  bare entry covers every machine, and `auto` gives the L4
+  **A default comparison starts the L4 instance on every push.** A bare
+  entry covers every machine, and `auto` gives the L4
   `sklearn-dev-nvidia`, so the workflow starts the instance on demand,
   waits for its runner to come online, then leaves it running for the next
   comparison. To keep a comparison off the GPU host - and off its cost -
   name the Intel machines explicitly: `intel-all#configs/x.py`, or
   individual `intel-laptop#...` / `intel-xeon#...` entries. Those
-  directives produce no `aws-nvidia-l4` run and touch no AWS job. A GPU
-  comparison can also name the runner and env outright, e.g.
+  directives produce runs on the Intel machines alone. A GPU comparison can
+  also name the runner and env outright, e.g.
   `aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py`.
 
 The before/after table is always generated. To also publish one of the other
@@ -89,11 +89,10 @@ These jobs run on `ubuntu-latest` instead of the self-hosted runners, so they
 don't wait for a benchmark to free the runner. The `sklbench-compare` block
 must still be present and valid, since it selects which runners' sites to
 rebuild, but its `sklearn_ref` and configs are not run. With the default
-runner that means all three runners' sites, still on `ubuntu-latest`: no
-self-hosted machine is contacted and the L4 host is never started. If a
-runner has no published results yet, its job fails: push without `[skip]`
-first, or narrow the directive to the runners that do have results (e.g.
-`intel-all#...`).
+runner that means all three runners' sites, built on `ubuntu-latest`: the
+jobs contact no self-hosted machine and start no L4 host. If a runner has no
+published results yet, its job fails: push without `[skip]` first, or narrow
+the directive to the runners that do have results (e.g. `intel-all#...`).
 
 A benchmark run publishes its results before it generates the dashboard, so
 if the dashboard step fails, fix it and push a `[skip]` commit: the results

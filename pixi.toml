@@ -223,10 +223,10 @@ SCIPY_ARRAY_API = "1"
 
 [feature.sklearn-dev-nvidia]
 # The one CUDA environment that builds the compared ref from sklearn-src/:
-# `skl-nvidia` installs scikit-learn from PyPI, so it cannot hold a
+# `skl-nvidia` installs scikit-learn from PyPI, so it holds no
 # branch-vs-main comparison. Same channels/platform/CUDA pin as
 # `feature.skl-nvidia`, so both environments resolve against the single
-# `linux-64-cuda-12-9` variant instead of introducing a second CUDA pin.
+# `linux-64-cuda-12-9` variant.
 channels = ["conda-forge", "nvidia"]
 platforms = ["linux-64-cuda-12-9"]
 

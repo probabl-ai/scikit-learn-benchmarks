@@ -3,8 +3,8 @@
 #
 # The job name is defined once, here, and nowhere else: the waiter
 # (`scripts/ci/aws-provision.sh`) and the cleanup
-# (`scripts/ci/clear-stale-runner-ready.sh`) both call this script rather than
-# carrying the name themselves.
+# (`scripts/ci/clear-stale-runner-ready.sh`) both call this script, which holds
+# the name.
 #
 # Prints the job's `.status` on stdout when exactly one job in the current run
 # carries that name. Anything else is a hard error, reported as an `::error::`
@@ -21,8 +21,7 @@
 #
 #   * a matrix leg is named `<job> (<parameters>)`, and a job called through a
 #     reusable workflow is named `<caller> / <job>`; neither equals a plain job
-#     name, so a handshake given the plain name reports 2 rather than picking
-#     one of them at random;
+#     name, so a handshake given the plain name reports 2;
 #   * two job ids in one workflow file may carry the same `name:`, which is
 #     exactly what exit 3 catches.
 #

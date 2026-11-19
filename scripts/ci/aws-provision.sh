@@ -5,8 +5,8 @@
 # and then waits for one job of the calling workflow -- the readiness job, the
 # one job that runs on the self-hosted runner -- to be picked up by that
 # runner. `scripts/ci/monitored-job.sh` resolves it against this run's job
-# list, and a run whose job list does not answer with exactly one job of that
-# name is a hard error that says which job was being looked for.
+# list, and a run whose job list answers with zero jobs or with several of
+# that name is a hard error that says which job was being looked for.
 set -euo pipefail
 
 : "${INSTANCE_ID:?INSTANCE_ID is not set}"
@@ -89,8 +89,8 @@ runner_is_busy() {
 }
 
 # Read the monitored job's status into `status`, and the resolver's exit code
-# into `resolve_rc`. Its diagnostic is held in `resolve_error` so that the one
-# tolerated absence below stays a retry rather than an annotation.
+# into `resolve_rc`. Its diagnostic is held in `resolve_error`, so the one
+# tolerated absence below is a retry and prints no annotation.
 resolve_status() {
   local err_file
   err_file="$(mktemp)"

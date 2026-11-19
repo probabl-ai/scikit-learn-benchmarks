@@ -24,22 +24,21 @@ order before `config` (their vocabularies don't overlap, so a bare token is
 classified by set membership, not position); a `#`-joined entry only ever
 has one trailing `config` token, since that's the only field whose values
 aren't drawn from a fixed set. Omitted `runner` defaults to `all`, every
-machine: intel-laptop, intel-xeon and aws-nvidia-l4. `intel-all` keeps its
-own meaning, the two Intel machines only. Omitted `env` defaults to `auto`,
-which resolves per machine when a runner token is expanded into machines:
-sklearn-dev on each Intel machine, sklearn-dev-nvidia on aws-nvidia-l4.
-`auto` may also be written explicitly and resolves the same way; a machine
-with no mapping is a hard error naming it, never a silent fallback. So
-`configs/hgb_scalability.py` alone runs that config on every machine, each
-under the environment that machine builds with - which means the default
-comparison provisions the GPU host. An Intel-only comparison names the
-Intel machines (or `intel-all`) explicitly, and never touches AWS. A
-concrete `env` always wins over `auto`. `env` must be a pixi environment
-that path-depends on `sklearn-src` (see pixi.toml), currently
+machine: intel-laptop, intel-xeon and aws-nvidia-l4; `intel-all` names the
+two Intel machines. Omitted `env` defaults to `auto`, a token that resolves
+per machine when a runner token expands into machines: sklearn-dev on each
+Intel machine, sklearn-dev-nvidia on aws-nvidia-l4. `auto` may also be
+written explicitly, a concrete `env` takes precedence over it, and a machine
+with no mapping is a hard error naming it. So `configs/hgb_scalability.py`
+alone runs that config on every machine, each under the environment that
+machine builds with, which means a default comparison provisions the GPU
+host; an Intel-only comparison names the Intel machines (or `intel-all`)
+explicitly and produces runs on those machines alone. `env` must be a pixi
+environment that path-depends on `sklearn-src` (see pixi.toml), currently
 `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
 `sklearn-dev-freethreading` and `sklearn-dev-nvidia`, since run.sh's
 `env@owner:ref` spec (used to run each tuple) only makes sense for those.
-`sklearn-dev-nvidia` is the only one of them that is CUDA-capable (see
+`sklearn-dev-nvidia` is the CUDA-capable one (see
 feature.sklearn-dev-nvidia), which is why `auto` picks it on the GPU host.
 
 Publishing one of this repo's other dashboards/gen_*.py dashboards
@@ -69,8 +68,7 @@ FENCE_RE = re.compile(
 GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
 # Runner vocabularies. `all` is every machine and the default for a bare run
-# entry; `intel-all` is the two Intel machines only, so an Intel-only
-# comparison still never provisions the AWS L4 host.
+# entry; `intel-all` expands to the two Intel machines.
 INTEL_RUNNERS = ("intel-laptop", "intel-xeon")
 GPU_RUNNERS = ("aws-nvidia-l4",)
 ALL_RUNNERS = (*INTEL_RUNNERS, *GPU_RUNNERS)
@@ -86,10 +84,10 @@ VALID_SKLEARN_SRC_ENVS = {
     "sklearn-dev-freethreading",
     "sklearn-dev-nvidia",
 }
-# `auto` is legal explicit syntax but is not a pixi env: it resolves per
-# machine when a runner token is expanded, from the table below. Same shape as
-# benchmark-run.yml's `[all]` env token, which resolves via `case
-# "$BENCH_RUNNER"` and fails loudly when a machine has no mapping.
+# `auto` resolves per machine when a runner token is expanded, through the
+# table below. Same shape as benchmark-run.yml's `[all]` env token, which
+# resolves via `case "$BENCH_RUNNER"` and fails loudly when a machine has no
+# mapping.
 AUTO_ENV_TOKEN = "auto"
 AUTO_ENV_BY_RUNNER = {
     "intel-laptop": "sklearn-dev",

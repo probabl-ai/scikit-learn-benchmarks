@@ -5,16 +5,17 @@
 # of `.github/workflows/pr-comparison.yml`. Only the shell below is shared: each
 # caller keeps its own `if:`/`needs:`/`permissions:` and passes `GH_TOKEN`.
 #
-# Both callers invoke this script with no arguments, and they get one policy:
-# there used to be a flag that let PR comparisons cancel a run whose job list was
-# unreadable; it is gone on purpose. An unreadable job list is a warning here,
-# for every caller - see the `unknown` branch below for why.
+# Both callers invoke this script with no arguments and get the same cleanup
+# policy. The job is looked up through `scripts/ci/monitored-job.sh`, the
+# resolver the provision waiter also uses, which holds the name of the
+# readiness job.
 #
-# The job is looked up through `scripts/ci/monitored-job.sh`, the resolver the
-# provision waiter also uses, which holds the name of the readiness job. A run
-# whose job list answers with no such job, or several, is reported rather than
-# guessed at. Cancelling the run is what releases a job still queued on the
-# runner group.
+# Cancelling a run is what releases a readiness job still queued on the runner
+# group, so a run whose job list answers with no such job, or with several, has
+# its queued job cleared by cancelling it. A cancel cannot be undone: it ends
+# the run and discards whatever work the run had already done. An unreadable
+# job list warns and leaves the run alone, and the queued readiness job is
+# released the next time the host is started.
 #
 # Usage: clear-stale-runner-ready.sh
 #
@@ -39,8 +40,8 @@ case "$resolve_rc" in
     ;;
   3)
     # Several jobs answer to the readiness job's name. Cancelling is what
-    # releases all of them, and duplicates are a workflow-definition error
-    # worth clearing rather than leaving queued.
+    # releases all of them, and a duplicate name is a workflow-definition
+    # error that this cleanup clears.
     echo "::error::more than one job in run ${GITHUB_RUN_ID} answers to the readiness job's name; cancelling the run to clear them"
     gh api -X POST \
       "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" \
@@ -48,9 +49,8 @@ case "$resolve_rc" in
     exit 0
     ;;
   *)
-    # Job list unreadable: the resolver could not tell us whether the readiness
-    # job is queued, so the decision is made below - and both callers make it
-    # the same way.
+    # Any other resolver exit: the job list could not be read, so no status is
+    # known and the run is left alone by the `unknown` branch below.
     status="unknown"
     ;;
 esac
@@ -60,17 +60,7 @@ case "$status" in
     echo "the readiness job is $status; nothing to clear"
     ;;
   unknown)
-    # Unreadable job list: warn, and leave the run alone. This is ONE policy for
-    # both callers, chosen deliberately - it is not a behaviour that a refactor
-    # dropped from one workflow by accident.
-    #
-    # Deciding under ignorance must not destroy a run. A readiness job still
-    # queued on the runner group is released the next time the host is started,
-    # so if we are wrong to leave it, the cost is one stale queued job that the
-    # next run clears anyway. A cancel, by contrast, is unrecoverable: it kills a
-    # run whose state we could not even read, throwing away whatever work it had
-    # already done. We cannot tell which of those two we are choosing, so we take
-    # the one that can be undone by simply starting the host again.
+    # Unreadable job list: no status is known, so warn and leave the run alone.
     echo "::warning::could not read the readiness job's status (unreadable job list); leaving the run for manual cleanup"
     ;;
   *)

@@ -18,9 +18,12 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
 
 - `sklearn_ref`: `<fork owner>:<branch or ref>`.
 - `runs`: comma-separated `[runner#][env#]configs/<name>.py` entries.
-  runner: `intel-laptop`, `intel-xeon` or `intel-all` (default `intel-all`);
-  env: `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl` or
-  `sklearn-dev-freethreading` (default `sklearn-dev`).
+  runner: `intel-laptop`, `intel-xeon`, `aws-nvidia-l4` or `all` (every
+  machine, default `all`);
+  env: `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
+  `sklearn-dev-freethreading`, `sklearn-dev-nvidia` or `auto` (default
+  `auto`, resolved per machine: `sklearn-dev` on each Intel machine,
+  `sklearn-dev-nvidia` on `aws-nvidia-l4`).
 - Put `[skip main]` in a commit message to reuse the last published `main`
   results instead of re-benchmarking `main`.
 - The branch must be pushed to this repo, not a fork.
