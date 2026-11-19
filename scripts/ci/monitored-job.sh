@@ -19,7 +19,7 @@
 # `$GITHUB_RUN_ID`, so it covers every job the run creates. Two properties of
 # that payload keep the rule well defined:
 #
-#   * a matrix leg is named `<job> (<parameters>)`, and a job called through a
+#   * a matrix job is named `<job> (<parameters>)`, and a job called through a
 #     reusable workflow is named `<caller> / <job>`; neither equals a plain job
 #     name, so a handshake given the plain name reports 2;
 #   * two job ids in one workflow file may carry the same `name:`, which is
