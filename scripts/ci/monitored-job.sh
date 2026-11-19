@@ -34,7 +34,7 @@ set -euo pipefail
 
 # The one job the readiness handshake waits for: the `name:` of the
 # `runner-ready` job in `.github/workflows/run-benchmarks.yml`, and of the
-# `runner_ready` job in `.github/workflows/pr-comparison.yml`.
+# `runner-ready` job in `.github/workflows/pr-comparison.yml`.
 readonly AWS_READY_JOB="runner-ready"
 
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"

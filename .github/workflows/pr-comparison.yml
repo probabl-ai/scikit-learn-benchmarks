@@ -175,10 +175,7 @@ jobs:
   # job up (scripts/ci/aws-provision.sh), so this is what makes the host's
   # readiness visible. `[skip]` runs rebuild on ubuntu-latest and skip both
   # AWS jobs; `[skip main]` benchmarks the branch, so it starts the host.
-  runner_ready:
-    # The waiter in `scripts/ci/monitored-job.sh` looks this job up in the
-    # run's job list by `name:`; the job id itself has an underscore.
-    name: runner-ready
+  runner-ready:
     needs: gate_and_parse
     if: >-
       needs.gate_and_parse.outputs.parse_ok == 'true' &&
@@ -213,7 +210,7 @@ jobs:
 
   benchmark-intel:
     # The Intel machines are always online, so these matrix jobs take no
-    # dependency on `provision` or `runner_ready` at all: a failed, slow or
+    # dependency on `provision` or `runner-ready` at all: a failed, slow or
     # hung GPU provision cannot suppress them. One matrix job per Intel
     # runner the directive names.
     #
@@ -271,10 +268,10 @@ jobs:
   benchmark-aws:
     # The single aws-nvidia-l4 matrix job, separate from the Intel matrix
     # because it is the only job that needs the L4 host: `provision` returns
-    # while `runner_ready` may still be queued behind another benchmark, so
+    # while `runner-ready` may still be queued behind another benchmark, so
     # this job waits for both. The Intel matrix jobs take neither dependency.
     name: benchmark-and-publish (${{ matrix.runner }})
-    needs: [gate_and_parse, provision, runner_ready]
+    needs: [gate_and_parse, provision, runner-ready]
     # always() so the two AWS jobs being skipped on an Intel-only directive
     # does not skip this job too. The `contains` check keeps this job out of
     # a directive that names no AWS machine; the explicit result check keeps
@@ -287,7 +284,7 @@ jobs:
       needs.gate_and_parse.outputs.parse_ok == 'true' &&
       contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4') &&
       (needs.provision.result == 'skipped' ||
-       (needs.provision.result == 'success' && needs.runner_ready.result == 'success'))
+       (needs.provision.result == 'success' && needs.runner-ready.result == 'success'))
     strategy:
       fail-fast: false
       matrix:
@@ -315,7 +312,7 @@ jobs:
     secrets: inherit
 
   cleanup-aws:
-    # A failed provision leaves runner_ready queued indefinitely, so cancel
+    # A failed provision leaves runner-ready queued indefinitely, so cancel
     # the run to clear it - same cleanup as run-benchmarks.yml. Skipped for
     # Intel-only directives (provision is skipped) and when provision worked.
     #
