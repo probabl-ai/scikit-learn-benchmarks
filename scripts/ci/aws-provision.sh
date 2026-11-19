@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 # Provision the AWS GPU runner for a benchmark run.
 #
-# AWS credentials are configured by the caller. The script starts the instance
-# and then waits for one job of the calling workflow -- the readiness job, the
-# one job that runs on the self-hosted runner -- to be picked up by that
-# runner. `scripts/ci/monitored-job.sh` resolves it against this run's job
-# list, and a run whose job list answers with zero jobs or with several of
-# that name is a hard error that says which job was being looked for.
+# AWS credentials are configured by the caller; this script starts the
+# instance and waits for the `runner-ready` job in the caller workflow.
 set -euo pipefail
 
 : "${INSTANCE_ID:?INSTANCE_ID is not set}"
@@ -16,9 +12,6 @@ set -euo pipefail
 : "${AWS_RUNNER_GROUP:?AWS_RUNNER_GROUP is not set}"
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
 : "${GITHUB_RUN_ID:?GITHUB_RUN_ID is not set}"
-
-readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly MONITORED_JOB="$SCRIPT_DIR/monitored-job.sh"
 
 readonly READY_DEADLINE="$(( $(date +%s) + 900 ))"
 export AWS_REGION="$REGION"
@@ -56,7 +49,7 @@ if [ "$state" != "running" ]; then
   echo "instance $INSTANCE_ID is running"
 fi
 
-# The monitored job can stay queued if the AWS runner is busy with another
+# `runner-ready` can stay queued if the AWS runner is busy with another
 # job. Detect that through the jobs API; the workflow token cannot read
 # runner status.
 runner_is_busy() {
@@ -88,89 +81,48 @@ runner_is_busy() {
   return 1
 }
 
-# Read the monitored job's status into `status`, and the resolver's exit code
-# into `resolve_rc`. Its diagnostic is held in `resolve_error`, so the one
-# tolerated absence below is a retry and prints no annotation.
-resolve_status() {
-  local err_file
-  err_file="$(mktemp)"
-  resolve_rc=0
-  status="$("$MONITORED_JOB" 2>"$err_file")" || resolve_rc=$?
-  resolve_error="$(cat "$err_file")"
-  rm -f "$err_file"
-}
-
-# A run's job list is read a moment after the run is created, before the jobs
-# API has necessarily caught up, so a single absence is confirmed once more
-# before it is treated as a wrong job name.
-missing_confirmed=false
 while [ "$(date +%s)" -lt "$READY_DEADLINE" ]; do
-  resolve_status
-  case "$resolve_rc" in
-    0)
-      case "$status" in
-        in_progress|completed)
-          echo "the readiness job is $status; the self-hosted runner picked it up"
-          exit 0
-          ;;
-        queued|waiting|requested|pending)
-          if runner_is_busy; then
-            echo "the readiness job is $status, but the AWS runner is busy; leaving it queued behind the active job"
-            exit 0
-          fi
-          sleep 10
-          ;;
-        *)
-          echo "the readiness job is $status; the self-hosted runner picked it up"
-          exit 0
-          ;;
-      esac
+  status="$(gh api \
+    "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+    --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
+    || status="unknown"
+  case "$status" in
+    in_progress|completed)
+      echo "runner-ready is $status; the self-hosted runner picked it up"
+      exit 0
       ;;
-    2)
-      if [ "$missing_confirmed" = "true" ]; then
-        printf '%s\n' "$resolve_error" >&2
-        exit 1
+    queued|missing|waiting|requested|pending)
+      if runner_is_busy; then
+        echo "runner-ready is $status, but the AWS runner is busy; leaving it queued behind the active job"
+        exit 0
       fi
-      echo "the readiness job is not in the job list yet; checking once more"
-      missing_confirmed=true
       sleep 10
       ;;
-    3)
-      printf '%s\n' "$resolve_error" >&2
-      exit 1
+    unknown)
+      echo "::warning::could not read runner-ready status; retrying"
+      sleep 10
       ;;
     *)
-      echo "::warning::could not read the readiness job's status; retrying"
-      sleep 10
+      echo "runner-ready is $status; the self-hosted runner picked it up"
+      exit 0
       ;;
   esac
 done
 
 # Re-check after the last sleep; status may have changed.
-resolve_status
-case "$resolve_rc" in
-  0)
-    if [ "$status" = "in_progress" ] || [ "$status" = "completed" ]; then
-      echo "the readiness job is $status; the self-hosted runner picked it up"
-      exit 0
-    fi
-    ;;
-  2|3)
-    # Absent or ambiguous: the resolver already named the job and the reason.
-    printf '%s\n' "$resolve_error" >&2
-    exit 1
-    ;;
-  *)
-    # Unreadable at the deadline.
-    status="unknown"
-    ;;
-esac
+status="$(gh api \
+  "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+  --jq '[.jobs[] | select(.name == "runner-ready")][0].status // "missing"')" \
+  || status="unknown"
+if [ "$status" = "in_progress" ] || [ "$status" = "completed" ]; then
+  echo "runner-ready is $status; the self-hosted runner picked it up"
+  exit 0
+fi
 if runner_is_busy; then
-  echo "::notice::the readiness job is $status at the deadline, but the AWS runner is busy; leaving it queued"
+  echo "::notice::runner-ready is $status at the deadline, but the AWS runner is busy; leaving it queued"
   exit 0
 fi
 
-echo "::error::the self-hosted runner did not pick up the readiness job before the deadline"
-# `cleanup-aws` in the caller clears a still-queued job, looking it up by that
-# same name through `scripts/ci/monitored-job.sh`.
+echo "::error::the self-hosted runner did not pick up runner-ready before the deadline"
+# `cleanup-aws` in the caller clears a still-queued runner-ready job.
 exit 1

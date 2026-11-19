@@ -1,15 +1,12 @@
 name: PR Comparison benchmark workflow
 
-# The PR comparison benchmark workflow: benchmark a single runner against the
-# PR head (or, for a `[skip]` run, rebuild its dashboard from the results it
-# last published), publish its results and dashboard, and post that runner's
-# PR comment.
+# Benchmark one runner against the PR head (or, for a `[skip]` run, rebuild its
+# dashboard from the results it last published), publish its results and
+# dashboard, and post that runner's PR comment.
 #
-# Reusable because pr-comparison.yml runs two jobs over this same body: an
-# Intel matrix, which must not depend on the GPU host, and the single
-# aws-nvidia-l4 matrix job, which must. One copy of the steps is what keeps
-# the two callers' behaviour identical - see the `benchmark-intel` /
-# `benchmark-aws` comments in pr-comparison.yml for which job runs when.
+# Reusable because pr-comparison.yml runs two jobs over this body: an Intel
+# matrix, which must not depend on the GPU host, and the single aws-nvidia-l4
+# job, which must.
 
 on:
   workflow_call:

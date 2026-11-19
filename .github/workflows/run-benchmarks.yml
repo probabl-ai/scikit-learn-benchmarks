@@ -40,8 +40,6 @@ permissions:
 
 jobs:
   runner-ready:
-    # `provision` waits for this job to be picked up by the AWS runner:
-    # `scripts/ci/monitored-job.sh` looks its name up in this run's job list.
     # Runs on the AWS runner so `provision` can tell when that runner is
     # online. No `needs`: it is queued from the start, in parallel with
     # `provision`.

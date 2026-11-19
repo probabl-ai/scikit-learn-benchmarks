@@ -144,15 +144,11 @@ jobs:
         if: steps.parse.outputs.directive_present == 'true' && steps.parse.outputs.ok != 'true'
         run: exit 1
 
-  # The AWS L4 host is started on every comparison a directive resolves to
-  # the `aws-nvidia-l4` machine, which includes every default
-  # `sklbench-compare` run: a bare directive expands to all machines. A
-  # directive naming Intel machines (`intel-all`, or an explicit Intel runner)
-  # rebuilds on the Intel machines alone. This job is queued from the start in
-  # parallel with `provision`; `provision` waits until the runner picks this
-  # job up (scripts/ci/aws-provision.sh), so this is what makes the host's
-  # readiness visible. `[skip]` runs rebuild on ubuntu-latest and skip both
-  # AWS jobs; `[skip main]` benchmarks the branch, so it starts the host.
+  # The job `provision` waits for: queued from the start in parallel with it and
+  # picked up once the AWS host is online, which is what makes the host's
+  # readiness visible. Runs only when the directive names `aws-nvidia-l4`; a
+  # bare directive defaults to `intel-all`. `[skip]` runs rebuild on
+  # ubuntu-latest and skip both AWS jobs.
   runner-ready:
     needs: gate_and_parse
     if: >-
@@ -172,9 +168,8 @@ jobs:
           nvidia-smi -L
 
   provision:
-    # Reuses run-benchmarks.yml's reusable workflow so the AWS credentials
-    # and role live in aws-provision.yml alone.
-    # Only this job gets the AWS permissions.
+    # Called as a reusable workflow, so the AWS credentials and role live in
+    # aws-provision.yml alone. Only this job gets the AWS permissions.
     needs: gate_and_parse
     if: >-
       needs.gate_and_parse.outputs.parse_ok == 'true' &&
