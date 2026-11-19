@@ -1064,7 +1064,7 @@ c2fc6cf5f; variants in `patches/splitk_callers_*.diff` on fork `splitk`
 - v6 (fork `splitk-callers` 03536cdb): v4b on pthreads; OpenMP splits only
   when callers == 1, with the lock. `callers4.csv` (f64/f32, 3 rounds),
   `callers4_omp.csv` (GNU and LLVM runtimes): pthreads as v4b in both
-  precisions (f32 syrk 16T 8 callers 1.18-1.47x), OpenMP 0.85-1.15x with 2-8
+  precisions (f32 syrk 16T 8 callers 1.18-1.47x), OpenMP 0.85-1.42x with 2-8
   callers (most cells 0.93-1.05).
 - Exact checks (`src/conc_check.c`: 1, 4, 8 callers, random gemm/syrk on
   integer inputs vs naive, padding and other triangle included): 0 failures
