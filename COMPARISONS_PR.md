@@ -19,19 +19,24 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   Each entry ends with exactly one `configs/<name>.py` path. Before it,
   `runner` and `env` are both optional and can come in any order (their
   values don't overlap, so each token is recognized by its value):
-  - `runner`: `intel-laptop`, `intel-xeon`, `intel-all` or `aws-nvidia-l4`,
-    the self-hosted machine(s) that run this entry. Defaults to `intel-all`,
-    which is the two Intel machines only; the AWS L4 host is started only
-    when an entry names it explicitly.
+  - `runner`: `intel-laptop`, `intel-xeon`, `intel-all`, `aws-nvidia-l4` or
+    `all`, the self-hosted machine(s) that run this entry. Defaults to
+    `all`, every machine: `intel-laptop`, `intel-xeon` and `aws-nvidia-l4`.
+    `intel-all` is the two Intel machines only.
   - `env`: a pixi env that depends on `sklearn-src` (see `pixi.toml`),
     currently `sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
-    `sklearn-dev-freethreading` or `sklearn-dev-nvidia`. It builds both
-    sides of the `sklearn_ref` vs `main` comparison for this entry.
-    Defaults to `sklearn-dev`. `sklearn-dev-nvidia` is the only CUDA-capable
-    one, so use it for `aws-nvidia-l4` entries.
+    `sklearn-dev-freethreading` or `sklearn-dev-nvidia`, or `auto`. Defaults
+    to `auto`, the environment each machine is meant to build with:
+    `sklearn-dev` on `intel-laptop` and `intel-xeon`, `sklearn-dev-nvidia`
+    (the only CUDA-capable one) on `aws-nvidia-l4`. Writing `auto` explicitly
+    means exactly the same as leaving it out. A concrete env always wins over
+    it, and builds both sides of the `sklearn_ref` vs `main` comparison for
+    this entry. A machine with no `auto` mapping is a hard error naming the
+    machine, never a silent fallback.
 
-  For example, `configs/hgb_scalability.py` alone runs that config on both
-  Intel runners with `sklearn-dev`. `intel-xeon#sklearn-dev-libomp#configs/pipeline.py`
+  For example, `configs/hgb_scalability.py` alone runs that config on all
+  three machines, each with the env it is meant to use - `sklearn-dev` on
+  both Intel hosts, `sklearn-dev-nvidia` on the L4. `intel-xeon#sklearn-dev-libomp#configs/pipeline.py`
   runs only on `intel-xeon` and builds both `main` and the PR ref with
   `sklearn-dev-libomp`, to isolate an OpenMP runtime effect like the `run.sh`
   example in CONTRIBUTING.md.
@@ -42,12 +47,16 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   land in the same dashboard, with an env/branch column to tell entries apart
   when several envs are involved.
 
-  A GPU comparison needs both the runner and the CUDA env named, e.g.
-  `aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py`. The L4 host is
-  started on demand: the workflow starts the instance and waits for its
-  runner to come online, then leaves it running for the next comparison.
-  Only directives that name `aws-nvidia-l4` start it; Intel-only directives
-  never touch AWS.
+  **The default comparison now starts the L4 instance on every push.** A
+  bare entry covers every machine, and `auto` gives the L4
+  `sklearn-dev-nvidia`, so the workflow starts the instance on demand,
+  waits for its runner to come online, then leaves it running for the next
+  comparison. To keep a comparison off the GPU host - and off its cost -
+  name the Intel machines explicitly: `intel-all#configs/x.py`, or
+  individual `intel-laptop#...` / `intel-xeon#...` entries. Those
+  directives produce no `aws-nvidia-l4` run and touch no AWS job. A GPU
+  comparison can also name the runner and env outright, e.g.
+  `aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py`.
 
 The before/after table is always generated. To also publish one of the other
 `dashboards/gen_*.py` dashboards on a run's results, call it from the
@@ -79,8 +88,12 @@ redeploys it. Use it when a push only changes dashboard code, for example
 These jobs run on `ubuntu-latest` instead of the self-hosted runners, so they
 don't wait for a benchmark to free the runner. The `sklbench-compare` block
 must still be present and valid, since it selects which runners' sites to
-rebuild, but its `sklearn_ref` and configs are not run. If a runner has no
-published results yet, its job fails: push without `[skip]` first.
+rebuild, but its `sklearn_ref` and configs are not run. With the default
+runner that means all three runners' sites, still on `ubuntu-latest`: no
+self-hosted machine is contacted and the L4 host is never started. If a
+runner has no published results yet, its job fails: push without `[skip]`
+first, or narrow the directive to the runners that do have results (e.g.
+`intel-all#...`).
 
 A benchmark run publishes its results before it generates the dashboard, so
 if the dashboard step fails, fix it and push a `[skip]` commit: the results

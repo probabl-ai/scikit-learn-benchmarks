@@ -23,19 +23,24 @@ product. `runner` and `env` are each optional and can appear in either
 order before `config` (their vocabularies don't overlap, so a bare token is
 classified by set membership, not position); a `#`-joined entry only ever
 has one trailing `config` token, since that's the only field whose values
-aren't drawn from a fixed set. Omitted `runner` defaults to `intel-all`
-(intel-laptop and intel-xeon); omitted `env` defaults to `sklearn-dev`. So
-`configs/hgb_scalability.py` alone runs that config on both Intel runners
-under sklearn-dev. `aws-nvidia-l4` is accepted but never defaulted to: the
-GPU host is provisioned on demand, so it must be named explicitly. `env`
-must be a pixi environment that path-depends on `sklearn-src` (see
-pixi.toml), currently `sklearn-dev`, `sklearn-dev-libomp`,
-`sklearn-dev-mkl`, `sklearn-dev-freethreading` and `sklearn-dev-nvidia`,
-since run.sh's
+aren't drawn from a fixed set. Omitted `runner` defaults to `all`, every
+machine: intel-laptop, intel-xeon and aws-nvidia-l4. `intel-all` keeps its
+own meaning, the two Intel machines only. Omitted `env` defaults to `auto`,
+which resolves per machine when a runner token is expanded into machines:
+sklearn-dev on each Intel machine, sklearn-dev-nvidia on aws-nvidia-l4.
+`auto` may also be written explicitly and resolves the same way; a machine
+with no mapping is a hard error naming it, never a silent fallback. So
+`configs/hgb_scalability.py` alone runs that config on every machine, each
+under the environment that machine builds with - which means the default
+comparison provisions the GPU host. An Intel-only comparison names the
+Intel machines (or `intel-all`) explicitly, and never touches AWS. A
+concrete `env` always wins over `auto`. `env` must be a pixi environment
+that path-depends on `sklearn-src` (see pixi.toml), currently
+`sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
+`sklearn-dev-freethreading` and `sklearn-dev-nvidia`, since run.sh's
 `env@owner:ref` spec (used to run each tuple) only makes sense for those.
 `sklearn-dev-nvidia` is the only one of them that is CUDA-capable (see
-feature.sklearn-dev-nvidia), so a GPU comparison needs it named explicitly
-too.
+feature.sklearn-dev-nvidia), which is why `auto` picks it on the GPU host.
 
 Publishing one of this repo's other dashboards/gen_*.py dashboards
 alongside the always-generated pr_comparison.html table is a code change to
@@ -63,11 +68,15 @@ FENCE_RE = re.compile(
 # module docstring), just catches typos with a clear error early.
 GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
-# The Intel machines are the default set: a bare run entry must never pull in
-# the AWS L4 host, which is only provisioned when a directive asks for it.
+# Runner vocabularies. `all` is every machine and the default for a bare run
+# entry; `intel-all` is the two Intel machines only, so an Intel-only
+# comparison still never provisions the AWS L4 host.
 INTEL_RUNNERS = ("intel-laptop", "intel-xeon")
-VALID_RUNNERS = {*INTEL_RUNNERS, "aws-nvidia-l4"}
-DEFAULT_RUNNER_TOKEN = "intel-all"
+GPU_RUNNERS = ("aws-nvidia-l4",)
+ALL_RUNNERS = (*INTEL_RUNNERS, *GPU_RUNNERS)
+RUNNER_GROUPS = {"intel-all": INTEL_RUNNERS, "all": ALL_RUNNERS}
+VALID_RUNNERS = {*ALL_RUNNERS, *RUNNER_GROUPS}
+DEFAULT_RUNNER_TOKEN = "all"
 # Pixi envs that path-depend on sklearn-src (see pixi.toml) - the only ones
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.
 VALID_SKLEARN_SRC_ENVS = {
@@ -77,13 +86,39 @@ VALID_SKLEARN_SRC_ENVS = {
     "sklearn-dev-freethreading",
     "sklearn-dev-nvidia",
 }
-DEFAULT_SKLEARN_SRC_ENV = "sklearn-dev"
+# `auto` is legal explicit syntax but is not a pixi env: it resolves per
+# machine when a runner token is expanded, from the table below. Same shape as
+# benchmark-run.yml's `[all]` env token, which resolves via `case
+# "$BENCH_RUNNER"` and fails loudly when a machine has no mapping.
+AUTO_ENV_TOKEN = "auto"
+AUTO_ENV_BY_RUNNER = {
+    "intel-laptop": "sklearn-dev",
+    "intel-xeon": "sklearn-dev",
+    "aws-nvidia-l4": "sklearn-dev-nvidia",
+}
+VALID_ENV_TOKENS = {*VALID_SKLEARN_SRC_ENVS, AUTO_ENV_TOKEN}
+DEFAULT_ENV_TOKEN = AUTO_ENV_TOKEN
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
 KNOWN_KEYS = REQUIRED_KEYS
 
 
 class Malformed(Exception):
     pass
+
+
+def _resolve_env(env: str, runner: str) -> str:
+    """Resolve an `auto` env token to the pixi env this machine builds with.
+
+    A concrete env always wins. `auto` (explicit, or the default) resolves
+    from AUTO_ENV_BY_RUNNER; a machine with no mapping is a hard error naming
+    it, mirroring benchmark-run.yml's `no [all] mapping defined for runner`.
+    """
+    if env != AUTO_ENV_TOKEN:
+        return env
+    try:
+        return AUTO_ENV_BY_RUNNER[runner]
+    except KeyError:
+        raise Malformed(f"no auto env mapping defined for runner {runner!r}") from None
 
 
 def parse_fields(block: str) -> dict:
@@ -138,30 +173,29 @@ def parse_fields(block: str) -> dict:
         runner_token = None
         env = None
         for token in modifier_tokens:
-            if token == DEFAULT_RUNNER_TOKEN or token in VALID_RUNNERS:
+            if token in VALID_RUNNERS:
                 if runner_token is not None:
                     raise Malformed(f"run entry {entry!r} has more than one runner token")
                 runner_token = token
-            elif token in VALID_SKLEARN_SRC_ENVS:
+            elif token in VALID_ENV_TOKENS:
                 if env is not None:
                     raise Malformed(f"run entry {entry!r} has more than one env token")
                 env = token
             else:
                 raise Malformed(
                     f"unknown token {token!r} in run entry {entry!r} (expected a runner - "
-                    f"{sorted(VALID_RUNNERS)} or 'intel-all' - or an env - {sorted(VALID_SKLEARN_SRC_ENVS)})"
+                    f"{sorted(VALID_RUNNERS)} - or an env - {sorted(VALID_ENV_TOKENS)})"
                 )
 
         runner_token = runner_token or DEFAULT_RUNNER_TOKEN
-        env = env or DEFAULT_SKLEARN_SRC_ENV
-        # `intel-all` expands to the Intel machines only, not every accepted
-        # runner: the default must not start the AWS host.
-        entry_runners = (
-            tuple(sorted(INTEL_RUNNERS)) if runner_token == DEFAULT_RUNNER_TOKEN else (runner_token,)
-        )
+        env = env or DEFAULT_ENV_TOKEN
+        # A runner group expands to its machines; an individual machine to
+        # itself. `all` is every machine (the default), `intel-all` the Intel
+        # pair only.
+        entry_runners = RUNNER_GROUPS.get(runner_token, (runner_token,))
 
         for runner in entry_runners:
-            run = {"runner": runner, "env": env, "config": config_path}
+            run = {"runner": runner, "env": _resolve_env(env, runner), "config": config_path}
             if run not in runs:
                 runs.append(run)
             if runner not in runners:
