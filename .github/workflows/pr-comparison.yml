@@ -24,11 +24,11 @@ jobs:
       sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
       skip_main: ${{ steps.skip_flags.outputs.skip_main }}
       skip_bench: ${{ steps.skip_flags.outputs.skip_bench }}
-      # Derived from `runners` by the "Split the runner matrix" step below:
-      # the Intel entries (a matrix source that is never empty, see the
-      # `benchmark-intel` job) and whether there are any at all.
-      has_intel: ${{ steps.matrix_split.outputs.has_intel }}
-      intel_runners: ${{ steps.matrix_split.outputs.intel_runners }}
+      # Derived by the parse step from `runners`: the Intel entries (a
+      # matrix source that is never empty, see the `benchmark-intel` job)
+      # and whether there are any at all.
+      has_intel: ${{ steps.parse.outputs.has_intel }}
+      intel_runners: ${{ steps.parse.outputs.intel_runners }}
     steps:
       - name: Check out repository (base, trusted)
         # Pinned to the base sha, not the PR head, so parsing always runs
@@ -63,28 +63,6 @@ jobs:
         run: |
           pixi run --frozen -e reporting python scripts/parse_compare_directive.py \
             --body-file "$RUNNER_TEMP/pr_body.md" --github-output "$GITHUB_OUTPUT"
-
-      - name: Split the runner matrix into Intel and AWS entries
-        # `runners` is the directive's distinct runner names, as a JSON array
-        # (e.g. ["intel-laptop","aws-nvidia-l4"]). `benchmark-intel` and
-        # `benchmark-aws` each matrix over their own subset of it, because no
-        # Intel matrix job may wait on the L4 host. A matrix over an empty
-        # array is an expansion *error*, so an AWS-only directive gets the
-        # single placeholder `none` and `has_intel=false`, which skips
-        # `benchmark-intel` outright.
-        id: matrix_split
-        env:
-          RUNNERS: ${{ steps.parse.outputs.runners }}
-        run: |
-          pixi run --frozen -e reporting python3 - "$GITHUB_OUTPUT" <<'PY'
-          import json, os, sys
-
-          runners = json.loads(os.environ["RUNNERS"] or "[]")
-          intel = [runner for runner in runners if runner != "aws-nvidia-l4"]
-          with open(sys.argv[1], "a", encoding="utf-8") as out:
-              out.write("has_intel=%s\n" % ("true" if intel else "false"))
-              out.write("intel_runners=%s\n" % json.dumps(intel or ["none"]))
-          PY
 
       - name: Check for [skip] / [skip main] flags on the latest commit
         # Fetched via the API rather than local `git log`, since this job's
@@ -214,7 +192,7 @@ jobs:
     # hung GPU provision cannot suppress them. One matrix job per Intel
     # runner the directive names.
     #
-    # `intel_runners` and `has_intel` are derived in gate_and_parse from the
+    # `intel_runners` and `has_intel` are derived by the parse step from the
     # directive's `runners`; for an AWS-only directive it holds the single
     # placeholder `none`, and the `has_intel` check below skips this job,
     # since a matrix over an empty array is an expansion error.

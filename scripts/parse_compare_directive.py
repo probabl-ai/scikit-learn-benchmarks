@@ -48,7 +48,10 @@ there's no `dashboards:` key here.
 Validates its `key: value` lines and writes outcomes to $GITHUB_OUTPUT
 rather than communicating via exit code, so the calling workflow can branch
 on step outputs (directive_present, ok, and either the parsed fields or an
-error message) without needing `continue-on-error`.
+error message) without needing `continue-on-error`. Alongside the parsed
+`runners`, it writes the Intel matrix the benchmark jobs consume
+(`intel_runners`, never an empty array - see EMPTY_MATRIX_PLACEHOLDER) and
+whether there are any Intel entries at all (`has_intel`).
 """
 
 import argparse
@@ -97,6 +100,10 @@ VALID_ENV_TOKENS = {*VALID_SKLEARN_SRC_ENVS, AUTO_ENV_TOKEN}
 DEFAULT_ENV_TOKEN = AUTO_ENV_TOKEN
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
 KNOWN_KEYS = REQUIRED_KEYS
+# A matrix over an empty array is a GitHub Actions expansion *error*, not a
+# skipped job, so an Intel-free directive gets this single placeholder as its
+# Intel matrix and `has_intel=false` to skip the Intel job outright.
+EMPTY_MATRIX_PLACEHOLDER = "none"
 
 
 class Malformed(Exception):
@@ -205,6 +212,17 @@ def parse_fields(block: str) -> dict:
     }
 
 
+def split_runner_matrix(runners: list[str]) -> tuple[list[str], bool]:
+    """Split `runners` into the Intel matrix and whether it has any entries.
+
+    The Intel matrix job must not wait on the GPU host, so it takes only the
+    runners outside GPU_RUNNERS. An empty matrix is an expansion error, hence
+    the `none` placeholder; `has_intel` is still False and gates the job.
+    """
+    intel_runners = [runner for runner in runners if runner not in GPU_RUNNERS]
+    return intel_runners or [EMPTY_MATRIX_PLACEHOLDER], bool(intel_runners)
+
+
 def write_output(path: str, key: str, value: str) -> None:
     if "\n" in value:
         delimiter = f"__EOF_{secrets.token_hex(8)}__"
@@ -242,6 +260,9 @@ def main() -> int:
     write_output(args.github_output, "sklearn_head_ref", parsed["sklearn_head_ref"])
     write_output(args.github_output, "runs", json.dumps(parsed["runs"]))
     write_output(args.github_output, "runners", json.dumps(parsed["runners"]))
+    intel_runners, has_intel = split_runner_matrix(parsed["runners"])
+    write_output(args.github_output, "has_intel", "true" if has_intel else "false")
+    write_output(args.github_output, "intel_runners", json.dumps(intel_runners))
     return 0
 
 

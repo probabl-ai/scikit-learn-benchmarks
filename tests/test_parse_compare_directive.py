@@ -174,6 +174,37 @@ def test_intel_only_directive_is_unchanged():
     ]
 
 
+def test_split_keeps_the_intel_entries_of_an_intel_only_directive():
+    intel_runners, has_intel = parser.split_runner_matrix(["intel-laptop", "intel-xeon"])
+    assert intel_runners == ["intel-laptop", "intel-xeon"]
+    assert has_intel is True
+
+
+def test_split_placeholders_the_matrix_of_an_aws_only_directive():
+    intel_runners, has_intel = parser.split_runner_matrix(["aws-nvidia-l4"])
+    assert intel_runners == [parser.EMPTY_MATRIX_PLACEHOLDER]
+    assert has_intel is False
+
+
+def test_split_keeps_every_non_gpu_runner_of_a_mixed_directive():
+    intel_runners, has_intel = parser.split_runner_matrix(
+        ["intel-xeon", "aws-nvidia-l4", "intel-laptop"]
+    )
+    assert intel_runners == ["intel-xeon", "intel-laptop"]
+    assert has_intel is True
+
+
+def test_split_excludes_exactly_the_runners_in_gpu_runners(monkeypatch):
+    monkeypatch.setattr(parser, "GPU_RUNNERS", ("aws-nvidia-l4", "aws-h100"))
+    intel_runners, has_intel = parser.split_runner_matrix(["aws-h100", "intel-xeon"])
+    assert intel_runners == ["intel-xeon"]
+    assert has_intel is True
+
+    intel_runners, has_intel = parser.split_runner_matrix(["aws-h100"])
+    assert intel_runners == [parser.EMPTY_MATRIX_PLACEHOLDER]
+    assert has_intel is False
+
+
 def test_cli_writes_gpu_run_as_json(tmp_path):
     body = tmp_path / "body.md"
     body.write_text(
@@ -211,3 +242,39 @@ def test_cli_writes_gpu_run_as_json(tmp_path):
             "config": "configs/all_models.py",
         }
     ]
+    assert outputs["has_intel"] == "false"
+    assert json.loads(outputs["intel_runners"]) == ["none"]
+
+
+def test_cli_splits_a_mixed_directive_for_the_two_matrix_jobs(tmp_path):
+    body = tmp_path / "body.md"
+    body.write_text(
+        "Intro text.\n\n```sklbench-compare\n"
+        "sklearn_ref: some-user:feature\n"
+        "runs: all#configs/all_models.py\n"
+        "```\n"
+    )
+    github_output = tmp_path / "github_output"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--body-file",
+            str(body),
+            "--github-output",
+            str(github_output),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    outputs = dict(
+        line.split("=", 1)
+        for line in github_output.read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("runs<<")
+    )
+    assert json.loads(outputs["runners"]) == ["intel-laptop", "intel-xeon", "aws-nvidia-l4"]
+    assert outputs["has_intel"] == "true"
+    assert json.loads(outputs["intel_runners"]) == ["intel-laptop", "intel-xeon"]
