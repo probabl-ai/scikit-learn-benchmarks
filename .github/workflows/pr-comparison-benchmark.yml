@@ -112,8 +112,7 @@ jobs:
           echo "SITE_DIR=$RUNNER_TEMP/pr-compare/site" >> "$GITHUB_ENV"
 
       - name: Check out repository
-        # Default pull_request checkout (merge of PR head into base) is
-        # intentional here, unlike gate_and_parse's base-pinned checkout:
+        # Default pull_request checkout (merge of PR head into base):
         # `runs:` may point at a config file this very PR adds. Same
         # trust level workflow_dispatch on run-benchmarks.yml already
         # assumes for a collaborator's branch.

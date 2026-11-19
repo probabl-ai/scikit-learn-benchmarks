@@ -30,13 +30,12 @@ jobs:
       has_intel: ${{ steps.parse.outputs.has_intel }}
       intel_runners: ${{ steps.parse.outputs.intel_runners }}
     steps:
-      - name: Check out repository (base, trusted)
-        # Pinned to the base sha, not the PR head, so parsing always runs
-        # the trusted version of this script - this job never executes
-        # PR-supplied code.
+      - name: Check out repository
+        # The PR's own version: under `pull_request` the PR already supplies
+        # this workflow file, so pinning the parser to the base sha would
+        # protect nothing and only stop a PR from testing its parser changes.
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
           lfs: false
           persist-credentials: false
 
@@ -65,10 +64,9 @@ jobs:
             --body-file "$RUNNER_TEMP/pr_body.md" --github-output "$GITHUB_OUTPUT"
 
       - name: Check for [skip] / [skip main] flags on the latest commit
-        # Fetched via the API rather than local `git log`, since this job's
-        # checkout is pinned to the base sha (see above) and a shallow
-        # checkout wouldn't have the PR head commit's object locally
-        # anyway. Matched case-insensitively against just the head commit's
+        # Fetched via the API rather than local `git log`, since the shallow
+        # checkout of the merge commit doesn't have the PR head commit's
+        # object locally. Matched case-insensitively against just the head commit's
         # message, mirroring common "[skip ci]"-style conventions.
         id: skip_flags
         env:
