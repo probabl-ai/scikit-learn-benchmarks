@@ -145,13 +145,8 @@ jobs:
   # this is what makes the host's readiness visible. `[skip]` runs rebuild on
   # ubuntu-latest and never touch the host, so they skip both AWS jobs.
   runner_ready:
-    # CONTRACT: the job *name* `runner-ready` is matched literally by the waiter
-    # in scripts/ci/aws-provision.sh and by scripts/ci/clear-stale-runner-ready.sh.
-    # Never rename it, and never move this job behind a reusable-workflow `uses:`
-    # call: the jobs API would render it as `<caller> / <job>` and both matchers
-    # would silently stop matching (the waiter would time out after 15 min).
-    # The explicit `name:` keeps the underscore in this job's id from changing
-    # the name both matchers look for.
+    # The waiter in `scripts/ci/monitored-job.sh` looks this job up in the
+    # run's job list by `name:`; the job id itself has an underscore.
     name: runner-ready
     needs: gate_and_parse
     if: >-

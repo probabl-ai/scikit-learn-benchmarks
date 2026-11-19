@@ -40,11 +40,8 @@ permissions:
 
 jobs:
   runner-ready:
-    # CONTRACT: the job *name* `runner-ready` is matched literally by the waiter
-    # in scripts/ci/aws-provision.sh and by scripts/ci/clear-stale-runner-ready.sh.
-    # Never rename it, and never move this job behind a reusable-workflow `uses:`
-    # call: the jobs API would render it as `<caller> / <job>` and both matchers
-    # would silently stop matching (the waiter would time out after 15 min).
+    # `provision` waits for this job to be picked up by the AWS runner:
+    # `scripts/ci/monitored-job.sh` looks its name up in this run's job list.
     # Runs on the AWS runner so `provision` can tell when that runner is
     # online. No `needs`: it is queued from the start, in parallel with
     # `provision`.
