@@ -9,6 +9,9 @@ Looks for a fenced code block:
     runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline.py
     ```
 
+`sklearn_base_ref` (optional, same `owner:ref` form) is the ref it is
+compared against, `scikit-learn:main` by default.
+
 `sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
 spec takes (see CONTRIBUTING.md) - the fork owner and the branch/ref to
 benchmark on it, taken straight from the PR author instead of resolved from
@@ -99,7 +102,8 @@ AUTO_ENV_BY_RUNNER = {
 VALID_ENV_TOKENS = {*VALID_SKLEARN_SRC_ENVS, AUTO_ENV_TOKEN}
 DEFAULT_ENV_TOKEN = AUTO_ENV_TOKEN
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
-KNOWN_KEYS = REQUIRED_KEYS
+KNOWN_KEYS = REQUIRED_KEYS | {"sklearn_base_ref"}
+DEFAULT_SKLEARN_BASE_REF = "scikit-learn:main"
 # A matrix over an empty array is a GitHub Actions expansion *error*, not a
 # skipped job, so an Intel-free directive gets this single placeholder as its
 # Intel matrix and `has_intel=false` to skip the Intel job outright.
@@ -125,6 +129,17 @@ def _resolve_env(env: str, runner: str) -> str:
         raise Malformed(f"no auto env mapping defined for runner {runner!r}") from None
 
 
+def _split_owner_ref(key: str, value: str) -> tuple[str, str]:
+    owner, _, ref = value.partition(":")
+    if not owner or not ref:
+        raise Malformed(f"{key} {value!r} must look like 'owner:ref'")
+    if not GITHUB_OWNER_RE.match(owner):
+        raise Malformed(f"{key} owner {owner!r} is not a valid GitHub username")
+    if ref.startswith("-") or any(c.isspace() for c in ref):
+        raise Malformed(f"{key} ref {ref!r} is not a valid git ref")
+    return owner, ref
+
+
 def parse_fields(block: str) -> dict:
     fields = {}
     for line in block.splitlines():
@@ -146,18 +161,14 @@ def parse_fields(block: str) -> dict:
     if missing:
         raise Malformed(f"missing required key(s): {sorted(missing)}")
 
-    sklearn_ref = fields["sklearn_ref"]
-    if ":" not in sklearn_ref:
-        raise Malformed(f"sklearn_ref {sklearn_ref!r} must look like 'owner:ref'")
-    sklearn_owner, sklearn_head_ref = sklearn_ref.split(":", 1)
-    if not sklearn_owner or not sklearn_head_ref:
-        raise Malformed(f"sklearn_ref {sklearn_ref!r} must look like 'owner:ref'")
-    if not GITHUB_OWNER_RE.match(sklearn_owner):
+    sklearn_owner, sklearn_head_ref = _split_owner_ref("sklearn_ref", fields["sklearn_ref"])
+    sklearn_base = fields.get("sklearn_base_ref", DEFAULT_SKLEARN_BASE_REF)
+    _split_owner_ref("sklearn_base_ref", sklearn_base)
+    if sklearn_base.split(":", 1)[1] == sklearn_head_ref:
+        # The dashboard tells the two builds apart by their ref.
         raise Malformed(
-            f"sklearn_ref owner {sklearn_owner!r} is not a valid GitHub username"
+            f"sklearn_ref and sklearn_base_ref name the same ref {sklearn_head_ref!r}"
         )
-    if sklearn_head_ref.startswith("-") or any(c.isspace() for c in sklearn_head_ref):
-        raise Malformed(f"sklearn_ref ref {sklearn_head_ref!r} is not a valid git ref")
 
     run_entries = [t for t in re.split(r"[,\s]+", fields["runs"]) if t]
     if not run_entries:
@@ -207,6 +218,7 @@ def parse_fields(block: str) -> dict:
     return {
         "sklearn_owner": sklearn_owner,
         "sklearn_head_ref": sklearn_head_ref,
+        "sklearn_base": sklearn_base,
         "runs": runs,
         "runners": runners,
     }
@@ -258,6 +270,7 @@ def main() -> int:
     write_output(args.github_output, "ok", "true")
     write_output(args.github_output, "sklearn_owner", parsed["sklearn_owner"])
     write_output(args.github_output, "sklearn_head_ref", parsed["sklearn_head_ref"])
+    write_output(args.github_output, "sklearn_base", parsed["sklearn_base"])
     write_output(args.github_output, "runs", json.dumps(parsed["runs"]))
     write_output(args.github_output, "runners", json.dumps(parsed["runners"]))
     intel_runners, has_intel = split_runner_matrix(parsed["runners"])

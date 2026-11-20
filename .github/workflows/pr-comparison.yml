@@ -22,6 +22,7 @@ jobs:
       runners: ${{ steps.parse.outputs.runners }}
       sklearn_owner: ${{ steps.parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
+      sklearn_base: ${{ steps.parse.outputs.sklearn_base }}
       skip_main: ${{ steps.skip_flags.outputs.skip_main }}
       skip_bench: ${{ steps.skip_flags.outputs.skip_bench }}
       # Derived by the parse step from `runners`: the Intel entries (a
@@ -109,6 +110,7 @@ jobs:
           RUNS: ${{ steps.parse.outputs.runs }}
           SKLEARN_OWNER: ${{ steps.parse.outputs.sklearn_owner }}
           SKLEARN_HEAD_REF: ${{ steps.parse.outputs.sklearn_head_ref }}
+          SKLEARN_BASE: ${{ steps.parse.outputs.sklearn_base }}
           SKIP_MAIN: ${{ steps.skip_flags.outputs.skip_main }}
           SKIP_BENCH: ${{ steps.skip_flags.outputs.skip_bench }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -122,12 +124,12 @@ jobs:
               # as a plain comma-separated list instead. The `runners` output
               # (distinct runner values out of RUNS) drives the matrix below.
               runs_display=$(python3 -c "import json,sys; runs=json.loads(sys.argv[1]); print(', '.join(f\"{r['runner']}: {r['config']} ({r['env']})\" for r in runs))" "$RUNS")
-              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against scikit-learn \`main\`:"
+              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against \`$SKLEARN_BASE\`:"
               echo "$runs_display"
               if [ "$SKIP_BENCH" = "true" ]; then
                 echo "\`[skip]\` detected: no benchmarks run, each runner's dashboard is rebuilt from the results it previously published."
               elif [ "$SKIP_MAIN" = "true" ]; then
-                echo "\`[skip main]\` detected: reusing each runner's previously-published \`main\` results instead of re-benchmarking, if available."
+                echo "\`[skip main]\` detected: reusing each runner's previously-published \`$SKLEARN_BASE\` results instead of re-benchmarking, if available."
               fi
               echo "Results post as separate comments below as each runner finishes."
             fi
@@ -225,6 +227,7 @@ jobs:
       runs: ${{ needs.gate_and_parse.outputs.runs }}
       sklearn_owner: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
+      sklearn_base: ${{ needs.gate_and_parse.outputs.sklearn_base }}
       skip_main: ${{ needs.gate_and_parse.outputs.skip_main }}
       skip_bench: ${{ needs.gate_and_parse.outputs.skip_bench }}
     secrets: inherit
@@ -267,6 +270,7 @@ jobs:
       runs: ${{ needs.gate_and_parse.outputs.runs }}
       sklearn_owner: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
+      sklearn_base: ${{ needs.gate_and_parse.outputs.sklearn_base }}
       skip_main: ${{ needs.gate_and_parse.outputs.skip_main }}
       skip_bench: ${{ needs.gate_and_parse.outputs.skip_bench }}
     secrets: inherit

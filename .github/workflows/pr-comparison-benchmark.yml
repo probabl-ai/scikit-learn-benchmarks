@@ -31,7 +31,11 @@ on:
         required: true
         type: string
       sklearn_head_ref:
-        description: Branch/ref of that owner's to compare against `main`.
+        description: Branch/ref of that owner's to compare against the base.
+        required: true
+        type: string
+      sklearn_base:
+        description: The `owner:ref` to compare against, `scikit-learn:main` by default.
         required: true
         type: string
       skip_main:
@@ -76,6 +80,10 @@ jobs:
       THIS_RUNNER: ${{ inputs.runner }}
       SKLEARN_OWNER: ${{ inputs.sklearn_owner }}
       SKLEARN_HEAD_REF: ${{ inputs.sklearn_head_ref }}
+      SKLEARN_BASE: ${{ inputs.sklearn_base }}
+      # Tells index_comparison.py and write_main_results_manifest.py which
+      # of the two builds is the baseline.
+      SKLBENCH_PR_COMPARE_BASE: ${{ inputs.sklearn_base }}
       # Set by gate_and_parse from a `[skip main]` flag on the PR's latest
       # commit message. The "Restore cached main results" step below flips
       # this back to 'false' (via $GITHUB_ENV) if no usable cache is found,
@@ -244,7 +252,7 @@ jobs:
           while IFS=$'\t' read -r env config; do
             echo "=== env=$env config=$config ===" | tee -a "$RUNNER_TEMP/bench.log"
             env_specs=("${env}@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}")
-            [ "$SKIP_MAIN" = "true" ] || env_specs+=("${env}@scikit-learn:main")
+            [ "$SKIP_MAIN" = "true" ] || env_specs+=("${env}@${SKLEARN_BASE}")
             if ! ./run.sh "${env_specs[@]}" \
                 --config "$config" --results-dir "$RESULTS_DIR" \
                 2>&1 | tee -a "$RUNNER_TEMP/bench.log"; then
@@ -383,14 +391,14 @@ jobs:
                 while IFS= read -r stem; do echo "- [$stem]($base_url/$stem)"; done
             )
             {
-              echo "**${{ inputs.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`main\`, using: $runs_display"
+              echo "**${{ inputs.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`$SKLEARN_BASE\`, using: $runs_display"
               echo
               echo "$dashboard_links"
               if [ "$SKIP_BENCH" = "true" ]; then
                 echo "- Dashboard rebuilt from this runner's previously published results (\`[skip]\`); nothing re-benchmarked."
               else
                 [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."
-                [ "$SKIP_MAIN" = "true" ] && echo "- \`main\` results reused from this runner's previous comparison (\`[skip main]\`); not re-benchmarked."
+                [ "$SKIP_MAIN" = "true" ] && echo "- \`$SKLEARN_BASE\` results reused from this runner's previous comparison (\`[skip main]\`); not re-benchmarked."
               fi
               echo
               echo "Full run: $run_url"

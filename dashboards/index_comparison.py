@@ -69,20 +69,24 @@ def _is_sklearn_dev_build(build_name: str) -> bool:
     return bool(_SKLEARN_DEV_BUILD_RE.match(build_name))
 
 
+# The `owner:ref` baseline of the comparison, from the directive's
+# `sklearn_base_ref` (see COMPARISONS_PR.md).
+BASE_REF = os.environ.get("SKLBENCH_PR_COMPARE_BASE", "scikit-learn:main").split(":", 1)[1]
+
+
 def _base_build(builds: list[str]) -> str | None:
-    """The `sklearn-dev@<owner>:main` build among `builds` - picked
-    dynamically since `<owner>` varies with whichever fork/remote this
-    comparison's baseline used (see CONTRIBUTING.md's `env@owner:ref`
-    workflow)."""
-    return next((build for build in builds if build.rsplit(":", 1)[-1] == "main"), None)
+    """The `sklearn-dev@<owner>:<BASE_REF>` build among `builds`."""
+    return next((build for build in builds if build.rsplit(":", 1)[-1] == BASE_REF), None)
 
 
 def _branch_label(build_name: str) -> str:
     """Strip the `sklearn-dev@owner:` prefix off a build name, leaving just
     the ref/branch (e.g. "sklearn-dev@cakedev0:ridge/optim_cholesky" ->
     "ridge/optim_cholesky") - the owner is noise in a table whose whole point
-    is comparing two branches of the same PR."""
-    return build_name.rsplit(":", 1)[-1]
+    is comparing two branches of the same PR. A full commit sha is cut to 8
+    characters."""
+    ref = build_name.rsplit(":", 1)[-1]
+    return ref[:8] if re.fullmatch(r"[0-9a-f]{40}", ref) else ref
 
 
 def _env_of(build_name: str) -> str:
@@ -170,7 +174,7 @@ if __name__ == "__main__":
     for env, env_builds in sorted(builds_by_env.items()):
         env_base_build = _base_build(env_builds)
         if env_base_build is None:
-            raise SystemExit(f"No {env}@...:main baseline build found among: {env_builds}.")
+            raise SystemExit(f"No {env}@...:{BASE_REF} baseline build found among: {env_builds}.")
         env_variant_builds = [b for b in env_builds if b != env_base_build]
         if len(env_variant_builds) != 1:
             raise SystemExit(
@@ -278,12 +282,12 @@ if __name__ == "__main__":
         envs_note = f" Compared under {len(env_groups)} <dfn>pixi envs</dfn>: {env_names_html}. Use the env column filter to isolate one."
 
     about_html = f"""<section class="panel">
-  <p>This page compares <code>main</code> and {variant_label_html}, benchmarked
+  <p>This page compares <code>{escape(base_branch_label)}</code> and {variant_label_html}, benchmarked
   back to back on the same self-hosted runner in one CI job. The exact commits
   are listed below.{envs_note}
   Each table row is one benchmark case (estimator, dataset, <dfn>hyperparameters</dfn>).
   <code><dfn>fit speedup</dfn></code> and <code><dfn>predict speedup</dfn></code> are relative to
-  <code>main</code>. Use the column filters to narrow down by estimator,
+  <code>{escape(base_branch_label)}</code>. Use the column filters to narrow down by estimator,
   dataset or branch name.</p>
 </section>"""
 

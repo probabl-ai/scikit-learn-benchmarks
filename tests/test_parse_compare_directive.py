@@ -32,6 +32,26 @@ def _directive(runs: str) -> str:
     return f"sklearn_ref: some-user:feature\nruns: {runs}\n"
 
 
+def test_base_ref_defaults_to_scikit_learn_main():
+    assert parser.parse_fields(_directive("configs/x.py"))["sklearn_base"] == "scikit-learn:main"
+
+
+def test_base_ref_is_passed_through():
+    sha = "2b275865c5c3a73d5c5f14be4b514cfc34cc9645"
+    parsed = parser.parse_fields(
+        _directive("configs/x.py") + f"sklearn_base_ref: scikit-learn:{sha}\n"
+    )
+    assert parsed["sklearn_base"] == f"scikit-learn:{sha}"
+    assert parsed["sklearn_head_ref"] == "feature"
+
+
+@pytest.mark.parametrize("base", ["main", "bad owner:main", "some-user:feature"])
+def test_invalid_base_ref_is_rejected(base):
+    # The last one is valid on its own but is the same ref as `sklearn_ref`.
+    with pytest.raises(parser.Malformed):
+        parser.parse_fields(_directive("configs/x.py") + f"sklearn_base_ref: {base}\n")
+
+
 def test_gpu_runner_with_source_built_cuda_env_is_accepted():
     parsed = parser.parse_fields(
         _directive("aws-nvidia-l4#sklearn-dev-nvidia#configs/all_models.py")
