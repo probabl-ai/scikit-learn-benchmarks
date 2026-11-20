@@ -238,8 +238,19 @@ def get_runtime_import_info(import_names: list[str] | None = None) -> dict:
     return result
 
 
+def get_custom_openblas_info() -> dict | None:
+    """What `scripts/setup_custom_openblas.sh` built for this env, if anything:
+    threadpoolctl only reports a version like `0.3.34.dev`, and `pixi list` still
+    lists conda-forge's OpenBLAS."""
+    path = Path(sys.prefix) / "share" / "custom-openblas.json"
+    return json.loads(path.read_text()) if path.is_file() else None
+
+
 def get_software_info() -> dict:
     result = {}
+    custom_openblas = get_custom_openblas_info()
+    if custom_openblas is not None:
+        result["custom_openblas"] = custom_openblas
     result["threadpool_info"] = get_threadpool_info()
     result["openmp_runtime_info"] = get_openmp_runtime_info()
     result["runtime_imports"] = get_runtime_import_info()
