@@ -207,6 +207,15 @@ def _github_actions_run_url() -> str | None:
     )
 
 
+def _restricted_logical_cpus() -> int | None:
+    """Number of logical CPUs this run is bound to when that is not the whole
+    machine (e.g. a `benchlock` socket slot), else `None`."""
+    if not hasattr(os, "sched_getaffinity"):
+        return None
+    n_cpus = len(os.sched_getaffinity(0))
+    return n_cpus if n_cpus < (os.cpu_count() or n_cpus) else None
+
+
 def save_benchmark_record(
     record_path: Path,
     bench_case: Case,
@@ -224,6 +233,9 @@ def save_benchmark_record(
         "results": rows,
         "failed_case": failed_case,
     }
+    available_logical_cpus = _restricted_logical_cpus()
+    if available_logical_cpus is not None:
+        record["available_logical_cpus"] = available_logical_cpus
     ci_run_url = _github_actions_run_url()
     if ci_run_url is not None:
         record["ci_run_url"] = ci_run_url

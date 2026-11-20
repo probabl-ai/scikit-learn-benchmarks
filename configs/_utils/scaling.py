@@ -37,7 +37,13 @@ def _logical_cpus_by_physical_core() -> list[list[int]]:
 
 
 def get_n_cores_list(*, max_n_cores: int | None = None) -> list[int]:
-    n_cores = joblib.cpu_count(only_physical_cores=True)
+    # joblib counts the physical cores of the whole machine, capped by the
+    # number of logical CPUs of the affinity mask: on one socket of a
+    # hyper-threaded two-socket machine it returns twice the cores available.
+    n_cores = min(
+        joblib.cpu_count(only_physical_cores=True),
+        len(_logical_cpus_by_physical_core()),
+    )
     max_n_cores = min(max_n_cores or n_cores, n_cores)
     counts = []
     thread_count = 1
