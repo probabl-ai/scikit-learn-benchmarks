@@ -13,6 +13,12 @@ runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline
   compare against `main`, as `owner:ref`. This is the same shorthand as
   `run.sh`'s `env@owner:ref` (see "Running Against scikit-learn Branches" in
   CONTRIBUTING.md).
+- `sklearn_base_ref` (optional): the ref to compare `sklearn_ref` against, in
+  the same `owner:ref` form. Defaults to `scikit-learn:main`. Both refs can be
+  full commit shas, for example to measure a merged PR in isolation: its merge
+  commit as `sklearn_ref` and the parent of that commit as `sklearn_base_ref`.
+  With a base ref, read `main` below as that ref (`[skip main]` reuses its
+  results).
 - `runs` (required): a comma or whitespace separated list of
   `[runner#][env#]config` entries. Each entry is one explicit (runner, env,
   config) tuple, **not** a cross product of runner, env and config lists.

@@ -15,6 +15,7 @@ docstring and .github/workflows/pr-comparison.yml's RESULTS_DIR comment.
 """
 
 import argparse
+import os
 from pathlib import Path
 
 from sklbench.reporting.envs import is_sklearn_dev_build, software_build_name
@@ -30,10 +31,11 @@ def main() -> None:
 
     records = read_benchmark_records()
 
+    base_ref = os.environ.get("SKLBENCH_PR_COMPARE_BASE", "scikit-learn:main").split(":", 1)[1]
     main_software_hashes = set()
     for record in records:
         build = software_build_name(record.software_hash)
-        if is_sklearn_dev_build(build) and build.rsplit(":", 1)[-1] == "main":
+        if is_sklearn_dev_build(build) and build.rsplit(":", 1)[-1] == base_ref:
             main_software_hashes.add(record.software_hash)
 
     relpaths = set()
