@@ -317,6 +317,7 @@ def scaling_line_plot_html(
     *,
     colors: dict[str, str] | None = None,
     line_dashes: dict[str, str] | None = None,
+    legend_groups: dict[str, str] | None = None,
     x_title: str = "threads",
     y_title: str = "fit time (ms)",
     y_unit: str = "ms",
@@ -361,8 +362,12 @@ def scaling_line_plot_html(
     segments share one legend entry.
 
     `line_dashes` maps a series label to a Plotly dash style (e.g. "dash"),
-    for series sharing a color that still need telling apart."""
+    for series sharing a color that still need telling apart.
+
+    `legend_groups` maps a series label to the label of another series: it
+    gets no legend entry of its own and toggles with that series."""
     chart_id = f"scaling-line-{next(chart_ids)}"
+    legend_groups = legend_groups or {}
     fig = go.Figure()
     all_x_values = set()
     for label, points in sorted(series.items()):
@@ -404,7 +409,8 @@ def scaling_line_plot_html(
                 # (e.g. hardware with no SMT cores never gets a "without
                 # SMT" counterpart - see gen_models_scalability.py), so its
                 # legend entry would just be noise.
-                showlegend=len(series) > 1,
+                showlegend=len(series) > 1 and label not in legend_groups,
+                legendgroup=legend_groups.get(label, label),
             )
         )
     for label, segments in sorted((reference_lines or {}).items()):
