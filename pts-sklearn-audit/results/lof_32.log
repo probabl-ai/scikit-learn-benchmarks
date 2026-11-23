@@ -1,0 +1,38 @@
+
+============================
+LocalOutlierFactor benchmark
+============================
+
+A test of LocalOutlierFactor on classical anomaly detection datasets.
+
+Note that LocalOutlierFactor is not meant to predict on a test set and its
+performance is assessed in an outlier detection context:
+1. The model is trained on the whole dataset which is assumed to contain
+outliers.
+2. The ROC curve is computed on the same dataset using the knowledge of the
+labels.
+In this context there is no need to shuffle the dataset because the model
+is trained and tested on the whole dataset. The randomness of this benchmark
+is only caused by the random selection of anomalies in the SA dataset.
+
+
+loading data
+vectorizing data
+LocalOutlierFactor processing...
+loading data
+vectorizing data
+LocalOutlierFactor processing...
+loading data
+vectorizing data
+LocalOutlierFactor processing...
+loading data
+vectorizing data
+LocalOutlierFactor processing...
+loading data
+vectorizing data
+LocalOutlierFactor processing...
+loading data
+vectorizing data
+LocalOutlierFactor processing...
+Total Script Time: 0:00:34.258321
+Total Script Time: 0:00:34.258333

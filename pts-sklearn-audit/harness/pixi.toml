@@ -1,0 +1,25 @@
+[workspace]
+name = "pts-sklearn-audit"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+# Toolchain for pts/scikit-learn-2.0.0 (May 2023): its pinned numpy 1.24.3
+# cannot build on Python >= 3.12, and GCC 12 is contemporary with its sources.
+[dependencies]
+python = "3.11.*"
+pip = ">=26.1"
+php = "*"
+cmake = "*"
+meson = "*"
+ninja = "*"
+pkg-config = "*"
+make = "*"
+unzip = "*"
+patch = "*"
+py-spy = "*"
+gcc = "12.*"
+gxx = "12.*"
+gfortran = "12.*"
+gcc_linux-64 = "12.*"
+gxx_linux-64 = "12.*"
+gfortran_linux-64 = "12.*"

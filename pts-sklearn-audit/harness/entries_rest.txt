@@ -1,0 +1,10 @@
+online_ocsvm.py|SGDOneClassSVM
+plot_fastkmeans.py|Plot Fast KMeans
+plot_nmf.py|Plot Non-Negative Matrix Factorization
+plot_parallel_pairwise.py|Plot Parallel Pairwise
+plot_polynomial_kernel_approximation.py|Plot Polynomial Kernel Approximation
+plot_svd.py|Plot Singular Value Decomposition
+rcv1_logreg_convergence.py|RCV1 Logreg Convergencet
+20newsgroups.py -e logistic_regression|20 Newsgroups / Logistic Regression
+hist_gradient_boosting_higgsboson.py|Hist Gradient Boosting Higgs Boson
+isolation_forest.py|Isolation Forest

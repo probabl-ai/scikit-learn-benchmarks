@@ -1,0 +1,1526 @@
+[
+ {
+  "name": "20 Newsgroups / Logistic Regression",
+  "value": "20newsgroups.py -e logistic_regression",
+  "runs": 16,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 49.237,
+  "pts_values_s": [
+   48.826,
+   48.55,
+   52.605,
+   48.573,
+   48.2,
+   48.722,
+   49.852,
+   48.388,
+   50.756,
+   49.413,
+   48.713,
+   48.212,
+   48.221,
+   50.022,
+   49.497
+  ],
+  "python_wall_s": 49.02054666666667,
+  "share": {
+   "sklearn": 0.9605142083897158,
+   "sklearn.datasets": 0.024682002706359944,
+   "import": 0.005520974289580515,
+   "matplotlib": 0.0,
+   "other": 0.002273342354533153,
+   "unsampled": 0.007009472259810555
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_twenty_newsgroups.py:fetch_20newsgroups_vectorized",
+    "share": 0.024682002706359944
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.005277401894451962
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.002192151556156969
+   },
+   {
+    "category": "import",
+    "callee": "(outside the script)",
+    "share": 0.00021650879566982408
+   },
+   {
+    "category": "other",
+    "callee": "bench_20newsgroups.py:<module> (own code)",
+    "share": 5.412719891745602e-05
+   }
+  ],
+  "sklearn_s": 47.084931576364454
+ },
+ {
+  "name": "Covertype Dataset Benchmark",
+  "value": "covertype.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 315.616,
+  "pts_values_s": [
+   317.775,
+   311.711,
+   317.363
+  ],
+  "python_wall_s": 315.4193333333333,
+  "share": {
+   "sklearn": 0.9895800308583265,
+   "sklearn.datasets": 0.0,
+   "import": 0.001120199522330015,
+   "matplotlib": 0.0,
+   "other": 0.0004438526409232135,
+   "unsampled": 0.008855916978420307
+  },
+  "top_outside": [
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0010779278422420899
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0004015809608352884
+   },
+   {
+    "category": "import",
+    "callee": "(outside the script)",
+    "share": 4.227168008792509e-05
+   },
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 2.1135840043962546e-05
+   },
+   {
+    "category": "other",
+    "callee": "bench_covertype.py:<module> (own code)",
+    "share": 2.1135840043962546e-05
+   }
+  ],
+  "sklearn_s": 312.13267361331276
+ },
+ {
+  "name": "Feature Expansions",
+  "value": "feature_expansions.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 186.494,
+  "pts_values_s": [
+   188.874,
+   188.753,
+   181.856
+  ],
+  "python_wall_s": 186.302,
+  "share": {
+   "sklearn": 0.8586151368760064,
+   "sklearn.datasets": 0.0,
+   "import": 0.001932367149758454,
+   "matplotlib": 0.00025049203793165147,
+   "other": 0.12843084630524243,
+   "unsampled": 0.010771157631061012
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "_construct.py:random",
+    "share": 0.06856324923957774
+   },
+   {
+    "category": "other",
+    "callee": "_coo.py:coo_matrix.tocsr",
+    "share": 0.04920379316514582
+   },
+   {
+    "category": "other",
+    "callee": "_compressed.py:_cs_matrix.toarray",
+    "share": 0.0044372875290749686
+   },
+   {
+    "category": "other",
+    "callee": "bench_feature_expansions.py:<module> (own code)",
+    "share": 0.0043657183753802115
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.001932367149758454
+   }
+  ],
+  "sklearn_s": 159.96171723027373
+ },
+ {
+  "name": "GLM",
+  "value": "glm.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Hist Gradient Boosting",
+  "value": "hist_gradient_boosting.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Hist Gradient Boosting Adult",
+  "value": "hist_gradient_boosting_adult.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Hist Gradient Boosting Categorical Only",
+  "value": "hist_gradient_boosting_categorical_only.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Hist Gradient Boosting Threading",
+  "value": "hist_gradient_boosting_threading.py",
+  "runs": 13,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 167.273,
+  "pts_values_s": [
+   166.686,
+   183.128,
+   163.748,
+   170.867,
+   166.459,
+   179.691,
+   162.908,
+   171.943,
+   153.958,
+   156.476,
+   165.926,
+   165.491
+  ],
+  "python_wall_s": 167.05633333333336,
+  "share": {
+   "sklearn": 0.9377673012273477,
+   "sklearn.datasets": 0.05546935608999224,
+   "import": 0.0015814286566807902,
+   "matplotlib": 0.0,
+   "other": 0.001273099799088938,
+   "unsampled": 0.003908814226890255
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_samples_generator.py:make_classification",
+    "share": 0.05545940999781186
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0015615364723200254
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0007360108213482923
+   },
+   {
+    "category": "other",
+    "callee": "bench_hist_gradient_boosting_threading.py:get_estimator_and_data (own code)",
+    "share": 0.00041773587157605777
+   },
+   {
+    "category": "other",
+    "callee": "threadpoolctl.py:threadpool_limits.__init__",
+    "share": 5.967655308229397e-05
+   }
+  ],
+  "sklearn_s": 156.65996686293624
+ },
+ {
+  "name": "Lasso",
+  "value": "lasso.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Plot Hierarchical",
+  "value": "plot_hierarchical.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 207.334,
+  "pts_values_s": [
+   207.064,
+   206.564,
+   208.373
+  ],
+  "python_wall_s": 207.12900000000002,
+  "share": {
+   "sklearn": 0.991792461939554,
+   "sklearn.datasets": 0.0,
+   "import": 0.001995558273520229,
+   "matplotlib": 0.0,
+   "other": 0.0006759148990955615,
+   "unsampled": 0.005536064887830313
+  },
+  "top_outside": [
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0018668125784544079
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0004506099327303743
+   },
+   {
+    "category": "other",
+    "callee": "bench_plot_hierarchical.py:compute_bench (own code)",
+    "share": 0.00019311854259873186
+   },
+   {
+    "category": "import",
+    "callee": "(outside the script)",
+    "share": 9.655927129936593e-05
+   },
+   {
+    "category": "import",
+    "callee": "_agglomerative.py:AgglomerativeClustering.fit",
+    "share": 3.218642376645531e-05
+   }
+  ],
+  "sklearn_s": 205.4289808490779
+ },
+ {
+  "name": "Plot Incremental PCA",
+  "value": "plot_incremental_pca.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 302.158,
+  "pts_values_s": [
+   303.11,
+   299.659,
+   303.706
+  ],
+  "python_wall_s": 301.9243333333333,
+  "share": {
+   "sklearn": 0.9836477987421384,
+   "sklearn.datasets": 0.00024274522784949797,
+   "import": 0.0009709809113979919,
+   "matplotlib": 6.6203243958954e-05,
+   "other": 0.013350987531722388,
+   "unsampled": 0.0017212843429328037
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_plot_incremental_pca.py:benchmark (own code)",
+    "share": 0.012181396888447533
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0009489131634116739
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0005737614476442679
+   },
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.00037515171576740596
+   },
+   {
+    "category": "sklearn.datasets",
+    "callee": "_lfw.py:fetch_lfw_people",
+    "share": 0.00024274522784949797
+   }
+  ],
+  "sklearn_s": 296.98720587002094
+ },
+ {
+  "name": "Plot Lasso Path",
+  "value": "plot_lasso_path.py",
+  "runs": 10,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 1146.55,
+  "pts_values_s": [
+   1188.186,
+   1100.846,
+   1110.107,
+   1158.337,
+   1197.35,
+   1143.523,
+   1102.141,
+   1198.198,
+   1120.266
+  ],
+  "python_wall_s": 1146.3255555555554,
+  "share": {
+   "sklearn": 0.2850370330187674,
+   "sklearn.datasets": 0.40295760431338284,
+   "import": 0.00038747600070520633,
+   "matplotlib": 5.812140010578095e-06,
+   "other": 0.3076772557399726,
+   "unsampled": 0.0039348187871613705
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_samples_generator.py:make_regression",
+    "share": 0.40295760431338284
+   },
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.2913935768103363
+   },
+   {
+    "category": "other",
+    "callee": "bench_plot_lasso_path.py:compute_bench (own code)",
+    "share": 0.015644343528472705
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0006393354011635904
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0003797264806911022
+   }
+  ],
+  "sklearn_s": 326.74523522914575
+ },
+ {
+  "name": "Plot Neighbors",
+  "value": "plot_neighbors.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 285.755,
+  "pts_values_s": [
+   288.545,
+   279.96,
+   288.76
+  ],
+  "python_wall_s": 285.527,
+  "share": {
+   "sklearn": 0.9886419292394524,
+   "sklearn.datasets": 0.00037316043566480863,
+   "import": 0.001212771415910628,
+   "matplotlib": 0.00025654779951955596,
+   "other": 0.0006530307624134151,
+   "unsampled": 0.008862560347039205
+  },
+  "top_outside": [
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.001072836252536325
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0005597406534972129
+   },
+   {
+    "category": "sklearn.datasets",
+    "callee": "_base.py:load_digits",
+    "share": 0.00037316043566480863
+   },
+   {
+    "category": "matplotlib",
+    "callee": "pyplot.py:bar",
+    "share": 0.00013993516337430323
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_handle_fromlist",
+    "share": 0.0001166126361452527
+   }
+  ],
+  "sklearn_s": 282.2839641299531
+ },
+ {
+  "name": "Plot OMP vs. LARS",
+  "value": "plot_omp_lars.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 1143.421,
+  "pts_values_s": [
+   1141.224,
+   1140.584,
+   1148.456
+  ],
+  "python_wall_s": 1143.2066666666667,
+  "share": {
+   "sklearn": 0.5530007635233982,
+   "sklearn.datasets": 0.003392142120263678,
+   "import": 0.0002622790299172947,
+   "matplotlib": 1.1656845774101985e-05,
+   "other": 0.4410425882860357,
+   "unsampled": 0.0022905701946110404
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.4392066350766146
+   },
+   {
+    "category": "sklearn.datasets",
+    "callee": "_samples_generator.py:make_sparse_coded_signal",
+    "share": 0.003392142120263678
+   },
+   {
+    "category": "other",
+    "callee": "bench_plot_omp_lars.py:compute_bench (own code)",
+    "share": 0.001684414214357737
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0002506221841431927
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.00014571057217627482
+   }
+  ],
+  "sklearn_s": 632.1941595317057
+ },
+ {
+  "name": "Plot Ward",
+  "value": "plot_ward.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 65.065,
+  "pts_values_s": [
+   64.949,
+   65.188,
+   65.057
+  ],
+  "python_wall_s": 64.8476,
+  "share": {
+   "sklearn": 0.4906609195402299,
+   "sklearn.datasets": 0.0,
+   "import": 0.005336617405582923,
+   "matplotlib": 0.0,
+   "other": 0.4974343185550082,
+   "unsampled": 0.006568144499178982
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "hierarchy.py:ward",
+    "share": 0.49373973727422005
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.005336617405582923
+   },
+   {
+    "category": "other",
+    "callee": "bench_plot_ward.py:<module> (own code)",
+    "share": 0.0019499178981937603
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0017446633825944171
+   }
+  ],
+  "sklearn_s": 31.818183045977012
+ },
+ {
+  "name": "Sparse Random Projections / 100 Iterations",
+  "value": "random_projections.py --n-times 100",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "SAGA",
+  "value": "saga.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 687.233,
+  "pts_values_s": [
+   691.505,
+   684.415,
+   685.779
+  ],
+  "python_wall_s": 687.0053333333334,
+  "share": {
+   "sklearn": 0.9818430471091454,
+   "sklearn.datasets": 0.011803959224449812,
+   "import": 0.0006886451149843357,
+   "matplotlib": 0.0005140590294953492,
+   "other": 0.0007953366116720497,
+   "unsampled": 0.004354952910253053
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_rcv1.py:fetch_rcv1",
+    "share": 0.011803959224449812
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0006886451149843357
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0006110512992114529
+   },
+   {
+    "category": "matplotlib",
+    "callee": "pyplot.py:savefig",
+    "share": 0.00021338299337542797
+   },
+   {
+    "category": "matplotlib",
+    "callee": "figure.py:Figure.tight_layout",
+    "share": 0.00018428531246059688
+   }
+  ],
+  "sklearn_s": 674.5314098602341
+ },
+ {
+  "name": "Sample Without Replacement",
+  "value": "sample_without_replacement.py",
+  "runs": 16,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 114.245,
+  "pts_values_s": [
+   116.456,
+   117.579,
+   110.472,
+   118.079,
+   110.623,
+   116.55,
+   115.784,
+   111.049,
+   113.654,
+   116.339,
+   110.229,
+   118.416,
+   118.056,
+   109.654,
+   110.733
+  ],
+  "python_wall_s": 114.0342,
+  "share": {
+   "sklearn": 1.1640630456545526e-05,
+   "sklearn.datasets": 0.0,
+   "import": 0.0031313295928107466,
+   "matplotlib": 2.3281260913091052e-05,
+   "other": 0.9929224966824203,
+   "unsampled": 0.003911251833399297
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_sample_without_replacement.py:<lambda> (own code)",
+    "share": 0.5975834051172212
+   },
+   {
+    "category": "other",
+    "callee": "bench_sample_without_replacement.py:bench_sample (own code)",
+    "share": 0.3575303238423393
+   },
+   {
+    "category": "other",
+    "callee": "random.py:Random.sample",
+    "share": 0.03666798593811841
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0030498451796149278
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0009312504365236421
+   }
+  ],
+  "sklearn_s": 0.0013274299816078037
+ },
+ {
+  "name": "SGD Regression",
+  "value": "sgd_regression.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Sparsify",
+  "value": "sparsify.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 113.057,
+  "pts_values_s": [
+   113.051,
+   113.114,
+   113.005
+  ],
+  "python_wall_s": 112.84066666666666,
+  "share": {
+   "sklearn": 0.9827849588719154,
+   "sklearn.datasets": 0.0,
+   "import": 0.0025851938895417154,
+   "matplotlib": 0.0,
+   "other": 0.005052878965922444,
+   "unsampled": 0.009576968272620447
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_sparsify.py:<module> (own code)",
+    "share": 0.0025851938895417154
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0024676850763807284
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0010575793184488837
+   },
+   {
+    "category": "other",
+    "callee": "_compressed.py:_cs_matrix.__init__",
+    "share": 0.0008813160987074031
+   },
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.0005287896592244418
+   }
+  ],
+  "sklearn_s": 110.89810994907951
+ },
+ {
+  "name": "Text Vectorizers",
+  "value": "text_vectorizers.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 55.473,
+  "pts_values_s": [
+   55.303,
+   55.218,
+   55.897
+  ],
+  "python_wall_s": 55.263666666666666,
+  "share": {
+   "sklearn": 0.9525934861278649,
+   "sklearn.datasets": 0.004221954161640531,
+   "import": 0.004945717732207479,
+   "matplotlib": 0.0,
+   "other": 0.01942098914354644,
+   "unsampled": 0.01881785283474065
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "memory_profiler.py:memory_usage",
+    "share": 0.008323281061519904
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0071170084439083235
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.004583835946924005
+   },
+   {
+    "category": "sklearn.datasets",
+    "callee": "_twenty_newsgroups.py:fetch_20newsgroups",
+    "share": 0.004221954161640531
+   },
+   {
+    "category": "other",
+    "callee": "timeit.py:repeat",
+    "share": 0.0033775633293124246
+   }
+  ],
+  "sklearn_s": 52.643808886208284
+ },
+ {
+  "name": "Tree",
+  "value": "tree.py",
+  "runs": 13,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 44.943,
+  "pts_values_s": [
+   45.193,
+   43.828,
+   42.424,
+   47.544,
+   41.9,
+   42.597,
+   48.464,
+   43.488,
+   48.486,
+   43.956,
+   45.802,
+   45.631
+  ],
+  "python_wall_s": 44.715225,
+  "share": {
+   "sklearn": 0.9604011887072809,
+   "sklearn.datasets": 0.0,
+   "import": 0.008023774145616641,
+   "matplotlib": 0.00018573551263001485,
+   "other": 0.02288261515601783,
+   "unsampled": 0.00850668647845468
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_tree.py:bench_scikit_tree_regressor (own code)",
+    "share": 0.009175334323922734
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.007763744427934621
+   },
+   {
+    "category": "other",
+    "callee": "bench_tree.py:bench_scikit_tree_classifier (own code)",
+    "share": 0.007578008915304606
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0030832095096582465
+   },
+   {
+    "category": "other",
+    "callee": "bench_tree.py:<module> (own code)",
+    "share": 0.0030460624071322437
+   }
+  ],
+  "sklearn_s": 42.944555243313516
+ },
+ {
+  "name": "MNIST Dataset",
+  "value": "mnist.py",
+  "runs": 11,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 59.772,
+  "pts_values_s": [
+   63.67,
+   59.083,
+   59.799,
+   59.038,
+   59.143,
+   59.042,
+   58.999,
+   59.975,
+   59.081,
+   59.888
+  ],
+  "python_wall_s": 59.54236999999999,
+  "share": {
+   "sklearn": 0.9781092859537378,
+   "sklearn.datasets": 0.0,
+   "import": 0.005967147167281261,
+   "matplotlib": 0.0,
+   "other": 0.0026483405967147166,
+   "unsampled": 0.013275226282266175
+  },
+  "top_outside": [
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.004156889037881328
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.002380154207173986
+   },
+   {
+    "category": "import",
+    "callee": "memory.py:MemorizedFunc.__call__",
+    "share": 0.0016426416359369763
+   },
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.00023466309084813945
+   },
+   {
+    "category": "import",
+    "callee": "(outside the script)",
+    "share": 0.00016761649346295676
+   }
+  ],
+  "sklearn_s": 58.23894500469325
+ },
+ {
+  "name": "TSNE MNIST Dataset",
+  "value": "tsne_mnist.py",
+  "runs": 3,
+  "failed_runs": 3,
+  "timed_out": false,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Glmnet",
+  "value": "glmnet.py",
+  "runs": 3,
+  "failed_runs": 3,
+  "timed_out": false,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Hist Gradient Boosting Higgs Boson",
+  "value": "hist_gradient_boosting_higgsboson.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 670.027,
+  "pts_values_s": [
+   659.497,
+   681.719,
+   668.866
+  ],
+  "python_wall_s": 669.805,
+  "share": {
+   "sklearn": 0.5240616695364831,
+   "sklearn.datasets": 0.0,
+   "import": 0.0005175622816534125,
+   "matplotlib": 0.0,
+   "other": 0.0013237650665366126,
+   "unsampled": 0.4740970031153268
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.0005076091608523852
+   },
+   {
+    "category": "other",
+    "callee": "bench_hist_gradient_boosting_higgsboson.py:<module> (own code)",
+    "share": 0.0005076091608523852
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0004976560400513581
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.00025878114082670623
+   },
+   {
+    "category": "other",
+    "callee": "bench_hist_gradient_boosting_higgsboson.py:fit (own code)",
+    "share": 2.9859362403081485e-05
+   }
+  ],
+  "sklearn_s": 351.0191265638841
+ },
+ {
+  "name": "Isolation Forest",
+  "value": "isolation_forest.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 282.245,
+  "pts_values_s": [
+   281.851,
+   281.039,
+   283.846
+  ],
+  "python_wall_s": 282.0353333333333,
+  "share": {
+   "sklearn": 0.3814679115943742,
+   "sklearn.datasets": 0.5200567308828744,
+   "import": 0.0017964779576882166,
+   "matplotlib": 9.455147145727456e-05,
+   "other": 0.08958751920576764,
+   "unsampled": 0.006996808887838317
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_kddcup99.py:fetch_kddcup99",
+    "share": 0.5147618484812669
+   },
+   {
+    "category": "other",
+    "callee": "bench_isolation_forest.py:<module> (own code)",
+    "share": 0.07403380215104598
+   },
+   {
+    "category": "other",
+    "callee": "index_tricks.py:AxisConcatenator.__getitem__",
+    "share": 0.01283536225032502
+   },
+   {
+    "category": "sklearn.datasets",
+    "callee": "_covtype.py:fetch_covtype",
+    "share": 0.005011227987235551
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0024583382578891384
+   }
+  ],
+  "sklearn_s": 107.58742960248985
+ },
+ {
+  "name": "Isotonic / Perturbed Logarithm",
+  "value": "isotonic.py --iterations 100 --log_min_problem_size 1 --log_max_problem_size 10 --dataset perturbed_logarithm",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 1918.717,
+  "pts_values_s": [
+   1937.872,
+   1909.31,
+   1908.969
+  ],
+  "python_wall_s": 1918.4833333333333,
+  "share": {
+   "sklearn": 0.9802899738218077,
+   "sklearn.datasets": 0.0,
+   "import": 0.00020484261837473006,
+   "matplotlib": 0.0,
+   "other": 0.017703262899877094,
+   "unsampled": 0.001801920659940422
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_isotonic.py:bench_isotonic_regression (own code)",
+    "share": 0.01039836681410706
+   },
+   {
+    "category": "other",
+    "callee": "bench_isotonic.py:generate_perturbed_logarithm_dataset (own code)",
+    "share": 0.007252817453979849
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.00019789880080270532
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 5.207863179018561e-05
+   },
+   {
+    "category": "import",
+    "callee": "(outside the script)",
+    "share": 6.943817572024748e-06
+   }
+  ],
+  "sklearn_s": 1880.6699766109077
+ },
+ {
+  "name": "Isotonic / Logistic",
+  "value": "isotonic.py --iterations 100 --log_min_problem_size 1 --log_max_problem_size 10 --dataset logistic",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 1708.879,
+  "pts_values_s": [
+   1689.303,
+   1723.243,
+   1714.091
+  ],
+  "python_wall_s": 1708.6499999999999,
+  "share": {
+   "sklearn": 0.9009095727268476,
+   "sklearn.datasets": 0.0,
+   "import": 0.00025720565540677463,
+   "matplotlib": 7.794110769902262e-06,
+   "other": 0.09869292762388739,
+   "unsampled": 0.00013249988308833846
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 0.06914935075057287
+   },
+   {
+    "category": "other",
+    "callee": "bench_isotonic.py:generate_logistic_dataset (own code)",
+    "share": 0.017201602469174293
+   },
+   {
+    "category": "other",
+    "callee": "bench_isotonic.py:bench_isotonic_regression (own code)",
+    "share": 0.012260136241056258
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0002533086000218235
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 5.845583077426696e-05
+   }
+  ],
+  "sklearn_s": 1539.3391414397279
+ },
+ {
+  "name": "Isotonic / Pathological",
+  "value": "isotonic.py --iterations 100 --log_min_problem_size 1 --log_max_problem_size 10 --dataset pathological",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Kernel PCA Solvers / Time vs. N Components",
+  "value": "kernel_pca_solvers_time_vs_n_components.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 459.908,
+  "pts_values_s": [
+   456.056,
+   457.635,
+   466.033
+  ],
+  "python_wall_s": 459.68533333333335,
+  "share": {
+   "sklearn": 0.9933439214553855,
+   "sklearn.datasets": 0.0,
+   "import": 0.0007219174126479931,
+   "matplotlib": 1.443834825295986e-05,
+   "other": 0.0006930407161420734,
+   "unsampled": 0.00522668206757147
+  },
+  "top_outside": [
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0007219174126479931
+   },
+   {
+    "category": "other",
+    "callee": "contextlib.py:ContextDecorator.__call__.<locals>.inner",
+    "share": 0.00028876696505919725
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.00028876696505919725
+   },
+   {
+    "category": "other",
+    "callee": "bench_kernel_pca_solvers_time_vs_n_components.py:<module> (own code)",
+    "share": 0.00011550678602367889
+   },
+   {
+    "category": "matplotlib",
+    "callee": "pyplot.py:subplots",
+    "share": 1.443834825295986e-05
+   }
+  ],
+  "sklearn_s": 456.6256316488594
+ },
+ {
+  "name": "Kernel PCA Solvers / Time vs. N Samples",
+  "value": "kernel_pca_solvers_time_vs_n_samples.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 1023.166,
+  "pts_values_s": [
+   1011.583,
+   1037.251,
+   1020.665
+  ],
+  "python_wall_s": 1022.9533333333334,
+  "share": {
+   "sklearn": 0.9976623951659114,
+   "sklearn.datasets": 0.0,
+   "import": 0.00044277751732041463,
+   "matplotlib": 0.0,
+   "other": 0.00046882325363338024,
+   "unsampled": 0.0014260040631348648
+  },
+  "top_outside": [
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0004232432150856905
+   },
+   {
+    "category": "other",
+    "callee": "contextlib.py:ContextDecorator.__call__.<locals>.inner",
+    "share": 0.00022138875866020732
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.00014325154972131063
+   },
+   {
+    "category": "other",
+    "callee": "bench_kernel_pca_solvers_time_vs_n_samples.py:<module> (own code)",
+    "share": 0.00010418294525186227
+   },
+   {
+    "category": "import",
+    "callee": "(outside the script)",
+    "share": 1.3022868156482784e-05
+   }
+  ],
+  "sklearn_s": 1020.5620726762863
+ },
+ {
+  "name": "LocalOutlierFactor",
+  "value": "lof.py",
+  "runs": 3,
+  "failed_runs": 3,
+  "timed_out": false,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "SGDOneClassSVM",
+  "value": "online_ocsvm.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 274.334,
+  "pts_values_s": [
+   273.622,
+   272.905,
+   276.476
+  ],
+  "python_wall_s": 274.13733333333334,
+  "share": {
+   "sklearn": 0.9466783004920138,
+   "sklearn.datasets": 0.046947332703167796,
+   "import": 0.0012360939431396785,
+   "matplotlib": 7.271140841998109e-05,
+   "other": 0.0033204876511791367,
+   "unsampled": 0.0017450738020795462
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_kddcup99.py:fetch_kddcup99",
+    "share": 0.046947332703167796
+   },
+   {
+    "category": "other",
+    "callee": "bench_online_ocsvm.py:<module> (own code)",
+    "share": 0.0027630335199592816
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0011633825347196975
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0005089798589398677
+   },
+   {
+    "category": "other",
+    "callee": "<__array_function__ internals>:array_function_dispatch.<locals>.decorator.<locals>.public_api",
+    "share": 4.84742722799874e-05
+   }
+  ],
+  "sklearn_s": 259.5198648214127
+ },
+ {
+  "name": "Plot Fast KMeans",
+  "value": "plot_fastkmeans.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 724.648,
+  "pts_values_s": [
+   732.631,
+   718.316,
+   722.997
+  ],
+  "python_wall_s": 724.4383333333334,
+  "share": {
+   "sklearn": 0.9626784662937886,
+   "sklearn.datasets": 0.0,
+   "import": 0.00047836326170150133,
+   "matplotlib": 1.8398586988519283e-05,
+   "other": 0.03461694141889903,
+   "unsampled": 0.002207830438622314
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_plot_fastkmeans.py:compute_bench (own code)",
+    "share": 0.03441455696202532
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0004691639682072417
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.00019318516337945245
+   },
+   {
+    "category": "matplotlib",
+    "callee": "figure.py:FigureBase.add_subplot",
+    "share": 1.8398586988519283e-05
+   },
+   {
+    "category": "other",
+    "callee": "bench_plot_fastkmeans.py:<module> (own code)",
+    "share": 9.199293494259642e-06
+   }
+  ],
+  "sklearn_s": 697.4011836577617
+ },
+ {
+  "name": "Plot Non-Negative Matrix Factorization",
+  "value": "plot_nmf.py",
+  "runs": 3,
+  "failed_runs": 3,
+  "timed_out": false,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Plot Parallel Pairwise",
+  "value": "plot_parallel_pairwise.py",
+  "runs": 1,
+  "failed_runs": 1,
+  "timed_out": true,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ },
+ {
+  "name": "Plot Polynomial Kernel Approximation",
+  "value": "plot_polynomial_kernel_approximation.py",
+  "runs": 4,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 364.385,
+  "pts_values_s": [
+   366.529,
+   364.258,
+   362.367
+  ],
+  "python_wall_s": 364.191,
+  "share": {
+   "sklearn": 0.9935357814582839,
+   "sklearn.datasets": 5.478151306539087e-05,
+   "import": 0.0013147563135693808,
+   "matplotlib": 9.130252177565144e-05,
+   "other": 0.0036886218797363185,
+   "unsampled": 0.0013147563135693808
+  },
+  "top_outside": [
+   {
+    "category": "other",
+    "callee": "bench_plot_polynomial_kernel_approximation.py:<module> (own code)",
+    "share": 0.003286890783923452
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.0012782353048591201
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.00040173109581286633
+   },
+   {
+    "category": "sklearn.datasets",
+    "callee": "_base.py:load_digits",
+    "share": 5.478151306539087e-05
+   },
+   {
+    "category": "matplotlib",
+    "callee": "figure.py:Figure.tight_layout",
+    "share": 3.652100871026058e-05
+   }
+  ],
+  "sklearn_s": 361.83678978507385
+ },
+ {
+  "name": "Plot Singular Value Decomposition",
+  "value": "plot_svd.py",
+  "runs": 10,
+  "failed_runs": 0,
+  "timed_out": false,
+  "pts_score_s": 652.116,
+  "pts_values_s": [
+   649.677,
+   681.576,
+   683.115,
+   639.045,
+   648.371,
+   642.449,
+   638.534,
+   645.061,
+   641.214
+  ],
+  "python_wall_s": 651.9015555555555,
+  "share": {
+   "sklearn": 0.06202290076335878,
+   "sklearn.datasets": 0.897082878953108,
+   "import": 0.00046687568157033804,
+   "matplotlib": 1.0223555070883315e-05,
+   "other": 0.03591875681570338,
+   "unsampled": 0.004498364231188659
+  },
+  "top_outside": [
+   {
+    "category": "sklearn.datasets",
+    "callee": "_samples_generator.py:make_low_rank_matrix",
+    "share": 0.897082878953108
+   },
+   {
+    "category": "other",
+    "callee": "_decomp_svd.py:svd",
+    "share": 0.03388767720828789
+   },
+   {
+    "category": "other",
+    "callee": "bench_plot_svd.py:compute_bench (own code)",
+    "share": 0.001741412213740458
+   },
+   {
+    "category": "import",
+    "callee": "<frozen importlib._bootstrap>:_find_and_load",
+    "share": 0.00046005997818974917
+   },
+   {
+    "category": "other",
+    "callee": "(outside the script)",
+    "share": 0.0002828516902944384
+   }
+  ],
+  "sklearn_s": 40.43282548770144
+ },
+ {
+  "name": "RCV1 Logreg Convergencet",
+  "value": "rcv1_logreg_convergence.py",
+  "runs": 3,
+  "failed_runs": 3,
+  "timed_out": false,
+  "pts_score_s": null,
+  "pts_values_s": [],
+  "python_wall_s": null,
+  "share": null,
+  "top_outside": []
+ }
+]

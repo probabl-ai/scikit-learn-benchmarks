@@ -1,0 +1,40 @@
+20newsgroups.py -e logistic_regression|20 Newsgroups / Logistic Regression
+covertype.py|Covertype Dataset Benchmark
+feature_expansions.py|Feature Expansions
+glm.py|GLM
+hist_gradient_boosting.py|Hist Gradient Boosting
+hist_gradient_boosting_adult.py|Hist Gradient Boosting Adult
+hist_gradient_boosting_categorical_only.py|Hist Gradient Boosting Categorical Only
+hist_gradient_boosting_threading.py|Hist Gradient Boosting Threading
+lasso.py|Lasso
+plot_hierarchical.py|Plot Hierarchical
+plot_incremental_pca.py|Plot Incremental PCA
+plot_lasso_path.py|Plot Lasso Path
+plot_neighbors.py|Plot Neighbors
+plot_omp_lars.py|Plot OMP vs. LARS
+plot_ward.py|Plot Ward
+random_projections.py --n-times 100|Sparse Random Projections / 100 Iterations
+saga.py|SAGA
+sample_without_replacement.py|Sample Without Replacement
+sgd_regression.py|SGD Regression
+sparsify.py|Sparsify
+text_vectorizers.py|Text Vectorizers
+tree.py|Tree
+mnist.py|MNIST Dataset
+tsne_mnist.py|TSNE MNIST Dataset
+glmnet.py|Glmnet
+hist_gradient_boosting_higgsboson.py|Hist Gradient Boosting Higgs Boson
+isolation_forest.py|Isolation Forest
+isotonic.py --iterations 100 --log_min_problem_size 1 --log_max_problem_size 10 --dataset perturbed_logarithm|Isotonic / Perturbed Logarithm
+isotonic.py --iterations 100 --log_min_problem_size 1 --log_max_problem_size 10 --dataset logistic|Isotonic / Logistic
+isotonic.py --iterations 100 --log_min_problem_size 1 --log_max_problem_size 10 --dataset pathological|Isotonic / Pathological
+kernel_pca_solvers_time_vs_n_components.py|Kernel PCA Solvers / Time vs. N Components
+kernel_pca_solvers_time_vs_n_samples.py|Kernel PCA Solvers / Time vs. N Samples
+lof.py|LocalOutlierFactor
+online_ocsvm.py|SGDOneClassSVM
+plot_fastkmeans.py|Plot Fast KMeans
+plot_nmf.py|Plot Non-Negative Matrix Factorization
+plot_parallel_pairwise.py|Plot Parallel Pairwise
+plot_polynomial_kernel_approximation.py|Plot Polynomial Kernel Approximation
+plot_svd.py|Plot Singular Value Decomposition
+rcv1_logreg_convergence.py|RCV1 Logreg Convergencet

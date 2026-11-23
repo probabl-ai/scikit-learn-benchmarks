@@ -1,0 +1,62 @@
+#!/bin/bash
+# python3 seen by the PTS scikit-learn test script. Runs of bench_*.py are
+# recorded with py-spy (wall-clock samples of every thread) and stopped after
+# RUN_LIMIT_S seconds; every other call goes straight to the real python3.
+REAL=$CONDA_PREFIX/bin/python3
+case "${1:-}" in
+    bench_*.py) ;;
+    *) exec "$REAL" "$@" ;;
+esac
+
+mkdir -p "$PROF_DIR"
+key=$(printf '%s' "$*" | tr -c 'A-Za-z0-9_.-' '_')
+if [ -e "$PROF_DIR/$key.timedout" ]; then
+    echo "pts-audit: skipped, a previous run of this entry hit the ${RUN_LIMIT_S}s limit" >&2
+    exit 124
+fi
+n=$(ls "$PROF_DIR/$key".*.raw 2>/dev/null | wc -l)
+raw=$PROF_DIR/$key.$n.raw
+ready=$PROF_DIR/$key.$n.ready
+
+kill_tree() {
+    local child
+    for child in $(pgrep -P "$1"); do kill_tree "$child" "$2"; done
+    kill "-$2" "$1" 2>/dev/null
+}
+
+start=$(date +%s.%N)
+start_iso=$(date -Is)
+# Python stays this script's child so that `wait` returns its exit status.
+PYTHONPATH=$PROF_SITECUSTOM${PYTHONPATH:+:$PYTHONPATH} PTS_AUDIT_READY_FILE=$ready \
+    "$REAL" "$@" &
+py=$!
+for _ in $(seq 500); do
+    [ -e "$ready" ] && break
+    kill -0 "$py" 2>/dev/null || break
+    sleep 0.01
+done
+attach_s=$(awk "BEGIN {print $(date +%s.%N) - $start}")
+py-spy record --pid "$py" --idle --threads --nonblocking --rate 50 \
+    --format raw -o "$raw" > "$PROF_DIR/$key.$n.pyspy.log" 2>&1 &
+spy=$!
+(
+    sleep "$RUN_LIMIT_S"
+    touch "$PROF_DIR/$key.timedout"
+    kill_tree "$py" TERM
+    sleep 60
+    kill_tree "$py" KILL
+) &
+watchdog=$!
+wait "$py"
+rc=$?
+end=$(date +%s.%N)
+wait "$spy"
+kill_tree "$watchdog" TERM
+rm -f "$ready"
+
+timed_out=false
+[ -e "$PROF_DIR/$key.timedout" ] && timed_out=true
+printf '{"entry": "%s", "run": %d, "pid": %d, "start": "%s", "wall_s": %s, "attach_s": %s, "rc": %d, "timed_out": %s, "raw": "%s"}\n' \
+    "$*" "$n" "$py" "$start_iso" "$(awk "BEGIN {print $end - $start}")" "$attach_s" "$rc" "$timed_out" "$(basename "$raw")" \
+    >> "$PROF_DIR/runs.jsonl"
+exit "$rc"

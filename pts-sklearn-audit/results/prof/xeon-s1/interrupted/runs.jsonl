@@ -1,0 +1,3 @@
+{"entry": "bench_hist_gradient_boosting_higgsboson.py", "run": 0, "pid": 4043186, "start": "2026-11-22T19:16:06+00:00", "wall_s": 758.579, "attach_s": 0.034734, "rc": 0, "timed_out": false, "raw": "bench_hist_gradient_boosting_higgsboson.py.0.raw"}
+{"entry": "bench_hist_gradient_boosting_higgsboson.py", "run": 1, "pid": 4045921, "start": "2026-11-22T19:28:48+00:00", "wall_s": 709.405, "attach_s": 0.0450096, "rc": 0, "timed_out": false, "raw": "bench_hist_gradient_boosting_higgsboson.py.1.raw"}
+{"entry": "bench_hist_gradient_boosting_higgsboson.py", "run": 2, "pid": 4048235, "start": "2026-11-22T19:40:42+00:00", "wall_s": 717.939, "attach_s": 0.0305026, "rc": 0, "timed_out": false, "raw": "bench_hist_gradient_boosting_higgsboson.py.2.raw"}

@@ -1,0 +1,20 @@
+3.11.18 (main, Oct 26 2026, 11:35:17) [GCC 15.3.0]
+numpy 1.24.3 ~/work/pts-sklearn-audit/home/.local/lib/python3.11/site-packages/numpy/__init__.py
+scipy 1.10.1 ~/work/pts-sklearn-audit/home/.local/lib/python3.11/site-packages/scipy/__init__.py
+sklearn 1.2.2 ~/work/pts-sklearn-audit/home/.local/lib/python3.11/site-packages/sklearn/__init__.py
+joblib 1.2.0 ~/work/pts-sklearn-audit/home/.local/lib/python3.11/site-packages/joblib/__init__.py
+threadpoolctl 3.1.0 ~/work/pts-sklearn-audit/home/.local/lib/python3.11/site-packages/threadpoolctl.py
+[{'architecture': 'Prescott',
+  'filepath': '~/work/pts-sklearn-audit/home/.local/lib/python3.11/site-packages/scipy.libs/libopenblasp-r0-41284840.3.18.so',
+  'internal_api': 'openblas',
+  'num_threads': 64,
+  'prefix': 'libopenblas',
+  'threading_layer': 'pthreads',
+  'user_api': 'blas',
+  'version': '0.3.18'},
+ {'filepath': '~/work/pts-sklearn-audit/.pixi/envs/default/lib/libgomp.so.1.0.0',
+  'internal_api': 'openmp',
+  'num_threads': 172,
+  'prefix': 'libgomp',
+  'user_api': 'openmp',
+  'version': None}]
