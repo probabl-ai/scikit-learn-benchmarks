@@ -386,13 +386,24 @@ def _series_names(series_keys: list[tuple]) -> dict[tuple, str]:
     names = {}
     for key in series_keys:
         label, machine, build, n_threads = key
-        name = f"{label} · {_machine_name(machine)}"
+        machine_name = _machine_name(machine)
+        if _device(label) == "GPU" and machine in GPU_MACHINE_NAMES:
+            machine_name = GPU_MACHINE_NAMES[machine]
+        name = f"{label} · {machine_name}"
         if len(builds[label, machine]) > 1:
             name += f" · {build}"
         if len(threads[label, machine]) > 1:
             name += f" · {n_threads} threads"
         names[key] = name
     return names
+
+
+# On the GPU, the machine name alone does not say which GPU ran the series.
+GPU_MACHINE_NAMES = {
+    "332097": "Intel Core Ultra desktop with Intel Arc B580 GPU",
+    "3b5e61": "Intel Core Ultra laptop with integrated Intel Arc B390 GPU",
+    "3dd14d": "Apple M2 laptop with integrated M2 GPU",
+}
 
 
 def _device(label: str) -> str:
