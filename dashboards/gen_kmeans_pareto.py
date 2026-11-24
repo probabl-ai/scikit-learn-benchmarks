@@ -400,9 +400,9 @@ def _series_names(series_keys: list[tuple]) -> dict[tuple, str]:
 
 # On the GPU, the machine name alone does not say which GPU ran the series.
 GPU_MACHINE_NAMES = {
-    "332097": "Intel Core Ultra desktop with Intel Arc B580 GPU",
-    "3b5e61": "Intel Core Ultra laptop with integrated Intel Arc B390 GPU",
-    "3dd14d": "Apple M2 laptop with integrated M2 GPU",
+    "332097": "Intel Arc B580 GPU",
+    "3b5e61": "Intel Arc B390 iGPU",
+    "3dd14d": "Apple M2 GPU",
 }
 
 
