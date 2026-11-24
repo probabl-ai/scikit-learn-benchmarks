@@ -49,14 +49,27 @@ main {
   color: inherit;
   text-decoration: none;
 }
-.site-header .site-home {
-  display: inline-block;
+.site-nav {
+  display: flex;
+  align-items: center;
   margin-bottom: 6px;
-  color: white;
   font-size: 14px;
+}
+.site-header .site-home {
+  color: white;
   text-shadow: 0 0 6px var(--sk-cyan-shades-3);
 }
-.site-header .site-home:hover {
+/* Dark on the light orange end of the header gradient. */
+.site-header .site-repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--sk-cyan-shades-3);
+  font-weight: 500;
+}
+.site-header .site-home:hover,
+.site-header .site-repo:hover {
   text-decoration: underline;
 }
 h1, h2, h3 { font-weight: 500; line-height: 1.25; }

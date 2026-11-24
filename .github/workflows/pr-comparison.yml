@@ -22,16 +22,21 @@ jobs:
       runners: ${{ steps.parse.outputs.runners }}
       sklearn_owner: ${{ steps.parse.outputs.sklearn_owner }}
       sklearn_head_ref: ${{ steps.parse.outputs.sklearn_head_ref }}
+      sklearn_base: ${{ steps.parse.outputs.sklearn_base }}
       skip_main: ${{ steps.skip_flags.outputs.skip_main }}
       skip_bench: ${{ steps.skip_flags.outputs.skip_bench }}
+      # Derived by the parse step from `runners`: the Intel entries (a
+      # matrix source that is never empty, see the `benchmark-intel` job)
+      # and whether there are any at all.
+      has_intel: ${{ steps.parse.outputs.has_intel }}
+      intel_runners: ${{ steps.parse.outputs.intel_runners }}
     steps:
-      - name: Check out repository (base, trusted)
-        # Pinned to the base sha, not the PR head, so parsing always runs
-        # the trusted version of this script - this job never executes
-        # PR-supplied code.
+      - name: Check out repository
+        # The PR's own version: under `pull_request` the PR already supplies
+        # this workflow file, so pinning the parser to the base sha would
+        # protect nothing and only stop a PR from testing its parser changes.
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
           lfs: false
           persist-credentials: false
 
@@ -60,10 +65,9 @@ jobs:
             --body-file "$RUNNER_TEMP/pr_body.md" --github-output "$GITHUB_OUTPUT"
 
       - name: Check for [skip] / [skip main] flags on the latest commit
-        # Fetched via the API rather than local `git log`, since this job's
-        # checkout is pinned to the base sha (see above) and a shallow
-        # checkout wouldn't have the PR head commit's object locally
-        # anyway. Matched case-insensitively against just the head commit's
+        # Fetched via the API rather than local `git log`, since the shallow
+        # checkout of the merge commit doesn't have the PR head commit's
+        # object locally. Matched case-insensitively against just the head commit's
         # message, mirroring common "[skip ci]"-style conventions.
         id: skip_flags
         env:
@@ -106,6 +110,7 @@ jobs:
           RUNS: ${{ steps.parse.outputs.runs }}
           SKLEARN_OWNER: ${{ steps.parse.outputs.sklearn_owner }}
           SKLEARN_HEAD_REF: ${{ steps.parse.outputs.sklearn_head_ref }}
+          SKLEARN_BASE: ${{ steps.parse.outputs.sklearn_base }}
           SKIP_MAIN: ${{ steps.skip_flags.outputs.skip_main }}
           SKIP_BENCH: ${{ steps.skip_flags.outputs.skip_bench }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -119,12 +124,12 @@ jobs:
               # as a plain comma-separated list instead. The `runners` output
               # (distinct runner values out of RUNS) drives the matrix below.
               runs_display=$(python3 -c "import json,sys; runs=json.loads(sys.argv[1]); print(', '.join(f\"{r['runner']}: {r['config']} ({r['env']})\" for r in runs))" "$RUNS")
-              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against scikit-learn \`main\`:"
+              echo "Comparing \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` against \`$SKLEARN_BASE\`:"
               echo "$runs_display"
               if [ "$SKIP_BENCH" = "true" ]; then
                 echo "\`[skip]\` detected: no benchmarks run, each runner's dashboard is rebuilt from the results it previously published."
               elif [ "$SKIP_MAIN" = "true" ]; then
-                echo "\`[skip main]\` detected: reusing each runner's previously-published \`main\` results instead of re-benchmarking, if available."
+                echo "\`[skip main]\` detected: reusing each runner's previously-published \`$SKLEARN_BASE\` results instead of re-benchmarking, if available."
               fi
               echo "Results post as separate comments below as each runner finishes."
             fi
@@ -139,13 +144,69 @@ jobs:
         if: steps.parse.outputs.directive_present == 'true' && steps.parse.outputs.ok != 'true'
         run: exit 1
 
-  benchmark-and-publish:
+  # The job `provision` waits for: queued from the start in parallel with it and
+  # picked up once the AWS host is online, which is what makes the host's
+  # readiness visible. Runs only when the directive names `aws-nvidia-l4`; a
+  # bare directive defaults to `intel-all`. `[skip]` runs rebuild on
+  # ubuntu-latest and skip both AWS jobs.
+  runner-ready:
     needs: gate_and_parse
-    if: needs.gate_and_parse.outputs.parse_ok == 'true'
+    if: >-
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      needs.gate_and_parse.outputs.skip_bench != 'true' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4')
+    runs-on:
+      group: aws-gpu-runners
+    # Execution timeout only; `provision` decides when to give up waiting.
+    timeout-minutes: 5
+    # Runs on the GPU box; no repository access needed.
+    permissions: {}
+    steps:
+      - name: Confirm the runner is online
+        run: |
+          echo "runner online on $(hostname)"
+          nvidia-smi -L
+
+  provision:
+    # Called as a reusable workflow, so the AWS credentials and role live in
+    # aws-provision.yml alone. Only this job gets the AWS permissions.
+    needs: gate_and_parse
+    if: >-
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      needs.gate_and_parse.outputs.skip_bench != 'true' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4')
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+    uses: ./.github/workflows/aws-provision.yml
+
+  benchmark-intel:
+    # The Intel machines are always online, so these matrix jobs take no
+    # dependency on `provision` or `runner-ready` at all: a failed, slow or
+    # hung GPU provision cannot suppress them. One matrix job per Intel
+    # runner the directive names.
+    #
+    # `intel_runners` and `has_intel` are derived by the parse step from the
+    # directive's `runners`; for an AWS-only directive it holds the single
+    # placeholder `none`, and the `has_intel` check below skips this job,
+    # since a matrix over an empty array is an expansion error.
+    #
+    # The publish steps this job and `benchmark-aws` share live in
+    # .github/workflows/pr-comparison-benchmark.yml, so a runner's comparison
+    # behaves the same whichever of the two jobs carries it.
+    name: benchmark-and-publish (${{ matrix.runner }})
+    needs: [gate_and_parse]
+    if: >-
+      needs.gate_and_parse.result == 'success' &&
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      needs.gate_and_parse.outputs.has_intel == 'true'
     strategy:
+      # `intel-all` (and a bare directive) can name both Intel machines;
+      # one failing matrix job must not cancel the other.
       fail-fast: false
       matrix:
-        runner: ${{ fromJSON(needs.gate_and_parse.outputs.runners) }}
+        runner: ${{ fromJSON(needs.gate_and_parse.outputs.intel_runners) }}
     # Deliberately the SAME group name run-benchmarks.yml uses for a given
     # runner, not a PR-scoped one: both workflows mutate the single shared
     # sklearn-src/ checkout on that physical box via setup_sklearn_ref.sh
@@ -156,359 +217,88 @@ jobs:
     concurrency:
       group: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && format('pr-compare-rebuild-{0}-{1}', github.event.pull_request.number, matrix.runner) || format('benchmark-{0}', matrix.runner) }}
       cancel-in-progress: false
-    runs-on: ${{ fromJSON(
-      needs.gate_and_parse.outputs.skip_bench == 'true' && '"ubuntu-latest"' ||
-      matrix.runner == 'intel-laptop' && '["Linux","X64","intel-gpu","float64-gpu"]' ||
-      matrix.runner == 'intel-xeon' && '["Linux","X64","intel-xeon"]' ||
-      '[]') }}
-    timeout-minutes: 1440
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      RUNS: ${{ needs.gate_and_parse.outputs.runs }}
-      # This job's matrix.runner - RUNS holds every runner's tuples, each
-      # step below filters down to the ones targeting this runner.
-      THIS_RUNNER: ${{ matrix.runner }}
-      SKLEARN_OWNER: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
-      SKLEARN_HEAD_REF: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
-      # Set by gate_and_parse from a `[skip main]` flag on the PR's latest
-      # commit message. The "Restore cached main results" step below flips
-      # this back to 'false' (via $GITHUB_ENV) if no usable cache is found,
-      # so later steps always reflect what actually happened this run.
-      SKIP_MAIN: ${{ needs.gate_and_parse.outputs.skip_main }}
-      # Set by gate_and_parse from a `[skip]` flag on the PR's latest commit
-      # message: restore every result file (both builds) this runner's site
-      # last published and only regenerate + redeploy the dashboard.
-      SKIP_BENCH: ${{ needs.gate_and_parse.outputs.skip_bench }}
-      # Deterministic from PR number + runner, so it's known before the
-      # "Deploy to Cloudflare Pages" step actually publishes there - shared
-      # by that step, the dashboard-generation steps (to link JSON/profile
-      # viewers at this run's to-be-deployed site instead of a GitHub raw URL
-      # that 404s for these never-committed ephemeral results), and the
-      # comment step.
-      PAGES_BRANCH: pr-${{ github.event.pull_request.number }}-compare-${{ matrix.runner }}
-      # Job-level (not just `export`-ed in the step below) so it's set
-      # before the "Generate comparison dashboard" step runs.
-      SKLBENCH_PR_COMPARE_SITE_URL: https://${{ format('pr-{0}-compare-{1}', github.event.pull_request.number, matrix.runner) }}.sklbench-pr-comparison.pages.dev
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/pr-comparison-benchmark.yml
+    with:
+      runner: ${{ matrix.runner }}
+      use_benchlock: ${{ matrix.runner != 'aws-nvidia-l4' }}
+      runs: ${{ needs.gate_and_parse.outputs.runs }}
+      sklearn_owner: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
+      sklearn_head_ref: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
+      sklearn_base: ${{ needs.gate_and_parse.outputs.sklearn_base }}
+      skip_main: ${{ needs.gate_and_parse.outputs.skip_main }}
+      skip_bench: ${{ needs.gate_and_parse.outputs.skip_bench }}
+    secrets: inherit
+
+  benchmark-aws:
+    # The single aws-nvidia-l4 matrix job, separate from the Intel matrix
+    # because it is the only job that needs the L4 host: `provision` returns
+    # while `runner-ready` may still be queued behind another benchmark, so
+    # this job waits for both. The Intel matrix jobs take neither dependency.
+    name: benchmark-and-publish (${{ matrix.runner }})
+    needs: [gate_and_parse, provision, runner-ready]
+    # always() so the two AWS jobs being skipped on an Intel-only directive
+    # does not skip this job too. The `contains` check keeps this job out of
+    # a directive that names no AWS machine; the explicit result check keeps
+    # a failed GPU provision from leaving it queued for a host that was
+    # never started, and `skipped` is the normal `[skip]` case (which
+    # rebuilds on ubuntu-latest instead).
+    if: >-
+      always() &&
+      needs.gate_and_parse.result == 'success' &&
+      needs.gate_and_parse.outputs.parse_ok == 'true' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4') &&
+      (needs.provision.result == 'skipped' ||
+       (needs.provision.result == 'success' && needs.runner-ready.result == 'success'))
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ["aws-nvidia-l4"]
+    # Same group as `benchmark-intel`: see the comment there.
+    concurrency:
+      group: ${{ needs.gate_and_parse.outputs.skip_bench == 'true' && format('pr-compare-rebuild-{0}-{1}', github.event.pull_request.number, matrix.runner) || format('benchmark-{0}', matrix.runner) }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/pr-comparison-benchmark.yml
+    with:
+      runner: ${{ matrix.runner }}
+      use_benchlock: ${{ matrix.runner != 'aws-nvidia-l4' }}
+      runs: ${{ needs.gate_and_parse.outputs.runs }}
+      sklearn_owner: ${{ needs.gate_and_parse.outputs.sklearn_owner }}
+      sklearn_head_ref: ${{ needs.gate_and_parse.outputs.sklearn_head_ref }}
+      sklearn_base: ${{ needs.gate_and_parse.outputs.sklearn_base }}
+      skip_main: ${{ needs.gate_and_parse.outputs.skip_main }}
+      skip_bench: ${{ needs.gate_and_parse.outputs.skip_bench }}
+    secrets: inherit
+
+  cleanup-aws:
+    # A failed provision leaves runner-ready queued indefinitely, so cancel
+    # the run to clear it - same cleanup as run-benchmarks.yml. Skipped for
+    # Intel-only directives (provision is skipped) and when provision worked.
+    #
+    # Its `needs` is `[gate_and_parse, provision, benchmark-intel]`, so a
+    # cancellation cannot cut the Intel matrix jobs short - and a *skipped*
+    # `benchmark-intel`, the AWS-only case, is a terminal state that releases
+    # this job as well.
+    needs: [gate_and_parse, provision, benchmark-intel]
+    if: >-
+      always() &&
+      needs.provision.result != 'success' &&
+      needs.provision.result != 'skipped' &&
+      contains(needs.gate_and_parse.outputs.runners, 'aws-nvidia-l4')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
-      - name: Set scratch directories
-        # The `runner` context (unlike the $RUNNER_TEMP env var it mirrors)
-        # is only available within steps, not in a job-level `env:` block -
-        # so RESULTS_DIR/SITE_DIR are computed here instead. Basename of
-        # RESULTS_DIR must stay literally "results": index_comparison.py's
-        # readers default to a `results/` directory relative to the CWD
-        # it's invoked from, and the "Generate comparison dashboard" step's
-        # working-directory is RESULTS_DIR's parent. Kept under
-        # $RUNNER_TEMP, well outside the git checkout, so it's immune to
-        # this job's own `git clean -ffdx results/` step and never collides
-        # with the repo's real (committed, unused-by-this-job) results/.
-        run: |
-          echo "RESULTS_DIR=$RUNNER_TEMP/pr-compare/results" >> "$GITHUB_ENV"
-          echo "SITE_DIR=$RUNNER_TEMP/pr-compare/site" >> "$GITHUB_ENV"
-
-      - name: Check out repository
-        # Default pull_request checkout (merge of PR head into base) is
-        # intentional here, unlike gate_and_parse's base-pinned checkout:
-        # `runs:` may point at a config file this very PR adds. Same
-        # trust level workflow_dispatch on run-benchmarks.yml already
-        # assumes for a collaborator's branch.
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-        with:
-          lfs: false
-          clean: false
-
-      - name: Clean up results from previous runs
-        run: git clean -ffdx results/
-
-      - name: Lock the benchmark machine
-        # Same as in run-benchmarks.yml: waits for agents' runs on this box,
-        # then holds it until the release step below.
-        if: env.SKIP_BENCH != 'true'
-        run: |
-          pid=$(scripts/benchlock hold --tag "${{ github.workflow }} PR ${{ github.event.pull_request.number }} run ${{ github.run_id }}" all)
-          echo "BENCHLOCK_PID=$pid" >> "$GITHUB_ENV"
-
-      - name: Set up pixi
-        uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
-        with:
-          pixi-version: v0.75.0
-          # sklearn-pypi (lightweight, always installable, no sklearn-src/
-          # path dependency) is used to validate the config below before
-          # committing to the much slower sklearn-dev clone+build.
-          environments: ${{ env.SKIP_BENCH == 'true' && 'reporting' || 'reporting sklearn-pypi' }}
-          locked: false
-          frozen: true
-          cache: false
-          post-cleanup: false
-          pixi-bin-path: ${{ runner.temp }}/bin/pixi
-
-      - name: Validate config
-        if: env.SKIP_BENCH != 'true'
-        # A prior version of this check lived in run.sh itself, using
-        # `-e default` - broken for any config calling
-        # implementations_for_pixi_env() (e.g. all_models.py and anything
-        # derived from it), since "default" isn't an accepted
-        # PIXI_ENVIRONMENT_NAME. Removed there; kept here, scoped to this
-        # workflow, using a real accepted env instead - catching a typo'd
-        # config path/estimator name before a many-minutes sklearn-dev
-        # clone+build is still worth it. Looped over the unique config paths
-        # in RUNS that target this runner (several tuples can share a
-        # config, and other runners' tuples aren't this job's concern).
-        run: |
-          pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; _=[print(c) for c in dict.fromkeys(r['config'] for r in runs)]" > "$RUNNER_TEMP/configs.txt"
-          while IFS= read -r config; do
-            pixi run --frozen -e sklearn-pypi python -m sklbench --config "$config" --validate-only
-          done < "$RUNNER_TEMP/configs.txt"
-
-      - name: Restore all cached results
-        # `[skip]`: unlike `[skip main]` below there is nothing sensible to
-        # fall back to, so a missing cache fails the job.
-        if: env.SKIP_BENCH == 'true'
-        run: |
-          manifest_url="$SKLBENCH_PR_COMPARE_SITE_URL/results-manifest-all.txt"
-          if ! curl -fsSL "$manifest_url" -o "$RUNNER_TEMP/all-manifest.txt" || [ ! -s "$RUNNER_TEMP/all-manifest.txt" ]; then
-            echo "::error::[skip] requested but no cached results are published at $manifest_url; push without [skip] to run the benchmarks." >&2
-            exit 1
-          fi
-          mkdir -p "$RESULTS_DIR"
-          while IFS= read -r relpath; do
-            [ -n "$relpath" ] || continue
-            dest="$RESULTS_DIR/$relpath"
-            mkdir -p "$(dirname "$dest")"
-            curl -fsSL "$SKLBENCH_PR_COMPARE_SITE_URL/results/$relpath" -o "$dest"
-          done < "$RUNNER_TEMP/all-manifest.txt"
-          echo "Restored $(wc -l < "$RUNNER_TEMP/all-manifest.txt") cached result file(s) from $SKLBENCH_PR_COMPARE_SITE_URL"
-
-      - name: Restore cached main results
-        # `[skip main]` (see COMPARISONS_PR.md and gate_and_parse's
-        # skip_main step) skips re-benchmarking scikit-learn `main` and
-        # instead downloads the `...:main` result files this same runner's
-        # site previously published - written by "Write main-results cache
-        # manifest" below on whichever run last actually benchmarked main
-        # (fresh or itself restored). Falls back to a fresh main run (by
-        # flipping SKIP_MAIN back to 'false' for the rest of this job) if no
-        # cache is reachable yet or it turns out to be empty, e.g. the very
-        # first comparison on this PR/runner, or a previous run whose main
-        # benchmark failed outright.
-        if: env.SKIP_MAIN == 'true' && env.SKIP_BENCH != 'true'
-        run: |
-          manifest_url="$SKLBENCH_PR_COMPARE_SITE_URL/results-manifest-main.txt"
-          if ! curl -fsSL "$manifest_url" -o "$RUNNER_TEMP/main-manifest.txt"; then
-            echo "::warning::[skip main] requested but no cached main results are published yet at $manifest_url; benchmarking scikit-learn main fresh for this run."
-            echo "SKIP_MAIN=false" >> "$GITHUB_ENV"
-            exit 0
-          fi
-          if [ ! -s "$RUNNER_TEMP/main-manifest.txt" ]; then
-            echo "::warning::[skip main] requested but the cached main-results manifest at $manifest_url is empty; benchmarking scikit-learn main fresh for this run."
-            echo "SKIP_MAIN=false" >> "$GITHUB_ENV"
-            exit 0
-          fi
-          mkdir -p "$RESULTS_DIR"
-          while IFS= read -r relpath; do
-            [ -n "$relpath" ] || continue
-            dest="$RESULTS_DIR/$relpath"
-            mkdir -p "$(dirname "$dest")"
-            if ! curl -fsSL "$SKLBENCH_PR_COMPARE_SITE_URL/results/$relpath" -o "$dest"; then
-              echo "::warning::failed to download cached main result '$relpath'; benchmarking scikit-learn main fresh for this run."
-              rm -rf "$RESULTS_DIR"
-              echo "SKIP_MAIN=false" >> "$GITHUB_ENV"
-              exit 0
-            fi
-          done < "$RUNNER_TEMP/main-manifest.txt"
-          echo "Restored $(wc -l < "$RUNNER_TEMP/main-manifest.txt") cached main result file(s) from $SKLBENCH_PR_COMPARE_SITE_URL"
-
-      - name: Run comparison benchmark
-        if: env.SKIP_BENCH != 'true'
-        # Reuses run.sh exactly as CONTRIBUTING.md's "Running Against
-        # scikit-learn Branches" documents for a PR-vs-base comparison:
-        # sequential setup_sklearn_ref.sh + sklbench run per env@owner:ref
-        # entry, one shared sklearn-src/ checkout re-pointed between them.
-        # Looped over every (env, config) tuple in RUNS that targets this
-        # runner, all accumulating into the same $RESULTS_DIR so one
-        # dashboard covers all of them - mirrors run.sh's own
-        # accumulate-status-and-continue pattern rather than aborting after
-        # the first failing tuple. When SKIP_MAIN is (still) 'true' at this
-        # point, the "main" env@owner:ref arg is omitted entirely and the
-        # cached results restored above stand in for it.
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; _=[print(f\"{r['env']}\t{r['config']}\") for r in runs]" > "$RUNNER_TEMP/runs.tsv"
-          status=0
-          while IFS=$'\t' read -r env config; do
-            echo "=== env=$env config=$config ===" | tee -a "$RUNNER_TEMP/bench.log"
-            env_specs=("${env}@${SKLEARN_OWNER}:${SKLEARN_HEAD_REF}")
-            [ "$SKIP_MAIN" = "true" ] || env_specs+=("${env}@scikit-learn:main")
-            if ! ./run.sh "${env_specs[@]}" \
-                --config "$config" --results-dir "$RESULTS_DIR" \
-                2>&1 | tee -a "$RUNNER_TEMP/bench.log"; then
-              status=1
-            fi
-          done < "$RUNNER_TEMP/runs.tsv"
-          exit "$status"
-
-      - name: Release the benchmark machine
-        # The runner also kills the holder process when a cancelled job ends.
-        if: always() && env.BENCHLOCK_PID != ''
-        run: kill "$BENCHLOCK_PID"
-
-      - name: Classify benchmark session
-        if: env.SKIP_BENCH != 'true'
-        id: classify
-        continue-on-error: true
-        run: pixi run --frozen -e reporting python scripts/classify_bench_session.py "$RUNNER_TEMP/bench.log"
-
-      - name: Write results cache manifests
-        # Lists this run's `...:main` result files (fresh or themselves
-        # restored from a previous cache above) so a later run's "Restore
-        # cached main results" step can download exactly those files - see
-        # scripts/write_main_results_manifest.py - plus every result file,
-        # for a later `[skip]` run's "Restore all cached results". Written
-        # unconditionally (not gated on the benchmark step's success) so
-        # they still reflect main's data even when only the PR-branch side
-        # of this run failed.
-        working-directory: ${{ runner.temp }}/pr-compare
-        run: |
-          mkdir -p "$SITE_DIR"
-          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
-            python "$GITHUB_WORKSPACE/scripts/write_main_results_manifest.py" \
-            --output "$SITE_DIR/results-manifest-main.txt"
-          (cd results && find . -type f | sed 's|^\./||' | sort) > "$SITE_DIR/results-manifest-all.txt"
-
-      - name: Copy results to site
-        id: copy_results
-        # The whole results/ tree (records, profiles, software-envs,
-        # hardware-envs, ...) copied wholesale onto the site, not just the
-        # files a dashboard happens to link - so anything is recoverable
-        # straight from the deployed site by path, and hosted_viewer_url_fn
-        # (sklbench/reporting/envs.py) only has to build a URL rather than
-        # copy the file itself. Same never-committed-ephemeral-results
-        # rationale as SKLBENCH_PR_COMPARE_SITE_URL above: results/ here
-        # only exists in this CI job's $RESULTS_DIR.
-        working-directory: ${{ runner.temp }}/pr-compare
-        run: |
-          mkdir -p "$SITE_DIR/results"
-          cp -a results/. "$SITE_DIR/results"/
-          if [ -n "$(find results/records -type f -print -quit 2>/dev/null)" ]; then
-            echo "has_records=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy results
-        # Publishes the results (and the manifests `[skip]` / `[skip main]`
-        # restore from) before generating the dashboard, so a dashboard bug
-        # doesn't throw away hours of benchmarking: fix it and push a
-        # `[skip]` commit to rebuild from these. The full deploy below
-        # replaces this one. Skipped when no record was written, so a run
-        # that benchmarked nothing doesn't replace the previous deployment.
-        id: deploy_results
-        if: env.SKIP_BENCH != 'true' && steps.copy_results.outputs.has_records == 'true'
-        continue-on-error: true
+      # The cleanup shell is shared with run-benchmarks.yml; the checkout only
+      # fetches it.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Clear runner-ready after an unsuccessful provision
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          branch="$PAGES_BRANCH"
-          # wrangler@4 requires Node >=22; this step runs on persistent
-          # self-hosted runners (unlike dashboard-preview-deploy.yml's
-          # GitHub-hosted ubuntu-latest, which does have a modern enough
-          # Node) whose Node version isn't managed by this repo - confirmed
-          # live on intel-laptop (Node 18.19.1). wrangler@3 needs only
-          # Node >=16.17.0 and has the identical `pages deploy` flags used
-          # here.
-          npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
-            --commit-hash="${{ github.event.pull_request.head.sha }}" \
-            --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }}, results only)" \
-            --commit-dirty=true
-
-      - name: Generate comparison dashboard
-        id: dashboard
-        # working-directory is RESULTS_DIR's parent, so its bare `results/`
-        # subdirectory is exactly what index_comparison.py's readers pick
-        # up by default (see the RESULTS_DIR comment above). To also publish
-        # one of this repo's other dashboards/gen_*.py dashboards against
-        # this same ephemeral results/, add a call to it from
-        # dashboards/index_comparison.py's __main__ (see that file) - it
-        # runs here too, since this is the one script this step invokes.
-        working-directory: ${{ runner.temp }}/pr-compare
-        run: |
-          # SKLBENCH_PR_COMPARE_SITE_URL (job-level env, see above) lets
-          # index_comparison.py link JSON/profile viewers straight at
-          # this run's to-be-deployed site (populated by the earlier "Copy
-          # results to site" step) instead of a GitHub raw URL that 404s for
-          # these ephemeral, never-committed results (see hosted_viewer_url_fn
-          # in sklbench/reporting/envs.py).
-          pixi run --manifest-path "$GITHUB_WORKSPACE/pixi.toml" --frozen -e reporting \
-            python "$GITHUB_WORKSPACE/dashboards/index_comparison.py" --output-dir "$SITE_DIR"
-
-      - name: Deploy to Cloudflare Pages
-        id: deploy
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          branch="$PAGES_BRANCH"
-          # wrangler@3: see "Deploy results" above.
-          npx --yes wrangler@3 pages deploy "$SITE_DIR" --project-name=sklbench-pr-comparison --branch="$branch" \
-            --commit-hash="${{ github.event.pull_request.head.sha }}" \
-            --commit-message="PR #$PR_NUMBER vs scikit-learn $SKLEARN_OWNER:$SKLEARN_HEAD_REF (${{ matrix.runner }})" \
-            --commit-dirty=true
-
-      - name: Build and post comment
-        if: always()
-        env:
-          CLASSIFY_OUTCOME: ${{ steps.classify.outcome }}
-          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
-          DEPLOY_RESULTS_OUTCOME: ${{ steps.deploy_results.outcome }}
-          DASHBOARD_OUTCOME: ${{ steps.dashboard.outcome }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          runs_display=$(pixi run --frozen -e reporting python3 -c "import json,os; runs=[r for r in json.loads(os.environ['RUNS']) if r['runner']==os.environ['THIS_RUNNER']]; print(', '.join(f\"{r['config']} ({r['env']})\" for r in runs))")
-          if [ "$DEPLOY_OUTCOME" = "success" ] && [ -f "$SITE_DIR/pr_comparison.html" ]; then
-            base_url="https://${PAGES_BRANCH}.sklbench-pr-comparison.pages.dev"
-            # The site has no index.html, so the bare domain 404s - link
-            # straight to each page. Cloudflare Pages' clean-URL rewriting
-            # serves every *.html file at its extension-less path anyway.
-            # List every dashboard actually written to $SITE_DIR
-            # (pr_comparison.html always; any extra ones added to
-            # dashboards/index_comparison.py's __main__ land there too)
-            # instead of hardcoding filenames - a gen_*.py module's output
-            # filename doesn't necessarily match its module name (e.g.
-            # gen_hgb_dev_speedup_breakdown.py writes hgb_speedup_breakdown.html).
-            dashboard_links=$(
-              { echo "pr_comparison"; (cd "$SITE_DIR" && ls *.html) | sed 's/\.html$//' | grep -v '^pr_comparison$' | sort; } |
-                while IFS= read -r stem; do echo "- [$stem]($base_url/$stem)"; done
-            )
-            {
-              echo "**${{ matrix.runner }}**: scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` vs \`main\`, using: $runs_display"
-              echo
-              echo "$dashboard_links"
-              if [ "$SKIP_BENCH" = "true" ]; then
-                echo "- Dashboard rebuilt from this runner's previously published results (\`[skip]\`); nothing re-benchmarked."
-              else
-                [ "$CLASSIFY_OUTCOME" != "success" ] && echo "- Caveat: one or both benchmark sessions did not complete cleanly."
-                [ "$SKIP_MAIN" = "true" ] && echo "- \`main\` results reused from this runner's previous comparison (\`[skip main]\`); not re-benchmarked."
-              fi
-              echo
-              echo "Full run: $run_url"
-            } > "$RUNNER_TEMP/comment.md"
-          elif [ "$DEPLOY_RESULTS_OUTCOME" = "success" ] && [ "$DASHBOARD_OUTCOME" = "failure" ]; then
-            {
-              echo "**${{ matrix.runner }}**: benchmarks for scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` finished and their results are published, but generating the dashboard failed."
-              echo
-              echo "Fix the dashboard code and push a commit with \`[skip]\` in its message to rebuild it from these results without re-benchmarking."
-              echo
-              echo "See the full run: $run_url"
-            } > "$RUNNER_TEMP/comment.md"
-          else
-            {
-              echo "**${{ matrix.runner }}**: comparison run for scikit-learn \`$SKLEARN_OWNER:$SKLEARN_HEAD_REF\` failed before a dashboard could be published."
-              echo
-              echo "See the full run: $run_url"
-            } > "$RUNNER_TEMP/comment.md"
-          fi
-          pixi run --frozen -e reporting python scripts/comment_pr.py \
-            --repo "$GITHUB_REPOSITORY" \
-            --pr-number "$PR_NUMBER" \
-            --marker "<!-- bench-comparison-bot:${{ matrix.runner }} -->" \
-            --body-file "$RUNNER_TEMP/comment.md"
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci/clear-stale-runner-ready.sh

@@ -9,6 +9,9 @@ Looks for a fenced code block:
     runs: configs/hgb_scalability.py, intel-xeon#sklearn-dev-libomp#configs/pipeline.py
     ```
 
+`sklearn_base_ref` (optional, same `owner:ref` form) is the ref it is
+compared against, `scikit-learn:main` by default.
+
 `sklearn_ref` is the same `owner:ref` shorthand run.sh's `env@owner:ref`
 spec takes (see CONTRIBUTING.md) - the fork owner and the branch/ref to
 benchmark on it, taken straight from the PR author instead of resolved from
@@ -23,14 +26,22 @@ product. `runner` and `env` are each optional and can appear in either
 order before `config` (their vocabularies don't overlap, so a bare token is
 classified by set membership, not position); a `#`-joined entry only ever
 has one trailing `config` token, since that's the only field whose values
-aren't drawn from a fixed set. Omitted `runner` defaults to `intel-all`
-(intel-laptop and intel-xeon); omitted `env` defaults to `sklearn-dev`. So
-`configs/hgb_scalability.py` alone runs that config on both Intel runners
-under sklearn-dev. `env` must be a pixi environment that
-path-depends on `sklearn-src` (see pixi.toml), currently `sklearn-dev`,
-`sklearn-dev-libomp`, `sklearn-dev-mkl` and `sklearn-dev-freethreading`,
-since run.sh's
+aren't drawn from a fixed set. Omitted `runner` defaults to `intel-all`, the
+two Intel machines: intel-laptop and intel-xeon. `all` names every machine,
+adding aws-nvidia-l4. Omitted `env` defaults to `auto`, a token that resolves
+per machine when a runner token expands into machines: sklearn-dev on each
+Intel machine, sklearn-dev-nvidia on aws-nvidia-l4. `auto` may also be
+written explicitly, a concrete `env` takes precedence over it, and a machine
+with no mapping is a hard error naming it. So `configs/hgb_scalability.py`
+alone runs that config on the two Intel machines, each under the environment
+that machine builds with; a comparison that reaches the GPU host names `all`
+or `aws-nvidia-l4` in its run entry. `env` must be a pixi
+environment that path-depends on `sklearn-src` (see pixi.toml), currently
+`sklearn-dev`, `sklearn-dev-libomp`, `sklearn-dev-mkl`,
+`sklearn-dev-freethreading` and `sklearn-dev-nvidia`, since run.sh's
 `env@owner:ref` spec (used to run each tuple) only makes sense for those.
+`sklearn-dev-nvidia` is the CUDA-capable one (see
+feature.sklearn-dev-nvidia), which is why `auto` picks it on the GPU host.
 
 Publishing one of this repo's other dashboards/gen_*.py dashboards
 alongside the always-generated pr_comparison.html table is a code change to
@@ -40,7 +51,10 @@ there's no `dashboards:` key here.
 Validates its `key: value` lines and writes outcomes to $GITHUB_OUTPUT
 rather than communicating via exit code, so the calling workflow can branch
 on step outputs (directive_present, ok, and either the parsed fields or an
-error message) without needing `continue-on-error`.
+error message) without needing `continue-on-error`. Alongside the parsed
+`runners`, it writes the Intel matrix the benchmark jobs consume
+(`intel_runners`, never an empty array - see EMPTY_MATRIX_PLACEHOLDER) and
+whether there are any Intel entries at all (`has_intel`).
 """
 
 import argparse
@@ -58,7 +72,13 @@ FENCE_RE = re.compile(
 # module docstring), just catches typos with a clear error early.
 GITHUB_OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 CONFIG_RE = re.compile(r"^configs/[A-Za-z0-9_./-]+\.py$")
-VALID_RUNNERS = {"intel-laptop", "intel-xeon"}
+# Runner vocabularies. `intel-all` is the two Intel machines and the default
+# for a bare run entry; `all` is every machine, adding the GPU host.
+INTEL_RUNNERS = ("intel-laptop", "intel-xeon")
+GPU_RUNNERS = ("aws-nvidia-l4",)
+ALL_RUNNERS = (*INTEL_RUNNERS, *GPU_RUNNERS)
+RUNNER_GROUPS = {"intel-all": INTEL_RUNNERS, "all": ALL_RUNNERS}
+VALID_RUNNERS = {*ALL_RUNNERS, *RUNNER_GROUPS}
 DEFAULT_RUNNER_TOKEN = "intel-all"
 # Pixi envs that path-depend on sklearn-src (see pixi.toml) - the only ones
 # run.sh's env@owner:ref spec can meaningfully build the compared ref under.
@@ -67,14 +87,57 @@ VALID_SKLEARN_SRC_ENVS = {
     "sklearn-dev-libomp",
     "sklearn-dev-mkl",
     "sklearn-dev-freethreading",
+    "sklearn-dev-nvidia",
 }
-DEFAULT_SKLEARN_SRC_ENV = "sklearn-dev"
+# `auto` resolves per machine when a runner token is expanded, through the
+# table below. Same shape as benchmark-run.yml's `[all]` env token, which
+# resolves via `case "$BENCH_RUNNER"` and fails loudly when a machine has no
+# mapping.
+AUTO_ENV_TOKEN = "auto"
+AUTO_ENV_BY_RUNNER = {
+    "intel-laptop": "sklearn-dev",
+    "intel-xeon": "sklearn-dev",
+    "aws-nvidia-l4": "sklearn-dev-nvidia",
+}
+VALID_ENV_TOKENS = {*VALID_SKLEARN_SRC_ENVS, AUTO_ENV_TOKEN}
+DEFAULT_ENV_TOKEN = AUTO_ENV_TOKEN
 REQUIRED_KEYS = {"sklearn_ref", "runs"}
-KNOWN_KEYS = REQUIRED_KEYS
+KNOWN_KEYS = REQUIRED_KEYS | {"sklearn_base_ref"}
+DEFAULT_SKLEARN_BASE_REF = "scikit-learn:main"
+# A matrix over an empty array is a GitHub Actions expansion *error*, not a
+# skipped job, so an Intel-free directive gets this single placeholder as its
+# Intel matrix and `has_intel=false` to skip the Intel job outright.
+EMPTY_MATRIX_PLACEHOLDER = "none"
 
 
 class Malformed(Exception):
     pass
+
+
+def _resolve_env(env: str, runner: str) -> str:
+    """Resolve an `auto` env token to the pixi env this machine builds with.
+
+    A concrete env always wins. `auto` (explicit, or the default) resolves
+    from AUTO_ENV_BY_RUNNER; a machine with no mapping is a hard error naming
+    it, mirroring benchmark-run.yml's `no [all] mapping defined for runner`.
+    """
+    if env != AUTO_ENV_TOKEN:
+        return env
+    try:
+        return AUTO_ENV_BY_RUNNER[runner]
+    except KeyError:
+        raise Malformed(f"no auto env mapping defined for runner {runner!r}") from None
+
+
+def _split_owner_ref(key: str, value: str) -> tuple[str, str]:
+    owner, _, ref = value.partition(":")
+    if not owner or not ref:
+        raise Malformed(f"{key} {value!r} must look like 'owner:ref'")
+    if not GITHUB_OWNER_RE.match(owner):
+        raise Malformed(f"{key} owner {owner!r} is not a valid GitHub username")
+    if ref.startswith("-") or any(c.isspace() for c in ref):
+        raise Malformed(f"{key} ref {ref!r} is not a valid git ref")
+    return owner, ref
 
 
 def parse_fields(block: str) -> dict:
@@ -98,18 +161,14 @@ def parse_fields(block: str) -> dict:
     if missing:
         raise Malformed(f"missing required key(s): {sorted(missing)}")
 
-    sklearn_ref = fields["sklearn_ref"]
-    if ":" not in sklearn_ref:
-        raise Malformed(f"sklearn_ref {sklearn_ref!r} must look like 'owner:ref'")
-    sklearn_owner, sklearn_head_ref = sklearn_ref.split(":", 1)
-    if not sklearn_owner or not sklearn_head_ref:
-        raise Malformed(f"sklearn_ref {sklearn_ref!r} must look like 'owner:ref'")
-    if not GITHUB_OWNER_RE.match(sklearn_owner):
+    sklearn_owner, sklearn_head_ref = _split_owner_ref("sklearn_ref", fields["sklearn_ref"])
+    sklearn_base = fields.get("sklearn_base_ref", DEFAULT_SKLEARN_BASE_REF)
+    _split_owner_ref("sklearn_base_ref", sklearn_base)
+    if sklearn_base.split(":", 1)[1] == sklearn_head_ref:
+        # The dashboard tells the two builds apart by their ref.
         raise Malformed(
-            f"sklearn_ref owner {sklearn_owner!r} is not a valid GitHub username"
+            f"sklearn_ref and sklearn_base_ref name the same ref {sklearn_head_ref!r}"
         )
-    if sklearn_head_ref.startswith("-") or any(c.isspace() for c in sklearn_head_ref):
-        raise Malformed(f"sklearn_ref ref {sklearn_head_ref!r} is not a valid git ref")
 
     run_entries = [t for t in re.split(r"[,\s]+", fields["runs"]) if t]
     if not run_entries:
@@ -129,28 +188,28 @@ def parse_fields(block: str) -> dict:
         runner_token = None
         env = None
         for token in modifier_tokens:
-            if token == DEFAULT_RUNNER_TOKEN or token in VALID_RUNNERS:
+            if token in VALID_RUNNERS:
                 if runner_token is not None:
                     raise Malformed(f"run entry {entry!r} has more than one runner token")
                 runner_token = token
-            elif token in VALID_SKLEARN_SRC_ENVS:
+            elif token in VALID_ENV_TOKENS:
                 if env is not None:
                     raise Malformed(f"run entry {entry!r} has more than one env token")
                 env = token
             else:
                 raise Malformed(
                     f"unknown token {token!r} in run entry {entry!r} (expected a runner - "
-                    f"{sorted(VALID_RUNNERS)} or 'intel-all' - or an env - {sorted(VALID_SKLEARN_SRC_ENVS)})"
+                    f"{sorted(VALID_RUNNERS)} - or an env - {sorted(VALID_ENV_TOKENS)})"
                 )
 
         runner_token = runner_token or DEFAULT_RUNNER_TOKEN
-        env = env or DEFAULT_SKLEARN_SRC_ENV
-        entry_runners = (
-            tuple(sorted(VALID_RUNNERS)) if runner_token == DEFAULT_RUNNER_TOKEN else (runner_token,)
-        )
+        env = env or DEFAULT_ENV_TOKEN
+        # A runner group expands to its machines; an individual machine to
+        # itself. `intel-all` covers the Intel pair, `all` every machine.
+        entry_runners = RUNNER_GROUPS.get(runner_token, (runner_token,))
 
         for runner in entry_runners:
-            run = {"runner": runner, "env": env, "config": config_path}
+            run = {"runner": runner, "env": _resolve_env(env, runner), "config": config_path}
             if run not in runs:
                 runs.append(run)
             if runner not in runners:
@@ -159,9 +218,21 @@ def parse_fields(block: str) -> dict:
     return {
         "sklearn_owner": sklearn_owner,
         "sklearn_head_ref": sklearn_head_ref,
+        "sklearn_base": sklearn_base,
         "runs": runs,
         "runners": runners,
     }
+
+
+def split_runner_matrix(runners: list[str]) -> tuple[list[str], bool]:
+    """Split `runners` into the Intel matrix and whether it has any entries.
+
+    The Intel matrix job must not wait on the GPU host, so it takes only the
+    runners outside GPU_RUNNERS. An empty matrix is an expansion error, hence
+    the `none` placeholder; `has_intel` is still False and gates the job.
+    """
+    intel_runners = [runner for runner in runners if runner not in GPU_RUNNERS]
+    return intel_runners or [EMPTY_MATRIX_PLACEHOLDER], bool(intel_runners)
 
 
 def write_output(path: str, key: str, value: str) -> None:
@@ -199,8 +270,12 @@ def main() -> int:
     write_output(args.github_output, "ok", "true")
     write_output(args.github_output, "sklearn_owner", parsed["sklearn_owner"])
     write_output(args.github_output, "sklearn_head_ref", parsed["sklearn_head_ref"])
+    write_output(args.github_output, "sklearn_base", parsed["sklearn_base"])
     write_output(args.github_output, "runs", json.dumps(parsed["runs"]))
     write_output(args.github_output, "runners", json.dumps(parsed["runners"]))
+    intel_runners, has_intel = split_runner_matrix(parsed["runners"])
+    write_output(args.github_output, "has_intel", "true" if has_intel else "false")
+    write_output(args.github_output, "intel_runners", json.dumps(intel_runners))
     return 0
 
 

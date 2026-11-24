@@ -14,7 +14,7 @@ where = ["."]
 include = ["sklbench*", "dashboards*"]
 
 [tool.setuptools.package-data]
-"sklbench.reporting.html" = ["base.css", "speedup_comparison.js", "speedup_core.js"]
+"sklbench.reporting.html" = ["base.css", "favicon.svg", "speedup_comparison.js", "speedup_core.js"]
 
 [tool.ruff]
 line-length = 90
