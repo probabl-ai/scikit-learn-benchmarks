@@ -71,6 +71,8 @@ The project uses these Pixi environments:
   free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
 - `sklearn-dev-nvidia`: the same checkout as `sklearn-dev`, on the CUDA
   platform (`linux-64-cuda-12-9`, CUDA 12.9) for the AWS L4 host. Linux only.
+- `faiss-cpu`, `faiss-gpu`: FAISS k-means and e-means on the CPU and on a CUDA
+  GPU, for `configs/kmeans_pareto.py`. Linux only.
 
 All environments use Python 3.14. The free-threaded ones
 (`sklearn-pypi-freethreading` and `sklearn-dev-freethreading`) set
