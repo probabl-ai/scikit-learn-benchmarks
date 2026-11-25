@@ -1,9 +1,11 @@
 #!/bin/bash
-# Build an OpenBLAS checkout with the conda-forge linux-64 flags (pthreads).
+# Build an OpenBLAS checkout with the conda-forge flags (pthreads).
 # usage: scripts/build_openblas.sh SRC PREFIX [extra make flags...]
 # e.g.   scripts/build_openblas.sh openblas/src builds/base
 #        scripts/build_openblas.sh openblas/src builds/t256 NUM_THREADS=256
 # Later flags override the defaults (make keeps the last assignment).
+# On Linux, the compiler runtime libraries are copied next to libopenblas with
+# an $ORIGIN rpath, so PREFIX/lib can be copied to another machine.
 set -euo pipefail
 SRC=$(realpath "$1")
 mkdir -p "$2"
@@ -16,15 +18,24 @@ if [ "$(uname)" = Darwin ]; then
   # conda-forge osx-arm64 builds a single VORTEX target (no DYNAMIC_ARCH).
   FLAGS="BINARY=64 NO_LAPACK=0 TARGET=VORTEX NO_AFFINITY=1 USE_THREAD=1 NUM_THREADS=128 USE_OPENMP=0 INTERFACE64=0 $*"
   TOOLS=(-s clang_osx-arm64 -s gfortran_osx-arm64 -s make)
+elif [ "$(uname -m)" = aarch64 ]; then
+  FLAGS="DYNAMIC_ARCH=1 BINARY=64 NO_LAPACK=0 TARGET=ARMV8 NO_AFFINITY=1 USE_THREAD=1 NUM_THREADS=128 USE_OPENMP=0 INTERFACE64=0 $*"
+  TOOLS=(-s gcc_linux-aarch64=15 -s gfortran_linux-aarch64=15 -s make -s patchelf)
 else
   FLAGS="DYNAMIC_ARCH=1 BINARY=64 NO_LAPACK=0 TARGET=PRESCOTT BUILD_BFLOAT16=1 NO_AFFINITY=1 USE_THREAD=1 NUM_THREADS=128 USE_OPENMP=0 INTERFACE64=0 $*"
-  TOOLS=(-s gcc_linux-64=15 -s gfortran_linux-64=15 -s make)
+  TOOLS=(-s gcc_linux-64=15 -s gfortran_linux-64=15 -s make -s patchelf)
 fi
 pixi exec "${TOOLS[@]}" -- bash -c "
 set -eu
 export FFLAGS=\"\${FFLAGS:-} -frecursive\"
 make -j$JOBS $FLAGS CC=\$CC FC=\$FC HOSTCC=\$CC >$PREFIX/build.log 2>&1
 make $FLAGS CC=\$CC FC=\$FC HOSTCC=\$CC PREFIX=$PREFIX install >>$PREFIX/build.log 2>&1
+if [ \$(uname) = Linux ]; then
+  for l in libgfortran.so.5 libquadmath.so.0 libgcc_s.so.1; do
+    test -e \$CONDA_PREFIX/lib/\$l && cp -L \$CONDA_PREFIX/lib/\$l $PREFIX/lib/
+  done
+  patchelf --set-rpath '\$ORIGIN' \$(readlink -f $PREFIX/lib/libopenblas.so.0)
+fi
 "
 git -C "$SRC" rev-parse HEAD > "$PREFIX/commit.txt"
 git -C "$SRC" diff > "$PREFIX/patch.diff"
