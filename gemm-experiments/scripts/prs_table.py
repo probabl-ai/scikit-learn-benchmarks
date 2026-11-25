@@ -101,7 +101,7 @@ def main():
         key = (dt, *spec_key(spec))
         cells = [fmt(r.get(key, float("nan"))) for r in ratios.values()]
         print(f"| {name} | " + " | ".join(cells) + " |")
-    cells = [f"{fmt(r.min())} - {fmt(r.max())}" for r in ratios.values()]
+    cells = [f"{fmt(r.min())[:-1]}-{fmt(r.max())}" for r in ratios.values()]
     n = min(len(r) for r in ratios.values())
     print(f"| all {n} cells | " + " | ".join(cells) + " |")
 
