@@ -1,0 +1,70 @@
+{
+ "argv": [
+  "scripts/sweep.py",
+  "--out",
+  "results/graviton-medium/prs/pr11.csv",
+  "--threads",
+  "8,16",
+  "--variant",
+  "develop=builds/pr-base/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--variant",
+  "pr11=builds/pr11/lib/libopenblas.so.0,OPENBLAS_NUM_THREADS={T}",
+  "--dtype",
+  "d",
+  "--rounds",
+  "3",
+  "--min-time",
+  "0.2",
+  "--pin",
+  "compact",
+  "--note",
+  "exp31 cakedev0/OpenBLAS#11 vs develop c2fc6cf5f",
+  "--shapes",
+  "symv:200",
+  "symv:500",
+  "symv:1000",
+  "symv:2000",
+  "symv:4000"
+ ],
+ "note": "exp31 cakedev0/OpenBLAS#11 vs develop c2fc6cf5f",
+ "host": "ip-10-3-64-123",
+ "platform": "Linux-7.0.0-1018-aws-aarch64-with-glibc2.39",
+ "start": "2026-11-25T20:07:54+0000",
+ "variants": {
+  "develop": {
+   "lib": "builds/pr-base/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  },
+  "pr11": {
+   "lib": "builds/pr11/lib/libopenblas.so.0",
+   "env": {
+    "OPENBLAS_NUM_THREADS": "{T}"
+   }
+  }
+ },
+ "lscpu": "Architecture:                            aarch64\nCPU op-mode(s):                          64-bit\nByte Order:                              Little Endian\nCPU(s):                                  16\nOn-line CPU(s) list:                     0-15\nVendor ID:                               ARM\nModel name:                              Neoverse-V2\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      16\nSocket(s):                               1\nStepping:                                r0p1\nBogoMIPS:                                2000.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm jscvt fcma lrcpc dcpop sha3 asimddp sha512 sve asimdfhm dit uscat ilrcpc flagm sb paca pacg dcpodp sve2 sveaes svepmull svebitperm svesha3 flagm2 frint svei8mm svebf16 i8mm bf16 dgh rng bti\nL1d cache:                               1 MiB (16 instances)\nL1i cache:                               1 MiB (16 instances)\nL2 cache:                                32 MiB (16 instances)\nL3 cache:                                36 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-15\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; CSV2, BHB\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected\n",
+ "affinity": "policy: default\npreferred node: current\nphyscpubind: 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 \ncpubind: 0 \nnodebind: 0 \nmembind: 0 \npreferred: \n",
+ "loadavg_start": [
+  0.0,
+  0.0869140625,
+  0.958984375
+ ],
+ "lib_headers": {
+  "develop": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=128 core: neoversev2\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=15 involuntary_switches=49 migrations=1 openmp=none",
+  "pr11": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=128 core: neoversev2\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=15 involuntary_switches=56 migrations=1 openmp=none"
+ },
+ "stderr": {
+  "develop T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=128 core: neoversev2\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=15 involuntary_switches=53 migrations=1 openmp=none",
+  "pr11 T=8 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=128 core: neoversev2\n# library threads: 8\n# affinity: threads=8 bound_to_one_core=0 voluntary_switches=15 involuntary_switches=62 migrations=1 openmp=none",
+  "develop T=16 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=128 core: neoversev2\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=30 involuntary_switches=151 migrations=0 openmp=none",
+  "pr11 T=16 d": "# openblas config: OpenBLAS 0.3.34.dev DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=128 core: neoversev2\n# library threads: 16\n# affinity: threads=16 bound_to_one_core=0 voluntary_switches=41 involuntary_switches=129 migrations=2 openmp=none"
+ },
+ "end": "2026-11-25T20:08:10+0000",
+ "loadavg_end": [
+  2.02001953125,
+  0.53857421875,
+  1.09375
+ ]
+}

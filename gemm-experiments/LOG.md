@@ -1096,3 +1096,31 @@ EPYC 7543 (32 cores, Scaleway, no benchlock there, raw files lost with the
 VM): PR #10 0.27-0.45x on small syrk with 8 callers, v4b 1.1-1.5x (16 and
 32T); long window 0.98-0.99x on the two long cells; OpenMP v6 0.93-1.10x
 with 2-8 callers; exact checks 0 failures.
+
+## Exp 31: the four open fork PRs on more machines
+
+Each of cakedev0/OpenBLAS#3, #8, #10 and #11 (heads 89e62160f, d851ca85f,
+03536cdb1, 21cbb8fc2) against develop c2fc6cf5f, on the shapes of its
+description: `scripts/build_prs.sh` (builds once per architecture, copied to
+the other machines), `scripts/run_prs.sh`, `scripts/prs_table.py`. 3 rounds,
+both builds interleaved, threads pinned one per core first. Results in
+`results/<machine>/prs/`. Machines: graviton-medium (Graviton4, 16 cores,
+8/16T), graviton-big (64 cores, 16/32/64T), epyc-medium (EPYC 7R13 Milan,
+16 cores / 32 threads, 2 NUMA nodes, 16/32T), epyc-big (EPYC 9R45 Turin, 64
+cores, no SMT, 16/32/64T; OpenBLAS picks Cooperlake kernels there), xeon-s1
+(16/43/86T). The OpenBLAS utests pass on Graviton4 for all five builds,
+including `syrk_threads` (#3) and `splitk` (#10). intel-laptop and
+intel-gamer-gpu were unreachable.
+
+- #10 and #11 gain on every machine, nothing slower beyond noise.
+- #3 gains on every machine but loses on Milan: dsyrk with 32 columns at 16
+  and 32T is 0.83-0.85x, also alone in its process (`alone_syrk32x*.csv`,
+  27-29 vs 23-24 GF/s).
+- #8 loses on Graviton4: dgetrf 2000 at 32T 0.71x (340 vs 242 GF/s alone),
+  dgesv 2000 the same, dgetrf 4000 at 64T 0.81x. The cap is too low there:
+  develop's best thread count (`getrf_threads.csv`) is 24 for n = 2000, 48
+  for 4000 and 64 for 8000, while the cap gives 10 and 20.
+- Xeon at 86T: ddot and daxpy 1e6 at 0.46x and sgemm NT 256x256x20000 at
+  0.86x in the grid, both on develop's path. Alone in their process
+  (`results/xeon-s1/prs/alone_*.csv`) they match develop: the ELC ordering
+  effect of #8's caveats.
