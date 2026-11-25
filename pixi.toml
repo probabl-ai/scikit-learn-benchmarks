@@ -52,6 +52,12 @@ platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
 # Free-threaded ("3.14t") CPython build.
 python = { version = "3.14.*", build = "*_cp314t" }
 
+[feature.py314t.pypi-dependencies]
+# Pulled in by openml (through minio). pycryptodome>=4 only ships abi3 wheels,
+# which free-threaded CPython can't load, so a fresh lock picks its sdist and
+# the install needs a system C compiler.
+pycryptodome = "<4"
+
 [feature.py314t.activation.env]
 # pandas<3's `pandas._libs.pandas_parser` doesn't declare free-threading
 # support, so importing pandas silently re-enables the GIL for the whole
