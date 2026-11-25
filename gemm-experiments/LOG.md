@@ -1109,8 +1109,9 @@ both builds interleaved, threads pinned one per core first. Results in
 16 cores / 32 threads, 2 NUMA nodes, 16/32T), epyc-big (EPYC 9R45 Turin, 64
 cores, no SMT, 16/32/64T; OpenBLAS picks Cooperlake kernels there), xeon-s1
 (16/43/86T). The OpenBLAS utests pass on Graviton4 for all five builds,
-including `syrk_threads` (#3) and `splitk` (#10). intel-laptop and
-intel-gamer-gpu were unreachable.
+including `syrk_threads` (#3) and `splitk` (#10). Also intel-laptop (8/16T)
+and intel-gamer-gpu (12/24T), reached through a jump host from a network
+that blocked their ssh ports.
 
 - #10 and #11 gain on every machine, nothing slower beyond noise.
 - #3 gains on every machine but loses on Milan: dsyrk with 32 columns at 16
@@ -1124,3 +1125,11 @@ intel-gamer-gpu were unreachable.
   0.86x in the grid, both on develop's path. Alone in their process
   (`results/xeon-s1/prs/alone_*.csv`) they match develop: the ELC ordering
   effect of #8's caveats.
+- Core Ultra machines: develop-path cells drop to 0.77-0.9x in the grid
+  (turbo/power budget, as in exp 28). Alone in their process
+  (`results/intel-*/prs/alone_*.csv`) they match develop, e.g. gamer
+  dgemm NT 512x512x20000 24T 711-730 vs 728-732 GF/s.
+- intel-laptop grid, 16T: one cell per build stalls at ~0.35 s per call in
+  all 3 rounds (develop on ssyrk 128x5000, #3 on ssyrk 64x20000). Alone
+  neither stalls (ssyrk 64x20000: develop 69, #3 134-187 GF/s).
+  `prs_table.py` leaves these two cells out.
