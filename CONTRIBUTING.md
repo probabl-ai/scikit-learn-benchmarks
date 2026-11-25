@@ -66,11 +66,15 @@ The project uses these Pixi environments:
 - `sklearn-dev-libomp`: the same checkout as `sklearn-dev`, with the
   LLVM/Intel `libomp` runtime
 - `sklearn-dev-mkl`: the same checkout as `sklearn-dev`, with numpy/scipy on
-  MKL instead of OpenBLAS (and `libomp`, which MKL brings in). Linux only.
+  MKL instead of OpenBLAS (and `libomp`, which MKL brings in). x86-64 Linux
+  only.
 - `sklearn-dev-freethreading`: the same checkout as `sklearn-dev`, on the
   free-threaded (no-GIL) Python 3.14t build. Linux and macOS only.
 - `sklearn-dev-nvidia`: the same checkout as `sklearn-dev`, on the CUDA
   platform (`linux-64-cuda-12-9`, CUDA 12.9) for the AWS L4 host. Linux only.
+
+On ARM Linux (`linux-aarch64`, e.g. AWS Graviton), every environment installs
+except the MKL, Intel, CUDA and MPS ones.
 
 All environments use Python 3.14. The free-threaded ones
 (`sklearn-pypi-freethreading` and `sklearn-dev-freethreading`) set

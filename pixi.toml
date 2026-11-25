@@ -9,6 +9,7 @@ requires-pixi = ">=0.75"
 conda-pypi-map = { "conda-forge" = "conda-pypi-map.json" }
 platforms = [
     "linux-64",
+    "linux-aarch64",
     "osx-arm64",
     "win-64",
     { name = "linux-64-cuda-12-9", platform = "linux-64", cuda = "12.9" },
@@ -45,7 +46,7 @@ python = "3.14.*"
 
 [feature.py314t]
 # ipykernel has no free-threaded conda-forge build for win-64.
-platforms = ["linux-64", "osx-arm64"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64"]
 
 [feature.py314t.dependencies]
 # Free-threaded ("3.14t") CPython build.
@@ -105,7 +106,7 @@ scikit-learn = "1.9.*"
 # The libgomp->libomp compat symlink build below is Linux-only (see the
 # dependency comment); macOS already links OpenMP against libomp directly,
 # so this redirect doesn't apply there.
-platforms = ["linux-64"]
+platforms = ["linux-64", "linux-aarch64"]
 
 [feature.sklearn-openblas-pthreads-kmp-llvm.dependencies]
 # `_openmp_mutex=*_kmp_llvm` ships a `libgomp.so.1 -> libomp.so` compat
@@ -116,6 +117,7 @@ platforms = ["linux-64"]
 _openmp_mutex = { version = "*", build = "*_kmp_llvm" }
 
 [feature.sklearn-mkl]
+# MKL is x86-64 only.
 platforms = ["linux-64"]
 
 [feature.sklearn-mkl.dependencies]
@@ -152,7 +154,7 @@ no-build-isolation = ["scikit-learn"]
 
 [feature.sklearn-dev-libomp]
 # Same Linux-only reasoning as `sklearn-openblas-pthreads-kmp-llvm` above.
-platforms = ["linux-64"]
+platforms = ["linux-64", "linux-aarch64"]
 
 [feature.sklearn-dev-libomp.dependencies]
 # Same `_openmp_mutex=*_kmp_llvm` redirect as
