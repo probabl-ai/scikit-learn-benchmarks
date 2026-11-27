@@ -32,7 +32,7 @@ from html import escape
 from pathlib import Path
 from statistics import median
 
-from dashboards import HARDWARE_NAMES
+from dashboards import CUSTOM_OPENBLAS_ENVS, HARDWARE_NAMES
 from sklbench.reporting.envs import read_env, software_build_name, summarize_software_env
 from sklbench.reporting.html import (
     BASE_TEMPLATE,
@@ -62,6 +62,16 @@ ABOUT_HTML = """<section class="panel">
     <dfn>logical CPU</dfn>, without its <dfn>SMT sibling</dfn>, so the step from 0.5 to 1 shows what
     <dfn>SMT</dfn> brings on one core. For RandomForest and ExtraTrees, a section below
     compares runs with and without SMT, one plot per environment.</p>
+    <p>Three lines exist only on the <b>Ridge</b> and <b>LogisticRegression</b> plots.
+    They use the same <dfn>conda-forge</dfn> packages and differ only by their
+    <dfn>OpenBLAS</dfn>: <code>sklearn-cf-libgomp-openblas</code> has the latest release,
+    <code>sklearn-cf-develop-openblas</code> its unreleased development branch, and
+    <code>sklearn-cf-optimized-openblas</code> that branch with four proposed threading
+    changes (<a href="https://github.com/cakedev0/OpenBLAS/pull/3">#3</a>,
+    <a href="https://github.com/cakedev0/OpenBLAS/pull/8">#8</a>,
+    <a href="https://github.com/cakedev0/OpenBLAS/pull/10">#10</a> and
+    <a href="https://github.com/cakedev0/OpenBLAS/pull/11">#11</a> on a fork). The gap between
+    the last two is the effect of those changes.</p>
   </details>
   <details class="about-section">
     <summary>Findings</summary>
@@ -89,6 +99,11 @@ ABOUT_HTML = """<section class="panel">
       faster from 8 cores on, but that's a <b><dfn>oneDAL</dfn></b> bug: on 4 threads or
       more, L-BFGS stops too early and returns a worse model. See
       <a href="https://github.com/uxlfoundation/oneDAL/issues/3820">oneDAL#3820</a>.</li>
+      <li>With the proposed <b>OpenBLAS</b> changes, <b>Ridge</b> on the Xeon server
+      fits ~3x faster from 32 cores on: the development branch computes
+      <code>X.T @ X</code> on a single thread there, which is why its line goes flat.
+      <b>LogisticRegression</b> fits up to 1.35x faster on the Xeon server and
+      up to 1.5x faster on the desktop.</li>
     </ul>
   </details>
 </section>"""
@@ -112,10 +127,16 @@ MODELS = [
 MODEL_ORDER = [estimator for estimator, _ in MODELS]
 TREE_ESTIMATORS = {"RandomForestClassifier", "ExtraTreesClassifier"}
 
-SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel"]
+# Appended after the older envs so that those keep their line colors.
+OPENBLAS_BUILD_ENVS = ["sklearn-cf-libgomp-openblas", *CUSTOM_OPENBLAS_ENVS]
+SOURCE_ENVS = ["sklearn-pypi", "sklearn-cf-mkl", "intel", *OPENBLAS_BUILD_ENVS]
 # Page header and index page label.
 TITLE = "Models core-count scalability"
-SOURCE_CONFIGS = ["configs/models_scalability.py"]
+SOURCE_CONFIGS = ["configs/models_scalability.py", "configs/models_scalability_linear.py"]
+SOURCE_CONFIG_OVERRIDES = {
+    "configs/models_scalability.py": {"envs": ["sklearn-pypi", "sklearn-cf-mkl", "intel"]},
+    "configs/models_scalability_linear.py": {"envs": OPENBLAS_BUILD_ENVS},
+}
 # The `intel` pixi env is sklearn patched with sklearnex; plots name the library.
 ENV_LABELS = {"intel": "sklearnex"}
 ENV_ORDER = [ENV_LABELS.get(env, env) for env in SOURCE_ENVS]
