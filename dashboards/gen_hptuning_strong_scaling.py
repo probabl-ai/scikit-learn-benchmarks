@@ -1,36 +1,43 @@
 """`configs/hptuning_strong_scaling.py`: a fixed amount of search work under a CPU
 affinity sweep, with `n_jobs=-1`.
 
-Same page as `gen_hptuning_taskset.py`, except for the y-axis: speed-up over the
-smallest mask, against ideal scaling.
+Same plots as `gen_hptuning_taskset.py`, with the taskset points overlaid as
+dotted lines to compare the two methodologies.
 """
-from html import escape
 from pathlib import Path
 
 from dashboards import gen_hptuning_scalability as hptuning
 from dashboards import gen_hptuning_taskset as taskset
 from sklbench.reporting.envs import read_env
-from sklbench.reporting.html import scaling_line_plot_html
 from sklbench.reporting.matching import (
     BenchmarkRecord, matches_source_configs, read_benchmark_records,
 )
 
 
 TITLE = "Hyper-parameter search strong scaling"
-SOURCE_CONFIGS = ["configs/hptuning_strong_scaling.py"]
+SOURCE_CONFIGS = ["configs/hptuning_strong_scaling.py", *taskset.SOURCE_CONFIGS]
 SOURCE_ENVS = hptuning.SOURCE_ENVS
+
+OVERLAY_SUFFIX = "fits grow with cores"
 
 ABOUT_HTML = """<section class="panel">
   <p>This dashboard checks how much extra CPUs shorten a hyper-parameter search with
   <code>n_jobs=-1</code>. The search does the same fits at every point, so the
   <dfn>speed-up</dfn> compares the same job. In the
   <a href="hptuning_taskset.html">CPU affinity dashboard</a>, the fits grow with the cores
-  instead.</p>
+  instead. The plots overlay its points as dotted lines to compare the two methods.</p>
   <p>Each point restricts the process to some <dfn>physical cores</dfn>, with their
   <dfn term="smt sibling">SMT siblings</dfn>, through its <dfn>CPU affinity</dfn>. The
   searches are those of the <a href="hptuning_scalability.html">hyper-parameter search
   dashboard</a>: 8 candidates on as many <dfn>CV splits</dfn> as the machine has physical
   cores.</p>
+  <p>The two methods give about the same time per fit at the same core count: ~90% of the
+  points are within 10% of each other. On the laptop at 4 cores, most tree and
+  <b>Ridge</b> rows fit ~15% to ~20% faster in the CPU affinity dashboard, probably because
+  its 4 CV splits train on 3/4 of the data instead of 15/16. On the whole machine, where
+  both run the same search, ~90% of the pairs of runs agree within 5%. The largest gaps
+  are ~1.3x for the unstable <b>RandomForest</b> on susy on the Xeon (see below) and ~1.2x
+  for <b>Ridge</b> on susy on the laptop.</p>
   <p>On the benchmarked cases, comparing the whole machine with the smallest mask:</p>
   <ul>
     <li>On the Xeon, from 22 to 172 cores (ideal: ~7.8x), <b>HistGradientBoosting</b> on
@@ -63,11 +70,14 @@ ABOUT_HTML = """<section class="panel">
   <details class="about-section">
     <summary>How to read</summary>
     <p>There is one tab per machine and one plot per (estimator, dataset) pair.
-    The x-axis is the number of physical cores allowed (log scale). The y-axis is the wall
-    time of the search on the smallest mask divided by its wall time at this point (log
-    scale), with one color per <dfn>environment</dfn> and a dashed line for ideal scaling.</p>
-    <p>Each environment has its own baseline, so a higher line means better scaling, not a
-    faster search. The hover gives the wall time. The marker size is the mean load of the
+    The x-axis is the number of physical cores allowed (log scale), the y-axis is the wall
+    time of the search divided by its number of <code><dfn>.fit()</dfn></code> calls (log
+    scale), with one color per <dfn>environment</dfn>. Solid lines are this dashboard's
+    searches, dotted lines the <a href="hptuning_taskset.html">CPU affinity dashboard</a>'s
+    from the smallest mask of this one.</p>
+    <p>The dashed line has the slope of ideal scaling: a line parallel to it means the time
+    per fit falls as fast as the cores grow. The hover gives the speed-up over the
+    environment's first point and the wall time. The marker size is the mean load of the
     allowed logical CPUs (100% means all of them busy).</p>
     <p>On hybrid machines, the affinity takes the lowest CPU ids first, whatever the core
     type. The <a href="hptuning_taskset.html">CPU affinity dashboard</a> describes the
@@ -82,45 +92,28 @@ def _n_physical_cores(record: BenchmarkRecord) -> int:
     return round(taskset._mask_size(record) * hptuning._n_splits(record) / n_logical_cpus)
 
 
-def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
-    cores = [_n_physical_cores(record) for record in row_records]
-    min_cores, max_cores = min(cores), max(cores)
-    baselines = {
-        hptuning._env(record): hptuning._seconds_per_fit(record)
-        for record, n_cores in zip(row_records, cores)
-        if n_cores == min_cores
-    }
+def _row_cell_html_fn(taskset_records: list[BenchmarkRecord]):
+    taskset_by_row: dict[tuple, list[BenchmarkRecord]] = {}
+    for record in taskset_records:
+        if record.runs:
+            key = (record.hardware_hash, hptuning._row_key(record))
+            taskset_by_row.setdefault(key, []).append(record)
 
-    series: dict[str, list[tuple]] = {}
-    for record, n_cores in zip(row_records, cores):
-        env = hptuning._env(record)
-        baseline = baselines.get(env)
-        seconds_per_fit = hptuning._seconds_per_fit(record)
-        if baseline is None or seconds_per_fit is None:
-            continue
-        series.setdefault(env, []).append((
-            n_cores,
-            baseline / seconds_per_fit,
-            hptuning._hover_extra(record, cpu_percent_fn=taskset._mask_load_percent),
-            taskset._mask_load_percent(record),
-        ))
-    if not series:
-        return ""
+    def row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
+        min_cores = min(_n_physical_cores(record) for record in row_records)
+        # Below the smallest mask, the taskset points would stretch the y-axis
+        # with nothing to compare them to.
+        overlay_records = [
+            record
+            for record in taskset_by_row.get((row_records[0].hardware_hash, row_key), [])
+            if taskset._n_physical_cores(record) >= min_cores
+        ]
+        overlay_series = taskset._env_series(overlay_records, taskset._n_physical_cores)
+        return taskset.seconds_per_fit_cell_html(
+            row_key, row_records, _n_physical_cores, overlay=(OVERLAY_SUFFIX, overlay_series)
+        )
 
-    plot = scaling_line_plot_html(
-        series,
-        colors=hptuning.ENV_COLORS,
-        x_title=taskset.X_TITLE,
-        y_title=f"speed-up over {min_cores} cores",
-        y_unit="x",
-        x_log=True,
-        y_log=True,
-        reference_lines={"ideal": [[(min_cores, 1), (max_cores, max_cores / min_cores)]]},
-        size_domain=(0, 100),
-    )
-    title = escape(hptuning._row_title(row_key))
-    subtitle = hptuning._row_subtitle_html(row_key, row_records)
-    return f'<section class="plot-cell"><h3>{title}</h3>{subtitle}{plot}</section>'
+    return row_cell_html
 
 
 def read_records() -> list[BenchmarkRecord]:
@@ -128,14 +121,16 @@ def read_records() -> list[BenchmarkRecord]:
         [
             record
             for record in read_benchmark_records()
-            if matches_source_configs(record.case, SOURCE_CONFIGS)
+            if matches_source_configs(record.case, ["configs/hptuning_strong_scaling.py"])
         ],
         sweep_point=_n_physical_cores,
     )
 
 
 def generate(output_dir: Path) -> None:
-    html = hptuning.render_dashboard(TITLE, ABOUT_HTML, read_records(), _row_cell_html)
+    html = hptuning.render_dashboard(
+        TITLE, ABOUT_HTML, read_records(), _row_cell_html_fn(taskset.read_records())
+    )
     output = output_dir / "hptuning_strong_scaling.html"
     output.write_text(html)
     print(f"Dashboard written to {output}")

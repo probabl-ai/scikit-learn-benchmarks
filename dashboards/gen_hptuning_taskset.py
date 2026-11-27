@@ -2,8 +2,8 @@
 under a CPU affinity sweep, with `n_jobs=-1`.
 
 Same page as `gen_hptuning_scalability.py`, except for the x-axis (physical
-cores of the mask, since `n_jobs` is -1), the log y-axis and the CPU load (share
-of the mask, not of the machine).
+cores of the mask, since `n_jobs` is -1), the log y-axis with an ideal-scaling
+line, and the CPU load (share of the mask, not of the machine).
 """
 from html import escape
 import json
@@ -62,8 +62,12 @@ ABOUT_HTML = """<section class="panel">
     The x-axis is the number of physical cores allowed (log scale), the y-axis is
     the wall time of the search divided by its number of
     <code><dfn>.fit()</dfn></code> calls (log scale), with one color per <dfn>environment</dfn>.
-    The marker size is the mean load of the allowed logical CPUs (100% means all of
+    The dashed line has the slope of ideal scaling: a line parallel to it means the time
+    per fit falls as fast as the cores grow. The hover gives the speed-up over one physical
+    core. The marker size is the mean load of the allowed logical CPUs (100% means all of
     them busy).</p>
+    <p>The <a href="hptuning_strong_scaling.html">strong scaling dashboard</a> has the same
+    plots for a search with the same fits at every point, with these points overlaid.</p>
     <p>Inner parallelism:</p>
     <ul>
       <li>joblib limits <dfn>OpenMP</dfn> and <dfn>BLAS</dfn> threads to 1 in each
@@ -100,33 +104,84 @@ def _mask_load_percent(record: BenchmarkRecord) -> float | None:
     return min(cpu_percent * n_logical_cpus / _mask_size(record), 100)
 
 
-def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
-    series: dict[str, list[tuple]] = {}
-    for record in row_records:
+def _env_series(
+    records: list[BenchmarkRecord], n_cores_fn
+) -> dict[str, list[tuple[int, float, str, float | None]]]:
+    """Seconds per fit against physical cores, one line per environment, with
+    the speed-up over the environment's first point in the hover."""
+    by_env: dict[str, list[tuple]] = {}
+    for record in records:
         seconds_per_fit = hptuning._seconds_per_fit(record)
         if seconds_per_fit is not None:
-            series.setdefault(hptuning._env(record), []).append((
-                _n_physical_cores(record),
-                seconds_per_fit,
-                hptuning._hover_extra(record, cpu_percent_fn=_mask_load_percent),
-                _mask_load_percent(record),
-            ))
+            by_env.setdefault(hptuning._env(record), []).append(
+                (n_cores_fn(record), seconds_per_fit, record)
+            )
+    series = {}
+    for env, points in by_env.items():
+        points.sort(key=lambda point: point[0])
+        base_cores, base_seconds, _ = points[0]
+        series[env] = []
+        for n_cores, seconds_per_fit, record in points:
+            hover = hptuning._hover_extra(record, cpu_percent_fn=_mask_load_percent)
+            if n_cores != base_cores:
+                hover = (
+                    f"speed-up over {base_cores} cores: {base_seconds / seconds_per_fit:.3g}x"
+                    f" (ideal: {n_cores / base_cores:.3g}x)<br>{hover}"
+                )
+            series[env].append((n_cores, seconds_per_fit, hover, _mask_load_percent(record)))
+    return series
+
+
+def seconds_per_fit_cell_html(
+    row_key: tuple,
+    row_records: list[BenchmarkRecord],
+    n_cores_fn,
+    overlay: tuple[str, dict[str, list[tuple]]] | None = None,
+) -> str:
+    """`overlay` is `(label suffix, series)`, drawn dotted in the colors of the
+    same environments."""
+    series = _env_series(row_records, n_cores_fn)
     if not series:
         return ""
+    max_cores = max(point[0] for points in series.values() for point in points)
+    # On log-log axes the ideal lines of all environments are parallel, so one
+    # line gives the slope.
+    min_cores, max_seconds = max(
+        (points[0][:2] for points in series.values()), key=lambda point: point[1]
+    )
+    ideal = [(min_cores, max_seconds), (max_cores, max_seconds * min_cores / max_cores)]
+    colors = dict(hptuning.ENV_COLORS)
+    line_dashes = {}
+    legend_groups = {}
+    if overlay is not None:
+        suffix, overlay_series = overlay
+        for env, points in overlay_series.items():
+            label = f"{env}, {suffix}"
+            series[label] = points
+            colors[label] = hptuning.ENV_COLORS.get(env)
+            line_dashes[label] = "dot"
+            legend_groups[label] = env
 
     plot = scaling_line_plot_html(
         series,
-        colors=hptuning.ENV_COLORS,
+        colors=colors,
+        line_dashes=line_dashes,
+        legend_groups=legend_groups,
         x_title=X_TITLE,
         y_title=hptuning.DURATION_METRIC,
         y_unit="s",
         x_log=True,
         y_log=True,
+        reference_lines={"ideal slope": [ideal]},
         size_domain=(0, 100),
     )
     title = escape(hptuning._row_title(row_key))
     subtitle = hptuning._row_subtitle_html(row_key, row_records)
     return f'<section class="plot-cell"><h3>{title}</h3>{subtitle}{plot}</section>'
+
+
+def _row_cell_html(row_key: tuple, row_records: list[BenchmarkRecord]) -> str:
+    return seconds_per_fit_cell_html(row_key, row_records, _n_physical_cores)
 
 
 def read_records() -> list[BenchmarkRecord]:
