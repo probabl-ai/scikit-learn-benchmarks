@@ -11,9 +11,13 @@ from html import escape
 
 from dashboards import (
     HARDWARE_NAMES,
+    HIDDEN_HARDWARE,
     dashboard_output_dir,
     gen_cross_comparison,
     gen_hardware_parallel_fits,
+    gen_hgb_dev_comparison,
+    gen_hgb_dev_scalability_breakdown,
+    gen_hgb_dev_speedup_breakdown,
     gen_hgb_scalability_breakdown,
     gen_hptuning_scalability,
     gen_hptuning_strong_scaling,
@@ -76,16 +80,9 @@ ABOUT_HTML = """<section class="panel">
 
 
 DASHBOARDS = [
-    (module.TITLE, module, href)
-    for module, href in [
-        (gen_cross_comparison, gen_cross_comparison.ENTRY_PAGE),
-        (gen_hardware_parallel_fits, gen_hardware_parallel_fits.ENTRY_PAGE),
-        (gen_models_scalability, "models_scalability.html"),
-        (gen_hptuning_scalability, "hptuning_scalability.html"),
-        (gen_hptuning_taskset, "hptuning_taskset.html"),
-        (gen_hptuning_strong_scaling, "hptuning_strong_scaling.html"),
-        (gen_hgb_scalability_breakdown, "hgb_scaling.html"),
-    ]
+    ("[dev] HGB thread-scalability breakdown", gen_hgb_dev_scalability_breakdown, "hgb_dev_scaling.html"),
+    ("[dev] HGB speed-up breakdown", gen_hgb_dev_speedup_breakdown, "hgb_speedup_breakdown.html"),
+    (gen_hgb_dev_comparison.TITLE, gen_hgb_dev_comparison, "hgb_dev_comparison.html"),
 ]
 
 DASHBOARD_DESCRIPTIONS = {
@@ -96,10 +93,13 @@ DASHBOARD_DESCRIPTIONS = {
     "hptuning_taskset.html": "How a search with <code>n_jobs=-1</code> scales with the CPUs it may use.",
     "hptuning_strong_scaling.html": "How much extra CPUs shorten a search with a fixed number of fits.",
     "hgb_scaling.html": "Fit time per phase as the thread count grows. This is mostly an investigation for scikit-learn developers.",
+    "hgb_dev_scaling.html": "Fit time per phase as the thread count grows, for scikit-learn branches.",
+    "hgb_speedup_breakdown.html": "Per-phase fit speed-up of scikit-learn branches over main.",
+    "hgb_dev_comparison.html": "Fit and predict speed-ups of scikit-learn branches over main, as in PR comparisons.",
 }
 
 # Machines that are benchmarked but not presented on the index page.
-INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30"}
+INDEX_HIDDEN_HARDWARE = {"be1055", "5dcf30", "534824-1s"}
 
 
 def _hardware_overview_html() -> str:
@@ -107,7 +107,7 @@ def _hardware_overview_html() -> str:
         f"<h3>{escape(name)}</h3>"
         + HARDWARE_TEMPLATE.render(summarize_hardware_env(read_env("hardware", hardware_hash)))
         for hardware_hash, name in HARDWARE_NAMES.items()
-        if hardware_hash not in INDEX_HIDDEN_HARDWARE
+        if hardware_hash not in INDEX_HIDDEN_HARDWARE | HIDDEN_HARDWARE
     ]
     return f"""
     <section class="panel">

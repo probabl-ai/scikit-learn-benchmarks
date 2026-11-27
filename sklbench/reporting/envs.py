@@ -10,12 +10,18 @@ from typing import Callable
 from urllib.parse import quote
 
 from ..config.registry import REPO_ROOT
-from .matching import HARDWARE_HASH_ALIASES, Implementation
+from .matching import HARDWARE_HASH_ALIASES, PARTIAL_HARDWARE_HASHES, Implementation
 
 
 def read_env(kind: str, hash: str):
     assert kind in ['software', 'hardware']
     env_dir = Path("results") / f"{kind}-envs"
+    if kind == "hardware":
+        # Part of a machine has the hardware env of the whole machine.
+        hash = next(
+            (full for (full, _), partial in PARTIAL_HARDWARE_HASHES.items() if partial == hash),
+            hash,
+        )
     path = env_dir / f"{hash}.json"
     if not path.is_file() and kind == "hardware":
         # Records carry the canonical hash (see HARDWARE_HASH_ALIASES), but a

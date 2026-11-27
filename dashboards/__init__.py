@@ -12,22 +12,32 @@ from pathlib import Path
 HARDWARE_NAMES = {
     "3b5e61": "Intel Core Ultra laptop",
     "b281b2": "Apple M4 laptop",
+    "3dd14d": "Apple M2 laptop",
     "be1055": "Low-end Intel laptop",
     "332097": "Intel Core Ultra desktop",
     "5dcf30": "AMD Workstation",
     "534824": "High-end Intel Xeon server",
+    # Runs bound to one of its two sockets, see PARTIAL_HARDWARE_HASHES.
+    "534824-1s": "High-end Intel Xeon server (1 socket)",
     "d189c4": "NVIDIA L4 VM",
     "7c42d6": "64-core AMD EPYC VM",
 }
+
+# Machines whose results are kept in `results/` but left out of every
+# dashboard for now. The Apple M2 laptop timings were taken while another
+# session was using a core: hidden until they are rerun.
+HIDDEN_HARDWARE = {"3dd14d"}
 
 # So that a machine has the same color on every dashboard.
 HARDWARE_COLORS = {
     "3b5e61": "#2294c4",
     "b281b2": "#f7931e",
+    "3dd14d": "#7a8b1f",
     "be1055": "#15688c",
     "332097": "#8045e5",
     "5dcf30": "#b76c13",
     "534824": "#2e9e5b",
+    "534824-1s": "#7cc79a",
     "d189c4": "#d1495b",
     "7c42d6": "#c2379a",
 }
@@ -51,8 +61,10 @@ GPU_NAMES = {
 HARDWARE_PLATFORMS = {
     "3b5e61": {"linux-64"},
     "534824": {"linux-64"},
+    "534824-1s": {"linux-64"},
     "be1055": {"linux-64"},
     "b281b2": {"osx-arm64"},
+    "3dd14d": {"osx-arm64"},
     "5dcf30": {"win-64"},
     "332097": {"linux-64"},
     "d189c4": {"linux-64", "linux-64-cuda-12-9"},
