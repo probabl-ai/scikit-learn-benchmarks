@@ -396,6 +396,39 @@ def load_california_housing(raw_data_cache: str) -> tuple[dict, dict]:
     return {"x": x, "y": y}, data_desc
 
 
+def load_superconduct(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Superconductivity dataset (openml id 43174): properties derived from the
+    chemical formula of superconductors.
+
+    21263 samples, 81 features, all numeric, no missing values.
+
+    Regression task: predict the critical temperature.
+    """
+    x, y = load_openml(43174, raw_data_cache, as_frame=True)
+
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
+def load_diamonds(raw_data_cache: str) -> tuple[dict, dict]:
+    """
+    Diamonds dataset (openml id 42225).
+
+    53940 samples, 9 features: 3 categorical columns (`cut`, `color` and
+    `clarity`, 5 to 8 categories) and 6 numeric ones (carat and dimensions).
+    No missing values.
+
+    Regression task: predict the price.
+    """
+    x, y = load_openml(42225, raw_data_cache, as_frame=True)
+    for col in x.select_dtypes(["object"]).columns:
+        x[col] = x[col].astype("category")
+
+    data_desc = {"default_split": {"test_size": 0.2, "random_state": 42}}
+    return {"x": x, "y": y}, data_desc
+
+
 def load_mnist_template(
     openml_id: int,
     raw_data_cache: str,
@@ -1085,6 +1118,8 @@ dataset_loading_functions = {
     "medical_charges_nominal": load_medical_charges_nominal,
     "bank_marketing": load_bank_marketing,
     "california_housing": load_california_housing,
+    "superconduct": load_superconduct,
+    "diamonds": load_diamonds,
     "mnist": load_mnist,
     # classification
     "airline_depdelay": load_airline_depdelay,

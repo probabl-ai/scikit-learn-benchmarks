@@ -8,7 +8,7 @@ default `n_jobs`, and joblib limits OpenMP and BLAS to one thread per worker),
 so the search's own `n_jobs=-1` is the only level of parallelism.
 
 Searches have 640 to 2,560 fits, enough to feed every logical CPU of a large
-server, and take from ~15 minutes to ~2.5 hours of single-core time, ~15 hours
+server, and take from ~10 minutes to ~2.3 hours of single-core time, ~11.5 hours
 in total. The estimate next to each `n_splits` is extrapolated from the first
 8 candidates, on a Core Ultra X7 358H.
 
@@ -91,20 +91,17 @@ SEARCHES = [
         },
     ),
     dict(
-        # 7 classes
+        # 26 classes, numeric features only.
         estimator="LogisticRegression",
-        dataset="covtype",
-        max_samples=50_000,
+        dataset="letters",
         preprocessing_kind="linear",
         n_candidates=128,
-        n_splits=5,  # ~1.3 h
+        n_splits=5,  # ~45 min
         estimator_params={"max_iter": 1000},
         space={
             f"{SPLINES}n_knots": [3, 5, 8, 12, 20],
             f"{SPLINES}degree": [1, 2, 3],
-            f"{ONE_HOT}max_categories": [5, 10, 20, 40],
-            "target_encoding": WITH_OR_WITHOUT_TARGET_ENCODING,
-            "estimator__C": _logspace(-2, 4, 7),
+            "estimator__C": _logspace(-2, 4, 13),
         },
     ),
     # Ridge (solver="auto")
@@ -127,28 +124,26 @@ SEARCHES = [
         # Categorical columns with up to 3,300 categories.
         estimator="Ridge",
         dataset="medical_charges_nominal",
-        max_samples=50_000,
         preprocessing_kind="linear",
         n_candidates=256,
-        n_splits=5,  # ~15 min
+        n_splits=5,  # ~20 min
         space={
             f"{SPLINES}n_knots": [5, 10, 20],
             f"{SPLINES}degree": [1, 2, 3],
-            f"{ONE_HOT}max_categories": [8, 16, 32, 64, 128],
+            f"{ONE_HOT}max_categories": [4, 8, 16, 32],
             "target_encoding": WITH_OR_WITHOUT_TARGET_ENCODING,
             "estimator__alpha": _logspace(-3, 3, 7),
         },
     ),
     dict(
-        # 90 numeric features: 270 to 1,620 after the splines.
+        # 81 numeric features: 243 to 2,106 after the splines.
         estimator="Ridge",
-        dataset="year_prediction_msd",
-        max_samples=50_000,
+        dataset="superconduct",
         preprocessing_kind="linear",
-        n_candidates=128,
-        n_splits=5,  # ~25 min
+        n_candidates=256,
+        n_splits=5,  # ~10 min
         space={
-            f"{SPLINES}n_knots": [3, 4, 6, 8, 12, 16],
+            f"{SPLINES}n_knots": [3, 4, 6, 8, 12, 16, 24],
             f"{SPLINES}degree": [1, 2, 3],
             "estimator__alpha": _logspace(-3, 3, 13),
         },
@@ -171,14 +166,13 @@ SEARCHES = [
     ),
     dict(
         estimator="RandomForestRegressor",
-        dataset="medical_charges_nominal",
-        max_samples=50_000,
+        dataset="diamonds",
         preprocessing_kind="trees",
         n_candidates=128,
-        n_splits=5,  # ~2.1 h
+        n_splits=5,  # ~1.3 h
         estimator_params={"n_estimators": 100},
         space={
-            "encoding": _tree_encodings(one_hot_max_categories=[8, 32]),
+            "encoding": _tree_encodings(one_hot_max_categories=[4, 8]),
             "estimator__max_features": [1.0, 0.5, 0.3],
             "estimator__min_samples_leaf": [1, 5, 20],
             "estimator__max_depth": [8, 16, None],
@@ -186,20 +180,19 @@ SEARCHES = [
         },
     ),
     dict(
+        # Categorical columns only.
         estimator="RandomForestClassifier",
-        dataset="covtype",
-        max_samples=50_000,
+        dataset="amazon_employee_access",
         preprocessing_kind="trees",
-        n_candidates=256,
-        n_splits=3,  # ~1.1 h
+        n_candidates=128,
+        n_splits=5,  # ~20 min
         estimator_params={"n_estimators": 100},
         space={
-            "encoding": _tree_encodings(one_hot_max_categories=[4, 40]),
-            "estimator__max_features": ["sqrt", 0.3, 0.6],
-            "estimator__min_samples_leaf": [1, 5, 20],
-            "estimator__max_depth": [8, 16, None],
+            "encoding": _tree_encodings(one_hot_max_categories=[8, 32]),
+            "estimator__max_features": ["sqrt", 0.5, 1.0],
+            "estimator__min_samples_leaf": [1, 2, 5, 20],
+            "estimator__max_depth": [10, 20, None],
             "estimator__max_samples": [0.5, None],
-            "estimator__criterion": ["gini", "entropy"],
         },
     ),
     # Extra-trees
@@ -236,57 +229,57 @@ SEARCHES = [
     # HistGradientBoosting. No early stopping, so that the number of
     # iterations doesn't depend on the machine.
     dict(
-        # 7 classes: 7 trees per iteration.
+        # Native categorical splits on 18 columns.
         estimator="HistGradientBoostingClassifier",
-        dataset="covtype",
-        max_samples=100_000,
+        dataset="kick",
         preprocessing_kind="hgb",
         n_candidates=128,
-        n_splits=5,  # ~1.1 h
+        n_splits=5,  # ~40 min
         estimator_params={"early_stopping": False},
         space={
+            "preprocessor__max_categories": [16, 64, 252],
+            "preprocessor__min_frequency": [5, 20],
             "estimator__learning_rate": [0.03, 0.05, 0.1, 0.2],
-            "estimator__max_iter": [50, 100, 200],
-            "estimator__max_leaf_nodes": [15, 31, 63, 127],
+            "estimator__max_iter": [100, 200, 400],
+            "estimator__max_leaf_nodes": [7, 15, 31, 63],
             "estimator__min_samples_leaf": [5, 20, 50],
             "estimator__l2_regularization": [0.0, 0.1, 1.0],
-            "estimator__max_features": [0.5, 1.0],
         },
     ),
     dict(
+        # Native categorical splits, on columns with up to 3,300 categories.
         estimator="HistGradientBoostingRegressor",
-        dataset="year_prediction_msd",
-        max_samples=100_000,
+        dataset="medical_charges_nominal",
         preprocessing_kind="hgb",
         n_candidates=128,
-        n_splits=5,  # ~2.1 h
+        n_splits=5,  # ~30 min
         estimator_params={"early_stopping": False},
         space={
+            "preprocessor__max_categories": [16, 64, 252],
+            "preprocessor__min_frequency": [5, 20],
             "estimator__learning_rate": [0.03, 0.05, 0.1, 0.2],
             "estimator__max_iter": [100, 200, 400],
             "estimator__max_leaf_nodes": [15, 31, 63, 127],
             "estimator__min_samples_leaf": [5, 20, 50, 200],
             "estimator__l2_regularization": [0.0, 0.1, 1.0],
-            "estimator__max_features": [0.3, 0.6, 1.0],
-            "estimator__max_bins": [63, 255],
+            "estimator__max_features": [0.5, 1.0],
         },
     ),
     dict(
-        # Native categorical splits, on columns with up to 7,500 categories.
+        # 26 classes: 26 trees per iteration.
         estimator="HistGradientBoostingClassifier",
-        dataset="amazon_employee_access",
+        dataset="letters",
         preprocessing_kind="hgb",
-        n_candidates=256,
-        n_splits=5,  # ~25 min
+        n_candidates=128,
+        n_splits=5,  # ~1.2 h
         estimator_params={"early_stopping": False},
         space={
-            "preprocessor__max_categories": [16, 64, 252],
-            "preprocessor__min_frequency": [1, 5, 20],
-            "estimator__learning_rate": [0.01, 0.03, 0.05, 0.1, 0.2],
-            "estimator__max_iter": [100, 200, 400],
-            "estimator__max_leaf_nodes": [7, 15, 31, 63],
+            "estimator__learning_rate": [0.03, 0.05, 0.1, 0.2],
+            "estimator__max_iter": [50, 100, 200],
+            "estimator__max_leaf_nodes": [7, 15, 31],
             "estimator__min_samples_leaf": [5, 20, 50],
             "estimator__l2_regularization": [0.0, 0.1, 1.0],
+            "estimator__max_features": [0.5, 1.0],
         },
     ),
 ]
@@ -342,7 +335,6 @@ def generate_cases() -> list[HPTuningCase]:
                     candidates=_candidates(search["space"], search["n_candidates"]),
                     cv="kfold",
                     n_splits=search["n_splits"],
-                    max_samples=search.get("max_samples"),
                     n_jobs=-1,
                     random_state=3198,
                 ),
