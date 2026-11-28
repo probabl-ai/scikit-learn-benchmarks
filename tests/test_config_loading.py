@@ -33,6 +33,7 @@ ENV_SENSITIVE_CONFIGS = {
     Path("configs/hptuning_strong_scaling.py"): GENERAL_ENVS,
     # scikit-learn only for now.
     Path("configs/hptuning_all_models.py"): SKLEARN_ENVS,
+    Path("configs/hptuning_all_models_n_jobs.py"): SKLEARN_ENVS,
 }
 
 
