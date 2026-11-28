@@ -15,7 +15,9 @@ from sklearn.metrics import silhouette_score
 from sklearn.base import clone
 from sklearn.model_selection import (
     GridSearchCV,
+    KFold,
     ShuffleSplit,
+    StratifiedKFold,
     StratifiedShuffleSplit,
     train_test_split,
 )
@@ -161,12 +163,18 @@ def run_hptuning(case: HPTuningCase) -> dict:
         {name: [value] for name, value in candidate.items()}
         for candidate in hptuning.candidates
     ]
-    split_class = StratifiedShuffleSplit if n_classes is not None else ShuffleSplit
-    cv = split_class(
-        n_splits=hptuning.n_splits,
-        test_size=hptuning.test_size,
-        random_state=hptuning.random_state,
-    )
+    if hptuning.cv == "kfold":
+        fold_class = StratifiedKFold if n_classes is not None else KFold
+        cv = fold_class(
+            n_splits=hptuning.n_splits, shuffle=True, random_state=hptuning.random_state
+        )
+    else:
+        split_class = StratifiedShuffleSplit if n_classes is not None else ShuffleSplit
+        cv = split_class(
+            n_splits=hptuning.n_splits,
+            test_size=hptuning.test_size,
+            random_state=hptuning.random_state,
+        )
     scoring = hptuning.scoring or _default_scoring(n_classes)
     scorer = _SPECIAL_SCORERS.get(scoring, scoring)
 

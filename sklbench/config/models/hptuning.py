@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
 from .base import BaseCase, JsonDict, Section
@@ -8,8 +10,12 @@ from .estimator import Algorithm, Data, Implementation
 
 class HPTuning(Section):
     # Each candidate maps pipeline param paths (e.g. "estimator__C") to one
-    # value. Every candidate is fit on `n_splits` random train/test splits.
+    # value. Every candidate is fit on the `n_splits` splits of `cv`.
     candidates: list[JsonDict] = Field(default_factory=lambda: [{}])
+    # "shuffle_split": `n_splits` random train/test splits of `test_size`.
+    # "kfold": `n_splits` shuffled folds (stratified for classification),
+    # `test_size` is unused.
+    cv: Literal["shuffle_split", "kfold"] = "shuffle_split"
     n_splits: int = 3
     test_size: float = 0.2
     random_state: int = 42

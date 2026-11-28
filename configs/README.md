@@ -55,6 +55,9 @@ A few configs inspect the machine to size or filter their matrix:
   machine. `hptuning_taskset.py` turns that sweep into a CPU affinity sweep,
   with `n_jobs=-1`. `hptuning_strong_scaling.py` does the same with a fixed
   number of fits.
+- `hptuning_all_models.py` doesn't probe the machine: its searches are the
+  same everywhere and run with `n_jobs=-1`, with at least 640 fits each so
+  that large servers have work for every logical CPU.
 - `_real_datasets.py` caps KMeans' `OMP_NUM_THREADS`/`OPENBLAS_NUM_THREADS` on
   machines with very many cores, in the scikit-learn environments on OpenBLAS
   only (to avoid an OpenBLAS crash),

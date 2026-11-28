@@ -15,6 +15,7 @@ from dashboards.gen_hardware_parallel_fits import search_match_key
 from sklbench.config import load_cases_from_script
 from sklbench.reporting.matching import _case_without_bench
 from sklbench.reporting.utils import stable_json
+from sklbench.runners.hptuning import _build_pipeline
 
 
 CONFIGS_DIR = Path("configs").resolve()
@@ -65,6 +66,7 @@ def _identities(cases, key):
         ("configs/all_models.py", comparison_key),
         ("configs/all_models_16gb.py", comparison_key),
         ("configs/hptuning.py", search_match_key),
+        ("configs/hptuning_all_models.py", search_match_key),
     ],
 )
 @pytest.mark.parametrize("pixi_env", ["sklearn-pypi", "intel"])
@@ -116,3 +118,12 @@ def test_cases_dont_depend_on_hash_randomization():
         for seed in ("1", "2")
     }
     assert len(outputs) == 1
+
+
+@pytest.mark.parametrize("config", ["configs/hptuning.py", "configs/hptuning_all_models.py"])
+def test_search_candidates_are_parameters_of_the_pipeline(monkeypatch, config):
+    """A mistyped parameter path would only fail once the benchmark runs."""
+    for case in _cases(monkeypatch, config, "sklearn-pypi"):
+        pipeline = _build_pipeline(case)
+        for candidate in case.hptuning.candidates:
+            pipeline.set_params(**candidate)

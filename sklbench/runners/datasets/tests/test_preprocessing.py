@@ -103,7 +103,7 @@ def test_split_and_preprocess_data_without_preprocessing_kind_is_a_noop_split(
     assert isinstance(out["x_train"]["zone"].dtype, pd.CategoricalDtype)
 
 
-@pytest.mark.parametrize("encoding", ["ordinal", "one-hot"])
+@pytest.mark.parametrize("encoding", ["ordinal", "one-hot", "target"])
 def test_trees_preprocessor_encodes_real_categorical_columns(mixed_data, encoding):
     out = split_and_preprocess_data(
         dict(mixed_data),
