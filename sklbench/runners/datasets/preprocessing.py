@@ -206,13 +206,84 @@ def build_restore_order(transfer_to_device: FunctionTransformer) -> FunctionTran
     )
 
 
+def _target_encoder(target_type: str) -> TargetEncoder:
+    if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
+        return TargetEncoder(
+            target_type=target_type,
+            cv=KFold(n_splits=5, shuffle=True, random_state=0),
+        )
+    return TargetEncoder(target_type=target_type, cv=5, shuffle=True, random_state=0)
+
+
+class CategoricalEncoder(BaseEstimator, TransformerMixin):
+    """Encoder of `trees_preprocessor`'s categorical columns, with the kind of
+    encoding as a parameter so a hyper-parameter search can tune it
+    (`preprocessor__encoder__encoding`).
+
+    `max_categories` and `min_frequency` don't apply to "target".
+    """
+
+    def __init__(
+        self,
+        encoding="ordinal",
+        min_frequency=5,
+        max_categories=None,
+        unknown_value=np.nan,
+        target_type="auto",
+    ):
+        self.encoding = encoding
+        self.min_frequency = min_frequency
+        self.max_categories = max_categories
+        self.unknown_value = unknown_value
+        self.target_type = target_type
+
+    def _build_encoder(self):
+        if self.encoding == "ordinal":
+            return OrdinalEncoder(
+                handle_unknown="use_encoded_value",
+                unknown_value=self.unknown_value,
+                encoded_missing_value=-1,
+                min_frequency=self.min_frequency,
+                max_categories=self.max_categories,
+            )
+        if self.encoding == "one-hot":
+            return OneHotEncoder(
+                handle_unknown="infrequent_if_exist",
+                max_categories=self.max_categories,
+                min_frequency=self.min_frequency,
+                # Forests don't support missing values in sparse input.
+                sparse_output=False,
+            )
+        if self.encoding == "target":
+            return _target_encoder(self.target_type)
+        raise ValueError(f"Unknown encoding {self.encoding!r}")
+
+    def fit(self, X, y=None):
+        self.encoder_ = self._build_encoder().fit(X, y)
+        return self
+
+    def fit_transform(self, X, y=None):
+        # Not `fit(X, y).transform(X)`: TargetEncoder cross-fits in `fit_transform`.
+        self.encoder_ = self._build_encoder()
+        return self.encoder_.fit_transform(X, y)
+
+    def transform(self, X):
+        return self.encoder_.transform(X)
+
+    def get_feature_names_out(self, input_features=None):
+        return self.encoder_.get_feature_names_out(input_features)
+
+
 def trees_preprocessor(
     encoding : str = "ordinal",
     remove_nans: bool = False,
     numeric_impute_strategy: str = "mean",
+    target_type: str = "auto",
     transfer_to_device=None,
 ):
-    """`remove_nans`, when set, makes the output NaN-free, needed for
+    """`encoding` is "ordinal", "one-hot" or "target" (see `CategoricalEncoder`).
+
+    `remove_nans`, when set, makes the output NaN-free, needed for
     tree implementations that (unlike HGB) don't handle missing values
     natively: numeric columns are imputed with `numeric_impute_strategy`
     (`SimpleImputer`), and unseen categories at transform time are encoded
@@ -222,22 +293,12 @@ def trees_preprocessor(
     `transfer_to_device` (see `build_transfer_to_device`), when given, is
     placed last."""
 
-    encoders = {
-        "ordinal": OrdinalEncoder(
-            handle_unknown="use_encoded_value",
-            unknown_value=-2 if remove_nans else np.nan,
-            encoded_missing_value=-1,
-            min_frequency=5
-        ),
-        "one-hot": OneHotEncoder(
-            handle_unknown="infrequent_if_exist",
-            max_categories=10,
-            min_frequency=5,
-        ),
-        # TODO? target encoding
-    }
-
-    encoder = encoders[encoding]
+    encoder = CategoricalEncoder(
+        encoding=encoding,
+        max_categories=10 if encoding == "one-hot" else None,
+        unknown_value=-2 if remove_nans else np.nan,
+        target_type=target_type,
+    )
 
     numeric_transformer = (
         SimpleImputer(strategy=numeric_impute_strategy) if remove_nans else "passthrough"
@@ -291,18 +352,7 @@ def linear_preprocessor(
     placed last either way.
     """
 
-    if _SKLEARN_TARGET_ENCODER_CV_SPLITTER:
-        target_encoder = TargetEncoder(
-            target_type=target_type,
-            cv=KFold(n_splits=5, shuffle=True, random_state=0),
-        )
-    else:
-        target_encoder = TargetEncoder(
-            target_type=target_type,
-            cv=5,
-            shuffle=True,
-            random_state=0,
-        )
+    target_encoder = _target_encoder(target_type)
 
     one_hot_encoder = OneHotEncoder(
         sparse_output=False,
@@ -376,6 +426,10 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
     `sklbench.runners.hptuning` does exactly that.
     """
 
+    def __init__(self, min_frequency=5, max_categories=252):
+        self.min_frequency = min_frequency
+        self.max_categories = max_categories
+
     def fit(self, X, y=None):
         if not isinstance(X, pd.DataFrame):
             X = pd.DataFrame(X)
@@ -390,8 +444,8 @@ class HGBCategoricalCapper(BaseEstimator, TransformerMixin):
                         handle_unknown="use_encoded_value",
                         unknown_value=np.nan,
                         encoded_missing_value=-1,
-                        min_frequency=5,
-                        max_categories=252,
+                        min_frequency=self.min_frequency,
+                        max_categories=self.max_categories,
                     ),
                     self.categorical_columns_,
                 )
