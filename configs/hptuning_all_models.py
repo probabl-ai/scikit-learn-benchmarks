@@ -8,7 +8,7 @@ default `n_jobs`, and joblib limits OpenMP and BLAS to one thread per worker),
 so the search's own `n_jobs=-1` is the only level of parallelism.
 
 Searches have 640 to 2,560 fits, enough to feed every logical CPU of a large
-server, and take from ~15 minutes to ~5 hours of single-core time, ~20 hours
+server, and take from ~15 minutes to ~2.5 hours of single-core time, ~15 hours
 in total. The estimate next to each `n_splits` is extrapolated from the first
 8 candidates, on a Core Ultra X7 358H.
 
@@ -203,20 +203,6 @@ SEARCHES = [
         },
     ),
     # Extra-trees
-    dict(
-        estimator="ExtraTreesClassifier",
-        dataset="kick",
-        preprocessing_kind="trees",
-        n_candidates=128,
-        n_splits=5,  # ~5 h
-        estimator_params={"n_estimators": 200},
-        space={
-            "encoding": _tree_encodings(one_hot_max_categories=[4, 10, 30]),
-            "estimator__max_features": ["sqrt", 0.3, 0.6],
-            "estimator__min_samples_leaf": [1, 5, 20, 50],
-            "estimator__max_depth": [10, 20, None],
-        },
-    ),
     dict(
         estimator="ExtraTreesRegressor",
         dataset="california_housing",
